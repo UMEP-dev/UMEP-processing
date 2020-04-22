@@ -83,13 +83,13 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-                self.tr('Vegetation Canopy DSM'), '', True))
+                self.tr('Vegetation canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
             self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
-                self.tr('Vegetation Trunk zone DSM'), '', True))
+                self.tr('Vegetation trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
-            self.tr("Trunk zone height (percent of Canopy Height)"), 
+            self.tr("Trunk zone height (percent of canopy height)"), 
             QgsProcessingParameterNumber.Double,
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
@@ -98,7 +98,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             defaultValue=True))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output folder for individual raster files'))
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
-            self.tr("Output Sky View Factor Raster"), None, False))
+            self.tr("Output sky view factor raster"), None, False))
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
@@ -133,49 +133,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         sizex = dsm.shape[0]
         sizey = dsm.shape[1]
 
-        # old_cs = osr.SpatialReference()
-        # dsm_ref = dsmlayer.crs().toWkt()
-        # old_cs.ImportFromWkt(dsm_ref)
-
-        # wgs84_wkt = """
-        # GEOGCS["WGS 84",
-        #     DATUM["WGS_1984",
-        #         SPHEROID["WGS 84",6378137,298.257223563,
-        #             AUTHORITY["EPSG","7030"]],
-        #         AUTHORITY["EPSG","6326"]],
-        #     PRIMEM["Greenwich",0,
-        #         AUTHORITY["EPSG","8901"]],
-        #     UNIT["degree",0.01745329251994328,
-        #         AUTHORITY["EPSG","9122"]],
-        #     AUTHORITY["EPSG","4326"]]"""
-
-        # new_cs = osr.SpatialReference()
-        # new_cs.ImportFromWkt(wgs84_wkt)
-
-        # transform = osr.CoordinateTransformation(old_cs, new_cs)
-
-        # width = gdal_dsm.RasterXSize
-        # height = gdal_dsm.RasterYSize
-        # gt = gdal_dsm.GetGeoTransform()
-        # minx = gt[0]
-        # miny = gt[3] + width*gt[4] + height*gt[5]
-        # lonlat = transform.TransformPoint(minx, miny)
         geotransform = gdal_dsm.GetGeoTransform()
         scale = 1 / geotransform[1]
         
-        # gdalver = float(gdal.__version__[0])
-        # if gdalver >= 3.:
-        #     lon = lonlat[1] #changed to gdal 3
-        #     lat = lonlat[0] #changed to gdal 3
-        # else:
-        #     lon = lonlat[0] #changed to gdal 2
-        #     lat = lonlat[1] #changed to gdal 2
-
-        # feedback.setProgressText('Longitude derived from DSM: ' + str(lon))
-        # feedback.setProgressText('Latitude derived from DSM: ' + str(lat))
-
-        feedback.setProgressText(str(scale))
-
         trans = transVeg / 100.0
 
         if useVegdem:
@@ -217,7 +177,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             vegsizex = vegdsm2.shape[0]
             vegsizey = vegdsm2.shape[1]
 
-            if not (vegsizex == sizex) & (vegsizey == sizey):  # &
+            if not (vegsizex == sizex) & (vegsizey == sizey):  
                 raise QgsProcessingException("Error in Trunk Zone DSM: All rasters must be of same extent and resolution")
         else:
             rows = dsm.shape[0]
@@ -233,7 +193,6 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText('Calculating SVF using 655 iterations')
             ret = svf.svfForProcessing655(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
 
-        # saving results
         filename = outputFile
 
         # temporary fix for mac, ISSUE #15
@@ -243,13 +202,13 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 os.makedirs(outputDir)
 
         if ret is not None:
-            self.svfbu = ret["svf"]
+            svfbu = ret["svf"]
             svfbuE = ret["svfE"]
             svfbuS = ret["svfS"]
             svfbuW = ret["svfW"]
             svfbuN = ret["svfN"]
             
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svf.tif', self.svfbu)
+            misc.saveraster(gdal_dsm, outputDir + '/' + 'svf.tif', svfbu)
             misc.saveraster(gdal_dsm, outputDir + '/' + 'svfE.tif', svfbuE)
             misc.saveraster(gdal_dsm, outputDir + '/' + 'svfS.tif', svfbuS)
             misc.saveraster(gdal_dsm, outputDir + '/' + 'svfW.tif', svfbuW)
@@ -273,7 +232,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             os.remove(outputDir + '/' + 'svfN.tif')
 
             if usevegdem == 0:
-                svftotal = self.svfbu
+                svftotal = svfbu
             else:
                 # report the result
                 svfveg = ret["svfveg"]
@@ -323,7 +282,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 os.remove(outputDir + '/' + 'svfNaveg.tif')
 
                 trans = transVeg / 100.0
-                svftotal = (self.svfbu - (1 - svfveg) * (1 - trans))
+                svftotal = (svfbu - (1 - svfveg) * (1 - trans))
 
             misc.saveraster(gdal_dsm, filename, svftotal)
 
@@ -341,46 +300,33 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                                     # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
                                     # facesunmat=facesunmat, wallshvemat=wallshvemat)
 
-        feedback.setProgressText("Skt View Factor: SVF grid(s) successfully generated")
+        feedback.setProgressText("Sky View Factor: SVF grid(s) successfully generated")
 
         return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: outputFile}
     
     def name(self):
-        """
-        Returns the algorithm name, used for identifying the algorithm. This
-        string should be fixed for the algorithm, and must not be localised.
-        The name should be unique within each provider. Names should contain
-        lowercase alphanumeric characters only and no spaces or other
-        formatting characters.
-        """
         return 'Urban Geometry: Sky View Factor'
 
     def displayName(self):
-        """
-        Returns the translated algorithm name, which should be used for any
-        user-visible display of the algorithm name.
-        """
         return self.tr(self.name())
 
     def group(self):
-        """
-        Returns the name of the group this algorithm belongs to. This string
-        should be localised.
-        """
         return self.tr(self.groupId())
 
     def groupId(self):
-        """
-        Returns the unique ID of the group this algorithm belongs to. This
-        string should be fixed for the algorithm, and must not be localised.
-        The group id should be unique within each provider. Group id should
-        contain lowercase alphanumeric characters only and no spaces or other
-        formatting characters.
-        """
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('Here (shortHelpString()) we can write short information string about this tool.')
+        return self.tr('The Sky View Factor algorithm can be used to generate pixel wise sky view factor (SVF) '
+        'using ground and building digital surface models (DSM). Optionally, vegetation DSMs could also be used. '
+        'By definition, SVF is the ratio of the radiation received (or emitted) by a planar surface to the '
+        'radiation emitted (or received) by the entire hemispheric environment (Watson and Johnson 1987). '
+        'It is a dimensionless measure between zero and one, representing totally obstructed and free spaces, '
+        'respectively. The methodology that is used to generate SVF here is described in Lindberg and Grimmond (2010).\n'
+        'Click on the "Help" button below for more information.\n'
+        '-------------\n'
+        'Lindberg F, Grimmond CSB (2010) Continuous sky view factor maps from high resolution urban digital elevation models. Clim Res 42:177–183\n'
+        'Watson ID, Johnson GT (1987) Graphical estimation of skyview-factors in urban environments. J Climatol 7: 193–197')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Geometry%20Sky%20View%20Factor%20Calculator.html"

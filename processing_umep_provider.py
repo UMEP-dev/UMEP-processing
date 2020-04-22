@@ -35,6 +35,8 @@ from processing.core.ProcessingConfig import ProcessingConfig
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
 from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
 from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm
+from .preprocessor.imagemorphparmspoint_algorithm import ProcessingImageMorphParmsPointAlgorithm
+from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algorithm
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 import os.path
 from qgis.PyQt.QtGui import QIcon
@@ -64,6 +66,8 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         #Preprocessor
         self.addAlgorithm(ProcessingSkyViewFactorAlgorithm())
         self.addAlgorithm(ProcessingWallHeightAscpetAlgorithm())
+        self.addAlgorithm(ProcessingImageMorphParmsPointAlgorithm())
+        self.addAlgorithm(ProcessingCopernicusERA5Algorithm())
         
         #Processor
         self.addAlgorithm(ProcessingShadowGeneratorAlgorithm())
