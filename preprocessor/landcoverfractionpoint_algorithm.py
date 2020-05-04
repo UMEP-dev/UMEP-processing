@@ -60,12 +60,10 @@ import inspect
 from pathlib import Path
 import sys
 from ..util import misc
-from ..util import RoughnessCalcFunctionV2 as rg
-from ..util import imageMorphometricParms_v1 as morph
+from ..util import landCoverFractions_v1 as land
 
 
-
-class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
+class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of Image Morphometric Calculator Point
     """
@@ -75,11 +73,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
     INPUT_POINTLAYER = 'INPUT_POINTLAYER'
     INPUT_DISTANCE = 'INPUT_DISTANCE'
     INPUT_INTERVAL = 'INPUT_INTERVAL'
-    INPUT_DSM = 'INPUT_DSM'
-    INPUT_DEM = 'INPUT_DEM'
-    INPUT_DSMBUILD = 'INPUT_DSMBUILD'
-    USE_DSMBUILD = 'USE_DSM_BUILD'
-    ROUGH = 'ROUGH'
+    INPUT_LCGRID = 'INPUT_LCGRID'
     FILE_PREFIX = 'FILE_PREFIX'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_POLYGON = 'OUTPUT_POLYGON'
@@ -88,12 +82,6 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
     
     def initAlgorithm(self, config):
         
-        self.rough = ((self.tr('Rule of thumb'), '0'),
-                        (self.tr('Raupach (1994/95)'), '1'),
-                        (self.tr('Simplified Bottema (1995)'), '2'),
-                        (self.tr('MacDonald et al. (1998)'), '3'),
-                        (self.tr('Millward-Hopkins et al. (2011)'), '4'),
-                        (self.tr('Kanda et al. (2013)'), '5'))
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
             self.tr('Point of interest'), optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
@@ -108,19 +96,8 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             self.tr('Wind direction search interval (degree)'), 
             QgsProcessingParameterNumber.Double,
             QVariant(5), False, minValue=0.1, maxValue=360.))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
-            self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
-        #     self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-            self.tr('Raster DSM (3D objects and ground)'), '', True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-            self.tr('Raster DEM (only ground)'), '', True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSMBUILD,
-            self.tr('Raster DSM (only 3D objects)'), '', True))
-        self.addParameter(QgsProcessingParameterEnum(self.ROUGH,
-            self.tr('Roughness calculation method'),
-            options=[i[0] for i in self.rough], defaultValue=0))
+        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LCGRID,
+            self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
@@ -143,11 +120,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         inputPointLayer = None
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
-        useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
-        dsmlayer = None
-        demlayer = None
-        # dsm_build = None
-        ro = self.parameterAsString(parameters, self.ROUGH, context)
+        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
         filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputPolygon = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
@@ -185,50 +158,20 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
                     
         r = inputDistance
         
-        if useDsmBuild: # Only building heights
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSMBUILD, context)
-            if dsmlayer is None:
-                raise QgsProcessingException("No valid building DSM raster layer is selected")
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        if dsmlayer is None:
+            raise QgsProcessingException("No valid building land cover raster layer is selected")
 
-            provider = dsmlayer.dataProvider()
-            filePath_dsm_build = str(provider.dataSourceUri())
-            bigraster = gdal.Open(filePath_dsm_build)
-            bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
-            bigraster = None
-            dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-            dsm = dataset.ReadAsArray().astype(np.float)
-            sizex = dsm.shape[0]
-            sizey = dsm.shape[1]
-            dem = np.zeros((sizex, sizey))
-
-        else:  # Both building ground heights
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-            demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context) 
-
-            if dsmlayer is None:
-                raise QgsProcessingException("No valid ground and building DSM raster layer is selected")
-            if demlayer is None:
-                raise QgsProcessingException("No valid ground DEM raster layer is selected")
-
-            provider = dsmlayer.dataProvider()
-            filePath_dsm = str(provider.dataSourceUri())
-            provider = demlayer.dataProvider()
-            filePath_dem = str(provider.dataSourceUri())
-            bigraster = gdal.Open(filePath_dsm)
-            bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
-            bigraster = gdal.Open(filePath_dem)
-            bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
-
-            dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-            dsm = dataset.ReadAsArray().astype(np.float)
-            dataset2 = gdal.Open(self.plugin_dir + '/data/clipdem.tif')
-            dem = dataset2.ReadAsArray().astype(np.float)
-
-            if not (dsm.shape[0] == dem.shape[0]) & (dsm.shape[1] == dem.shape[1]):
-                raise QgsProcessingException("All grids must be of same extent and resolution")
+        provider = dsmlayer.dataProvider()
+        filePath_dsm_build = str(provider.dataSourceUri())
+        bigraster = gdal.Open(filePath_dsm_build)
+        bbox = (x - r, y + r, x + r, y - r)
+        gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+        bigraster = None
+        dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
+        dsm = dataset.ReadAsArray().astype(np.float)
+        sizex = dsm.shape[0]
+        sizey = dsm.shape[1]
 
         geotransform = dataset.GetGeoTransform()
         scale = 1 / geotransform[1]
@@ -240,56 +183,25 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException("NoData values present within the radius (" + str(int(r)) + 
                                 " m) from point of interest. Extend your raster(s) or more point.")
         else:
-            immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
+            # immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
+            landcoverresult = land.landcover_v1(dsm, 1, degree, feedback, 1)
 
-        # #Calculate Z0m and Zdm depending on the Z0 method
-        if ro == 0:
-            Roughnessmethod = 'RT'
-        elif ro == 1:
-            Roughnessmethod = 'Rau'
-        elif ro == 2:
-            Roughnessmethod = 'Bot'
-        elif ro == 3:
-            Roughnessmethod = 'Mac'
-        elif ro == 4:
-            Roughnessmethod = 'Mho'
-        else:
-            Roughnessmethod = 'Kan'
+        
 
-        zH = immorphresult["zH"]
-        fai = immorphresult["fai"]
-        pai = immorphresult["pai"]
-        zMax = immorphresult["zHmax"]
-        zSdev = immorphresult["zH_sd"]
-
-        zd, z0 = rg.RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev)
 
         # save to file
         pre = filePrefix
-        header = ' Wd pai   fai   zH  zHmax   zHstd zd z0'
-        numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        arr = np.concatenate((immorphresult["deg"], immorphresult["pai"], immorphresult["fai"],
-                            immorphresult["zH"], immorphresult["zHmax"], immorphresult["zH_sd"], zd, z0), axis=1)
-        np.savetxt(outputDir + '/' + pre + '_' + 'IMPPoint_anisotropic.txt', arr,
+        header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+        numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        arr = np.concatenate((landcoverresult["deg"], landcoverresult["lc_frac"]), axis=1)
+        np.savetxt(outputDir + '/' + pre + '_' + 'LCFPoint_anisotropic.txt', arr,
                    fmt=numformat, delimiter=' ', header=header, comments='')
 
-        zHall = immorphresult["zH_all"]
-        faiall = immorphresult["fai_all"]
-        paiall = immorphresult["pai_all"]
-        zMaxall = immorphresult["zHmax_all"]
-        zSdevall = immorphresult["zH_sd_all"]
-        zdall, z0all = rg.RoughnessCalc(Roughnessmethod, zHall, faiall, paiall, zMaxall, zSdevall)
-        # If zd and z0 are lower than open country, set to open country
-        if zdall < 0.2:
-            zdall = 0.2
-        if z0all < 0.03:
-            z0all = 0.03
-        header = ' pai  fai   zH    zHmax    zHstd zd z0'
-        numformat = '%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        arr2 = np.array([[immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
-                          immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all]])
-        np.savetxt(outputDir + '/' + pre + '_' + 'IMPPoint_isotropic.txt', arr2,
-                   fmt=numformat, delimiter=' ', header=header, comments='')
+        header = 'Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+        numformat = '%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        arr2 = np.array(landcoverresult["lc_frac_all"])
+        np.savetxt(outputDir + '/' + pre + '_' + 'LCFPoint_isotropic.txt', arr2,
+                    fmt=numformat, delimiter=' ', header=header, comments='')
 
         dataset = None
         dataset2 = None
@@ -297,6 +209,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         
         crs = str(dsmlayer.crs().authid())
         self.create_poly_layer(outputPolygon, x, y, r, crs)
+        
         if savePoint:
             outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
             self.create_point_layer(outputPoint, x, y, crs)
@@ -359,7 +272,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         del writer
     
     def name(self):
-        return 'Urban Morphology: Morphometric Calculator (Point)'
+        return 'Urban Land Cover: Land Cover Fraction (Point)'
 
     def displayName(self):
         return self.tr(self.name())
@@ -371,12 +284,13 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('The Morphometric Calculator (Point) plugin calculates various morphometric parameters based on digital surface models. These morphometric parameters are used to describe the roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D vegetation (i.e. trees and bushes). It is also possible to derive the parameters from a 3D object DSM with no ground heights.\n'
-        '-------------\n'
-        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292')
+        return self.tr('The Land Cover Fraction (Point) plugin calculates land cover fractions required for UMEP (see Land Cover '
+        'Reclassifier) from a point location based on a land cover raster grid. A land cover grid suitable for the processor in '
+        'UMEP can be derived using the Land Cover Classifier. The fraction will vary depending on what angle (wind direction) '
+        'you are interested in. Thus, this plugin is able to derive the land cover fractions for different directions..\n')
 
     def helpUrl(self):
-        url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Point).html"
+        url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Land%20Cover%20Land%20Cover%20Fraction%20(Point).html"
         return url
 
     def tr(self, string):
@@ -384,8 +298,8 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
     def icon(self):
         cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
-        icon = QIcon(str(cmd_folder) + "/icons/ImageMorphIconPoint.png")
+        icon = QIcon(str(cmd_folder) + "/icons/LandCoverFractionPointIcon.png")
         return icon
 
     def createInstance(self):
-        return ProcessingImageMorphParmsPointAlgorithm()
+        return ProcessingLandCoverFractionPointAlgorithm()

@@ -22,7 +22,7 @@ import scipy.ndimage.interpolation as sc
 
 
 
-def landcover_v1(lc_grid, mid, dtheta, dlg, imp_point):
+def landcover_v1(lc_grid, mid, dtheta, feedback, imp_point):
 
     # Isotropic
     lc_frac_all = np.zeros((1, 7))
@@ -42,8 +42,8 @@ def landcover_v1(lc_grid, mid, dtheta, dlg, imp_point):
     else:
         dY = np.int16(np.arange(np.dot(1, n)))  # the whole length of the grid (y)
 
-    if imp_point == 1:
-            dlg.progressBar.setRange(0., 360. / dtheta)
+    # if imp_point == 1:
+        # dlg.progressBar.setRange(0., 360. / dtheta)
 
     dX = np.int16(np.arange(imid, imid+1))
     lx = dX.shape[0]
@@ -52,7 +52,8 @@ def landcover_v1(lc_grid, mid, dtheta, dlg, imp_point):
     j = int(0)
     for angle in np.arange(0, (360.-dtheta+0) + dtheta, dtheta):
         if imp_point == 1:
-            dlg.progressBar.setValue(angle)
+            feedback.setProgress(int(angle/3.6))
+            # dlg.progressBar.setValue(angle)
 
         # d = sc.rotate(lc_grid, angle, reshape=False, mode='nearest')
         d = sc.rotate(lc_grid, angle, order=0, reshape=False, mode='nearest')
