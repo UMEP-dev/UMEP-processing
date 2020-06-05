@@ -197,7 +197,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
-        if pf == 'darwin' or pf == 'linux2':
+        if pf == 'darwin' or pf == 'linux2' or pf == 'linux':
             if not os.path.exists(outputDir):
                 os.makedirs(outputDir)
 
