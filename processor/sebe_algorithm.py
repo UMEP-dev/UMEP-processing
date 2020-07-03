@@ -39,6 +39,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterFileDestination,
+                       QgsProcessingParameterFile,
                        QgsProcessingException,
                     #    QgsProcessingParameterPoint,
                        QgsProcessingParameterRasterLayer)
@@ -48,16 +49,19 @@ import numpy as np
 from osgeo import gdal, osr
 from osgeo.gdalconst import *
 import os
-from ..functions import dailyshading as dsh
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
-# import matplotlib.pyplot as plt
+from ..functions import SEBE_2015a_calc_forprocessing as sebe
+from .SEBEfiles.sunmapcreator_2015a import sunmapcreator_2015a
+from .SEBEfiles import WriteMetaDataSEBE
+from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
+from ..util.misc import get_ders, saveraster
 
 
-class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
+class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     """
-    This algorithm is a processing version of ShadowGenerator
+    This algorithm is a processing version of SEBE
     """
 
     # Constants used to refer to parameters and outputs. They will be
@@ -69,29 +73,23 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    CALC_FACADE = 'CALC_FACADE'
     USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
     TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
-    ONE_SHADOW = 'ONE_SHADOW'
-    ITERTIME = 'ITERTIME'
-    DATEINI = 'DATEINI'
-    TIMEINI = 'TIMEINI'
     UTC = 'UTC'
-    DST = 'DST'
+    ALBEDO = 'ALBEDO'
+    ONLYGLOBAL = 'ONLYGLOBAL'
+    INPUT_MET = 'INPUTMET'
+    SAVESKYIRR = 'SAVESKYIRR'
+    IRR_FILE = 'IRR_FILE'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_FILE = 'OUTPUT_FILE'
-    # EXTENT = 'EXTENT'
-
+    
 
     def initAlgorithm(self, config):
-        # self.addParameter(QgsProcessingParameterPoint(self.EXTENT,
-        #         self.tr('Extent'), None, False))
-        # self.addParameter(QgsProcessingParameterExtent(self.EXTENT,
-        #         self.tr('Extent'), None, False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-                self.tr('Input building and ground DSM'), None, False))
+            self.tr('Input building and ground DSM'), None, False))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
             self.tr("Use vegetation DSMs"), defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
@@ -99,106 +97,78 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-                self.tr('Vegetation Canopy DSM'), '', True))
+            self.tr('Vegetation Canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
             self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
-                self.tr('Vegetation Trunk zone DSM'), '', True))
+            self.tr('Vegetation Trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
             self.tr("Trunk zone height (percent of Canopy Height)"), 
             QgsProcessingParameterNumber.Double,
-            QVariant(25.0),
-            True, minValue=0.1, maxValue=99.9))
-        self.addParameter(QgsProcessingParameterBoolean(self.CALC_FACADE,
-            self.tr("Include facade shadow output"), defaultValue=False))
+            QVariant(25.0), True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
-                self.tr('Wall height raster'), '', True))
+            self.tr('Wall height raster'), '', False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
-                self.tr('Wall aspect raster'), '', True))
+            self.tr('Wall aspect raster'), '', False))
+        self.addParameter(QgsProcessingParameterNumber(self.ALBEDO, 
+            self.tr('Albedo:'), QgsProcessingParameterNumber.Double,
+            QVariant(0.15), False, minValue=0, maxValue=1))
+        self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
+            self.tr('Input meteorological file'), extension = 'txt'))
+        self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
+            self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
             self.tr('Coordinated Universal Time (UTC) '), 
             QgsProcessingParameterNumber.Integer,
-            QVariant(0),
-            True, minValue=-12, maxValue=12)) 
-        self.addParameter(QgsProcessingParameterBoolean(self.DST,
-            self.tr("Add Daylight savings time"), defaultValue=False))       
-        param = QgsProcessingParameterString(self.DATEINI, 'Date')
-        param.setMetadata({'widget_wrapper': {'class': DateWidget}})
-        self.addParameter(param)
-        self.addParameter(QgsProcessingParameterNumber(self.ITERTIME, 
-            self.tr('Time interval between casting of each shadow (minutes)'), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(30),
-            True, minValue=0.1, maxValue=360))
-        self.addParameter(QgsProcessingParameterBoolean(self.ONE_SHADOW,
-            self.tr("Cast only one shadow"), defaultValue=False))
-        paramT = QgsProcessingParameterString(self.TIMEINI, 'Time for single shadow')
-        paramT.setMetadata({'widget_wrapper': {'class': TimeWidget}})
-        self.addParameter(paramT)
+            QVariant(0),  False, minValue=-12, maxValue=12)) 
+        self.addParameter(QgsProcessingParameterBoolean(self.SAVESKYIRR,
+            self.tr("Save sky irradiance distribution"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT_FILE, 
+             self.tr('Sky irradiance distribution'), self.tr('txt files (*.txt)')))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
-        # self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT_FILE, 
-        #     self.tr('Image file'), self.tr('png files (*.png)')))
-        # self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
-        #     self.tr("Output for aggregated shadow raster file"), None, False))
 
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        # outputFile = self.parameterAsFileOutput(parameters, self.OUTPUT_FILE, context)
         # outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
         useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
         vegdsm = None
         vegdsm2 = None
-        wheight = None
-        waspect = None
+        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
+        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
         tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
-        facade = self.parameterAsBool(parameters, self.CALC_FACADE, context)
+        onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context) 
-        dst = self.parameterAsBool(parameters, self.DST, context)
-        myDate = self.parameterAsString(parameters, self.DATEINI, context)
-        oneShadow = self.parameterAsDouble(parameters, self.ONE_SHADOW, context) 
-        myTime = self.parameterAsString(parameters, self.TIMEINI, context)
-        iterShadow = self.parameterAsDouble(parameters, self.ITERTIME, context)
+        albedo = self.parameterAsDouble(parameters, self.ALBEDO, context)
+        inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
+        saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
+        irrFile = self.parameterAsFileOutput(parameters, self.IRR_FILE, context)
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-            # tempout = ''
-        # else:
-            # tempout = 'OUPUT_DIR/'
 
         # Code from old plugin
-        if dst:
-            dst = 1
-        else:
-            dst = 0
-
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
-        gdal_dsm = gdal.Open(filepath_dsm)
-        dsm = gdal_dsm.ReadAsArray().astype(np.float)
-
-        # code to save as image
-        # fig, ax = plt.subplots( nrows=1, ncols=1 )  # create figure & 1 axis
-        # ax.imshow(dsm)
-        # # ax.plot([0,1,2], [10,20,3])
-        # fig.savefig(outputFile)   # save the figure to file
-        # plt.close(fig)
+        # self.dsmpath = filepath_dsm
+        self.gdal_dsm = gdal.Open(filepath_dsm)
+        self.dsm = self.gdal_dsm.ReadAsArray().astype(np.float)
+        sizex = self.dsm.shape[0]
+        sizey = self.dsm.shape[1]
 
         # response to issue #85
-        nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
-        dsm[dsm == nd] = 0.
-        if dsm.min() < 0:
-            dsm = dsm + np.abs(dsm.min())
+        nd = self.gdal_dsm.GetRasterBand(1).GetNoDataValue()
+        self.dsm[self.dsm == nd] = 0.
+        if self.dsm.min() < 0:
+            self.dsm = self.dsm + np.abs(self.dsm.min())
 
-        sizex = dsm.shape[0]
-        sizey = dsm.shape[1]
-
+        # Get latlon from grid coordinate system
         old_cs = osr.SpatialReference()
         dsm_ref = dsmlayer.crs().toWkt()
         old_cs.ImportFromWkt(dsm_ref)
@@ -219,28 +189,27 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         new_cs.ImportFromWkt(wgs84_wkt)
 
         transform = osr.CoordinateTransformation(old_cs, new_cs)
-
-        width = gdal_dsm.RasterXSize
-        height = gdal_dsm.RasterYSize
-        gt = gdal_dsm.GetGeoTransform()
-        minx = gt[0]
-        miny = gt[3] + width*gt[4] + height*gt[5]
+        width = self.gdal_dsm.RasterXSize
+        height = self.gdal_dsm.RasterYSize
+        geotransform = self.gdal_dsm.GetGeoTransform()
+        minx = geotransform[0]
+        miny = geotransform[3] + width*geotransform[4] + height*geotransform[5]
         lonlat = transform.TransformPoint(minx, miny)
-        geotransform = gdal_dsm.GetGeoTransform()
-        scale = 1 / geotransform[1]
-        
         gdalver = float(gdal.__version__[0])
-        if gdalver >= 3.:
+        if gdalver == 3.:
             lon = lonlat[1] #changed to gdal 3
             lat = lonlat[0] #changed to gdal 3
         else:
             lon = lonlat[0] #changed to gdal 2
             lat = lonlat[1] #changed to gdal 2
+        self.scale = 1 / geotransform[1]
 
         feedback.setProgressText('Longitude derived from DSM: ' + str(lon))
         feedback.setProgressText('Latitude derived from DSM: ' + str(lat))
 
-        trans = transVeg / 100.0
+        trunkfile = 0
+        trunkratio = 0
+        psi = transVeg / 100.0
 
         if useVegdem:
             usevegdem = 1
@@ -255,7 +224,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
             vegdsm = dataSet.ReadAsArray().astype(np.float)
-
+            filePath_cdsm = filePathOld
             vegsizex = vegdsm.shape[0]
             vegsizey = vegdsm.shape[1]
 
@@ -272,11 +241,13 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 gdal.AllRegister()
                 provider = vegdsm2.dataProvider()
                 filePathOld = str(provider.dataSourceUri())
+                filePath_tdsm = filePathOld
                 dataSet = gdal.Open(filePathOld)
                 vegdsm2 = dataSet.ReadAsArray().astype(np.float)
             else:
                 trunkratio = trunkr / 100.0
                 vegdsm2 = vegdsm * trunkratio
+                filePath_tdsm = None
 
             vegsizex = vegdsm2.shape[0]
             vegsizey = vegdsm2.shape[1]
@@ -287,82 +258,114 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             vegdsm = 0
             vegdsm2 = 0
             usevegdem = 0
+            filePath_cdsm = None
+            filePath_tdsm = None
 
-        if facade: 
-            feedback.setProgressText('Facade shadow scheme activated')
-            wallsh = 1
-            # wall height layer
-            whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
-            if whlayer is None:
-                raise QgsProcessingException("Error: No valid wall height raster layer is selected")
-            provider = whlayer.dataProvider()
-            filepath_wh = str(provider.dataSourceUri())
-            self.gdal_wh = gdal.Open(filepath_wh)
-            wheight = self.gdal_wh.ReadAsArray().astype(np.float)
-            vhsizex = wheight.shape[0]
-            vhsizey = wheight.shape[1]
-            if not (vhsizex == sizex) & (vhsizey == sizey):  # &
-                raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
+        # wall height layer
+        if whlayer is None:
+            raise QgsProcessingException("Error: No valid wall height raster layer is selected")
+        provider = whlayer.dataProvider()
+        filepath_wh = str(provider.dataSourceUri())
+        self.gdal_wh = gdal.Open(filepath_wh)
+        wheight = self.gdal_wh.ReadAsArray().astype(np.float)
+        vhsizex = wheight.shape[0]
+        vhsizey = wheight.shape[1]
+        if not (vhsizex == sizex) & (vhsizey == sizey):
+            raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
-            # wall aspectlayer
-            walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-            if walayer is None:
-                raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
-            provider = walayer.dataProvider()
-            filepath_wa = str(provider.dataSourceUri())
-            self.gdal_wa = gdal.Open(filepath_wa)
-            waspect = self.gdal_wa.ReadAsArray().astype(np.float)
-            vasizex = waspect.shape[0]
-            vasizey = waspect.shape[1]
-            if not (vasizex == sizex) & (vasizey == sizey):
-                raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
+        # wall aspectlayer
+        if walayer is None:
+            raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
+        provider = walayer.dataProvider()
+        filepath_wa = str(provider.dataSourceUri())
+        self.gdal_wa = gdal.Open(filepath_wa)
+        waspect = self.gdal_wa.ReadAsArray().astype(np.float)
+        vasizex = waspect.shape[0]
+        vasizey = waspect.shape[1]
+        if not (vasizex == sizex) & (vasizey == sizey):
+            raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
+
+        voxelheight = geotransform[1]  # float
+
+        # Metdata
+        headernum = 1
+        delim = ' '
+
+        try:
+            self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
+        except:
+            QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
+                                                        "prepare your data by using 'Prepare Existing Data' in "
+                                                        "the Pre-processor")
+
+        testwhere = np.where((self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0))
+        if testwhere[0].__len__() > 0:
+             QgsProcessingException("Error: Kdown - beyond what is expected at line: " + str(testwhere[0] + 1))
+
+        if self.metdata.shape[1] == 24:
+            feedback.setProgressText("Meteorological data succefully loaded")
         else:
-            wallsh = 0
-            wheight = 0
-            waspect = 0
+            QgsProcessingException("Error: Wrong number of columns in meteorological data. You can "
+                                                        "prepare your data by using 'Prepare Existing Data' in "
+                                                        "the Pre-processor")
 
-        if outputDir is 'None':
-            raise QgsProcessingException("Error: No selected folder")
-        else:
-            # date = myDate  #self.dlg.calendarWidget.selectedDate()
-            year = int(myDate[0:4]) #date.year()
-            month = int(myDate[5:7]) #date.month()
-            day = int(myDate[8:10]) #date.day()
-            UTC = utc #self.dlg.spinBoxUTC.value()
-            if oneShadow: #self.dlg.shadowCheckBox.isChecked():
-                onetime = 1
-                # time = myTime # self.dlg.timeEdit.time()
-                hour = int(myTime[11:13]) #time.hour()
-                minu = int(myTime[14:16]) #time.minute()
-                sec = int(myTime[17:19]) #time.second()
-            else:
-                onetime = 0
-                hour = 0
-                minu = 0
-                sec = 0
+        alt = np.median(self.dsm)
+        if alt < 0:
+            alt = 3
+        
+        feedback.setProgressText("Calculating sun positions for each time step")
+        location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
+        YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
+            Solweig_2015a_metdata_noload(self.metdata,location, utc)
+        
+        feedback.setProgressText("Distributing irradiance on sky vault")
+        output = {'energymonth': 0, 'energyyear': 1, 'suitmap': 0}
+        radmatI, radmatD, radmatR = sunmapcreator_2015a(self.metdata, altitude, azimuth,
+                                                        onlyglobal, output, jday, albedo, location, zen)
 
-            tv = [year, month, day, hour, minu, sec]
-            timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
-            # self.timeInterval = intervalTime.minute() + (intervalTime.hour() * 60) + (intervalTime.second()/60)
-            shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
-                                            timeInterval, onetime, feedback, outputDir, gdal_dsm, trans, 
-                                            dst, wallsh, wheight, waspect)
-            
-            shfinal = shadowresult["shfinal"]
-            time_vector = shadowresult["time_vector"]
-            if onetime == 0:
-                timestr = time_vector.strftime("%Y%m%d")
-                savestr = '/shadow_fraction_on_'
-            else:
-                timestr = time_vector.strftime("%Y%m%d_%H%M")
-                savestr = '/Shadow_at_'
+        if saveskyirr:
+            metout = np.zeros((145, 4))
+            metout[:, 0] = radmatI[:, 0]
+            metout[:, 1] = radmatI[:, 1]
+            metout[:, 2] = radmatI[:, 2]
+            metout[:, 3] = radmatD[:, 2]
+            header = '%altitude azimuth radI radD'
+            numformat = '%6.2f %6.2f %6.2f %6.2f'
+            np.savetxt(irrFile, metout, fmt=numformat, header=header, comments='')
 
-        filename = outputDir + savestr + timestr + '_LST.tif'
-        dsh.saveraster(gdal_dsm, filename, shfinal)
+        building_slope, building_aspect = get_ders(self.dsm, self.scale)
 
-        feedback.setProgressText("ShadowGenerator: Shadow grid(s) successfully generated")
+        WriteMetaDataSEBE.writeRunInfo(outputDir, filepath_dsm, self.gdal_dsm, usevegdem,
+                                        filePath_cdsm, trunkfile, filePath_tdsm, lat, lon, utc,
+                                        inputMet, albedo, onlyglobal, trunkratio, psi, sizex, sizey)
 
-        return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: filename}
+        # Main function
+        feedback.setProgressText("Executing main model")
+        seberesult = sebe.SEBE_2015a_calc(self.dsm, self.scale, building_slope,
+                    building_aspect, voxelheight, sizey, sizex, vegdsm, vegdsm2, wheight,
+                    waspect, albedo, psi, radmatI, radmatD, radmatR, usevegdem, feedback)
+
+        Energyyearroof = seberesult["Energyyearroof"]
+        Energyyearwall = seberesult["Energyyearwall"]
+        vegdata = seberesult["vegdata"]
+
+        feedback.setProgressText("SEBE: Model calculation finished. Saving to disk")
+
+
+        saveraster(self.gdal_dsm, outputDir + '/dsm.tif', self.dsm)
+        filenameroof = outputDir + '/Energyyearroof.tif'
+        saveraster(self.gdal_dsm, filenameroof, Energyyearroof)
+        filenamewall = outputDir + '/Energyyearwall.txt'
+        header = '%row col irradiance'
+        numformat = '%4d %4d ' + '%6.2f ' * (Energyyearwall.shape[1] - 2)
+        np.savetxt(filenamewall, Energyyearwall, fmt=numformat, header=header, comments='')
+        if usevegdem == 1:
+            filenamewall = outputDir + '/Vegetationdata.txt'
+            header = '%row col height'
+            numformat = '%4d %4d %6.2f'
+            np.savetxt(filenamewall, vegdata, fmt=numformat, header=header, comments='')
+
+        return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: filenameroof}
     
     def name(self):
         """
@@ -372,7 +375,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Outdoor Thermal Comfort: Shadow Generator'
+        return 'Solar Radiation: Solar Energy of Builing Envelopes (SEBE)'
 
     def displayName(self):
         """
@@ -399,10 +402,10 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('Here (shortHelpString()) we can write short information string about this tool.')
+        return self.tr('The SEBE plugin (Solar Energy on Building Envelopes) can be used to calculate pixel wise potential solar energy using ground and building digital surface models (DSM). SEBE is also able to estimate irradiance on building walls. Optionally, vegetation DSMs could also be used.')
 
     def helpUrl(self):
-        url = "https://umep-docs.readthedocs.io/en/latest/processor/Solar%20Radiation%20Daily%20Shadow%20Pattern.html"
+        url = "https://umep-docs.readthedocs.io/en/latest/processor/Solar%20Radiation%20Solar%20Energy%20on%20Building%20Envelopes%20(SEBE).html"
         return url
 
     def tr(self, string):
@@ -410,43 +413,8 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
     def icon(self):
         cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
-        icon = QIcon(str(cmd_folder) + "/icons/ShadowIcon.png")
+        icon = QIcon(str(cmd_folder) + "/icons/sebeicon.png")
         return icon
 
     def createInstance(self):
-        return ProcessingShadowGeneratorAlgorithm()
-
-
-class DateWidget(WidgetWrapper):
-    """
-    QDateEdit widget with calendar pop up
-    """
-    def createWidget(self):
-        self._combo = QDateEdit() #QDateTimeEdit()
-        self._combo.setCalendarPopup(True)
-
-        today = QDate.currentDate()
-        self._combo.setDate(today)
-
-        return self._combo
-
-    def value(self):
-        date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
-
-class TimeWidget(WidgetWrapper):
-    """
-    QTimeEdit widget with calendar pop up
-    """
-    def createWidget(self):
-        self._combo = QTimeEdit() #QDateTimeEdit()
-        self._combo.setCalendarPopup(True)
-
-        today = QTime.currentTime()
-        self._combo.setTime(today)
-
-        return self._combo
-
-    def value(self):
-        time_chosen = self._combo.dateTime()
-        return time_chosen.toString(Qt.ISODate)
+        return ProcessingSEBEAlgorithm()

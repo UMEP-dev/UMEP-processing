@@ -33,6 +33,7 @@ __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
 from processing.core.ProcessingConfig import ProcessingConfig
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
+from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
 from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
 from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm
 from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algorithm
@@ -76,6 +77,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingLandCoverFractionAlgorithm())
         
         #Processor
+        self.addAlgorithm(ProcessingSEBEAlgorithm())
         self.addAlgorithm(ProcessingShadowGeneratorAlgorithm())
         self.addAlgorithm(ProcessingSuewsAlgorithm())
 

@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for processing toolbox
-version=0.3
+version=0.4
 author=Fredrik Lindberg
 email=fredrikl@gvc.gu.se
 
@@ -21,10 +21,11 @@ repository=https://github.com/UMEP-dev/UMEP
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
-    0.1   : First release. Experimental.
-    0.2   : ERA5 downloader and Morphometric Calculator ported
+    0.4   : SEBE added
     0.3   : Land cover fraction tools added
-
+    0.2   : ERA5 downloader and Morphometric Calculator added
+    0.1   : First release. Experimental.
+    
 # Tags are comma separated with spaces allowed
 tags=urban climate, urban planning, shadow, modelling, urban morphology, urban geometry
 
