@@ -8,9 +8,15 @@ for QGIS (www.qgis.org). The original UMEP tool can be accessed thruogh the offi
 QGIS plugin repository.
 
 ## Installation
-Processing for UMEP is not yet added to the official QGIS repository. 
+**Processing for UMEP** is added to the official QGIS repository but still flagged as experimental. 
 
-To install:
+- In QGIS, go to *Plugins>Manage and install Plugins* 
+
+- Go to *Settings* and tick in *Show also experimental plugins*
+
+- Search for **UMEP for processing**, and click *Install Experimental Plugin*
+
+OR:
 - Download this branch as a zip-file
 
 - In QGIS, go to *Plugins>Manage and install Plugins* and choose *Install from Zip*

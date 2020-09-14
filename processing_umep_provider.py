@@ -34,6 +34,8 @@ from qgis.core import QgsProcessingProvider
 from processing.core.ProcessingConfig import ProcessingConfig
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
 from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
+from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
+from .processor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
 from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
 from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm
 from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algorithm
@@ -79,7 +81,9 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
         self.addAlgorithm(ProcessingShadowGeneratorAlgorithm())
+        self.addAlgorithm(ProcessingSOLWEIGAlgorithm())
         self.addAlgorithm(ProcessingSuewsAlgorithm())
+        # self.addAlgorithm(ProcessingTreePlanterAlgorithm())
 
     def id(self):
         """

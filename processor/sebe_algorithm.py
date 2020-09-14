@@ -41,7 +41,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterFile,
                        QgsProcessingException,
-                    #    QgsProcessingParameterPoint,
                        QgsProcessingParameterRasterLayer)
 from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
@@ -52,9 +51,9 @@ import os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
-from ..functions import SEBE_2015a_calc_forprocessing as sebe
-from .SEBEfiles.sunmapcreator_2015a import sunmapcreator_2015a
-from .SEBEfiles import WriteMetaDataSEBE
+from ..functions.SEBEfiles import SEBE_2015a_calc_forprocessing as sebe
+from ..functions.SEBEfiles.sunmapcreator_2015a import sunmapcreator_2015a
+from ..functions.SEBEfiles import WriteMetaDataSEBE
 from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
 from ..util.misc import get_ders, saveraster
 

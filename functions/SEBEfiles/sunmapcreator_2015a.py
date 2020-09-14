@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from builtins import range
 import numpy as np
 from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
-from .Perez_v3 import Perez_v3
+from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 
 
