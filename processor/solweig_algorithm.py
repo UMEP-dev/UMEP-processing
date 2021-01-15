@@ -206,13 +206,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         #Meteorology
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
-            self.tr('Input meteorological file'), extension = 'txt'))
+            self.tr('Input meteorological file'), extension='txt'))
         self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
             self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
             self.tr('Coordinated Universal Time (UTC) '),
             QgsProcessingParameterNumber.Integer,
-            QVariant(0),  False, minValue=-12, maxValue=12)) 
+            QVariant(0), False, minValue=-12, maxValue=12)) 
         
         
         #ADVANCED PARAMETERS
@@ -1033,7 +1033,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG is a model which can be used to estimate spatial variations of 3D radiation fluxes and mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same approach commonly adopted to observe T_{mrt}, with shortwave and longwave radiation fluxes from six directions being individually calculated to derive Tmrt. The model requires a limited number of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative humidity, urban geometry and geographical information (latitude, longitude and elevation). Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.')
+        return self.tr('SOLWEIG is a model which can be used to estimate spatial variations of 3D radiation fluxes and mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from six directions being individually calculated to derive Tmrt. The model requires a limited number of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative humidity, urban geometry and geographical information (latitude, longitude and elevation). Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Outdoor%20Thermal%20Comfort%20SOLWEIG.html"

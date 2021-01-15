@@ -284,6 +284,12 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             zdall = 0.2
         if z0all < 0.03:
             z0all = 0.03
+            
+        # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
+        if paiall > 0.:
+            if faiall == 0.:
+                faiall = 0.001
+                
         header = ' pai  fai   zH    zHmax    zHstd zd z0'
         numformat = '%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
         arr2 = np.array([[immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],

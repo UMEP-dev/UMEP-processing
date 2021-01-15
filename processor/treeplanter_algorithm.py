@@ -34,10 +34,11 @@ from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                     #    QgsProcessingParameterString,
-                    #    QgsProcessingParameterBoolean,
+                       QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                    #    QgsProcessingParameterRasterLayer,
+                    #    QgsProcessingParameterFolderDestination,
+                       QgsProcessingParameterRasterDestination,
+                       QgsProcessingParameterVectorDestination,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                     #    QgsProcessingParameterField,
@@ -47,7 +48,8 @@ from qgis.core import (QgsProcessing,
                        QgsVectorFileWriter,
                        QgsVectorDataProvider,
                        QgsField,
-                       QgsProcessingParameterFile)
+                       QgsProcessingParameterFile,
+                       QgsProcessingParameterDefinition)
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
@@ -75,19 +77,35 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
     INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
     NTREE = 'NTREE'
     SOLWEIG_DIR = 'SOLWEIG_DIR'
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    
-    
+    ITERATIONS = 'ITERATIONS'
+    INCLUDE_OUTSIDE = 'INCLUDE_OUTSIDE'
+    INPUT_MET = 'INPUT_MET'
+    START_HOUR = 'START_HOUR'
+    END_HOUR = 'END_HOUR'
+    OUTPUT_CDSM = 'OUTPUT_CDSM'
+    OUTPUT_POINTFILE = 'OUTPUT_POINTFILE'
+
     def initAlgorithm(self, config):
 
         self.addParameter(QgsProcessingParameterFile(self.SOLWEIG_DIR,
-                                                     'Path to SOLWEIG output directory', 
-                                                     QgsProcessingParameterFile.Folder))
-        self.ttype = ((self.tr('Deciduous'), '0'),
+            'Path to SOLWEIG output directory', QgsProcessingParameterFile.Folder))
+        self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
+            self.tr('Input meteorological file'), extension='txt'))
+        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
+            self.tr('Planting area (Vector polygon)'), [QgsProcessing.TypeVectorPolygon]))
+        ttype = ((self.tr('Deciduous'), '0'),
                         (self.tr('Conifer'), '1'))
+        self.addParameter(QgsProcessingParameterNumber(self.START_HOUR,
+            self.tr('From (hour)'),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(13), False, minValue=0, maxValue=23))
+        self.addParameter(QgsProcessingParameterNumber(self.END_HOUR,
+            self.tr('Thru (hour)'),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(15), False, minValue=0, maxValue=23))
         self.addParameter(QgsProcessingParameterEnum(self.TTYPE,
             self.tr('Tree type'),
-            options=[i[0] for i in self.ttype], defaultValue=0))
+            options=[i[0] for i in ttype], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.HEIGHT, 
             self.tr('Tree height (meter above ground level)'),
             QgsProcessingParameterNumber.Double,
@@ -101,37 +119,64 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber.Double,
             QVariant(3), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
-            self.tr('Transmissivity of light through vegetation (%):'),
+            self.tr('Transmissivity of light through vegetation (%)'),
             QgsProcessingParameterNumber.Integer,
             QVariant(3), False, minValue=0, maxValue=100))
         self.addParameter(QgsProcessingParameterNumber(self.NTREE, 
             self.tr('Number of trees to plant'),
             QgsProcessingParameterNumber.Integer,
-            QVariant(1), False, minValue=1))
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-            self.tr('Search area (Vector polygon)'), [QgsProcessing.TypeVectorPolygon]))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
-            self.tr('Output directory')))
+            QVariant(3), False, minValue=1))
+        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_CDSM,
+            self.tr("Canopy Digital Surface Model"),
+            None, False))
+        self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POINTFILE,
+            self.tr("Vector point file with tree location(s)")))
+
+        # Advanced parameters
+        iterations = QgsProcessingParameterNumber(self.ITERATIONS,
+            self.tr("Number of restart iterations"), 
+            QgsProcessingParameterNumber.Integer, defaultValue=2000, minValue=1)
+        iterations.setFlags(iterations.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(iterations)
+        includeOutside = QgsProcessingParameterBoolean(self.INCLUDE_OUTSIDE,
+            self.tr("Allow areas outside of Planing area to be included in calculation"), defaultValue=True)
+        includeOutside.setFlags(includeOutside.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(includeOutside)
 
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters 
 
+
+        # SOLWEIG_DIR = 'SOLWEIG_DIR'
+        # OUTPUT_DIR = 'OUTPUT_DIR'
+        # ITERATIONS = 'ITERATIONS'
+        # INCLUDE_OUTSIDE = 'INCLUDE_OUTSIDE'
+        # INPUT_MET = 'INPUT_MET'
+        # START_HOUR = 'START_HOUR'
+        # END_HOUR = 'END_HOUR'
+
         infolder = self.parameterAsString(parameters, self.INPUT_DIR, context)
         ttype = self.parameterAsString(parameters, self.TTYPE, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
+        height = self.parameterAsDouble(parameters, self.HEIGHT, context)
+        dia = self.parameterAsDouble(parameters, self.DIA, context)
+        trunk = self.parameterAsDouble(parameters, self.TRUNK, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+        nTree = self.parameterAsDouble(parameters, self.NTREE, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+
         inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        
 
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        feedback.setProgressText("Here starts code")
+        feedback.setProgressText("Here starts code. Tool not ready. Work in progress")
 
         return {self.OUTPUT_DIR: outputDir}
     
@@ -148,9 +193,21 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('Help text\n'
+        return self.tr('This is a model for optimization of tree arrangement to mitigate thermal ' 
+        'heat stress with respect to radiant load represented by mean radiant temperature (Tmrt). '
+        'The optimization of tree arrangement is achieved by utilizing '
+        'a metaheuristic hill-climbing algorithm that evaluates the combined shading effect of 1 to N '
+        'trees and their corresponding mitigating decrease in Tmrt.\n'
+        '\n'
+        'TIPS and TRIXS for best performance:\n'
+        '- The input folder (Path to SOLWEIG output directory) should have been produced beforehand using the SOLWEIG-' 
+        'model with the option to "Save necessary rasters for the TreePlanter tool" ticked in\n' 
+        '- The model has a very high coputational complexity. Therefore, try to reduce the number of variables by e.g.: \n'
+        '   + Use few number of trees\n' 
+        '   + Try to use small area as planting area\n'
+        '   + Use hourly meteorological data, preferably one single day.\n'
         '-------------\n'
-        'Wallenberg and Lindberg bla bla')
+        'Wallenberg and Lindberg (2020): Geoscientific Model Development, in review')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Grid).html"

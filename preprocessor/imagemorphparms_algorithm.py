@@ -368,6 +368,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
                                     immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all]])
 
+                # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
+                if paiall > 0.:
+                    if faiall == 0.:
+                        faiall = 0.001
+
                 arrmat = np.vstack([arrmat, arr2])
 
             dataset = None

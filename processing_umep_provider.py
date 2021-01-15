@@ -83,7 +83,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingShadowGeneratorAlgorithm())
         self.addAlgorithm(ProcessingSOLWEIGAlgorithm())
         self.addAlgorithm(ProcessingSuewsAlgorithm())
-        # self.addAlgorithm(ProcessingTreePlanterAlgorithm())
+        self.addAlgorithm(ProcessingTreePlanterAlgorithm())
 
     def id(self):
         """
