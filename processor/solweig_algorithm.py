@@ -67,6 +67,8 @@ from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
 from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 
+# For "Save necessary rasters for TreePlanter tool"
+from shutil import copyfile
 
 class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     """
@@ -135,6 +137,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_KDOWN = 'OUTPUT_KDOWN'
     OUTPUT_LDOWN = 'OUTPUT_LDOWN'
     OUTPUT_SH = 'OUTPUT_SH'
+    OUTPUT_TREEPLANTER = 'OUTPUT_TREEPLANTER'
     
 
     def initAlgorithm(self, config):
@@ -279,11 +282,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("Save Outcoming longwave radiation raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_SH,
             self.tr("Save shadow raster(s)"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TREEPLANTER,
+            self.tr("Save necessary raster(s) for the TreePlanter tool"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
 
         self.plugin_dir = os.path.dirname(__file__)
-
+        self.temp_dir = os.path.dirname(self.plugin_dir) + '/temp'
 
     def processAlgorithm(self, parameters, context, feedback):
         
@@ -356,6 +361,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         outputKdown = self.parameterAsBool(parameters, self.OUTPUT_KDOWN, context)
         outputLup = self.parameterAsBool(parameters, self.OUTPUT_LUP, context)
         outputLdown = self.parameterAsBool(parameters, self.OUTPUT_LDOWN, context)
+        outputTreeplanter = self.parameterAsBool(parameters, self.OUTPUT_TREEPLANTER, context)
+
+        # If "Save necessary rasters for TreePlanter tool" is ticked, save Tmrt and Shadow rasters
+        if outputTreeplanter:
+            outputTmrt = True
+            outputSh = True
+            saveBuild = True
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
@@ -534,42 +546,42 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')
-        zip.extractall(self.plugin_dir)
+        zip.extractall(self.temp_dir)
         zip.close()
 
         try:
-            dataSet = gdal.Open(self.plugin_dir + "/svf.tif")
+            dataSet = gdal.Open(self.temp_dir + "/svf.tif")
             svf = dataSet.ReadAsArray().astype(np.float)
-            dataSet = gdal.Open(self.plugin_dir + "/svfN.tif")
+            dataSet = gdal.Open(self.temp_dir + "/svfN.tif")
             svfN = dataSet.ReadAsArray().astype(np.float)
-            dataSet = gdal.Open(self.plugin_dir + "/svfS.tif")
+            dataSet = gdal.Open(self.temp_dir + "/svfS.tif")
             svfS = dataSet.ReadAsArray().astype(np.float)
-            dataSet = gdal.Open(self.plugin_dir + "/svfE.tif")
+            dataSet = gdal.Open(self.temp_dir + "/svfE.tif")
             svfE = dataSet.ReadAsArray().astype(np.float)
-            dataSet = gdal.Open(self.plugin_dir + "/svfW.tif")
+            dataSet = gdal.Open(self.temp_dir + "/svfW.tif")
             svfW = dataSet.ReadAsArray().astype(np.float)
 
             if usevegdem == 1:
-                dataSet = gdal.Open(self.plugin_dir + "/svfveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfveg.tif")
                 svfveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfNveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfNveg.tif")
                 svfNveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfSveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfSveg.tif")
                 svfSveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfEveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfEveg.tif")
                 svfEveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfWveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfWveg.tif")
                 svfWveg = dataSet.ReadAsArray().astype(np.float)
 
-                dataSet = gdal.Open(self.plugin_dir + "/svfaveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfaveg.tif")
                 svfaveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfNaveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfNaveg.tif")
                 svfNaveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfSaveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfSaveg.tif")
                 svfSaveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfEaveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfEaveg.tif")
                 svfEaveg = dataSet.ReadAsArray().astype(np.float)
-                dataSet = gdal.Open(self.plugin_dir + "/svfWaveg.tif")
+                dataSet = gdal.Open(self.temp_dir + "/svfWaveg.tif")
                 svfWaveg = dataSet.ReadAsArray().astype(np.float)
             else:
                 svfveg = np.ones((rows, cols))
@@ -991,6 +1003,25 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if outputSh:
                 saveraster(gdal_dsm, outputDir + '/Shadow_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
                                 + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', shadow)
+
+        # Save files for Tree Planter
+        if outputTreeplanter:
+            feedback.setProgressText("Saving files for Tree Planter tool")
+            # Save DSM
+            copyfile(filepath_dsm, outputDir + '/DSM.tif')
+
+            # Save DEM
+            # dem_tp = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
+            # provider_tp = dem_tp.dataProvider()
+            # filePath_dem = str(provider_tp.dataSourceUri())
+            # copyfile(filePath_dem, outputDir + '/DEM.tif')
+
+            # Save met file
+            copyfile(inputMet, outputDir + '/metfile.txt')
+
+            # Save CDSM
+            if usevegdem:
+                copyfile(filePath_cdsm, outputDir + '/CDSM.tif')
 
         tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
         saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
