@@ -92,6 +92,13 @@ class Inputdata():
         dataSetSel = gdal.Open(infolder + '/selected_area.tif')
         self.selected_area = dataSetSel.ReadAsArray().astype(np.float)
 
+        try:
+            del dataSetSel
+            os.remove(infolder + '/selected_area.tif')
+            print('Successfully removed selected_area.tif')
+        except:
+            print('Could not remove selected_area.tif')
+
         # Buffer zone to remove potential edge effects
         buffer_percentage = 0.05
         buffer_y = np.int_(self.rows * buffer_percentage)

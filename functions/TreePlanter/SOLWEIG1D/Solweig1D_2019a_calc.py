@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 import numpy as np
-from ..SOLWEIG.daylen import daylen
-from ..SOLWEIG.clearnessindex_2013b import clearnessindex_2013b
-from ..SOLWEIG.diffusefraction import diffusefraction
-from ..SOLWEIG.cylindric_wedge import cylindric_wedge
+from ...SOLWEIGpython.daylen import daylen
+from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+from ....util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
+from ...SOLWEIGpython.cylindric_wedge import cylindric_wedge
 # from .TsWaveDelay_2015a import TsWaveDelay_2015a
 # from .Kup_veg_2015a import Kup_veg_2015a
-from ..SOLWEIG.Lside_veg_v2015a import Lside_veg_v2015a
-from ..SOLWEIG.Kside1D_veg_v2019a import Kside_veg_v2019a
-from ..SOLWEIG.Perez_v3 import Perez_v3
+from ...SOLWEIGpython.Lside_veg_v2015a import Lside_veg_v2015a
+from ..SOLWEIG1D.Kside1D_veg_v2019a import Kside_veg_v2019a
+from ...SOLWEIGpython.Perez_v3_moved import Perez_v3
 
 def Solweig1D_2019a_calc(svf, svfveg, svfaveg, sh, vegsh,  albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude, azimuth, zen, jday,
                          onlyglobal, location, dectime, altmax, cyl, elvis, Ta, RH, radG, radD, radI, P,

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import numpy as np
-from ..SOLWEIG.Kvikt_veg import Kvikt_veg
+from ...SOLWEIGpython.Kvikt_veg import Kvikt_veg
 
 
 def Kside_veg_v2019a(radI, radD, radG, shadow, svfS, svfW, svfN, svfE, svfEveg, svfSveg, svfWveg, svfNveg, azimuth,

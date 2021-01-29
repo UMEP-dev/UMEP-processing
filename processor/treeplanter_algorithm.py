@@ -77,21 +77,24 @@ from scipy.ndimage import label
 
 # Import UMEP tools
 from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
-from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+# from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 
-from ..functions.TreePlanter.TreeGenerator import makevegdems as makevegdems
-from ..functions.TreePlanter.SOLWEIG.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-from ..functions.TreePlanter.SOLWEIG import Solweig1D_2019a_calc as so
-from ..functions.TreePlanter.SOLWEIG.wallalgorithms import findwalls
-from ..functions.TreePlanter.SOLWEIG.misc import saveraster
+from ..functions.TreePlanter.TreeGeneratorTemp import makevegdems as makevegdems
+
+# from ..functions.TreePlanter.SOLWEIG.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
+from ..util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
+from ..functions.TreePlanter.SOLWEIG1D import Solweig1D_2019a_calc as so
+from ..functions.wallalgorithms import findwalls
+# from ..functions.TreePlanter.SOLWEIG.misc import saveraster
+from ..util.misc import saveraster
 
 # Import functions and classes for Tree planter
 from ..functions.TreePlanter.TreePlanter import TreePlanterPrepare
 from ..functions.TreePlanter.TreePlanter import TreePlanterHillClimber
 from ..functions.TreePlanter.TreePlanter.TreePlanterClasses import Inputdata, Treedata, Regional_groups, ClippedInputdata, Treerasters
 from ..functions.TreePlanter.TreePlanter import GreedyAlgorithm
-from ..functions.TreePlanter.SOLWEIG.SOLWEIG_1D import tmrt_1d_fun
+from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG_1D import tmrt_1d_fun
 # from ..functions.TreePlanter.treeplanterclasses import Treedata
 # from ..functions.TreePlanter.treeplanterclasses import Regional_groups
 # from ..functions.TreePlanter.treeplanterclasses import ClippedInputdata
@@ -235,7 +238,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         greedy = self.parameterAsBoolean(parameters, self.GREEDY_ALGORITHM, context)
         starting_algorithm = self.parameterAsBoolean(parameters, self.RANDOM_STARTING, context)
 
-        inputPolygonlayer = parameters[self.INPUT_POLYGONLAYER]
+        # inputPolygonlayer = parameters[self.INPUT_POLYGONLAYER]
+        inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context).dataProvider().dataSourceUri()
 
         outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
@@ -390,6 +394,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             cdsm_new = cdsm_new + cdsm_tmrt[:, :, i]
             tdsm_new = tdsm_new + tdsm_tmrt[:, :, i]
 
+        cdsm_new = cdsm_new + tree_input.cdsm
         # Save CDSM as raster
         saveraster(tree_input.dataSet, outputCDSM, cdsm_new)
 
@@ -448,7 +453,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         return {self.OUTPUT_CDSM: outputCDSM, self.OUTPUT_POINTFILE: outputPoint}
     
     def name(self):
-        return 'TreePlanter'
+        return 'Outdoor Thermal Comfort: TreePlanter'
 
     def displayName(self):
         return self.tr(self.name())

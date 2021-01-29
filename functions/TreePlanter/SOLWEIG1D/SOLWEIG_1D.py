@@ -1,8 +1,8 @@
 import numpy as np
 import os
-from ..SOLWEIG.clearnessindex_2013b import clearnessindex_2013b
-from ..SOLWEIG import Solweig_v2015_metdata_noload as metload
-from ..SOLWEIG import Solweig1D_2019a_calc as so
+from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+from ....util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+from ..SOLWEIG1D import Solweig1D_2019a_calc as so
 
 def tmrt_1d_fun(metfilepath,tau,lon,lat,dsm,r_range):
     # Misc

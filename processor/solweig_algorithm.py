@@ -823,7 +823,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 if usevegdem == 1:
                     diffsh = np.zeros((rows, cols, 145))
                     for i in range(0, 145):
-                        diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - psi)
+                        diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
                 else:
                     diffsh = shmat
 

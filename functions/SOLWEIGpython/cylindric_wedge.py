@@ -8,8 +8,8 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
     # svf related angle "alfa"
 
     beta=zen
-    alfa=svfalfa
-    
+    # alfa=svfalfa
+    alfa=np.zeros((rows, cols)) + svfalfa
     # measure the size of the image
     # sizex=size(svfalfa,2)
     # sizey=size(svfalfa,1)
