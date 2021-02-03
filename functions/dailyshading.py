@@ -93,7 +93,14 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
         alt[i] = 90. - sun['zenith']
         azi[i] = sun['azimuth']
 
-        time_vector = dt.datetime(year, month, day, HHMMSS[0], HHMMSS[1], HHMMSS[2])
+        if time['sec'] == 59: #issue 228
+            time['sec'] = 0
+            time['min'] = time['min'] + 1
+            if time['min'] == 60:
+                time['min'] = 0
+            time['hour'] = time['hour'] + 1
+
+        time_vector = dt.datetime(year, month, day, time['hour'], time['min'], time['sec'])
         timestr = time_vector.strftime("%Y%m%d_%H%M")
 
         if alt[i] > 0:
