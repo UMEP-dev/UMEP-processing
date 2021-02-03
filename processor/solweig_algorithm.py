@@ -1023,6 +1023,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if usevegdem:
                 copyfile(filePath_cdsm, outputDir + '/CDSM.tif')
 
+            # Saving settings from SOLWEIG for SOLWEIG1D in TreePlanter
+            settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation'
+            settingsFmt = '%i', '%i', '%i', '%i', '%i', '%i', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f'
+            settingsData = np.array([[utc, pos, onlyglobal, landcover, ani, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt]])
+            np.savetxt(outputDir + '/settings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
+
         tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
         saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
         feedback.setProgressText("SOLWEIG: Model calculation finished.")

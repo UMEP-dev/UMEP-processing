@@ -284,7 +284,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                 tree_input.shadow[:,:,i] = tree_input.shadow[:,:,i] * tree_input.selected_area
 
         # Tmrt for shaded point
-        tmrt_1d, azimuth, altitude, amaxvalue = tmrt_1d_fun(INPUT_MET,transVeg,tree_input.lon,tree_input.lat,tree_input.dsm,r_range)
+        tmrt_1d, azimuth, altitude, amaxvalue = tmrt_1d_fun(INPUT_MET,infolder,transVeg,tree_input.lon,tree_input.lat,tree_input.dsm,r_range)
         tmrt_1d = np.around(tmrt_1d, decimals=1) # Round Tmrt to one decimal
 
         # Create tree in empty matrix
@@ -354,7 +354,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         else:
             # Hill climbing algorithm
             # Creating matrices with Tmrt for tree shadows at each possible position
-            treerasters_out, positions = TreePlanterPrepare.treeplanter(cropped_rasters, treedata, treerasters, tmrt_1d)
+            treerasters, positions = TreePlanterPrepare.treeplanter(cropped_rasters, treedata, treerasters, tmrt_1d)
 
             # Starting algorithm.
             if starting_algorithm:
@@ -428,10 +428,10 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         (minx, x_size, x_rotation, miny, y_rotation, y_size) = tree_input.dataSet.GetGeoTransform()
         for i in range(0,nTree):
-            #temp_y = t_y[i] * y_size + miny + (y_size / 2)
-            temp_y = t_y[i] * y_size + miny # + (1 / y_size)
-            #temp_x = t_x[i] * x_size + minx + (x_size / 2)
-            temp_x = t_x[i] * x_size + minx # + (1 / x_size)
+            temp_y = t_y[i] * y_size + miny + (y_size / 2)
+            #temp_y = t_y[i] * y_size + miny # + (1 / y_size)
+            temp_x = t_x[i] * x_size + minx + (x_size / 2)
+            #temp_x = t_x[i] * x_size + minx # + (1 / x_size)
             
             point = ogr.Geometry(ogr.wkbPoint)
             point.SetPoint(0, temp_x, temp_y)
@@ -449,6 +449,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             feature = None
 
         shapeFile.Destroy()
+
+        feedback.setProgressText("TreePlanter: Model calculation finished.")
 
         return {self.OUTPUT_CDSM: outputCDSM, self.OUTPUT_POINTFILE: outputPoint}
     

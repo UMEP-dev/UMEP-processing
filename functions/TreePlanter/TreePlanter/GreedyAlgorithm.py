@@ -46,6 +46,8 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
     res_y, res_x = np.where(bld_copy == 1)  # Coordinates for where it is possible to plant a tree (buildings, area of interest excluded)
 
     for tree in range(trees):
+        if feedback.isCanceled():
+            break
         for i in range(res_y.__len__()):
             y1 = np.int_(res_y[i] - treerasters.buffer_y[0])
             y2 = np.int_(res_y[i] + treerasters.buffer_y[1])

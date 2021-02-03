@@ -48,6 +48,10 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
 
     # Iterate for r_iters number of iterations. Will find optimal positions for trees and return the positions and decrease in tmrt
     for counter in range(r_iters):
+        # Check if plugin is cancelled
+        if feedback.isCanceled():
+            break
+
         # Printing progress
         if counter == iters_progress[progress]:
             feedback.setProgressText(str(percentage_progress[progress] * 100) + " percent of iterations finished...")
@@ -55,6 +59,10 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
 
         r_count = 0
         while r_count < 1:
+            # Check if plugin is cancelled
+            if feedback.isCanceled():
+                break
+
             # Creating starting positions.
             # If sa = 0, random restart, i
             # If sa = 1 evolutionary restart, i.e. y or x is random, the other is kept from previous run (previous local optimum)

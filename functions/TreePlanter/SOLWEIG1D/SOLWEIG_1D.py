@@ -4,21 +4,44 @@ from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_
 from ....util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..SOLWEIG1D import Solweig1D_2019a_calc as so
 
-def tmrt_1d_fun(metfilepath,tau,lon,lat,dsm,r_range):
-    # Misc
-    UTC = 1
-    met = np.loadtxt(metfilepath, skiprows=1, delimiter=' ')
-    alt = 10
+def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
+    
+    # Load settings from SOLWEIG
+    # settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation'
+    settingsSolweig = np.loadtxt(infolder + '/settings.txt', skiprows=1, delimiter=' ')
+    UTC = int(settingsSolweig[0])
+    pos = int(settingsSolweig[1])
+    onlyglobal = int(settingsSolweig[2])
+    landcovercode = int(settingsSolweig[3])
+    ani = int(settingsSolweig[4])
+    cyl = int(settingsSolweig[5])
+    albedo_b = settingsSolweig[6]
+    albedo_g = settingsSolweig[7]
+    ewall = settingsSolweig[8]
+    eground = settingsSolweig[9]
+    absK = settingsSolweig[10]
+    absL = settingsSolweig[11]
+    alt = settingsSolweig[12]
 
-    onlyglobal = 1  # 1 if only global radiation exist
-    landcovercode = 0  # according to landcovrclasses_2018a_orig.txt
+    print('UTC = ', UTC)
+    print('absK = ', absK)
+
     metfile = 1  # 1 if time series data is used
-    useveg = 1  # 1 if vegetation should be considered
-    ani = 1
-    cyl = 1
-    elvis = 0
-    alt = 3.0
+    
+    # Misc
+    # UTC = 1
+    # alt = 10
+    # onlyglobal = 1  # 1 if only global radiation exist
+    # landcovercode = 0  # according to landcovrclasses_2018a_orig.txt
+    # ani = 1
+    # cyl = 1
+    # alt = 3.0
+    # absK = 0.7
+    # absL = 0.98
 
+    sensorheight = 2.0
+    elvis = 0
+    useveg = 1  # 1 if vegetation should be considered
     sh = 1.  # 0 if shadowed by building
     vegsh = 0.  # 0 if shadowed by tree
     svf = 0.6
@@ -31,13 +54,8 @@ def tmrt_1d_fun(metfilepath,tau,lon,lat,dsm,r_range):
         svfaveg = 1.
         trans = 1.
 
-    absK = 0.7
-    absL = 0.98
-    PA = 'STAND'
-    sensorheight = 2.0
-
     # program start
-    if PA == 'STAND':
+    if pos == 1:
         Fside = 0.22
         Fup = 0.06
         height = 1.1
@@ -130,16 +148,16 @@ def tmrt_1d_fun(metfilepath,tau,lon,lat,dsm,r_range):
 
     # ground material parameters
     ground_pos = np.where(lc_class[:, 0] == landcovercode)
-    albedo_g = lc_class[ground_pos, 1]
-    eground = lc_class[ground_pos, 2]
+    # albedo_g = lc_class[ground_pos, 1] Retrieved from settings.txt
+    # eground = lc_class[ground_pos, 2] Retrieved from settings.txt
     TgK = lc_class[ground_pos, 3]
     Tstart = lc_class[ground_pos, 4]
     TmaxLST = lc_class[ground_pos, 5]
 
     # wall material parameters
     wall_pos = np.where(lc_class[:, 0] == 99)
-    albedo_b = lc_class[wall_pos, 1]
-    ewall = lc_class[wall_pos, 2]
+    # albedo_b = lc_class[wall_pos, 1] Retrieved from settings.txt
+    # ewall = lc_class[wall_pos, 2] Retrieved from settings.txt
     TgK_wall = lc_class[wall_pos, 3]
     Tstart_wall = lc_class[wall_pos, 4]
     TmaxLST_wall = lc_class[wall_pos, 5]
