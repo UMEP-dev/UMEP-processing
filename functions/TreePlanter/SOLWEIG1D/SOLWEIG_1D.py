@@ -23,11 +23,10 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     absL = settingsSolweig[11]
     alt = settingsSolweig[12]
 
-    print('UTC = ', UTC)
-    print('absK = ', absK)
-
     metfile = 1  # 1 if time series data is used
-    
+    sensorheight = 2.0
+    elvis = 0
+
     # Misc
     # UTC = 1
     # alt = 10
@@ -39,8 +38,6 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     # absK = 0.7
     # absL = 0.98
 
-    sensorheight = 2.0
-    elvis = 0
     useveg = 1  # 1 if vegetation should be considered
     sh = 1.  # 0 if shadowed by building
     vegsh = 0.  # 0 if shadowed by tree

@@ -252,7 +252,6 @@ class Regional_groups():
                 sh_temp2 = sh_temp[1:]
                 for j in sh_temp2:
                     shadow_[shadow_ == j] = sh_temp[0]
-                test = 0
 
         sh_vec_t, sh_idx, sh_inv = np.unique(sh_vec_t, return_index=True, return_inverse=True, axis=0)
         tmrt_t = tmrt_t[sh_idx,:]
@@ -260,7 +259,6 @@ class Regional_groups():
         self.shadow = shadow_
         self.timesteps = sh_vec_t
         self.tmrt_rg = tmrt_t
-        test = 0
 
 class ClippedInputdata():
     '''This class clips the input rasters based on a buffer zone around the selected area. 
