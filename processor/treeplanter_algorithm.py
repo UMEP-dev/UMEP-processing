@@ -183,9 +183,9 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
-            self.tr("Mean Tmrt of timesteps studied"),
-            None, False))
+        #self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
+        #    self.tr("Mean Tmrt of timesteps studied"),
+        #    None, False))
 
         # Advanced parameters
         iterations = QgsProcessingParameterNumber(self.ITERATIONS,
@@ -243,7 +243,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
-        outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
+        # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
 
         feedback.setProgressText("Initializing and loading layers...")
 
@@ -399,7 +399,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         saveraster(tree_input.dataSet, outputCDSM, cdsm_new)
 
         # Save Tmrt raster
-        saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
+        # saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
 
         # Create point vector and save as shapefile
         srs = osr.SpatialReference()

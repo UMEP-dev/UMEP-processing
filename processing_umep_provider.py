@@ -43,6 +43,7 @@ from .preprocessor.imagemorphparmspoint_algorithm import ProcessingImageMorphPar
 from .preprocessor.imagemorphparms_algorithm import ProcessingImageMorphParmsAlgorithm
 from .preprocessor.landcoverfractionpoint_algorithm import ProcessingLandCoverFractionPointAlgorithm
 from.preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
+from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 import os.path
 from qgis.PyQt.QtGui import QIcon
@@ -77,6 +78,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingImageMorphParmsAlgorithm())
         self.addAlgorithm(ProcessingLandCoverFractionPointAlgorithm())
         self.addAlgorithm(ProcessingLandCoverFractionAlgorithm())
+        self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
         
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
