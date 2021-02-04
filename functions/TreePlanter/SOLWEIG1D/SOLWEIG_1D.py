@@ -8,7 +8,7 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     
     # Load settings from SOLWEIG
     # settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation'
-    settingsSolweig = np.loadtxt(infolder + '/settings.txt', skiprows=1, delimiter=' ')
+    settingsSolweig = np.loadtxt(infolder + '/treeplantersettings.txt', skiprows=1, delimiter=' ')
     UTC = int(settingsSolweig[0])
     pos = int(settingsSolweig[1])
     onlyglobal = int(settingsSolweig[2])
