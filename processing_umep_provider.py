@@ -42,8 +42,9 @@ from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algor
 from .preprocessor.imagemorphparmspoint_algorithm import ProcessingImageMorphParmsPointAlgorithm
 from .preprocessor.imagemorphparms_algorithm import ProcessingImageMorphParmsAlgorithm
 from .preprocessor.landcoverfractionpoint_algorithm import ProcessingLandCoverFractionPointAlgorithm
-from.preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
+from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
 from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
+from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 import os.path
 from qgis.PyQt.QtGui import QIcon
@@ -58,6 +59,9 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         """
         self.plugin_dir = os.path.dirname(__file__)
         QgsProcessingProvider.__init__(self)
+        
+        if not (os.path.isdir(self.plugin_dir + '/temp')):
+                os.mkdir(self.plugin_dir + '/temp')
 
     def unload(self):
         """
@@ -79,6 +83,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingLandCoverFractionPointAlgorithm())
         self.addAlgorithm(ProcessingLandCoverFractionAlgorithm())
         self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
+        self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
         
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())

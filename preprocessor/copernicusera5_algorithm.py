@@ -180,9 +180,10 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('bla\n'
-        '-------------\n'
-        '')
+        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. If observed data are not available for a particular location, hourly data can be retrieved from the global the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be extracted for a specific location and period of interest (1979-2020), and transformed into formatted forcing files suitable for models within UMEP.'
+        '\n'
+        '---------------\n'
+        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Meteorological%20Data%20Download%20data%20(ERA5).html"

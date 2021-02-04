@@ -262,7 +262,18 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('Here (shortHelpString()) we can write short information string about this tool.')
+        return self.tr('SUEWS - Surface Urban Energy and Water Balance Scheme (Järvi et al. 2011, 2014, Ward et al. 2016) simulates the urban radiation, '
+                       'energy and water balances using commonly measured/modeled meteorological variables and '
+                       'information about the surface cover. It utilizes an evaporation-interception approach '
+                       '(Grimmond et al. 1991), similar to that used in forests, to model evaporation from urban surfaces.<br>'
+                       '---------------\n'
+                       'Järvi L, Grimmond CSB & Christen A (2011) The Surface Urban Energy and Water Balance Scheme (SUEWS): Evaluation in Los Angeles and Vancouver J. Hydrol. 411, 219-237.<br>'
+                        '\n'
+                        'Järvi L, Grimmond CSB, Taka M, Nordbo A, Setälä H &Strachan IB (2014) Development of the Surface Urban Energy and Water balance Scheme (SUEWS) for cold climate cities, Geosci. Model Dev. 7, 1691-1711, doi:10.5194/gmd-7-1691-2014.<br>'
+                        '\n'
+                        'Ward HC, L Järvi, S Onomura, F Lindberg, CSB Grimmond (2016a) SUEWS Manual: Version 2016a<br>'
+                       '---------------\n'
+                       'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Urban%20Energy%20Balance%20Urban%20Energy%20Balance%20(SUEWS.BLUEWS,%20advanced).html"

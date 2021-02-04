@@ -287,7 +287,9 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         return self.tr('The Land Cover Fraction (Point) plugin calculates land cover fractions required for UMEP (see Land Cover '
         'Reclassifier) from a point location based on a land cover raster grid. A land cover grid suitable for the processor in '
         'UMEP can be derived using the Land Cover Classifier. The fraction will vary depending on what angle (wind direction) '
-        'you are interested in. Thus, this plugin is able to derive the land cover fractions for different directions..\n')
+        'you are interested in. Thus, this plugin is able to derive the land cover fractions for different directions.\n'
+        '-------------\n'
+        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Land%20Cover%20Land%20Cover%20Fraction%20(Point).html"

@@ -379,8 +379,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self):
         return self.tr('The Morphometric Calculator (Point) plugin calculates various morphometric parameters based on digital surface models. These morphometric parameters are used to describe the roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D vegetation (i.e. trees and bushes). It is also possible to derive the parameters from a 3D object DSM with no ground heights.\n'
         '-------------\n'
-        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292')
-
+        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292<br>'
+        '---------------\n'
+        'Full manual available via the <b>Help</b>-button.')
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Point).html"
         return url

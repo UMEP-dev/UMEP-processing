@@ -516,28 +516,22 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
     def groupId(self):
         return 'Pre-Processor'
 
-    def shortHelpString(self):
+    def shortHelpString(self):        
         return self.tr('Digital Surface Models (DSMs) is not always available for the area you want to investigate. '
                         'The DSM Generator can be used to create or alter a DSM by using information from a polygon '
                         'building footprint layer where a building height attribute is available. An option to acquire '
-                        'building footprints, and also in some cases building height from Open Street Map data, is '
-                        'available from this plugin.'
+                        'building footprints, and also in some cases building height from <i>Open Street Map</i> data, is '
+                        'available from this plugin.<br>'
                         '\n'
-                        'Required input:'
+                        '<b>Required input:</b>'
+                        '<ul><li>Digital Elevation Model (DEM) raster data in metres or feet.</li>'
+                        '<li>Either a polygon shapefile with building height information or use OSM data (tick Use Open Street Map). </li>'
+                        '<li>Building level height is used for OSM data to represent building height when only information on building stories is available.</li>'
+                        '<li>Pixel resolution is in same unit as the input DEM data.</li>'
+                        '<li>Output is a Digital Surface Model (DSM).</li>'
+                        '<li>Optional output is a polygon shapefile with the OSM data, if OSM data is being used.</ul>'
                         '\n'
-                        'Digital Elevation Model (DEM) raster data in metres or feet.'
-                        '\n'
-                        'Either a polygon shapefile with building height information '
-                        'or use OSM data (tick Use Open Street Map).'
-                        '\n'
-                        'Building level height is used for OSM data to represent building height when only '
-                        'information on building stories is available.'
-                        '\n'
-                        'Pixel resolution is in same unit as the input DEM data.'
-                        '\n'
-                        'Output is a Digital Surface Model (DSM).'
-                        '\n'
-                        'Optional output is a polygon shapefile with the OSM data, if OSM data is being used.')
+                        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Spatial%20Data%20DSM%20Generator.html"

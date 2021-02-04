@@ -164,7 +164,9 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             '------------------ \n'
             'Goodwin NR, Coops NC, Tooke TR, Christen A, Voogt JA (2009) Characterizing urban surface cover and structure with airborne lidar technology. Can J Remote Sens 35:297–309\n'
             'Lindberg F., Grimmond, C.S.B. and Martilli, A. (2015a) Sunlit fractions on urban facets - Impact of spatial resolution and approach Urban Climate DOI: 10.1016/j.uclim.2014.11.006\n'
-            'Lindberg F., Jonsson, P. & Honjo, T. and Wästberg, D. (2015b) Solar energy on building envelopes - 3D modelling in a 2D environment Solar Energy 115 369–378')
+            'Lindberg F., Jonsson, P. & Honjo, T. and Wästberg, D. (2015b) Solar energy on building envelopes - 3D modelling in a 2D environment Solar Energy 115 369–378'
+            '-------------\n'
+            'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = 'https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Geometry%20Wall%20Height%20and%20Aspect.html'

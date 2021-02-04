@@ -399,7 +399,17 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('Here (shortHelpString()) we can write short information string about this tool.')
+        return self.tr('The Shadow generator plugin can be used to generate pixel wise shadow analysis using ground and '
+               'building digital surface models (DSM). Optionally, vegetation DSMs could also be used. '
+               'The methodology that is used to generate shadows originates from Ratti and Richens (1990) '
+               'and is further developed and described in Lindberg and Grimmond (2011).<br>'
+               '\n'
+               '------------------<br>'
+               'Lindberg, F., Grimmond, C.S.B., 2011a. The influence of vegetation and building morphology on shadow patterns and mean radiant temperatures in urban areas: model development and evaluation. Theoret. Appl. Climatol. 105, 311–323 <br>'
+               'Ratti CF, Richens P (1999) Urban texture analysis with image processing techniques. In: Proceedings of the CAADFutures99, Atalanta, GA'
+               '\n'
+               'Full manual available via the <b>Help</b>-button.')
+
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Solar%20Radiation%20Daily%20Shadow%20Pattern.html"

@@ -463,7 +463,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         'Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D '
         'vegetation (i.e. trees and bushes). It is also possible to derive the parameters from a 3D object DSM with no ground heights.\n'
         '-------------\n'
-        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292')
+        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292'
+        '\n'
+        'Full manual available via the <b>Help</b>-button.')
+
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Grid).html"

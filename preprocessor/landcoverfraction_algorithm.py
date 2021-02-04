@@ -385,7 +385,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         'is able to derive the land cover fractions for different directions. It is the same as the Land Cover Fraction (Point) except that '
         'this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares or '
         'any other regular shape. To create such a grid, built in functions in QGIS can be used (see Vector geometry -> Create Grid in the '
-        'Processing Toolbox).\n')
+        'Processing Toolbox).\n'
+        '--------------\n'
+        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Land%20Cover%20Land%20Cover%20Fraction%20(Grid).html"

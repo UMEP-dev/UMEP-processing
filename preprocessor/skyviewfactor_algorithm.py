@@ -323,10 +323,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         'radiation emitted (or received) by the entire hemispheric environment (Watson and Johnson 1987). '
         'It is a dimensionless measure between zero and one, representing totally obstructed and free spaces, '
         'respectively. The methodology that is used to generate SVF here is described in Lindberg and Grimmond (2010).\n'
-        'Click on the "Help" button below for more information.\n'
         '-------------\n'
         'Lindberg F, Grimmond CSB (2010) Continuous sky view factor maps from high resolution urban digital elevation models. Clim Res 42:177–183\n'
-        'Watson ID, Johnson GT (1987) Graphical estimation of skyview-factors in urban environments. J Climatol 7: 193–197')
+        'Watson ID, Johnson GT (1987) Graphical estimation of skyview-factors in urban environments. J Climatol 7: 193–197'
+        '------------\n'
+        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Geometry%20Sky%20View%20Factor%20Calculator.html"

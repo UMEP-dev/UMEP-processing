@@ -183,9 +183,9 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        #self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
-        #    self.tr("Mean Tmrt of timesteps studied"),
-        #    None, False))
+        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
+            self.tr("Mean Tmrt of timesteps studied"),
+            None, False))
 
         # Advanced parameters
         iterations = QgsProcessingParameterNumber(self.ITERATIONS,
@@ -243,7 +243,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
-        # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
+        outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
 
         feedback.setProgressText("Initializing and loading layers...")
 
@@ -399,7 +399,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         saveraster(tree_input.dataSet, outputCDSM, cdsm_new)
 
         # Save Tmrt raster
-        # saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
+        saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
 
         # Create point vector and save as shapefile
         srs = osr.SpatialReference()
@@ -473,17 +473,13 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         'a metaheuristic hill-climbing algorithm that evaluates the combined shading effect of 1 to N '
         'trees and their corresponding mitigating decrease in Tmrt.\n'
         '\n'
-        'Default settings:'
+        '<b>Default settings:</b>'
+        '<ul><li>Metaheuristic algorithm = Hill-climbing algorithm</li>'
+        '<li>Algorithm for starting positions = genetic</li>'
+        '<li>Number of iterations = 2000</li>'
+        '<li>Areas outside of Planting area are included</li></ul>'
         '\n'
-        'Metaheuristic algorithm = Hill-climbing algorithm'
-        '\n'
-        'Algorithm for starting positions = genetic'
-        '\n'
-        'Number of iterations = 2000'
-        '\n'
-        'Areas outside of Planting area are included'
-        '\n'
-        'TIPS and TRICKS for best performance:\n'
+        '<b>TIPS and TRICKS for best performance:</b><br>'
         '- The input folder (Path to SOLWEIG output directory) should have been produced beforehand using the SOLWEIG-' 
         'model with the option to "Save necessary rasters for the TreePlanter tool" ticked in\n' 
         '- The model has a very high computational complexity. Therefore, try to reduce the number of variables by e.g.: \n'
@@ -492,7 +488,9 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         '   + Use hourly meteorological data, preferably one single day.\n'
         '   If running with a large number of trees, or over a large extent, consider using the greedy algorithm.\n'
         '-------------\n'
-        'Wallenberg and Lindberg (2020): Geoscientific Model Development, in review')
+        'Wallenberg and Lindberg (2020): Geoscientific Model Development, in review<br>'
+        '--------------\n'
+        'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Grid).html"
