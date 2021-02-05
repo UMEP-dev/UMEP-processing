@@ -157,7 +157,8 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText('Checking extents and coordinate systems')
 
         if inputCrs.toWkt() != demlayer.crs().toWkt():
-            raise QgsProcessingException('Coordinate system of Map canvas and input DEM layer differs!')
+            feedback.pushInfo('Coordinate system of Map canvas and input DEM layer differs!')
+            #raise QgsProcessingException('Coordinate system of Map canvas and input DEM layer differs!')
 
         # Input extent
         maxy = inputExtent.yMaximum()
@@ -172,6 +173,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         dem_maxx = dem_extent.xMaximum()
         dem_minx = dem_extent.xMinimum()
 
+        # Coordinate systems of input extent (can be map canvas, drawn rectangle or layer) and DEM layer.
         dem_crs = osr.SpatialReference()
         crs_temp = demlayer.crs().toWkt()
         dem_crs.ImportFromWkt(crs_temp)
@@ -180,25 +182,31 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         input_crs.ImportFromWkt(crs_temp)
         transformExtent = osr.CoordinateTransformation(input_crs, dem_crs)
 
-        gdalver = float(gdal.__version__[0])
-        if gdalver == 3.:
-            minext = ogr.CreateGeometryFromWkt('POINT (' + str(minx) + ' ' + str(miny) + ')')
-            minext.Transform(transformExtent)
-            maxext = ogr.CreateGeometryFromWkt('POINT (' + str(maxx) + ' ' + str(maxy) + ')')
-            maxext.Transform(transformExtent)
-            extent_difference_minx = minext.GetX() - dem_extent.xMinimum() # If smaller than zero = warning #changed to gdal 3
-            extent_difference_miny = minext.GetY() - dem_extent.yMinimum() # If smaller than zero = warning #changed to gdal 3
-            extent_difference_maxx = maxext.GetX() - dem_extent.xMaximum() # If larger than zero = warning #changed to gdal 3
-            extent_difference_maxy = maxext.GetY() - dem_extent.yMaximum() # If larger than zero = warning #changed to gdal 3
+        if inputCrs.toWkt() != demlayer.crs().toWkt():
+            gdalver = float(gdal.__version__[0])
+            if gdalver == 3.:
+                minext = ogr.CreateGeometryFromWkt('POINT (' + str(minx) + ' ' + str(miny) + ')')
+                minext.Transform(transformExtent)
+                maxext = ogr.CreateGeometryFromWkt('POINT (' + str(maxx) + ' ' + str(maxy) + ')')
+                maxext.Transform(transformExtent)
+                extent_difference_minx = minext.GetX() - dem_minx # If smaller than zero = warning #changed to gdal 3
+                extent_difference_miny = minext.GetY() - dem_miny # If smaller than zero = warning #changed to gdal 3
+                extent_difference_maxx = maxext.GetX() - dem_maxx # If larger than zero = warning #changed to gdal 3
+                extent_difference_maxy = maxext.GetY() - dem_maxy # If larger than zero = warning #changed to gdal 3
+            else:
+                input_xymin = transformExtent.TransformPoint(minx, miny)
+                input_xymax = transformExtent.TransformPoint(maxx, maxy)
+                extent_difference_minx = input_xymin[0] - dem_minx # If smaller than zero = warning #changed to gdal 2
+                extent_difference_miny = input_xymin[1] - dem_miny # If smaller than zero = warning #changed to gdal 2
+                extent_difference_maxx = input_xymax[0] - dem_maxx # If larger than zero = warning #changed to gdal 2
+                extent_difference_maxy = input_xymax[1] - dem_maxy # If larger than zero = warning #changed to gdal 2
         else:
-            input_xymin = transformExtent.TransformPoint(minx, miny)
-            input_xymax = transformExtent.TransformPoint(maxx, maxy)
-            extent_difference_minx = input_xymin[0] - dem_extent.xMinimum() # If smaller than zero = warning #changed to gdal 2
-            extent_difference_miny = input_xymin[1] - dem_extent.yMinimum() # If smaller than zero = warning #changed to gdal 2
-            extent_difference_maxx = input_xymax[0] - dem_extent.xMaximum() # If larger than zero = warning #changed to gdal 2
-            extent_difference_maxy = input_xymax[1] - dem_extent.yMaximum() # If larger than zero = warning #changed to gdal 2
-        
-        if extent_difference_minx < 0 or extent_difference_miny < 0 or extent_difference_maxx > 0 or extent_difference_maxy > 0:
+            extent_difference_minx = minx - dem_minx # If smaller than zero = warning #changed to gdal 3
+            extent_difference_miny = miny - dem_miny # If smaller than zero = warning #changed to gdal 3
+            extent_difference_maxx = maxx - dem_maxx # If larger than zero = warning #changed to gdal 3
+            extent_difference_maxy = maxy - dem_maxy # If larger than zero = warning #changed to gdal 3
+
+        if extent_difference_minx < -0.1 or extent_difference_miny < -0.1 or extent_difference_maxx > 0.1 or extent_difference_maxy > 0.1:
             raise QgsProcessingException('Warning! Extent of map canvas is larger than raster extent. Change to an extent equal to or smaller than the raster extent.')
 
         provider = demlayer.dataProvider()
@@ -212,7 +220,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         possible_units = ['metre', 'US survey foot', 'meter', 'm', 'ft', 'feet', 'foot', 'ftUS', 'International foot'] # Possible units
         if not dem_unit in possible_units:
-            raise QgsProcessingException('Error! Raster projection is not in metre or foot. Please reproject.')
+            raise QgsProcessingException('Error! Raster projection is not in meters or feet. Please reproject.')
 
         if shapelayer is None and useOsm is False:
             raise QgsProcessingException('Error! No valid building height layer is selected.')
