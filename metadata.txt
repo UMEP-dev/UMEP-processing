@@ -5,12 +5,16 @@
 [general]
 name=UMEP for processing
 qgisMinimumVersion=3.0
-description=Urban Multi-scale Environmental Predictor (UMEP) for processing toolbox
-version=0.8.3
-author=Fredrik Lindberg
+description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
+version=0.9
+author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
-about=UMEP for processing toolbox
+about=
+        UMEP for processing toolbox. UMEP is an extensive plugin designed for urban climate in general and climate sensitive planning applications in particular. The plugin consist of a pre-processor, a processor and a post-processor. This plugin is a collaboration between University of Gothenburg, University of Helsinki and University of Reading.
+        
+        Some of the tools in UMEP requires Python libraries not included in the default QGIS installation. See Section 2.3 in the UMEP homepage.
+
 
 tracker=https://github.com/UMEP-dev/UMEP/issues
 repository=https://github.com/UMEP-dev/UMEP
@@ -21,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog= 
+    0.9   : Solweig Analyzer added
     0.8.3 : Documentation added
     0.8.2 : DSM Generator added
     0.8.1 : Response to issue #228 (development relase)

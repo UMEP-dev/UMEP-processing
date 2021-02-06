@@ -645,18 +645,18 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
             metfileexist = 1
         except:
-            QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
+            raise QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
                                                         "prepare your data by using 'Prepare Existing Data' in "
                                                         "the Pre-processor")
 
         testwhere = np.where((self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0))
         if testwhere[0].__len__() > 0:
-             QgsProcessingException("Error: Kdown - beyond what is expected at line: " + str(testwhere[0] + 1))
+             raise QgsProcessingException("Error: Kdown - beyond what is expected at line: " + str(testwhere[0] + 1))
 
         if self.metdata.shape[1] == 24:
             feedback.setProgressText("Meteorological data succefully loaded")
         else:
-            QgsProcessingException("Error: Wrong number of columns in meteorological data. You can "
+            raise QgsProcessingException("Error: Wrong number of columns in meteorological data. You can "
                                                         "prepare your data by using 'Prepare Existing Data' in "
                                                         "the Pre-processor")
 
@@ -680,11 +680,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
             if np.min(radD) == -999:
-                QgsProcessingException("Diffuse radiation include NoData values",
+                raise QgsProcessingException("Diffuse radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
             if np.min(radI) == -999:
-                QgsProcessingException("Direct radiation include NoData values",
+                raise QgsProcessingException("Direct radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
 
@@ -695,11 +695,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                         'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
             poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
             if poilyr is None:
-                QgsProcessingException("No valid point layer is selected")
+                raise QgsProcessingException("No valid point layer is selected")
 
             poi_field = self.parameterAsFields(parameters, self.POI_FIELD, context)
             if poi_field is None:
-                QgsProcessingException("An attribute with unique values must be selected")
+                raise QgsProcessingException("An attribute with unique values must be selected")
             vlayer = QgsVectorLayer(poilyr.source(), "point", "ogr")
             idx = vlayer.fields().indexFromName(poi_field)
             numfeat = vlayer.featureCount()
@@ -722,7 +722,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
             uni = set(poiname)
             if not uni.__len__() == poisxy.shape[0]:
-                QgsProcessingException("A POI attribute with unique values must be selected")
+                raise QgsProcessingException("A POI attribute with unique values must be selected")
 
             for k in range(0, poisxy.shape[0]):
                 poi_save = []  # np.zeros((1, 33))
@@ -813,7 +813,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if UseAniso:
             folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
             if folderPathPerez is None:
-                QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
+                raise QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
                                                         "Calculator to generate shadowmats.npz")
             else:
                 ani = 1
@@ -834,10 +834,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # % Ts parameterisation maps
         if landcover == 1.:
             if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
-                QgsProcessingException("The land cover grid includes integer values higher (or lower) than UMEP-formatted" 
+                raise QgsProcessingException("The land cover grid includes integer values higher (or lower) than UMEP-formatted" 
                     "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
-                QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
+                raise QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
 
             [TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST, TmaxLST_wall] = Tgmaps_v1(lcgrid, lc_class)
         else:
@@ -1073,7 +1073,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return self.tr('SOLWEIG is a model which can be used to estimate spatial variations of 3D radiation fluxes and mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from six directions being individually calculated to derive Tmrt. The model requires a limited number of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative humidity, urban geometry and geographical information (latitude, longitude and elevation). Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.<br>'
                         '------------\n'
                         'Full manual available via the <b>Help</b>-button.')
-                        
+
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Outdoor%20Thermal%20Comfort%20SOLWEIG.html"
         return url

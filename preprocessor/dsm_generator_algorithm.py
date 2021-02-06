@@ -116,7 +116,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterDistance(self.PIXEL_RESOLUTION,
             self.tr('Pixel resolution'),
             defaultValue = 2.0,
-            parentParameterName = 'INPUT_DEM'))
+            parentParameterName='INPUT_DEM'))
 
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_DSM, 
             self.tr('Output raster Digital Surface Model (DSM)'), 

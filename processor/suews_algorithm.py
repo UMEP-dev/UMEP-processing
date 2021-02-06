@@ -100,7 +100,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                       (self.tr('Macdonald et al. 1998'), '3'))
 
         self.addParameter(QgsProcessingParameterFile(self.INPUT_DIR,
-                                                     'Input folder', 
+                                                     'Input folder',
                                                      QgsProcessingParameterFile.Folder))
         self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
                                                      self.tr('Net radiation method'),
@@ -117,27 +117,27 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.OHM,
                                                      self.tr('OHM option'),
                                                      options=[i[0] for i in self.ohm],
-                                                     defaultValue=0)) 
+                                                     defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(self.Z0,
                                                      self.tr('Roughness length for heat method'),
                                                      options=[i[0] for i in self.z0],
-                                                     defaultValue=1))   
+                                                     defaultValue=1))
         self.addParameter(QgsProcessingParameterEnum(self.SMD,
                                                      self.tr('Soil moisture deficit method'),
                                                      options=[i[0] for i in self.smd],
-                                                     defaultValue=0))   
+                                                     defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(self.STAB,
                                                      self.tr('Atmospheric stability method'),
                                                      options=[i[0] for i in self.stab],
-                                                     defaultValue=1)) 
+                                                     defaultValue=1))
         self.addParameter(QgsProcessingParameterEnum(self.WU,
                                                      self.tr('External water use method'),
                                                      options=[i[0] for i in self.wu],
-                                                     defaultValue=0)) 
+                                                     defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(self.AERO,
                                                      self.tr('Aerodynamic properties:'),
                                                      options=[i[0] for i in self.aero],
-                                                     defaultValue=0)) 
+                                                     defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(self.SNOW,
                                                         self.tr("Use snow module"),
                                                         defaultValue=False))
@@ -145,7 +145,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         #                                                 self.tr("Apply spin-up using existing meteorological data (only possible if one full year of data is used)"),
         #                                                 defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
-                                                       self.tr("Output time resolution (minutes)"), 
+                                                       self.tr("Output time resolution (minutes)"),
                                                        QgsProcessingParameterNumber.Integer,
                                                        QVariant(60),
                                                        minValue=1))                                                                                       
