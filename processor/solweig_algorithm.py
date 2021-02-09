@@ -540,6 +540,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if not (demsizex == sizex) & (demsizey == sizey):
                 raise QgsProcessingException( "Error in DEM: All grids must be of same extent and resolution")
 
+            # response to issue and #230
+            nd = dataSet.GetRasterBand(1).GetNoDataValue()
+            dem[dem == nd] = 0.
+            if dem.min() < 0:
+                dem = dem + np.abs(dem.min())
+
             alt = np.median(dem)
             if alt > 0:
                 alt = 3.
