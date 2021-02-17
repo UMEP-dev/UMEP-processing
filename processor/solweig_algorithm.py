@@ -86,16 +86,16 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    USE_VEG = 'USE_VEG'
+    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    TSDM_EXIST = 'TSDM_EXIST'
+    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
-    USE_LC = 'USE_LC'
+    # USE_LC = 'USE_LC'
     INPUT_LC = 'INPUT_LC'
     USE_LC_BUILD = 'USE_LC_BUILD'
     INPUT_DEM = 'INPUT_DEM'
     SAVE_BUILD = 'SAVE_BUILD'
-    USE_ANISO = 'USE_ANISO'
+    # USE_ANISO = 'USE_ANISO'
     INPUT_ANISO = 'INPUT_ANISO'
 
     #Enivornmental parameters
@@ -143,43 +143,44 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         #spatial
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-            self.tr('Input building and ground DSM'), None, optional=False))
+            self.tr('Building and ground Digital Surface Model (DSM)'), None, optional=False))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_SVF,
-            self.tr('Input Sky View Factor grids'), extension='zip'))
+            self.tr('Sky View Factor grids (.zip)'), extension='zip'))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
             self.tr('Wall height raster'), '', optional=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
             self.tr('Wall aspect raster'), '', optional=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-            self.tr("Use vegetation scheme (Lindberg and Grimmond 2011)"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
+        #     self.tr("Use vegetation scheme (Lindberg and Grimmond 2011)"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
+            self.tr('Vegetation Canopy DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
             self.tr('Transmissivity of light through vegetation (%):'),
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-            self.tr('Vegetation Canopy DSM'), '', optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-            self.tr("Trunk zone DSM exist"), defaultValue=False, optional=True))
+        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
+        #     self.tr("Trunk zone DSM exist"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
-            self.tr('Vegetation Trunk zone DSM'), '', optional=True))
+            self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
-            self.tr("Trunk zone height (percent of Canopy Height)"),
+            self.tr("Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"),
             QgsProcessingParameterNumber.Double,
             QVariant(25.0), optional=True, minValue=0.1, maxValue=99.9))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_LC,
-            self.tr("Use land cover scheme (Lindberg et al. 2016)"), defaultValue=False))
+
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_LC,
+        #     self.tr("Use land cover scheme (Lindberg et al. 2016)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LC,
-            self.tr('UMEP land cover grid'), '', optional = True))
+            self.tr('UMEP land cover grid'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_LC_BUILD,
             self.tr("Use land cover grid to derive building grid"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-            self.tr('Digital Elevation model (only ground)'), '', optional=True))
+            self.tr('Digital Elevation Model (DEM)'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
             self.tr("Save generated building grid"), defaultValue=False, optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_ANISO,
-            self.tr("Use anisotrophic model for diffuse radiation (Wallenberg et al. 2020)"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_ANISO,
+            # self.tr("Use anisotrophic model for diffuse radiation (Wallenberg et al. 2020)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
-            self.tr('Shadow maps'), extension='npz', optional=True))
+            self.tr('Shadow maps used for anisotrophic model for diffuse radiation (.npz)'), extension='npz', optional=True))
 
         #Environmental parameters
         self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_WALLS,
@@ -209,7 +210,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         #Meteorology
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
-            self.tr('Input meteorological file'), extension='txt'))
+            self.tr('Input meteorological file (.txt)'), extension='txt'))
         self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
             self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
@@ -295,18 +296,21 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
  
         # InputParameters
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
+        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.
-        vegdsm = None
-        vegdsm2 = None
-        useLC = self.parameterAsBool(parameters, self.USE_LC, context)
-        lcgrid = None
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+        # vegdsm = None
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+        # vegdsm2 = None
+        # useLC = self.parameterAsBool(parameters, self.USE_LC, context)
+        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
+        # lcgrid = None
         useLcBuild = self.parameterAsBool(parameters, self.USE_LC_BUILD, context)
         dem = None
         inputSVF = self.parameterAsString(parameters, self.INPUT_SVF, context)
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
+        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context) 
@@ -323,7 +327,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         sensorheight = None
         saveBuild = self.parameterAsBool(parameters, self.SAVE_BUILD, context)
         demforbuild = 0
-        UseAniso = self.parameterAsBool(parameters, self.USE_ANISO, context)
+        # UseAniso = self.parameterAsBool(parameters, self.USE_ANISO, context)
+        folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
         poisxy = None
         poiname = None
 
@@ -429,7 +434,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         alt = np.median(dsm)
         if alt < 0:
             alt = 3
-
         feedback.setProgressText('Longitude derived from DSM: ' + str(lon))
         feedback.setProgressText('Latitude derived from DSM: ' + str(lat))
 
@@ -437,12 +441,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         trunkratio = 0
         # psi = transVeg / 100.0
 
-        if useVegdem:
+        # if useVegdem:
+        if vegdsm is not None:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            if vegdsm is None:
-                raise QgsProcessingException("Error: No valid vegetation DSM selected")
+            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
+            # if vegdsm is None:
+                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -457,11 +462,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if not (vegsizex == sizex) & (vegsizey == sizey):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
-            if tdsmExists:
-                vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
+            if vegdsm2 is not None:
+                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
 
-                if vegdsm2 is None:
-                    raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
+                # if vegdsm2 is None:
+                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -488,13 +493,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             filePath_tdsm = None
 
         # Land cover
-        if useLC:
+        if lcgrid is not None:
             landcover = 1
             feedback.setProgressText('Land cover scheme activated')
-            lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
+            # lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
             
-            if lcgrid is None:
-                raise QgsProcessingException("Error: No valid land cover grid is selected")
+            # if lcgrid is None:
+                # raise QgsProcessingException("Error: No valid land cover grid is selected")
 
             # load raster
             gdal.AllRegister()
@@ -816,22 +821,22 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             saveraster(gdal_dsm, outputDir + '/buildings.tif', buildings)
 
         # Import shadow matrices (Anisotropic sky)
-        if UseAniso:
-            folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
-            if folderPathPerez is None:
-                raise QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
-                                                        "Calculator to generate shadowmats.npz")
+        if folderPathPerez is not None:  #UseAniso
+            # folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
+            # if folderPathPerez is None:
+                # raise QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
+                                                        # "Calculator to generate shadowmats.npz")
+            # else:
+            ani = 1
+            data = np.load(folderPathPerez)
+            shmat = data['shadowmat']
+            vegshmat = data['vegshadowmat']
+            if usevegdem == 1:
+                diffsh = np.zeros((rows, cols, 145))
+                for i in range(0, 145):
+                    diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
             else:
-                ani = 1
-                data = np.load(folderPathPerez)
-                shmat = data['shadowmat']
-                vegshmat = data['vegshadowmat']
-                if usevegdem == 1:
-                    diffsh = np.zeros((rows, cols, 145))
-                    for i in range(0, 145):
-                        diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
-                else:
-                    diffsh = shmat
+                diffsh = shmat
 
         else:
             ani = 0
@@ -874,7 +879,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                               absK, absL, albedo_b, albedo_g, ewall, eground, onlyglobal, trunkratio,
                                               transVeg, rows, cols, pos, elvis, cyl, demforbuild, ani)
 
-        feedback.setProgressText("Write settings for this run to disk in RunInfoSOLWEIG.txt located in the specified output folder.")
+        feedback.setProgressText("Writing settings for this run to specified output folder (RunInfoSOLWEIG.txt)")
 
         #  If metfile starts at night
         CI = 1.
@@ -1026,7 +1031,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             copyfile(inputMet, outputDir + '/metfile.txt')
 
             # Save CDSM
-            if usevegdem:
+            if usevegdem == 1:
                 copyfile(filePath_cdsm, outputDir + '/CDSM.tif')
 
             # Saving settings from SOLWEIG for SOLWEIG1D in TreePlanter

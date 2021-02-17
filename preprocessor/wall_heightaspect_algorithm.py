@@ -79,7 +79,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
     INPUT = 'INPUT'
     OUTPUT_HEIGHT = 'OUTPUT_HEIGHT'
     OUTPUT_ASPECT = 'OUTPUT_ASPECT'
-    ASPECT_BOOL = 'ASPECT_BOOL'
+    # ASPECT_BOOL = 'ASPECT_BOOL'
 
 
     def initAlgorithm(self, config):
@@ -87,9 +87,9 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT,
             self.tr('Input building and ground DSM'), 
             None, False))
-        self.addParameter(QgsProcessingParameterBoolean(self.ASPECT_BOOL,
-            self.tr("Calculate wall aspect"),
-            defaultValue=True)) 
+        # self.addParameter(QgsProcessingParameterBoolean(self.ASPECT_BOOL,
+        #     self.tr("Calculate wall aspect"),
+        #     defaultValue=True)) 
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_LIMIT,
             self.tr("Lower limit for wall height (m)"), 
             QgsProcessingParameterNumber.Double,
@@ -99,14 +99,13 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             self.tr("Output Wall Height Raster"),
             None, False))
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_ASPECT,
-            self.tr("Output Wall Aspect Raster"),
-            None, False))
+            self.tr("Output Wall Aspect Raster"), optional=True, createByDefault=False))
 
     def processAlgorithm(self, parameters, context, feedback):
         outputFileHeight = self.parameterAsOutputLayer(parameters, self.OUTPUT_HEIGHT, context)
-        outputFileAspect = None
+        outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
         dsmin = self.parameterAsRasterLayer(parameters, self.INPUT, context) 
-        aspectcalculation = self.parameterAsBool(parameters, self.ASPECT_BOOL, context)
+        # aspectcalculation = self.parameterAsBool(parameters, self.ASPECT_BOOL, context)
         walllimit = self.parameterAsDouble(parameters, self.INPUT_LIMIT, context)
 
         cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0])
@@ -126,12 +125,12 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         walls = wa.findwalls(dsm, walllimit, feedback, total)
 
         wallssave = np.copy(walls)
-        feedback.setProgressText(outputFileHeight)
+        # feedback.setProgressText(outputFileHeight)
         saverasternd(gdal_dsm, outputFileHeight, wallssave)
         
-        if aspectcalculation:
+        if outputFileAspect:
             total = 100. / 180.0
-            outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
+            # outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
             feedback.setProgressText("Calculating wall aspect")
             dirwalls = wa.filter1Goodwin_as_aspect_v3(walls, 1, dsm, feedback, total)
             saverasternd(gdal_dsm, outputFileAspect, dirwalls)

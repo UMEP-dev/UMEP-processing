@@ -33,12 +33,10 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                    #    QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
-                    #    QgsProcessingParameterFileDestination,
                        QgsProcessingException,
                        QgsProcessingParameterRasterLayer)
 # from processing.gui.wrappers import WidgetWrapper
@@ -56,7 +54,6 @@ from ..util import misc
 from ..functions import svf_functions as svf
 
 
-
 class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of SkyViewFactor
@@ -65,9 +62,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     INPUT_DSM = 'INPUT_DSM'
     INPUT_CDSM = 'INPUT_CDSM'
     INPUT_TDSM = 'INPUT_TDSM'
-    USE_VEG = 'USE_VEG'
+    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    TSDM_EXIST = 'TSDM_EXIST'
+    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     ANISO = 'ANISO'
     OUTPUT_DIR = 'OUTPUT_DIR'
@@ -76,27 +73,28 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
                 self.tr('Input building and ground DSM'), None, False))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-            self.tr("Use vegetation DSMs"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
-            self.tr('Transmissivity of light through vegetation (%):'), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(3), True, minValue=0, maxValue=100))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
+        #     self.tr("Use vegetation DSMs"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
                 self.tr('Vegetation canopy DSM'), '', True))
-        self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-            self.tr("Trunk zone DSM exist"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
+            self.tr('Transmissivity of light through vegetation (%):'),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(3), True, minValue=0, maxValue=100))
+        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
+        #     self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
                 self.tr('Vegetation trunk zone DSM'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
-            self.tr("Trunk zone height (percent of canopy height)"), 
+        self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
+            self.tr("Trunk zone height (percent of canopy height)"),
             QgsProcessingParameterNumber.Double,
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
-            self.tr("Use method with 145 shadow images instead of 655. Required for anisotrophic sky scheme (SOLWEIG)"), 
+            self.tr("Use method with 145 shadow images instead of 655. Required for anisotrophic sky scheme (SOLWEIG)"),
             defaultValue=True))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output folder for individual raster files'))
+        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
+        'Output folder for individual raster files'))
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
             self.tr("Output sky view factor raster"), None, False))
 
@@ -104,13 +102,13 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
-        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
-        vegdsm = None
-        vegdsm2 = None
-        tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
+        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
 
         feedback.setProgressText('Initiating algorithm')
@@ -138,12 +136,12 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         
         trans = transVeg / 100.0
 
-        if useVegdem:
+        if vegdsm:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            if vegdsm is None:
-                raise QgsProcessingException("Error: No valid vegetation DSM selected")
+            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+            # if vegdsm is None:
+                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -158,11 +156,10 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             if not (vegsizex == sizex) & (vegsizey == sizey):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
-            if tdsmExists:
-                vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
-
-                if vegdsm2 is None:
-                    raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
+            if vegdsm2:
+                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+                # if vegdsm2 is None:
+                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()

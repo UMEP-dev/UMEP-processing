@@ -55,25 +55,35 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """
     SUEWS_NL = 'SUEWS_NL'
     VARIA_IN = 'VARIA_IN'
-    BUILDINGS = 'BUILDINGS'
+    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
+    ID_FIELD = 'ID_FIELD'
+    YEAR = 'YEAR'
+    DAY_START = 'DAY_START'
+    DAY_END = 'DAY_END'
+    IRREGULAR = 'IRREGULAR'
+    PIXELSIZE = 'PIXELSIZE'
     STAT_TYPE = 'STAT_TYPE'
 
-    # SPECTIME_AV = 'SPECTIME_AV'
-    # SPECTIME_MIN = 'SPECTIME_MIN'
-    # SPECTIME_MAX = 'SPECTIME_MAX'
-    THRES_TYPE = 'THRES_TYPE'
-    TMRT_THRES_NUM = 'TMRT_THRES_NUM'
-
     # Output
-    STAT_OUT = 'STAT_OUT'
-    TMRT_STAT_OUT = 'TMRT_STAT_OUT'
+    SUEWS_GRID_ = 'SUEWS_GRID_OUT'
 
 
     def initAlgorithm(self, config):
+        self.varType = ((self.tr('Mean Radiant Temperature (Tmrt)'), '0'),
+                        (self.tr('Incoming Longwave radiation (Ldown)'), '1'),
+                        (self.tr('Outgoing Longwave radiation (Lup)'), '2'),
+                        (self.tr('Incoming Shortwave radiation (Kdown)'), '3'),
+                        (self.tr('Outgoing Shortwave radiation (Kup)'), '4'),
+                        (self.tr('Ground Shadow'), '5'))
         self.addParameter(QgsProcessingParameterFile(self.SUEWS_NL,
-                                                     self.tr('SUEWS RunControl namelist'), 
-                                                     extension='nml', 
+                                                     self.tr('SUEWS RunControl namelist'),
+                                                     extension='nml',
                                                      optional=False))
+
+        self.addParameter(QgsProcessingParameterEnum(self.VARIA_IN,
+                                                     self.tr('Variable to post-process (must be availabe in the SOLWEIG output folder)'),
+                                                     options=[i[0] for i in self.varType],
+                                                     defaultValue=False))
         # self.addParameter(QgsProcessingParameterFile(self.SOLWEIG_DIR,
         #                                              self.tr('Path to SOLWEIG output folder'),
         #                                              QgsProcessingParameterFile.Folder))
@@ -81,16 +91,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                                                             self.tr('Raster to exclude building pixels from analysis'),
                                                              '', 
                                                              optional=True))
-        self.varType = ((self.tr('Mean Radiant Temperature (Tmrt)'), '0'),
-                         (self.tr('Incoming Longwave radiation (Ldown)'), '1'),
-                         (self.tr('Outgoing Longwave radiation (Lup)'), '2'),
-                         (self.tr('Incoming Shortwave radiation (Kdown)'), '3'),
-                         (self.tr('Outgoing Shortwave radiation (Kup)'), '4'),
-                         (self.tr('Ground Shadow'), '5'))
-        self.addParameter(QgsProcessingParameterEnum(self.VARIA_IN,
-                                                     self.tr('Variable to post-process (must be availabe in the SOLWEIG output folder)'),
-                                                     options=[i[0] for i in self.varType],
-                                                     defaultValue=False))
+
         self.statType = ((self.tr('Diurnal Average'), '0'),
                          (self.tr('Daytime average'), '1'),
                          (self.tr('Nighttime average'), '2'),
@@ -101,14 +102,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                                                      options=[i[0] for i in self.statType],
                                                      defaultValue=1))
 
-        self.thresType = ((self.tr(' '), '0'),
-                         (self.tr('Above'), '1'),
-                         (self.tr('Below'), '2'))
-        self.addParameter(QgsProcessingParameterEnum(self.THRES_TYPE,
-                                                     self.tr('Calculate Percent of time above/below Tmrt theshold'),
-                                                     options=[i[0] for i in self.thresType], 
-                                                     defaultValue=False,
-                                                     optional=True))
+
         self.addParameter(QgsProcessingParameterNumber(self.TMRT_THRES_NUM,
                                                        self.tr('Theshold (degC)'),
                                                        QgsProcessingParameterNumber.Double,

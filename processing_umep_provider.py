@@ -47,6 +47,7 @@ from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorith
 from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
+from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
 import os.path
 from qgis.PyQt.QtGui import QIcon
 import inspect
@@ -95,6 +96,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
 
         #Postprocessor
         self.addAlgorithm(ProcessingSolweigAnalyzerAlgorithm())
+        # self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
 
     def id(self):
         """

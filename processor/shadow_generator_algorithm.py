@@ -69,10 +69,10 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    CALC_FACADE = 'CALC_FACADE'
-    USE_VEG = 'USE_VEG'
+    # CALC_FACADE = 'CALC_FACADE'
+    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    TSDM_EXIST = 'TSDM_EXIST'
+    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     ONE_SHADOW = 'ONE_SHADOW'
     ITERTIME = 'ITERTIME'
@@ -92,16 +92,17 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         #         self.tr('Extent'), None, False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
                 self.tr('Input building and ground DSM'), None, False))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-            self.tr("Use vegetation DSMs"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
+        #     self.tr("Use vegetation DSMs"), defaultValue=False))
+
+        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
+                self.tr('Vegetation Canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
             self.tr('Transmissivity of light through vegetation (%):'), 
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-                self.tr('Vegetation Canopy DSM'), '', True))
-        self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-            self.tr("Trunk zone DSM exist"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
+        #     self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
                 self.tr('Vegetation Trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
@@ -109,12 +110,12 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber.Double,
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
-        self.addParameter(QgsProcessingParameterBoolean(self.CALC_FACADE,
-            self.tr("Include facade shadow output"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.CALC_FACADE,
+        #     self.tr("Include facade shadow output"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
-                self.tr('Wall height raster'), '', True))
+                self.tr('Wall height raster (required if facade shadow should be claculated)'), '', True))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
-                self.tr('Wall aspect raster'), '', True))
+                self.tr('Wall aspect raster (required if facade shadow should be claculated)'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
             self.tr('Coordinated Universal Time (UTC) '), 
             QgsProcessingParameterNumber.Integer,
@@ -139,25 +140,27 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                                                      'Output folder'))
         # self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT_FILE, 
         #     self.tr('Image file'), self.tr('png files (*.png)')))
-        # self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
-        #     self.tr("Output for aggregated shadow raster file"), None, False))
+        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
+            self.tr("Aggregated (or single) shadow raster"), optional=True,
+            createByDefault=False))
 
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         # outputFile = self.parameterAsFileOutput(parameters, self.OUTPUT_FILE, context)
         # outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
+        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
-        vegdsm = None
-        vegdsm2 = None
-        wheight = None
-        waspect = None
-        tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
+        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
+        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
+        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
-        facade = self.parameterAsBool(parameters, self.CALC_FACADE, context)
+        # facade = self.parameterAsBool(parameters, self.CALC_FACADE, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context) 
         dst = self.parameterAsBool(parameters, self.DST, context)
         myDate = self.parameterAsString(parameters, self.DATEINI, context)
@@ -166,11 +169,8 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         iterShadow = self.parameterAsDouble(parameters, self.ITERTIME, context)
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
-            if not (os.path.isdir(outputDir)):
+            if not os.path.isdir(outputDir):
                 os.mkdir(outputDir)
-            # tempout = ''
-        # else:
-            # tempout = 'OUPUT_DIR/'
 
         # Code from old plugin
         if dst:
@@ -228,7 +228,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         lonlat = transform.TransformPoint(minx, miny)
         geotransform = gdal_dsm.GetGeoTransform()
         scale = 1 / geotransform[1]
-        
+
         gdalver = float(gdal.__version__[0])
         if gdalver >= 3.:
             lon = lonlat[1] #changed to gdal 3
@@ -242,12 +242,12 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         trans = transVeg / 100.0
 
-        if useVegdem:
+        if vegdsm:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            if vegdsm is None:
-                raise QgsProcessingException("Error: No valid vegetation DSM selected")
+            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
+            # if vegdsm is None:
+                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -262,11 +262,11 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             if not (vegsizex == sizex) & (vegsizey == sizey):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
-            if tdsmExists:
-                vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
+            if vegdsm2:
+                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
 
-                if vegdsm2 is None:
-                    raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
+                # if vegdsm2 is None:
+                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -288,13 +288,13 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             vegdsm2 = 0
             usevegdem = 0
 
-        if facade: 
+        if whlayer and walayer: 
             feedback.setProgressText('Facade shadow scheme activated')
             wallsh = 1
             # wall height layer
-            whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
-            if whlayer is None:
-                raise QgsProcessingException("Error: No valid wall height raster layer is selected")
+            # whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
+            # if whlayer is None:
+                # raise QgsProcessingException("Error: No valid wall height raster layer is selected")
             provider = whlayer.dataProvider()
             filepath_wh = str(provider.dataSourceUri())
             self.gdal_wh = gdal.Open(filepath_wh)
@@ -305,9 +305,9 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
             # wall aspectlayer
-            walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-            if walayer is None:
-                raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
+            # walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
+            # if walayer is None:
+                # raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
             provider = walayer.dataProvider()
             filepath_wa = str(provider.dataSourceUri())
             self.gdal_wa = gdal.Open(filepath_wa)
@@ -345,24 +345,25 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
             # self.timeInterval = intervalTime.minute() + (intervalTime.hour() * 60) + (intervalTime.second()/60)
             shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
-                                            timeInterval, onetime, feedback, outputDir, gdal_dsm, trans, 
+                                            timeInterval, onetime, feedback, outputDir, gdal_dsm, trans,
                                             dst, wallsh, wheight, waspect)
             
             shfinal = shadowresult["shfinal"]
-            time_vector = shadowresult["time_vector"]
-            if onetime == 0:
-                timestr = time_vector.strftime("%Y%m%d")
-                savestr = '/shadow_fraction_on_'
-            else:
-                timestr = time_vector.strftime("%Y%m%d_%H%M")
-                savestr = '/Shadow_at_'
+        #     time_vector = shadowresult["time_vector"]
+        #     if onetime == 0:
+        #         timestr = time_vector.strftime("%Y%m%d")
+        #         savestr = '/shadow_fraction_on_'
+        #     else:
+        #         timestr = time_vector.strftime("%Y%m%d_%H%M")
+        #         savestr = '/Shadow_at_'
 
-        filename = outputDir + savestr + timestr + '_LST.tif'
-        dsh.saveraster(gdal_dsm, filename, shfinal)
+        # filename = outputDir + savestr + timestr + '_LST.tif'
+        if outputFile:
+            dsh.saveraster(gdal_dsm, outputFile, shfinal)
 
         feedback.setProgressText("ShadowGenerator: Shadow grid(s) successfully generated")
 
-        return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: filename}
+        return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: outputFile}
     
     def name(self):
         """

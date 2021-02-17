@@ -72,9 +72,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    USE_VEG = 'USE_VEG'
+    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    TSDM_EXIST = 'TSDM_EXIST'
+    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     UTC = 'UTC'
     ALBEDO = 'ALBEDO'
@@ -83,22 +83,23 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     SAVESKYIRR = 'SAVESKYIRR'
     IRR_FILE = 'IRR_FILE'
     OUTPUT_DIR = 'OUTPUT_DIR'
-    OUTPUT_FILE = 'OUTPUT_FILE'
+    # OUTPUT_SKY = 'OUTPUT_SKY'
+    OUTPUT_ROOF = 'OUTPUT_ROOF'
     
 
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
             self.tr('Input building and ground DSM'), None, False))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-            self.tr("Use vegetation DSMs"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
+        #     self.tr("Use vegetation DSMs"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
+            self.tr('Vegetation Canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
             self.tr('Transmissivity of light through vegetation (%):'), 
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-            self.tr('Vegetation Canopy DSM'), '', True))
-        self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-            self.tr("Trunk zone DSM exist"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
+        #     self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
@@ -122,24 +123,26 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             QVariant(0),  False, minValue=-12, maxValue=12)) 
         self.addParameter(QgsProcessingParameterBoolean(self.SAVESKYIRR,
             self.tr("Save sky irradiance distribution"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT_FILE, 
+        self.addParameter(QgsProcessingParameterFileDestination(self.IRR_FILE,
              self.tr('Sky irradiance distribution'), self.tr('txt files (*.txt)')))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
+        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_ROOF,
+            self.tr("Roof irradiance raster (kWh)"), optional=True,
+            createByDefault=False))
 
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        # outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
+        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
-        vegdsm = None
-        vegdsm2 = None
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
+        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context) 
@@ -147,15 +150,14 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
         irrFile = self.parameterAsFileOutput(parameters, self.IRR_FILE, context)
+        outputRoof = self.parameterAsOutputLayer(parameters, self.OUTPUT_ROOF, context)
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        # Code from old plugin
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
-        # self.dsmpath = filepath_dsm
         self.gdal_dsm = gdal.Open(filepath_dsm)
         self.dsm = self.gdal_dsm.ReadAsArray().astype(np.float)
         sizex = self.dsm.shape[0]
@@ -210,12 +212,12 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         trunkratio = 0
         psi = transVeg / 100.0
 
-        if useVegdem:
+        if vegdsm:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            if vegdsm is None:
-                raise QgsProcessingException("Error: No valid vegetation DSM selected")
+            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
+            # if vegdsm is None:
+            #     raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -230,11 +232,11 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             if not (vegsizex == sizex) & (vegsizey == sizey):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
-            if tdsmExists:
-                vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
+            if vegdsm2:
+                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
 
-                if vegdsm2 is None:
-                    raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
+                # if vegdsm2 is None:
+                #     raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -261,8 +263,8 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             filePath_tdsm = None
 
         # wall height layer
-        if whlayer is None:
-            raise QgsProcessingException("Error: No valid wall height raster layer is selected")
+        # if whlayer is None:
+        #     raise QgsProcessingException("Error: No valid wall height raster layer is selected")
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
@@ -273,8 +275,8 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
         # wall aspectlayer
-        if walayer is None:
-            raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
+        # if walayer is None:
+        #     raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)
@@ -291,7 +293,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         delim = ' '
 
         try:
-            self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
+            self.metdata = np.loadtxt(inputMet, skiprows=headernum, delimiter=delim)
         except:
             QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
                                                         "prepare your data by using 'Prepare Existing Data' in "
@@ -311,12 +313,12 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         alt = np.median(self.dsm)
         if alt < 0:
             alt = 3
-        
+
         feedback.setProgressText("Calculating sun positions for each time step")
         location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
         YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
-            Solweig_2015a_metdata_noload(self.metdata,location, utc)
-        
+            Solweig_2015a_metdata_noload(self.metdata, location, utc)
+
         feedback.setProgressText("Distributing irradiance on sky vault")
         output = {'energymonth': 0, 'energyyear': 1, 'suitmap': 0}
         radmatI, radmatD, radmatR = sunmapcreator_2015a(self.metdata, altitude, azimuth,
@@ -350,6 +352,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("SEBE: Model calculation finished. Saving to disk")
 
+        
+        if outputRoof:
+            saveraster(self.gdal_dsm, outputRoof, Energyyearroof)
 
         saveraster(self.gdal_dsm, outputDir + '/dsm.tif', self.dsm)
         filenameroof = outputDir + '/Energyyearroof.tif'
@@ -364,7 +369,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             numformat = '%4d %4d %6.2f'
             np.savetxt(filenamewall, vegdata, fmt=numformat, header=header, comments='')
 
-        return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: filenameroof}
+        return {self.OUTPUT_DIR: outputDir, self.IRR_FILE: irrFile, self.OUTPUT_ROOF: outputRoof}
     
     def name(self):
         """
