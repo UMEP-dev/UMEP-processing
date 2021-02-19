@@ -60,8 +60,8 @@ import inspect
 from pathlib import Path
 import sys
 from ..util import misc
-from ..util import RoughnessCalcFunctionV2 as rg
-from ..util import imageMorphometricParms_v1 as morph
+# from ..util import RoughnessCalcFunctionV2 as rg
+# from ..util import imageMorphometricParms_v1 as morph
 
 # Modules necessary for Tree Planter
 #import numpy as np
@@ -80,7 +80,7 @@ from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2
 # from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 
-from ..functions.TreePlanter.TreeGeneratorTemp import makevegdems as makevegdems
+from ..functions.TreeGenerator import makevegdems as makevegdems
 
 # from ..functions.TreePlanter.SOLWEIG.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
 from ..util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
@@ -493,7 +493,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
-        url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Grid).html"
+        url = "https://umep-docs.readthedocs.io/en/latest/processor/Outdoor%20Thermal%20Comfort%20TreePlanter.html"
         return url
 
     def tr(self, string):

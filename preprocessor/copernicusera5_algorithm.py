@@ -42,7 +42,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingException)
 
 from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit
+# from qgis.PyQt.QtWidgets import QDateEdit
 
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
@@ -79,23 +79,23 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
     
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
-            self.tr('Point of interest')))
+                                                      self.tr('Point of interest')))
         self.addParameter(QgsProcessingParameterCrs(self.CRS,
-            self.tr('Coordinate reference system for point of interest'), 'ProjectCrs'))
+                                                    self.tr('Coordinate reference system for point of interest'), 
+                                                    'ProjectCrs'))
         paramS = QgsProcessingParameterString(self.DATEINISTART, 'Start date')
         paramS.setMetadata({'widget_wrapper': {'class': DateWidgetStart}})
         self.addParameter(paramS)
         paramE = QgsProcessingParameterString(self.DATEINIEND, 'End date')
         paramE.setMetadata({'widget_wrapper': {'class': DateWidgetEnd}})
         self.addParameter(paramE)
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
+        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
 
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
         inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
-        # inputPoint = self.parameterAsString(parameters, self.INPUT_POINT, context)
         inputCRS = self.parameterAsCrs(parameters, self.CRS, context)
         startDate = self.parameterAsString(parameters, self.DATEINISTART, context)
         endDate = self.parameterAsString(parameters, self.DATEINIEND, context)
@@ -112,11 +112,6 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
         x = float(inputPoint[0])
         y = float(inputPoint[1])
-
-        # feedback.setProgressText("x = " + str(old_cs))
-
-        # feedback.setProgressText("x = " + str(x))
-        # feedback.setProgressText("y = " + str(y))
 
         wgs84_wkt = """
         GEOGCS["WGS 84",

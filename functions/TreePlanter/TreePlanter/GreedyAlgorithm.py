@@ -1,6 +1,7 @@
 import numpy as np
 import time
-from ..TreeGeneratorTemp import makevegdems
+from ...TreeGenerator import makevegdems
+# from ..TreeGenerator import makevegdems
 from ..TreePlanter.TreePlanterClasses import Treerasters
 from ..TreePlanter.TreePlanterClasses import Position
 

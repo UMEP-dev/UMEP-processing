@@ -32,10 +32,7 @@ __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
 from processing.core.ProcessingConfig import ProcessingConfig
-from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
-from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
-from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
-from .processor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
+
 from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
 from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm
 from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algorithm
@@ -45,9 +42,17 @@ from .preprocessor.landcoverfractionpoint_algorithm import ProcessingLandCoverFr
 from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
 from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
 from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
+from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
+
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
+from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
+from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
+from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
+from .processor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
+
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
 from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
+
 import os.path
 from qgis.PyQt.QtGui import QIcon
 import inspect
@@ -85,7 +90,8 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingLandCoverFractionPointAlgorithm())
         self.addAlgorithm(ProcessingLandCoverFractionAlgorithm())
         self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
-        self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
+        # self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
+        self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
         
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
@@ -96,7 +102,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
 
         #Postprocessor
         self.addAlgorithm(ProcessingSolweigAnalyzerAlgorithm())
-        # self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
+        self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
 
     def id(self):
         """

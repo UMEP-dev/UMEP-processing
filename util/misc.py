@@ -42,3 +42,20 @@ def saveraster(gdal_data, filename, raster):
     # georeference the image and set the projection
     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
     outDs.SetProjection(gdal_data.GetProjection())
+
+def saverasternd(gdal_data, filename, raster):
+    rows = gdal_data.RasterYSize
+    cols = gdal_data.RasterXSize
+
+    outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
+    outBand = outDs.GetRasterBand(1)
+
+    # write the data
+    outBand.WriteArray(raster, 0, 0)
+    # flush data to disk, set the NoData value and calculate stats
+    outBand.FlushCache()
+    # outBand.SetNoDataValue(-9999)
+
+    # georeference the image and set the projection
+    outDs.SetGeoTransform(gdal_data.GetGeoTransform())
+    outDs.SetProjection(gdal_data.GetProjection())

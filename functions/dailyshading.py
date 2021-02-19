@@ -105,7 +105,6 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
 
         time_vector = dt.datetime(year, month, day, time['hour'], time['min'], time['sec'])
         timestr = time_vector.strftime("%Y%m%d_%H%M")
-        print(timestr)
 
         if alt[i] > 0:
             if wallshadow == 1: # Include wall shadows (Issue #121)
