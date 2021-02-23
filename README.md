@@ -5,7 +5,7 @@
 This is the official repository for the Urban Multi-scale Universal Predictor.
 UMEP includes various climate sensitive planning tools and comes as a plugin
 for QGIS (www.qgis.org). To facilitate use, a majority of the tools in UMEP 
-is now availabel via the Processing toolbox in QGIS. The original UMEP tool 
+is now available via the Processing toolbox in QGIS. The original UMEP tool 
 can still be accessed thruogh the official QGIS plugin repository.
 
 ## Installation
