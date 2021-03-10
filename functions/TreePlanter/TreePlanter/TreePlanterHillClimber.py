@@ -74,6 +74,7 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
                                                    r_iters, counter, dia)
 
             if (tp_c == 100):
+                feedback.setProgressText('Possibly too many trees to fit in planting area. Try a lower number.')
                 break
 
             if ((counter == 0) | (sa == 0)):
@@ -191,5 +192,5 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
     i_y = i_y[y[0][0], :]
     i_x = i_x[y[0][0], :]
 
-    return i_y, i_x
+    return i_y, i_x, t_max
     #return i_y, i_x, unique_tmrt, unique_tmrt_max, tree_paths

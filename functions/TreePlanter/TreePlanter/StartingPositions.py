@@ -11,7 +11,7 @@ def random_start(pos, trees, tree_pos_all, r_iters):
     while np.any(np.where((tree_pos_all == np.sort(tree_pos)).all(axis=1))):
         tree_pos = np.random.choice(pos, trees)
         tp_c += 1
-        print('re-random')
+        # print('re-random')
         if (tp_c == 100):
             break_loop = r_iters + 1
             break

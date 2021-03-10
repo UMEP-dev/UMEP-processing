@@ -40,6 +40,8 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
     tmrt_copy = treeinput.tmrt_ts.copy()
     shadows_copy = treeinput.shadow.copy()
 
+    tmrt_max = 0
+
     # Calculating sum of Tmrt in shade for each possible position in the Tmrt matrix
     sum_tmrt_tsh = np.zeros((treeinput.rows, treeinput.cols))   # Empty matrix for sum of Tmrt in tree shadow
     sum_tmrt = np.zeros((treeinput.rows, treeinput.cols))  # Empty matrix for sum of Tmrt in sun under tree shadow
@@ -74,9 +76,12 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
 
         temp_y, temp_x = np.where(treerasters.d_tmrt == np.max(treerasters.d_tmrt))
         
+        tmrt_max += np.max(treerasters.d_tmrt)
+
         best_y[tree] = temp_y[0]
         best_x[tree] = temp_x[0]
         
+        # Add new tree shade and remove Tmrt from Tmrt.SOLWEIG where there is shade from new tree
         y1 = np.int_(temp_y[0] - treerasters.buffer_y[0])
         y2 = np.int_(temp_y[0] + treerasters.buffer_y[1])
         x1 = np.int_(temp_x[0] - treerasters.buffer_x[0])
@@ -89,7 +94,7 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
             shadows_copy[:,:,j] = shadows_copy[:,:,j] * temp_shadow
             tmrt_copy[:,:,j] = tmrt_copy[:,:,j] * temp_shadow
 
-        # Test
+        # Determine where to recalcaulate d_tmrt
         y1 = np.int_(temp_y[0] - treerasters.buffer_y[0] - treerasters.buffer_y[1])
         if y1 < 0:
             y1 = 0
@@ -102,22 +107,45 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
         x2 = np.int_(temp_x[0] + treerasters.buffer_x[1] + treerasters.buffer_x[0])
         if x2 < 0:
             x2 = 0
-
-        recalc_positions = np.zeros((bld_copy.shape[0], bld_copy.shape[1])) # Alla noll
-        recalc_positions[y1:y2,x1:x2] = 1                                   # Runt bästa position = 1
-        bld_copy[temp_y[0]-bd_b:temp_y[0]+bd_b+1,temp_x[0]-bd_b:temp_x[0]+bd_b+1] = 0 # Där trädet står noll
+   
+        recalc_positions = np.zeros((bld_copy.shape[0], bld_copy.shape[1])) 
+        recalc_positions[y1:y2,x1:x2] = 1                                   
         treerasters.d_tmrt[y1:y2,x1:x2] = 0
         sum_tmrt[y1:y2,x1:x2] = 0
         sum_tmrt_tsh[y1:y2,x1:x2] = 0
+
+        # Remove position and one radian of tree canopy of added tree
+        yt1 = np.int_(temp_y[0] - treerasters.buffer_y[0])
+        yt2 = np.int_(temp_y[0] + treerasters.buffer_y[1])
+        xt1 = np.int_(temp_x[0] - treerasters.buffer_x[0])
+        xt2 = np.int_(temp_x[0] + treerasters.buffer_x[1])
+        added_tree = np.zeros((bld_copy.shape[0], bld_copy.shape[1]))
+        added_tree[yt1:yt2,xt1:xt2] = treerasters.cdsm
+        added_tree = added_tree > 0
+        added_tree = 1 - added_tree
+
+        for i1 in range(bd_b):
+            walls = np.ones((treeinput.rows, treeinput.cols))
+            domain = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+            for i in range(1, treeinput.cols - 1):
+                for j in range(1, treeinput.rows - 1):
+                    dom = added_tree[j - 1:j + 2, i - 1:i + 2]
+                    walls[j, i] = np.min(dom[np.where(domain == 1)])
+            
+            added_tree = added_tree * walls
+
+        bld_copy = bld_copy * added_tree
+
         recalc_positions = recalc_positions * bld_copy
         res_y, res_x = np.where(recalc_positions == 1)
-
-        # Remove one radian of canopy diameter surrounding the position of the tree
-        # bld_copy[temp_y[0]-bd_b:temp_y[0]+bd_b+1,temp_x[0]-bd_b:temp_x[0]+bd_b+1] = 0
+            
+        if np.max(treerasters.d_tmrt) == 0:
+            best_bool = (best_y > 0) & (best_x > 0)
+            best_y = best_y[best_bool]
+            best_x = best_x[best_bool]
+            feedback.setProgressText('Not enough space for all trees! Found locations for ' + str(int(best_y.shape[0])) + ' out of ' + str(int(trees)) + ' trees.')
+            break
 
         feedback.setProgress(int(tree * (100 / trees)))
 
-        # index += 1
-
-
-    return best_y, best_x
+    return best_y, best_x, tmrt_max

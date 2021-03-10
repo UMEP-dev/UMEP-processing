@@ -6,7 +6,7 @@ import os
 class Inputdata():
     '''Class containing input data for Tree planter'''
     __slots__ = ('dataSet', 'buildings', 'selected_area', 'dsm', 'cdsm', 'cdsm_b', 'shadow', 'tmrt_ts', 'tmrt_s', 'tmrt_avg', 'rows', 'cols', 'scale', 'lat', 'lon', 'gt')
-    def __init__(self,r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer):
+    def __init__(self,r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer, feedback):
 
         self.dataSet = gdal.Open(infolder + '/buildings.tif')            # GIS data
         self.buildings = self.dataSet.ReadAsArray().astype(np.float)    # Building raster
@@ -35,8 +35,10 @@ class Inputdata():
         c = 0
         for iy in r_range:
             dataSet1 = gdal.Open(sh_fl[iy])
+            feedback.setProgressText('Loading ' + sh_fl[iy] + '..')
             self.shadow[:, :, c] = dataSet1.ReadAsArray().astype(np.float)
             dataSet2 = gdal.Open(tmrt_fl[iy])
+            feedback.setProgressText('Loading ' + tmrt_fl[iy] + '..')
             self.tmrt_ts[:, :, c] = np.around(dataSet2.ReadAsArray().astype(np.float), decimals=1) * self.shadow[:, :, c]
             self.tmrt_s = self.tmrt_s + self.tmrt_ts[:, :, c]
 
@@ -113,7 +115,7 @@ class Treerasters():
     if many timesteps, tmrt in shade, tmrt sunlit, difference between \
     shade and sunlit'''
 
-    __slots__ = ('treeshade', 'treeshade_rg', 'treeshade_bool', 'buffer_y', 'buffer_x', 'tpy', 'tpx', 'rows', 'cols', 'rows_s', 'cols_s', 'euclidean', 'euclidean_d', 'tmrt_sun', 'tmrt_shade', 'd_tmrt')
+    __slots__ = ('treeshade', 'treeshade_rg', 'treeshade_bool', 'cdsm', 'buffer_y', 'buffer_x', 'tpy', 'tpx', 'rows', 'cols', 'rows_s', 'cols_s', 'euclidean', 'euclidean_d', 'tmrt_sun', 'tmrt_shade', 'd_tmrt')
     def __init__(self, treeshade, treeshade_rg, treeshade_bool, cdsm, treedata):
         # Find min and max rows and cols where there are shadows
         shy, shx = np.where((treeshade > 0) | (cdsm > 0))
@@ -127,14 +129,14 @@ class Treerasters():
         self.treeshade = treeshade[shy_min:shy_max, shx_min:shx_max]
         self.treeshade_rg = treeshade_rg[shy_min:shy_max, shx_min:shx_max]
         self.treeshade_bool = 1-treeshade_bool[shy_min:shy_max, shx_min:shx_max,:]
-        cdsm_clip = cdsm[shy_min:shy_max, shx_min:shx_max]
+        self.cdsm = cdsm[shy_min:shy_max, shx_min:shx_max]
         # y, x = np.where(cdsm_clip == treedata.height)  # Position of tree in clipped shadow image
         self.buffer_y = np.zeros((2))
         self.buffer_x = np.zeros((2))
         self.buffer_y[0] = np.int_(y)
-        self.buffer_y[1] = np.int_(cdsm_clip.shape[0] - y)
+        self.buffer_y[1] = np.int_(self.cdsm.shape[0] - y)
         self.buffer_x[0] = np.int_(x)
-        self.buffer_x[1] = np.int(cdsm_clip.shape[1] - x)
+        self.buffer_x[1] = np.int(self.cdsm.shape[1] - x)
         self.tpy = y
         self.tpx = x
         self.rows = treeshade.shape[0]

@@ -183,9 +183,9 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
-            self.tr("Mean Tmrt of timesteps studied"),
-            None, False))
+        #self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
+        #    self.tr("Mean Tmrt of timesteps studied"),
+        #    None, False))
 
         # Advanced parameters
         iterations = QgsProcessingParameterNumber(self.ITERATIONS,
@@ -243,7 +243,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
-        outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
+        # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
 
         feedback.setProgressText("Initializing and loading layers...")
 
@@ -274,7 +274,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         r_range = range(r1,r2)
 
         # Loading all shadow and tmrt rasters and summing up all tmrt into one
-        tree_input = Inputdata(r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer)
+        tree_input = Inputdata(r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer, feedback)
 
         if not outside_selected:
             feedback.setProgressText("Tree shade ineffective outside planting area...")
@@ -350,7 +350,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         if greedy:
             # Greedy algorithm
             feedback.setProgressText("Running with greedy algorithm...")
-            t_y, t_x = GreedyAlgorithm.greedyplanter(cropped_rasters, treedata, treerasters, tmrt_1d, nTree, feedback)
+            t_y, t_x, tmrt_max = GreedyAlgorithm.greedyplanter(cropped_rasters, treedata, treerasters, tmrt_1d, nTree, feedback)
         else:
             # Hill climbing algorithm
             # Creating matrices with Tmrt for tree shadows at each possible position
@@ -370,7 +370,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                 possible_locations = np.sum(treerasters.d_tmrt > 0)
                 feedback.setProgressText(str(possible_locations) + " possible locations for trees...")
                 # Running tree planter
-                t_y, t_x = TreePlanterHillClimber.treeoptinit(treerasters, cropped_rasters, positions, treedata,
+                t_y, t_x, tmrt_max = TreePlanterHillClimber.treeoptinit(treerasters, cropped_rasters, positions, treedata,
                                                                                                     shadow_rg, tmrt_1d, nTree, ITERATIONS, sa, feedback)
 
         t_y = t_y + cropped_rasters.clip_rows[0]
@@ -382,7 +382,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         cdsm_new = np.zeros((tree_input.rows,tree_input.cols))
         tdsm_new = np.zeros((tree_input.rows,tree_input.cols))
 
-        for i in range(0,nTree):
+        for i in range(0,t_y.shape[0]):
             cdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty cdsm
             tdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty tdsm
 
@@ -399,7 +399,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         saveraster(tree_input.dataSet, outputCDSM, cdsm_new)
 
         # Save Tmrt raster
-        saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
+        # saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
 
         # Create point vector and save as shapefile
         srs = osr.SpatialReference()
@@ -427,7 +427,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         shapeLayer.CreateField(trunkField)
 
         (minx, x_size, x_rotation, miny, y_rotation, y_size) = tree_input.dataSet.GetGeoTransform()
-        for i in range(0,nTree):
+        for i in range(0,t_y.shape[0]):
             temp_y = t_y[i] * y_size + miny + (y_size / 2)
             #temp_y = t_y[i] * y_size + miny # + (1 / y_size)
             temp_x = t_x[i] * x_size + minx + (x_size / 2)

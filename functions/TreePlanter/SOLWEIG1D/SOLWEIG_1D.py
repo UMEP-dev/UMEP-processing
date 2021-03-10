@@ -52,7 +52,7 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
         trans = 1.
 
     # program start
-    if pos == 1:
+    if pos == 0:
         Fside = 0.22
         Fup = 0.06
         height = 1.1
