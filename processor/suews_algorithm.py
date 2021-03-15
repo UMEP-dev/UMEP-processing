@@ -41,6 +41,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterBoolean)
 
 import supy as sp
+from supy import __version__ as ver_supy
 from pathlib import Path
 from ..util import f90nml
 import sys, os
@@ -154,7 +155,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
 
 
     def processAlgorithm(self, parameters, context, feedback):
-
+        feedback.setProgressText('SuPy version: ' + ver_supy)
         self.supylib = sys.modules["supy"].__path__[0]
         feedback.setProgressText(self.supylib)
         infolder = self.parameterAsString(parameters, self.INPUT_DIR, context)

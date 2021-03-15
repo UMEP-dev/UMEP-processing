@@ -62,6 +62,7 @@ import sys
 import datetime
 # import webbrowser
 import supy as sp
+from supy import __version__ as ver_supy
 import logging
 
 
@@ -141,7 +142,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         else:
             lat = latlon.GetY()
             lon = latlon.GetX()
-            
+
+        feedback.setProgressText('SuPy version: ' + ver_supy)
+        feedback.setProgressText('INPUT PARAMETERS:')    
         feedback.setProgressText('lat = ' + str(lat))
         feedback.setProgressText('lon = ' + str(lon))
         feedback.setProgressText('Start = ' + str(startDate))
@@ -154,8 +157,6 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         logger_sp = logging.getLogger('SuPy')
         logger_sp.disabled = True
 
-        # feedback.setProgressText(str(sys.stdout))
-            
         sp.util.gen_forcing_era5(lat, lon, startDate, endDate, dir_save=outputDir)
 
         results = {self.OUTPUT_DIR: outputDir}
