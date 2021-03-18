@@ -553,6 +553,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 demraise = np.abs(dem.min())
                 dem = dem + demraise
                 feedback.setProgressText('Digital Evevation Model (DEM) included negative values. DEM raised with ' + str(demraise) + 'm.')
+            else:
+                demraise = 0
 
             alt = np.median(dem)
             if alt > 0:
