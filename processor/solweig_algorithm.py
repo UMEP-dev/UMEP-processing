@@ -827,7 +827,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             saveraster(gdal_dsm, outputDir + '/buildings.tif', buildings)
 
         # Import shadow matrices (Anisotropic sky)
-        if folderPathPerez is not None:  #UseAniso
+        if folderPathPerez:  #UseAniso
             # folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
             # if folderPathPerez is None:
                 # raise QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
