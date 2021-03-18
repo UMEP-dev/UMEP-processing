@@ -391,9 +391,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
         dsm[dsm == nd] = 0.
-        dsmcopy = np.copy(dsm)
+        # dsmcopy = np.copy(dsm)
         if dsm.min() < 0:
-            dsm = dsm + np.abs(dsm.min())
+            dsmraise = np.abs(dsm.min())
+            dsm = dsm + dsmraise
+            feedback.setProgressText('Digital Surface Model (DSM) included negative values. DSM raised with ' + str(dsmraise) + 'm.')
+        else:
+            dsmraise = 0
 
         # Get latlon from grid coordinate system
         old_cs = osr.SpatialReference()
@@ -445,9 +449,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if vegdsm is not None:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            # if vegdsm is None:
-                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -549,11 +550,16 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             nd = dataSet.GetRasterBand(1).GetNoDataValue()
             dem[dem == nd] = 0.
             if dem.min() < 0:
-                dem = dem + np.abs(dem.min())
+                demraise = np.abs(dem.min())
+                dem = dem + demraise
+                feedback.setProgressText('Digital Evevation Model (DEM) included negative values. DEM raised with ' + str(demraise) + 'm.')
 
             alt = np.median(dem)
             if alt > 0:
                 alt = 3.
+
+        if (dsmraise != demraise) and (dsmraise - demraise > 0.5):
+            feedback.setProgressText('WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!')
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')
@@ -813,7 +819,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             buildings[buildings == 3] = 1
             buildings[buildings == 2] = 0
         else:
-            buildings = dsmcopy - dem
+            buildings = dsm - dem
             buildings[buildings < 2.] = 1.
             buildings[buildings >= 2.] = 0.
 

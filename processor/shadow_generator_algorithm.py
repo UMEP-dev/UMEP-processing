@@ -82,67 +82,100 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
     DST = 'DST'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_FILE = 'OUTPUT_FILE'
-    # EXTENT = 'EXTENT'
-
 
     def initAlgorithm(self, config):
-        # self.addParameter(QgsProcessingParameterPoint(self.EXTENT,
-        #         self.tr('Extent'), None, False))
-        # self.addParameter(QgsProcessingParameterExtent(self.EXTENT,
-        #         self.tr('Extent'), None, False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-                self.tr('Input building and ground DSM'), None, False))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-        #     self.tr("Use vegetation DSMs"), defaultValue=False))
-
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-                self.tr('Vegetation Canopy DSM'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
-            self.tr('Transmissivity of light through vegetation (%):'), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(3), True, minValue=0, maxValue=100))
-        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-        #     self.tr("Trunk zone DSM exist"), defaultValue=False))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DSM,
+                self.tr('Input building and ground DSM'),
+                None,
+                False))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_CDSM,
+                self.tr('Vegetation Canopy DSM'),
+                '',
+                True))
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.TRANS_VEG,
+                self.tr('Transmissivity of light through vegetation (%):'), 
+                QgsProcessingParameterNumber.Integer,
+                QVariant(3), 
+                True, 
+                minValue=0, 
+                maxValue=100))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
                 self.tr('Vegetation Trunk zone DSM'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
-            self.tr("Trunk zone height (percent of Canopy Height)"), 
-            QgsProcessingParameterNumber.Double,
-            QVariant(25.0),
-            True, minValue=0.1, maxValue=99.9))
-        # self.addParameter(QgsProcessingParameterBoolean(self.CALC_FACADE,
-        #     self.tr("Include facade shadow output"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
-                self.tr('Wall height raster (required if facade shadow should be claculated)'), '', True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
-                self.tr('Wall aspect raster (required if facade shadow should be claculated)'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.UTC,
-            self.tr('Coordinated Universal Time (UTC) '), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(0),
-            True, minValue=-12, maxValue=12)) 
-        self.addParameter(QgsProcessingParameterBoolean(self.DST,
-            self.tr("Add Daylight savings time"), defaultValue=False))       
-        param = QgsProcessingParameterString(self.DATEINI, 'Date')
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_THEIGHT,
+                self.tr("Trunk zone height (percent of Canopy Height)"),
+                QgsProcessingParameterNumber.Double,
+                QVariant(25.0),
+                True, 
+                minValue=0.1, 
+                maxValue=99.9))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_HEIGHT,
+                self.tr('Wall height raster (required if facade shadow should be claculated)'),
+                '', 
+                True))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_ASPECT,
+                self.tr('Wall aspect raster (required if facade shadow should be claculated)'),
+                '', 
+                True))
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.UTC,
+                self.tr('Coordinated Universal Time (UTC) '),
+                QgsProcessingParameterNumber.Integer,
+                QVariant(0),
+                True, 
+                minValue=-12, 
+                maxValue=12)) 
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.DST,
+                self.tr("Add Daylight savings time"), 
+                defaultValue=False))       
+        param = QgsProcessingParameterString(
+            self.DATEINI, 
+            'Date')
         param.setMetadata({'widget_wrapper': {'class': DateWidget}})
         self.addParameter(param)
-        self.addParameter(QgsProcessingParameterNumber(self.ITERTIME, 
-            self.tr('Time interval between casting of each shadow (minutes)'), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(30),
-            True, minValue=0.1, maxValue=360))
-        self.addParameter(QgsProcessingParameterBoolean(self.ONE_SHADOW,
-            self.tr("Cast only one shadow"), defaultValue=False))
-        paramT = QgsProcessingParameterString(self.TIMEINI, 'Time for single shadow')
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ITERTIME,
+                self.tr('Time interval between casting of each shadow (minutes)'),
+                QgsProcessingParameterNumber.Integer,
+                QVariant(30),
+                True, 
+                minValue=0.1,
+                maxValue=360))
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ONE_SHADOW,
+                self.tr("Cast only one shadow"), 
+                defaultValue=False))
+        paramT = QgsProcessingParameterString(
+            self.TIMEINI, 
+            'Time for single shadow')
         paramT.setMetadata({'widget_wrapper': {'class': TimeWidget}})
         self.addParameter(paramT)
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
-                                                     'Output folder'))
-        # self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT_FILE, 
-        #     self.tr('Image file'), self.tr('png files (*.png)')))
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
-            self.tr("Aggregated (or single) shadow raster"), optional=True,
-            createByDefault=False))
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR,
+                'Output folder'))
+        self.addParameter(
+            QgsProcessingParameterRasterDestination(
+                self.OUTPUT_FILE,
+                self.tr("Aggregated (or single) shadow raster"), 
+                optional=True,
+                createByDefault=False))
 
 
     def processAlgorithm(self, parameters, context, feedback):
