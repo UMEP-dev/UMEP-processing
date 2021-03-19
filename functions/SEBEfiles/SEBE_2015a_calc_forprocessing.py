@@ -6,7 +6,7 @@ import linecache
 import sys
 
 def SEBE_2015a_calc(a, scale, slope, aspect, voxelheight, sizey, sizex, vegdem, vegdem2, walls, dirwalls, albedo, psi, 
-                radmatI, radmatD, radmatR, usevegdem, feedback):
+                radmatI, radmatD, radmatR, usevegdem, feedback, wallmaxheight):
 
     # Parameters
     deg2rad = np.pi/180
@@ -33,7 +33,13 @@ def SEBE_2015a_calc(a, scale, slope, aspect, voxelheight, sizey, sizex, vegdem, 
     # Creating wallmatrix (1 meter interval)
     wallcol, wallrow = np.where(np.transpose(walls) > 0)    # row and col for each wall pixel
     wallstot = np.floor(walls * (1 / voxelheight)) * voxelheight
-    wallsections = np.floor(np.max(walls) * (1 / voxelheight))     # finding tallest wall
+    # wallsections = np.floor(np.max(walls) * (1 / voxelheight))     # finding tallest wall
+    wallsections = np.floor(wallmaxheight * (1 / voxelheight))
+    # feedback.setProgressText('np.max(walls):' + str(np.max(walls)))   
+    # feedback.setProgressText('1 / voxelheight:' + str(1 / voxelheight))       
+    # feedback.setProgressText('voxel:' + str(voxelheight))
+    # feedback.setProgressText('wallsections:' + str(wallsections))
+    # feedback.setProgressText('np.shape(wallrow)[0]:' + str(np.shape(wallrow)[0]))
     wallmatrix = np.zeros((np.shape(wallrow)[0], int(wallsections)))
     Energyyearwall = np.copy(wallmatrix)
 
@@ -55,6 +61,8 @@ def SEBE_2015a_calc(a, scale, slope, aspect, voxelheight, sizey, sizex, vegdem, 
     index = 0
     for i in range(skyvaultaltint.size):
         for j in range(aziinterval[i]):
+
+            feedback.setProgress(int(index * (100. / 145.)))
 
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
@@ -132,9 +140,6 @@ def SEBE_2015a_calc(a, scale, slope, aspect, voxelheight, sizey, sizex, vegdem, 
             Energyyearwall = Energyyearwall + np.copy(wallmatrix)
 
             index = index + 1
-
-            feedback.setProgress(int(index * (100. / 145.)))
-
 
     # Including radiation from ground on walls as well as removing pixels high than walls
     # fix_print_with_import

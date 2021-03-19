@@ -274,6 +274,8 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if not (vhsizex == sizex) & (vhsizey == sizey):
             raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
+        wallmaxheight = self.gdal_wh.GetRasterBand(1).GetStatistics(True,True)[1]
+
         # wall aspectlayer
         # if walayer is None:
         #     raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
@@ -344,7 +346,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Executing main model")
         seberesult = sebe.SEBE_2015a_calc(self.dsm, self.scale, building_slope,
                     building_aspect, voxelheight, sizey, sizex, vegdsm, vegdsm2, wheight,
-                    waspect, albedo, psi, radmatI, radmatD, radmatR, usevegdem, feedback)
+                    waspect, albedo, psi, radmatI, radmatD, radmatR, usevegdem, feedback, wallmaxheight)
 
         Energyyearroof = seberesult["Energyyearroof"]
         Energyyearwall = seberesult["Energyyearwall"]

@@ -45,7 +45,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                       QgsProcessingParameterRasterLayer)
+                       QgsProcessingParameterRasterLayer,
+                       QgsVectorLayer)
 from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
@@ -62,7 +63,7 @@ from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2
 from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
-from ..functions.SOLWEIGpython import Solweig_2019a_calc_forprocessing as so
+from ..functions.SOLWEIGpython import Solweig_2021a_calc_forprocessing as so
 from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
 from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
@@ -86,16 +87,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
-    # USE_LC = 'USE_LC'
     INPUT_LC = 'INPUT_LC'
     USE_LC_BUILD = 'USE_LC_BUILD'
     INPUT_DEM = 'INPUT_DEM'
     SAVE_BUILD = 'SAVE_BUILD'
-    # USE_ANISO = 'USE_ANISO'
     INPUT_ANISO = 'INPUT_ANISO'
 
     #Enivornmental parameters
@@ -124,7 +121,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     SENSOR_HEIGHT = 'SENSOR_HEIGHT'
 
     #Optional settings
-    POI = 'POI'
+    # POI = 'POI'
     POI_FILE = 'POI_FILE'
     POI_FIELD = 'POI_FIELD'
     CYL = 'CYL'
@@ -150,25 +147,18 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Wall height raster'), '', optional=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
             self.tr('Wall aspect raster'), '', optional=False))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-        #     self.tr("Use vegetation scheme (Lindberg and Grimmond 2011)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
             self.tr('Vegetation Canopy DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
             self.tr('Transmissivity of light through vegetation (%):'),
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
-        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-        #     self.tr("Trunk zone DSM exist"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
             self.tr("Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"),
             QgsProcessingParameterNumber.Double,
             QVariant(25.0), optional=True, minValue=0.1, maxValue=99.9))
-
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_LC,
-        #     self.tr("Use land cover scheme (Lindberg et al. 2016)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LC,
             self.tr('UMEP land cover grid'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_LC_BUILD,
@@ -177,8 +167,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Digital Elevation Model (DEM)'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
             self.tr("Save generated building grid"), defaultValue=False, optional=True))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_ANISO,
-            # self.tr("Use anisotrophic model for diffuse radiation (Wallenberg et al. 2020)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
             self.tr('Shadow maps used for anisotrophic model for diffuse radiation (.npz)'), extension='npz', optional=True))
 
@@ -221,12 +209,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         
         #ADVANCED PARAMETERS
         #POIs for thermal comfort estimations
-        poi = QgsProcessingParameterBoolean(self.POI,
-            self.tr("Include Point of Interest(s) for thermal comfort calculations (PET and UTCI)"), defaultValue=False)
-        poi.setFlags(poi.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(poi)
+        # poi = QgsProcessingParameterBoolean(self.POI,
+        #     self.tr("Include Point of Interest(s) for thermal comfort calculations (PET and UTCI)"), defaultValue=False)
+        # poi.setFlags(poi.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        # self.addParameter(poi)
         poifile = QgsProcessingParameterFeatureSource(self.POI_FILE,
-            self.tr('Vector point file'), [QgsProcessing.TypeVectorPoint], optional=True)
+            self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.TypeVectorPoint], optional=True)
         poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(poifile)
         poi_field = QgsProcessingParameterField(self.POI_FIELD,
@@ -276,11 +264,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_KDOWN,
             self.tr("Save Incoming shortwave radiation raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_KUP,
-            self.tr("Save Outcoming shortwave radiation raster(s)"), defaultValue=False))
+            self.tr("Save Outgoing shortwave radiation raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_LDOWN,
-            self.tr("Save Outcoming longwave radiation raster(s)"), defaultValue=False))
+            self.tr("Save Incoming longwave radiation raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_LUP,
-            self.tr("Save Outcoming longwave radiation raster(s)"), defaultValue=False))
+            self.tr("Save Outgoing longwave radiation raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_SH,
             self.tr("Save shadow raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TREEPLANTER,
@@ -296,27 +284,21 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
  
         # InputParameters
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.
         vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        # vegdsm = None
         vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-        # vegdsm2 = None
-        # useLC = self.parameterAsBool(parameters, self.USE_LC, context)
         lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
-        # lcgrid = None
         useLcBuild = self.parameterAsBool(parameters, self.USE_LC_BUILD, context)
         dem = None
         inputSVF = self.parameterAsString(parameters, self.INPUT_SVF, context)
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context) 
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
-        usePOI = self.parameterAsBool(parameters, self.POI, context)
-        poilyr = None
+        # usePOI = self.parameterAsBool(parameters, self.POI, context)
+        poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
         poi_field = None
         mbody = None
         ht = None
@@ -327,7 +309,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         sensorheight = None
         saveBuild = self.parameterAsBool(parameters, self.SAVE_BUILD, context)
         demforbuild = 0
-        # UseAniso = self.parameterAsBool(parameters, self.USE_ANISO, context)
         folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
         poisxy = None
         poiname = None
@@ -464,12 +445,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
             if vegdsm2 is not None:
-                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
-
-                # if vegdsm2 is None:
-                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
-
-                # load raster
                 gdal.AllRegister()
                 provider = vegdsm2.dataProvider()
                 filePathOld = str(provider.dataSourceUri())
@@ -497,10 +472,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if lcgrid is not None:
             landcover = 1
             feedback.setProgressText('Land cover scheme activated')
-            # lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
-            
-            # if lcgrid is None:
-                # raise QgsProcessingException("Error: No valid land cover grid is selected")
 
             # load raster
             gdal.AllRegister()
@@ -635,9 +606,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
-        wheight = self.gdal_wh.ReadAsArray().astype(np.float)
-        vhsizex = wheight.shape[0]
-        vhsizey = wheight.shape[1]
+        wallheight = self.gdal_wh.ReadAsArray().astype(np.float)
+        vhsizex = wallheight.shape[0]
+        vhsizey = wallheight.shape[1]
         if not (vhsizex == sizex) & (vhsizey == sizey):
             raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
@@ -647,9 +618,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)
-        waspect = self.gdal_wa.ReadAsArray().astype(np.float)
-        vasizex = waspect.shape[0]
-        vasizey = waspect.shape[1]
+        wallaspect = self.gdal_wa.ReadAsArray().astype(np.float)
+        vasizex = wallaspect.shape[0]
+        vasizey = wallaspect.shape[1]
         if not (vasizex == sizex) & (vasizey == sizey):
             raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
 
@@ -673,7 +644,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
              raise QgsProcessingException("Error: Kdown - beyond what is expected at line: " + str(testwhere[0] + 1))
 
         if self.metdata.shape[1] == 24:
-            feedback.setProgressText("Meteorological data succefully loaded")
+            feedback.setProgressText("Meteorological data successfully loaded")
         else:
             raise QgsProcessingException("Error: Wrong number of columns in meteorological data. You can "
                                                         "prepare your data by using 'Prepare Existing Data' in "
@@ -708,19 +679,21 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                         'observed values from external data sources.')
 
         # POIs check
-        if usePOI:
+        if poilyr is not None: # usePOI:
             header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
                         'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
                         'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
-            poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
-            if poilyr is None:
-                raise QgsProcessingException("No valid point layer is selected")
+            # poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
+            # if poilyr is None:
+                # raise QgsProcessingException("No valid point layer is selected")
 
             poi_field = self.parameterAsFields(parameters, self.POI_FIELD, context)
-            if poi_field is None:
-                raise QgsProcessingException("An attribute with unique values must be selected")
-            vlayer = QgsVectorLayer(poilyr.source(), "point", "ogr")
-            idx = vlayer.fields().indexFromName(poi_field)
+            # if poi_field[0] is None:
+            #     raise QgsProcessingException("An attribute field with unique values must be selected when using a POI vector file")
+            vlayer = poilyr
+            prov = vlayer.dataProvider()
+            fields = prov.fields()
+            idx = vlayer.fields().indexFromName(poi_field[0])
             numfeat = vlayer.featureCount()
             poiname = []
             poisxy = np.zeros((numfeat, 3)) - 999
@@ -739,14 +712,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
                 ind += 1
 
-            uni = set(poiname)
-            if not uni.__len__() == poisxy.shape[0]:
-                raise QgsProcessingException("A POI attribute with unique values must be selected")
-
             for k in range(0, poisxy.shape[0]):
                 poi_save = []  # np.zeros((1, 33))
                 data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
-                np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')  # fmt=numformat,
+                np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')
             
             # Other PET variables
             mbody = self.parameterAsDouble(parameters, self.WEIGHT, context)
@@ -757,7 +726,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             sex = self.parameterAsInt(parameters, self.SEX, context) + 1
             sensorheight = self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
             
-            feedback.setProgressText("Point of interest (POI) vector data succefully loaded")
+            feedback.setProgressText("Point of interest (POI) vector data successfully loaded")
 
         # %Parameterisarion for Lup
         if not height:
@@ -830,11 +799,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # Import shadow matrices (Anisotropic sky)
         if folderPathPerez:  #UseAniso
-            # folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
-            # if folderPathPerez is None:
-                # raise QgsProcessingException("No Shadow file is selected. You can use the Sky View Factor"
-                                                        # "Calculator to generate shadowmats.npz")
-            # else:
             ani = 1
             data = np.load(folderPathPerez)
             shmat = data['shadowmat']
@@ -845,7 +809,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
             else:
                 diffsh = shmat
-
         else:
             ani = 0
             diffsh = None
@@ -887,7 +850,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                               absK, absL, albedo_b, albedo_g, ewall, eground, onlyglobal, trunkratio,
                                               transVeg, rows, cols, pos, elvis, cyl, demforbuild, ani)
 
-        feedback.setProgressText("Writing settings for this run to specified output folder (RunInfoSOLWEIG.txt)")
+        feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoSOLWEIG_XXX.txt)")
 
         #  If metfile starts at night
         CI = 1.
@@ -924,17 +887,30 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     CI = 1.
 
             Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
-            Tgmap1, timeaddE, Tgmap1E, timeaddS, Tgmap1S, timeaddW, Tgmap1W, timeaddN, Tgmap1N, \
-            Keast, Ksouth, Kwest, Knorth, Least, Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout \
-                = so.Solweig_2019a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
-                    svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
-                    vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-                    azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
-                    psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], waspect,
-                    wheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
-                    bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
-                    TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timeaddE, timeaddS,
-                    timeaddW, timeaddN, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
+                    Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
+                    Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout = so.Solweig_2021a_calc(
+                        i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
+                        svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
+                        vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
+                        azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+                        psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
+                        wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
+                        bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
+                        TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
+                        Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
+
+            # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
+            # Tgmap1, timeaddE, Tgmap1E, timeaddS, Tgmap1S, timeaddW, Tgmap1W, timeaddN, Tgmap1N, \
+            # Keast, Ksouth, Kwest, Knorth, Least, Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout \
+            #     = so.Solweig_2019a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
+            #         svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
+            #         vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
+            #         azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+            #         psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], waspect,
+            #         wheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
+            #         bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
+            #         TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timeaddE, timeaddS,
+            #         timeaddW, timeaddN, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
 
             tmrtplot = tmrtplot + Tmrt
 
@@ -1029,12 +1005,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             # Save DSM
             copyfile(filepath_dsm, outputDir + '/DSM.tif')
 
-            # Save DEM
-            # dem_tp = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-            # provider_tp = dem_tp.dataProvider()
-            # filePath_dem = str(provider_tp.dataSourceUri())
-            # copyfile(filePath_dem, outputDir + '/DEM.tif')
-
             # Save met file
             copyfile(inputMet, outputDir + '/metfile.txt')
 
@@ -1089,9 +1059,19 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG is a model which can be used to estimate spatial variations of 3D radiation fluxes and mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from six directions being individually calculated to derive Tmrt. The model requires a limited number of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative humidity, urban geometry and geographical information (latitude, longitude and elevation). Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.<br>'
-                        '------------\n'
-                        'Full manual available via the <b>Help</b>-button.')
+        return self.tr('SOLWEIG (v2021a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
+                       'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same '
+                       'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
+                       'six directions being individually calculated to derive Tmrt. The model requires a limited number '
+                       'of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative '
+                       'humidity, urban geometry and geographical information (latitude, longitude and elevation). '
+                       'Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n'
+                       '\n'
+                       'Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing past in UMEP\n'
+                       '\n'
+                       '------------\n'
+                       '\n'
+                       'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Outdoor%20Thermal%20Comfort%20SOLWEIG.html"
