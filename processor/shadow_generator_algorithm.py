@@ -278,9 +278,6 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         if vegdsm:
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
-            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-            # if vegdsm is None:
-                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -296,12 +293,6 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
             if vegdsm2:
-                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
-
-                # if vegdsm2 is None:
-                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
-
-                # load raster
                 gdal.AllRegister()
                 provider = vegdsm2.dataProvider()
                 filePathOld = str(provider.dataSourceUri())
@@ -321,13 +312,9 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             vegdsm2 = 0
             usevegdem = 0
 
-        if whlayer and walayer: 
+        if whlayer and walayer:
             feedback.setProgressText('Facade shadow scheme activated')
             wallsh = 1
-            # wall height layer
-            # whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
-            # if whlayer is None:
-                # raise QgsProcessingException("Error: No valid wall height raster layer is selected")
             provider = whlayer.dataProvider()
             filepath_wh = str(provider.dataSourceUri())
             self.gdal_wh = gdal.Open(filepath_wh)
@@ -337,10 +324,6 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             if not (vhsizex == sizex) & (vhsizey == sizey):  # &
                 raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
-            # wall aspectlayer
-            # walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-            # if walayer is None:
-                # raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
             provider = walayer.dataProvider()
             filepath_wa = str(provider.dataSourceUri())
             self.gdal_wa = gdal.Open(filepath_wa)
@@ -376,7 +359,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
             tv = [year, month, day, hour, minu, sec]
             timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
-            # self.timeInterval = intervalTime.minute() + (intervalTime.hour() * 60) + (intervalTime.second()/60)
+            feedback.setProgressText('Test:' + str(tv))
             shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
                                             timeInterval, onetime, feedback, outputDir, gdal_dsm, trans,
                                             dst, wallsh, wheight, waspect)

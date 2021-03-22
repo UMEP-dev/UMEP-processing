@@ -35,9 +35,6 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
         # Bush separation
         bush = np.logical_not((vegdem2*vegdem))*vegdem
 
-    #     vegshtot = np.zeros((sizex, sizey))
-    # else:
-        
     shtot = np.zeros((sizex, sizey))
 
     if onetime == 1:
@@ -81,7 +78,7 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
             ut_time = ut_time + doy - 1
 
         HHMMSS = dectime_to_timevec(ut_time)
-
+        feedback.setProgressText('HHMMSS:' + str(HHMMSS))
         time['year'] = year
         time['month'] = month
         time['day'] = day
@@ -93,19 +90,18 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
         alt[i] = 90. - sun['zenith']
         azi[i] = sun['azimuth']
 
-        if time['sec'] == 59: #issue 228
+        if time['sec'] == 59: #issue 228 and 256
             time['sec'] = 0
             time['min'] = time['min'] + 1
             if time['min'] == 60:
                 time['min'] = 0
-            if time['hour'] == 23:
-                time['hour'] = 0
-            else:
                 time['hour'] = time['hour'] + 1
+                if time['hour'] == 24:
+                    time['hour'] = 0
 
         time_vector = dt.datetime(year, month, day, time['hour'], time['min'], time['sec'])
         timestr = time_vector.strftime("%Y%m%d_%H%M")
-
+        feedback.setProgressText('timestr:' + str(timestr))
         if alt[i] > 0:
             if wallshadow == 1: # Include wall shadows (Issue #121)
                 if usevegdem == 1:
