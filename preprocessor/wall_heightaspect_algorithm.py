@@ -119,7 +119,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
-        dsm = gdal_dsm.ReadAsArray().astype(np.float)
+        dsm = gdal_dsm.ReadAsArray().astype(float)
         
         feedback.setProgressText("Calculating wall height")
         total = 100. / (int(dsm.shape[0] * dsm.shape[1]))

@@ -120,7 +120,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
-        dsm = gdal_dsm.ReadAsArray().astype(np.float)
+        dsm = gdal_dsm.ReadAsArray().astype(float)
 
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
@@ -148,7 +148,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             provider = vegdsm.dataProvider()
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
-            vegdsm = dataSet.ReadAsArray().astype(np.float)
+            vegdsm = dataSet.ReadAsArray().astype(float)
 
             vegsizex = vegdsm.shape[0]
             vegsizey = vegdsm.shape[1]
@@ -166,7 +166,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 provider = vegdsm2.dataProvider()
                 filePathOld = str(provider.dataSourceUri())
                 dataSet = gdal.Open(filePathOld)
-                vegdsm2 = dataSet.ReadAsArray().astype(np.float)
+                vegdsm2 = dataSet.ReadAsArray().astype(float)
             else:
                 trunkratio = trunkr / 100.0
                 vegdsm2 = vegdsm * trunkratio

@@ -57,6 +57,9 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
         dirwalls = np.zeros((sizex, sizey))
 
     for i in range(0, itera):
+        if feedback.isCanceled():
+                feedback.setProgressText("Calculation cancelled")
+                break
         if onetime == 0:
             minu = int(timeInterval * i)
             if minu >= 60:
@@ -78,7 +81,7 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
             ut_time = ut_time + doy - 1
 
         HHMMSS = dectime_to_timevec(ut_time)
-        feedback.setProgressText('HHMMSS:' + str(HHMMSS))
+        # feedback.setProgressText('HHMMSS:' + str(HHMMSS))
         time['year'] = year
         time['month'] = month
         time['day'] = day
@@ -101,7 +104,7 @@ def dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, u
 
         time_vector = dt.datetime(year, month, day, time['hour'], time['min'], time['sec'])
         timestr = time_vector.strftime("%Y%m%d_%H%M")
-        feedback.setProgressText('timestr:' + str(timestr))
+        # feedback.setProgressText('timestr:' + str(timestr))
         if alt[i] > 0:
             if wallshadow == 1: # Include wall shadows (Issue #121)
                 if usevegdem == 1:

@@ -152,7 +152,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             provider = build.dataProvider()
             filePath_build = str(provider.dataSourceUri())
             dataset = gdal.Open(filePath_build)
-            build_array = dataset.ReadAsArray().astype(np.float)
+            build_array = dataset.ReadAsArray().astype(float)
 
         else:  # Both building ground heights
             build = None
@@ -167,9 +167,9 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             filePath_dem = str(provider.dataSourceUri())
 
             dataset = gdal.Open(filePath_dsm)
-            dsm_array = dataset.ReadAsArray().astype(np.float)
+            dsm_array = dataset.ReadAsArray().astype(float)
             dataset2 = gdal.Open(filePath_dem)
-            dem_array = dataset2.ReadAsArray().astype(np.float)
+            dem_array = dataset2.ReadAsArray().astype(float)
 
             if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                 raise QgsProcessingException("All grids must be of same pixel resolution")
@@ -186,7 +186,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             filePath_cdsm = str(provider.dataSourceUri())
 
             dataset = gdal.Open(filePath_cdsm)
-            cdsm_array = dataset.ReadAsArray().astype(np.float)
+            cdsm_array = dataset.ReadAsArray().astype(float)
             # tdsm = self.layerComboManagerCDSM.currentLayer()
             if tdsm is None:
                 raise QgsProcessingException("No valid vegetation TDSM raster layer is selected. Both CDSM and TDSM must be selected if merging with existing.")
@@ -196,7 +196,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             filePath_tdsm = str(provider.dataSourceUri())
 
             dataset = gdal.Open(filePath_tdsm)
-            tdsm_array = dataset.ReadAsArray().astype(np.float)
+            tdsm_array = dataset.ReadAsArray().astype(float)
 
         else:
             cdsm_array = np.zeros((sizey, sizex))

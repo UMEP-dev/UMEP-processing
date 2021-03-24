@@ -159,7 +159,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         self.gdal_dsm = gdal.Open(filepath_dsm)
-        self.dsm = self.gdal_dsm.ReadAsArray().astype(np.float)
+        self.dsm = self.gdal_dsm.ReadAsArray().astype(float)
         sizex = self.dsm.shape[0]
         sizey = self.dsm.shape[1]
 
@@ -224,7 +224,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             provider = vegdsm.dataProvider()
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
-            vegdsm = dataSet.ReadAsArray().astype(np.float)
+            vegdsm = dataSet.ReadAsArray().astype(float)
             filePath_cdsm = filePathOld
             vegsizex = vegdsm.shape[0]
             vegsizey = vegdsm.shape[1]
@@ -244,7 +244,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 filePathOld = str(provider.dataSourceUri())
                 filePath_tdsm = filePathOld
                 dataSet = gdal.Open(filePathOld)
-                vegdsm2 = dataSet.ReadAsArray().astype(np.float)
+                vegdsm2 = dataSet.ReadAsArray().astype(float)
             else:
                 trunkratio = trunkr / 100.0
                 vegdsm2 = vegdsm * trunkratio
@@ -268,7 +268,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
-        wheight = self.gdal_wh.ReadAsArray().astype(np.float)
+        wheight = self.gdal_wh.ReadAsArray().astype(float)
         vhsizex = wheight.shape[0]
         vhsizey = wheight.shape[1]
         if not (vhsizex == sizex) & (vhsizey == sizey):
@@ -282,7 +282,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)
-        waspect = self.gdal_wa.ReadAsArray().astype(np.float)
+        waspect = self.gdal_wa.ReadAsArray().astype(float)
         vasizex = waspect.shape[0]
         vasizey = waspect.shape[1]
         if not (vasizex == sizex) & (vasizey == sizey):

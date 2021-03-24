@@ -225,7 +225,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             bigraster = None
 
             dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-            lcgrid = dataset.ReadAsArray().astype(np.float)
+            lcgrid = dataset.ReadAsArray().astype(float)
             sizex = lcgrid.shape[0]
             sizey = lcgrid.shape[1]
 

@@ -191,7 +191,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             provider = buildings.dataProvider()
             filepath_dsm = str(provider.dataSourceUri())
             self.gdal_dsm = gdal.Open(filepath_dsm)
-            self.build = self.gdal_dsm.ReadAsArray().astype(np.float)
+            self.build = self.gdal_dsm.ReadAsArray().astype(float)
             geotransform = self.gdal_dsm.GetGeoTransform()
             self.scale = 1 / geotransform[1]
         
@@ -201,7 +201,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -222,7 +222,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posDay:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -243,7 +243,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posNight:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -264,7 +264,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -283,7 +283,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -301,7 +301,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     index = 0
         #     for i in self.posSpecMean:
         #         gdal_dsm = gdal.Open(self.folderPath[0] + '/' + self.l[i])
-        #         grid = gdal_dsm.ReadAsArray().astype(np.float)
+        #         grid = gdal_dsm.ReadAsArray().astype(float)
         #         if index == 0:
         #             sizex = grid.shape[0]
         #             sizey = grid.shape[1]
@@ -325,7 +325,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     index = 0
         #     for i in self.posSpecMax:
         #         gdal_dsm = gdal.Open(self.folderPath[0] + '/' + self.l[i])
-        #         grid = gdal_dsm.ReadAsArray().astype(np.float)
+        #         grid = gdal_dsm.ReadAsArray().astype(float)
         #         if index == 0:
         #             sizex = grid.shape[0]
         #             sizey = grid.shape[1]
@@ -346,7 +346,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     index = 0
         #     for i in self.posSpecMin:
         #         gdal_dsm = gdal.Open(self.folderPath[0] + '/' + self.l[i])
-        #         grid = gdal_dsm.ReadAsArray().astype(np.float)
+        #         grid = gdal_dsm.ReadAsArray().astype(float)
         #         if index == 0:
         #             sizex = grid.shape[0]
         #             sizey = grid.shape[1]
@@ -370,7 +370,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]
@@ -394,7 +394,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + '/' + self.l[i])
-                grid = gdal_dsm.ReadAsArray().astype(np.float)
+                grid = gdal_dsm.ReadAsArray().astype(float)
                 if index == 0:
                     sizex = grid.shape[0]
                     sizey = grid.shape[1]

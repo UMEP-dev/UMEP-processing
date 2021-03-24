@@ -9,7 +9,7 @@ class Inputdata():
     def __init__(self,r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer, feedback):
 
         self.dataSet = gdal.Open(infolder + '/buildings.tif')            # GIS data
-        self.buildings = self.dataSet.ReadAsArray().astype(np.float)    # Building raster
+        self.buildings = self.dataSet.ReadAsArray().astype(float)    # Building raster
         self.buildings = self.buildings == 1.0
         self.rows = self.buildings.shape[0]                             # Rows of input rasters from SOLWEIG
         self.cols = self.buildings.shape[1]                             # Cols of input rasters from SOLWEIG
@@ -21,14 +21,14 @@ class Inputdata():
 
         # Loading DEm, DSM (and CDSM) rasters
         dataSet = gdal.Open(infolder + '/DSM.tif')
-        self.dsm = dataSet.ReadAsArray().astype(np.float)
+        self.dsm = dataSet.ReadAsArray().astype(float)
         # dataSet = gdal.Open(infolder + '/DEM.tif')
-        # self.dem = dataSet.ReadAsArray().astype(np.float)
+        # self.dem = dataSet.ReadAsArray().astype(float)
 
         # Check if CDSM exists
         if os.path.exists(infolder + '/CDSM.tif'):
             dataSet = gdal.Open(infolder + '/CDSM.tif')
-            self.cdsm = dataSet.ReadAsArray().astype(np.float)
+            self.cdsm = dataSet.ReadAsArray().astype(float)
             self.cdsm_b = self.cdsm == 0
             self.buildings = (self.buildings == True) & (self.cdsm_b == True)
 
@@ -36,10 +36,10 @@ class Inputdata():
         for iy in r_range:
             dataSet1 = gdal.Open(sh_fl[iy])
             feedback.setProgressText('Loading ' + sh_fl[iy] + '..')
-            self.shadow[:, :, c] = dataSet1.ReadAsArray().astype(np.float)
+            self.shadow[:, :, c] = dataSet1.ReadAsArray().astype(float)
             dataSet2 = gdal.Open(tmrt_fl[iy])
             feedback.setProgressText('Loading ' + tmrt_fl[iy] + '..')
-            self.tmrt_ts[:, :, c] = np.around(dataSet2.ReadAsArray().astype(np.float), decimals=1) * self.shadow[:, :, c]
+            self.tmrt_ts[:, :, c] = np.around(dataSet2.ReadAsArray().astype(float), decimals=1) * self.shadow[:, :, c]
             self.tmrt_s = self.tmrt_s + self.tmrt_ts[:, :, c]
 
             c += 1
@@ -92,7 +92,7 @@ class Inputdata():
 
         gdal.Rasterize(infolder + '/selected_area.tif', inputPolygonlayer, options=rasterize_options)
         dataSetSel = gdal.Open(infolder + '/selected_area.tif')
-        self.selected_area = dataSetSel.ReadAsArray().astype(np.float)
+        self.selected_area = dataSetSel.ReadAsArray().astype(float)
 
         try:
             del dataSetSel

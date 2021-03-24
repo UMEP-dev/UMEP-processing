@@ -212,7 +212,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         provider = demlayer.dataProvider()
         filepath_dem = str(provider.dataSourceUri())
         gdal_dem = gdal.Open(filepath_dem)
-        dem = gdal_dem.ReadAsArray().astype(np.float)
+        dem = gdal_dem.ReadAsArray().astype(float)
 
         dem_crs = osr.SpatialReference()
         dem_crs.ImportFromWkt(gdal_dem.GetProjection())
@@ -456,9 +456,9 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         # Adding DSM to DEM
         # Read DEM
         dem_raster = gdal.Open(temp_dir + 'clipdem.tif')
-        dem_array = np.array(dem_raster.ReadAsArray().astype(np.float))
+        dem_array = np.array(dem_raster.ReadAsArray().astype(float))
         dsm_raster = gdal.Open(temp_dir + 'clipdsm.tif')
-        dsm_array = np.array(dsm_raster.ReadAsArray().astype(np.float))
+        dsm_array = np.array(dsm_raster.ReadAsArray().astype(float))
 
         indx = dsm_array.shape
         for ix in range(0, int(indx[0])):

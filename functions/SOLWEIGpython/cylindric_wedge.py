@@ -2,6 +2,8 @@ import numpy as np
 
 def cylindric_wedge(zen, svfalfa, rows, cols):
 
+    np.seterr(divide='ignore', invalid='ignore')
+
     # Fraction of sunlit walls based on sun altitude and svf wieghted building angles
     # input: 
     # sun zenith angle "beta"

@@ -265,7 +265,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 bigraster = None
 
                 dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-                dsm_array = dataset.ReadAsArray().astype(np.float)
+                dsm_array = dataset.ReadAsArray().astype(float)
                 sizex = dsm_array.shape[0]
                 sizey = dsm_array.shape[1]
                 dem_array = np.zeros((sizex, sizey))
@@ -307,9 +307,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 bigraster = None
 
                 dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-                dsm_array = dataset.ReadAsArray().astype(np.float)
+                dsm_array = dataset.ReadAsArray().astype(float)
                 dataset2 = gdal.Open(self.plugin_dir + '/data/clipdem.tif')
-                dem_array = dataset2.ReadAsArray().astype(np.float)
+                dem_array = dataset2.ReadAsArray().astype(float)
 
                 if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                     raise QgsProcessingException("All grids must be of same extent and resolution")

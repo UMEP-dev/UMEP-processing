@@ -280,7 +280,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.temp_dir = os.path.dirname(self.plugin_dir) + '/temp'
 
     def processAlgorithm(self, parameters, context, feedback):
-        
+        np.seterr(divide='ignore', invalid='ignore')
  
         # InputParameters
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
@@ -363,7 +363,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
-        dsm = gdal_dsm.ReadAsArray().astype(np.float)
+        dsm = gdal_dsm.ReadAsArray().astype(float)
         sizex = dsm.shape[0]
         sizey = dsm.shape[1]
         rows = dsm.shape[0]
@@ -436,7 +436,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             provider = vegdsm.dataProvider()
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
-            vegdsm = dataSet.ReadAsArray().astype(np.float)
+            vegdsm = dataSet.ReadAsArray().astype(float)
             filePath_cdsm = filePathOld
             vegsizex = vegdsm.shape[0]
             vegsizey = vegdsm.shape[1]
@@ -450,7 +450,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 filePathOld = str(provider.dataSourceUri())
                 filePath_tdsm = filePathOld
                 dataSet = gdal.Open(filePathOld)
-                vegdsm2 = dataSet.ReadAsArray().astype(np.float)
+                vegdsm2 = dataSet.ReadAsArray().astype(float)
             else:
                 trunkratio = trunkr / 100.0
                 vegdsm2 = vegdsm * trunkratio
@@ -478,7 +478,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             provider = lcgrid.dataProvider()
             filePath_lc = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePath_lc)
-            lcgrid = dataSet.ReadAsArray().astype(np.float)
+            lcgrid = dataSet.ReadAsArray().astype(float)
 
             lcsizex = lcgrid.shape[0]
             lcsizey = lcgrid.shape[1]
@@ -509,7 +509,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             provider = dem.dataProvider()
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
-            dem = dataSet.ReadAsArray().astype(np.float)
+            dem = dataSet.ReadAsArray().astype(float)
 
             demsizex = dem.shape[0]
             demsizey = dem.shape[1]
@@ -541,38 +541,38 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         try:
             dataSet = gdal.Open(self.temp_dir + "/svf.tif")
-            svf = dataSet.ReadAsArray().astype(np.float)
+            svf = dataSet.ReadAsArray().astype(float)
             dataSet = gdal.Open(self.temp_dir + "/svfN.tif")
-            svfN = dataSet.ReadAsArray().astype(np.float)
+            svfN = dataSet.ReadAsArray().astype(float)
             dataSet = gdal.Open(self.temp_dir + "/svfS.tif")
-            svfS = dataSet.ReadAsArray().astype(np.float)
+            svfS = dataSet.ReadAsArray().astype(float)
             dataSet = gdal.Open(self.temp_dir + "/svfE.tif")
-            svfE = dataSet.ReadAsArray().astype(np.float)
+            svfE = dataSet.ReadAsArray().astype(float)
             dataSet = gdal.Open(self.temp_dir + "/svfW.tif")
-            svfW = dataSet.ReadAsArray().astype(np.float)
+            svfW = dataSet.ReadAsArray().astype(float)
 
             if usevegdem == 1:
                 dataSet = gdal.Open(self.temp_dir + "/svfveg.tif")
-                svfveg = dataSet.ReadAsArray().astype(np.float)
+                svfveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfNveg.tif")
-                svfNveg = dataSet.ReadAsArray().astype(np.float)
+                svfNveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfSveg.tif")
-                svfSveg = dataSet.ReadAsArray().astype(np.float)
+                svfSveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfEveg.tif")
-                svfEveg = dataSet.ReadAsArray().astype(np.float)
+                svfEveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfWveg.tif")
-                svfWveg = dataSet.ReadAsArray().astype(np.float)
+                svfWveg = dataSet.ReadAsArray().astype(float)
 
                 dataSet = gdal.Open(self.temp_dir + "/svfaveg.tif")
-                svfaveg = dataSet.ReadAsArray().astype(np.float)
+                svfaveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfNaveg.tif")
-                svfNaveg = dataSet.ReadAsArray().astype(np.float)
+                svfNaveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfSaveg.tif")
-                svfSaveg = dataSet.ReadAsArray().astype(np.float)
+                svfSaveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfEaveg.tif")
-                svfEaveg = dataSet.ReadAsArray().astype(np.float)
+                svfEaveg = dataSet.ReadAsArray().astype(float)
                 dataSet = gdal.Open(self.temp_dir + "/svfWaveg.tif")
-                svfWaveg = dataSet.ReadAsArray().astype(np.float)
+                svfWaveg = dataSet.ReadAsArray().astype(float)
             else:
                 svfveg = np.ones((rows, cols))
                 svfNveg = np.ones((rows, cols))
@@ -606,7 +606,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
-        wallheight = self.gdal_wh.ReadAsArray().astype(np.float)
+        wallheight = self.gdal_wh.ReadAsArray().astype(float)
         vhsizex = wallheight.shape[0]
         vhsizey = wallheight.shape[1]
         if not (vhsizex == sizex) & (vhsizey == sizey):
@@ -618,7 +618,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)
-        wallaspect = self.gdal_wa.ReadAsArray().astype(np.float)
+        wallaspect = self.gdal_wa.ReadAsArray().astype(float)
         vasizex = wallaspect.shape[0]
         vasizey = wallaspect.shape[1]
         if not (vasizex == sizex) & (vasizey == sizey):
@@ -850,7 +850,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                               absK, absL, albedo_b, albedo_g, ewall, eground, onlyglobal, trunkratio,
                                               transVeg, rows, cols, pos, elvis, cyl, demforbuild, ani)
 
-        feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoSOLWEIG_XXX.txt)")
+        feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoSOLWEIG_YYYY_DOY_HHMM.txt)")
 
         #  If metfile starts at night
         CI = 1.
@@ -866,6 +866,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         for i in np.arange(0, Ta.__len__()):
             feedback.setProgress(int(i * (100. / Ta.__len__()))) # move progressbar forward
+            if feedback.isCanceled():
+                feedback.setProgressText("Calculation cancelled")
+                break
             # Daily water body temperature
             if landcover == 1:
                 if ((dectime[i] - np.floor(dectime[i]))) == 0 or (i == 0):

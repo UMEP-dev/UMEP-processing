@@ -169,7 +169,7 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
         bigraster = None
         dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-        dsm = dataset.ReadAsArray().astype(np.float)
+        dsm = dataset.ReadAsArray().astype(float)
         sizex = dsm.shape[0]
         sizey = dsm.shape[1]
 

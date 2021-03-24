@@ -184,11 +184,11 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         # outputFile = self.parameterAsFileOutput(parameters, self.OUTPUT_FILE, context)
         # outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
         # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
-        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
         # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
@@ -214,7 +214,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
-        dsm = gdal_dsm.ReadAsArray().astype(np.float)
+        dsm = gdal_dsm.ReadAsArray().astype(float)
 
         # code to save as image
         # fig, ax = plt.subplots( nrows=1, ncols=1 )  # create figure & 1 axis
@@ -284,7 +284,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             provider = vegdsm.dataProvider()
             filePathOld = str(provider.dataSourceUri())
             dataSet = gdal.Open(filePathOld)
-            vegdsm = dataSet.ReadAsArray().astype(np.float)
+            vegdsm = dataSet.ReadAsArray().astype(float)
 
             vegsizex = vegdsm.shape[0]
             vegsizey = vegdsm.shape[1]
@@ -297,7 +297,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 provider = vegdsm2.dataProvider()
                 filePathOld = str(provider.dataSourceUri())
                 dataSet = gdal.Open(filePathOld)
-                vegdsm2 = dataSet.ReadAsArray().astype(np.float)
+                vegdsm2 = dataSet.ReadAsArray().astype(float)
             else:
                 trunkratio = trunkr / 100.0
                 vegdsm2 = vegdsm * trunkratio
@@ -318,7 +318,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             provider = whlayer.dataProvider()
             filepath_wh = str(provider.dataSourceUri())
             self.gdal_wh = gdal.Open(filepath_wh)
-            wheight = self.gdal_wh.ReadAsArray().astype(np.float)
+            wheight = self.gdal_wh.ReadAsArray().astype(float)
             vhsizex = wheight.shape[0]
             vhsizey = wheight.shape[1]
             if not (vhsizex == sizex) & (vhsizey == sizey):  # &
@@ -327,7 +327,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             provider = walayer.dataProvider()
             filepath_wa = str(provider.dataSourceUri())
             self.gdal_wa = gdal.Open(filepath_wa)
-            waspect = self.gdal_wa.ReadAsArray().astype(np.float)
+            waspect = self.gdal_wa.ReadAsArray().astype(float)
             vasizex = waspect.shape[0]
             vasizey = waspect.shape[1]
             if not (vasizex == sizex) & (vasizey == sizey):
