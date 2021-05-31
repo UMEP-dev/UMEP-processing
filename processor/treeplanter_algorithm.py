@@ -253,8 +253,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         h_end = h_end + '00'
 
         ## List shadow and tmrt files in infolder
-        sh_fl = [f for f in glob.glob(infolder + '/Shadow_*.tif')]
-        tmrt_fl = [f for f in glob.glob(infolder + '/Tmrt_*.tif')]
+        sh_fl = [f for f in sorted(glob.glob(infolder + '/Shadow_*.tif'))]
+        tmrt_fl = [f for f in sorted(glob.glob(infolder + '/Tmrt_*.tif'))]
 
         # Creating vector with hours from file names
         h_fl = np.zeros((sh_fl.__len__(),1))
