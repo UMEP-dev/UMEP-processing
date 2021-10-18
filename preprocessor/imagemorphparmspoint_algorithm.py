@@ -62,7 +62,7 @@ import sys
 from ..util import misc
 from ..util import RoughnessCalcFunctionV2 as rg
 from ..util import imageMorphometricParms_v1 as morph
-
+from ..functions import wallalgorithms as wa
 
 
 class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
@@ -96,16 +96,16 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
                         (self.tr('Kanda et al. (2013)'), '5'))
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
             self.tr('Point of interest'), optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
-            self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
+            # self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
             self.tr('Point vector layer'), [QgsProcessing.TypeVectorPoint], optional=True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
+        self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE,
             self.tr('Search distance (meter)'),
             QgsProcessingParameterNumber.Integer,
             QVariant(200), False, minValue=0))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL, 
-            self.tr('Wind direction search interval (degree)'), 
+        self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL,
+            self.tr('Wind direction search interval (degree)'),
             QgsProcessingParameterNumber.Double,
             QVariant(5), False, minValue=0.1, maxValue=360.))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
@@ -121,7 +121,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.ROUGH,
             self.tr('Roughness calculation method'),
             options=[i[0] for i in self.rough], defaultValue=0))
-        self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
+        self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX,
             self.tr('File prefix')))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
             self.tr("Save point of interest as new vector layer"), defaultValue=False))
@@ -140,7 +140,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         usePointlayer = self. parameterAsBool(parameters, self.USE_POINTLAYER, context)
         inputPoint = None
-        inputPointLayer = None
+        inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
         useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
@@ -159,26 +159,30 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
                 os.mkdir(outputDir)
 
         # Get POI
-        if not usePointlayer:
+        # if lcgrid is not None:
+        if inputPointLayer is None:
+            feedback.setProgressText("Point location obtained manually")
             inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
-            inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
-            feedback.setProgressText(str(inputPointLayer))
+            # inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
+            feedback.setProgressText("Point location obtained from point in vector layer")
             if not inputPointLayer.selectedFeatures():
-                if inputPointLayer.featureCount() != 1:
-                    raise QgsProcessingException("Point vector layer includes more than one object. Select one feature point and try again.")
+                if inputPointLayer.featureCount() == 0:
+                    raise QgsProcessingException("No point found in the vector layer. Add one point in the your layer of manually choose one.")
                 else:
                     for poi in inputPointLayer.getFeatures():
-                        x = poi.geometry().asPoint()[0]
-                        y = poi.geometry().asPoint()[1]
+                        y = poi.geometry().centroid().asPoint().y()
+                        x = poi.geometry().centroid().asPoint().x()
             else:
                 if inputPointLayer.selectedFeatureCount() != 1:
                     raise QgsProcessingException("More than one point of interest is selected. Select only one feature point and try again.")
                 for poi in inputPointLayer.selectedFeatures():
-                    x = poi.geometry().asPoint()[0]
-                    y = poi.geometry().asPoint()[1]
+                    y = poi.geometry().centroid().asPoint().y()
+                    x = poi.geometry().centroid().asPoint().x()
+                    # x = poi.geometry().asPoint()[0]
+                    # y = poi.geometry().asPoint()[1]
 
         feedback.setProgressText("x = " + str(x))
         feedback.setProgressText("y = " + str(y))
@@ -238,7 +242,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         
         if nodata_test.any():
             raise QgsProcessingException("NoData values present within the radius (" + str(int(r)) + 
-                                " m) from point of interest. Extend your raster(s) or more point.")
+                                " m) from point of interest. Extend your raster(s) or move point.")
         else:
             immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
 
@@ -289,17 +293,22 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         if paiall > 0.:
             if faiall == 0.:
                 faiall = 0.001
+
+        # adding wai area to isotrophic (wall area index)
+        total = 100. / (int(dsm.shape[0] * dsm.shape[1]))
+        wallarea = np.sum(wa.findwalls(dsm, 2., feedback, total))
+        gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
+        wai = wallarea / gridArea
                 
-        header = ' pai  fai   zH    zHmax    zHstd zd z0'
-        numformat = '%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        header = ' pai  fai   zH    zHmax    zHstd zd z0 wai'
+        numformat = '%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
         arr2 = np.array([[immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
-                          immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all]])
+                          immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all, wai]])
         np.savetxt(outputDir + '/' + pre + '_' + 'IMPPoint_isotropic.txt', arr2,
                    fmt=numformat, delimiter=' ', header=header, comments='')
 
         dataset = None
         dataset2 = None
-        dataset3 = None
         
         crs = str(dsmlayer.crs().authid())
         self.create_poly_layer(outputPolygon, x, y, r, crs)

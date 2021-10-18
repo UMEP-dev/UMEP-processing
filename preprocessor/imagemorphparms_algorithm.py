@@ -65,7 +65,7 @@ import sys
 from ..util import misc
 from ..util import RoughnessCalcFunctionV2 as rg
 from ..util import imageMorphometricParms_v1 as morph
-
+from ..functions import wallalgorithms as wa
 
 
 class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
@@ -165,12 +165,12 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         pre = filePrefix
         header = ' Wd pai   fai   zH  zHmax   zHstd zd z0'
         numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        header2 = ' id  pai   fai   zH  zHmax   zHstd  zd  z0'
-        numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        header2 = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai'
+        numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
         ret = 0
         imp_point = 0
         imid = int(searchMethod)
-        arrmat = np.empty((1, 8))
+        arrmat = np.empty((1, 9))
 
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
@@ -365,13 +365,21 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if z0all == 0.0:
                     z0all = 0.03
 
-                arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
-                                    immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all]])
-
                 # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
                 if paiall > 0.:
                     if faiall == 0.:
                         faiall = 0.001
+
+                # adding wai area to isotrophic (wall area index)
+                total = 100. / (int(dsm_array.shape[0] * dsm_array.shape[1]))
+                wallarea = np.sum(wa.findwalls(dsm_array, 2., feedback, total))
+                gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
+                wai = wallarea / gridArea
+
+                arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
+                                    immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all, wai]])
+
+
 
                 arrmat = np.vstack([arrmat, arr2])
 

@@ -115,9 +115,9 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        usePointlayer = self. parameterAsBool(parameters, self.USE_POINTLAYER, context)
+        # usePointlayer = self. parameterAsBool(parameters, self.USE_POINTLAYER, context)
         inputPoint = None
-        inputPointLayer = None
+        inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
         lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
@@ -132,13 +132,14 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                 os.mkdir(outputDir)
 
         # Get POI
-        if not usePointlayer:
+        if inputPointLayer in None:
+            feedback.setProgressText("Point location obtained manually")
             inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
-            inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
-            feedback.setProgressText(str(inputPointLayer))
+            # inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
+            feedback.setProgressText("Point location obtained from point in vector layer")
             if not inputPointLayer.selectedFeatures():
                 if inputPointLayer.featureCount() != 1:
                     raise QgsProcessingException("Point vector layer includes more than one object. Select one feature point and try again.")

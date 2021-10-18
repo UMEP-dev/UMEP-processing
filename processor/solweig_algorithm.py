@@ -110,7 +110,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_MET = 'INPUTMET'
     ONLYGLOBAL = 'ONLYGLOBAL'
     UTC = 'UTC'
-  
+
     #PET parameters
     AGE = 'AGE'
     ACTIVITY = 'ACTIVITY'
@@ -135,7 +135,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_LDOWN = 'OUTPUT_LDOWN'
     OUTPUT_SH = 'OUTPUT_SH'
     OUTPUT_TREEPLANTER = 'OUTPUT_TREEPLANTER'
-    
+
 
     def initAlgorithm(self, config):
         #spatial
@@ -283,22 +283,22 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         np.seterr(divide='ignore', invalid='ignore')
  
         # InputParameters
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.
         vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
         vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context) 
+        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context)
         useLcBuild = self.parameterAsBool(parameters, self.USE_LC_BUILD, context)
         dem = None
         inputSVF = self.parameterAsString(parameters, self.INPUT_SVF, context)
-        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
-        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
+        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context)
+        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
+        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
-        utc = self.parameterAsDouble(parameters, self.UTC, context) 
+        utc = self.parameterAsDouble(parameters, self.UTC, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         # usePOI = self.parameterAsBool(parameters, self.POI, context)
-        poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
+        poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context)
         poi_field = None
         mbody = None
         ht = None
