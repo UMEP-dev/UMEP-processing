@@ -4,7 +4,7 @@ import numpy as np
 # import matplotlib.pylab as plt
 # from numba import jit
 
-def shadowingfunctionglobalradiation(a, azimuth, altitude, scale, dlg, forsvf):
+def shadowingfunctionglobalradiation(a, azimuth, altitude, scale, feedback, forsvf):
 
     #%This m.file calculates shadows on a DEM
     #% conversion
@@ -18,7 +18,7 @@ def shadowingfunctionglobalradiation(a, azimuth, altitude, scale, dlg, forsvf):
     sizey = a.shape[1]
     if forsvf == 0:
         barstep = np.max([sizex, sizey])
-        dlg.progressBar.setRange(0, barstep)
+        total = 100. / barstep #dlg.progressBar.setRange(0, barstep)
     #% initialise parameters
     f = a
     dx = 0.
@@ -43,7 +43,8 @@ def shadowingfunctionglobalradiation(a, azimuth, altitude, scale, dlg, forsvf):
     #% main loop
     while (amaxvalue >= dz and np.abs(dx) < sizex and np.abs(dy) < sizey):
         if forsvf == 0:
-            dlg.progressBar.setValue(index)
+            feedback.setProgress(int(index * total))
+            # dlg.progressBar.setValue(index)
     #while np.logical_and(np.logical_and(amaxvalue >= dz, np.abs(dx) <= sizex), np.abs(dy) <= sizey):(np.logical_and(amaxvalue >= dz, np.abs(dx) <= sizex), np.abs(dy) <= sizey):
         #if np.logical_or(np.logical_and(pibyfour <= azimuth, azimuth < threetimespibyfour), np.logical_and(fivetimespibyfour <= azimuth, azimuth < seventimespibyfour)):
         if (pibyfour <= azimuth and azimuth < threetimespibyfour or fivetimespibyfour <= azimuth and azimuth < seventimespibyfour):
@@ -80,7 +81,7 @@ def shadowingfunctionglobalradiation(a, azimuth, altitude, scale, dlg, forsvf):
     return sh
 
 # @jit(nopython=True)
-def shadowingfunction_20(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, dlg, forsvf):
+def shadowingfunction_20(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, feedback, forsvf):
 
     # plt.ion()
     # fig = plt.figure(figsize=(24, 7))
@@ -113,8 +114,10 @@ def shadowingfunction_20(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue
     # progressbar for svf plugin
     if forsvf == 0:
         barstep = np.max([sizex, sizey])
-        dlg.progressBar.setRange(0, barstep)
-        dlg.progressBar.setValue(0)
+        total = 100. / barstep
+        feedback.setProgress(0)
+        # dlg.progressBar.setRange(0, barstep)
+        # dlg.progressBar.setValue(0)
 
     # initialise parameters
     dx = 0.
@@ -152,7 +155,7 @@ def shadowingfunction_20(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue
     # main loop
     while (amaxvalue >= dz) and (np.abs(dx) < sizex) and (np.abs(dy) < sizey):
         if forsvf == 0:
-            dlg.progressBar.setValue(index)
+            feedback.setProgress(int(index * total)) #dlg.progressBar.setValue(index)
         if ((pibyfour <= azimuth) and (azimuth < threetimespibyfour) or (fivetimespibyfour <= azimuth) and (azimuth < seventimespibyfour)):
             dy = signsinazimuth * index
             dx = -1. * signcosazimuth * np.abs(np.round(index / tanazimuth))
