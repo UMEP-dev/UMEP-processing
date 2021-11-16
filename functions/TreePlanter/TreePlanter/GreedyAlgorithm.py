@@ -4,6 +4,7 @@ from ...TreeGenerator import makevegdems
 # from ..TreeGenerator import makevegdems
 from ..TreePlanter.TreePlanterClasses import Treerasters
 from ..TreePlanter.TreePlanterClasses import Position
+from ..TreePlanter.TreePlanterTreeshade import tree_slice
 
 def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
 
@@ -52,18 +53,24 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
         if feedback.isCanceled():
             break
         for i in range(res_y.__len__()):
+
+            if feedback.isCanceled():
+                break
+
             y1 = np.int_(res_y[i] - treerasters.buffer_y[0])
             y2 = np.int_(res_y[i] + treerasters.buffer_y[1])
             x1 = np.int_(res_x[i] - treerasters.buffer_x[0])
             x2 = np.int_(res_x[i] + treerasters.buffer_x[1])
 
+            yslice1, xslice1, yslice2, xslice2 = tree_slice(y1,y2,x1,x2,treeinput,treerasters)
+
             ts_temp1 = np.zeros((treeinput.rows, treeinput.cols))
-            ts_temp1[y1:y2,x1:x2] = treerasters.treeshade
+            ts_temp1[yslice2, xslice2] = treerasters.treeshade[yslice1, xslice1]
 
             # Estimating Tmrt in tree shade and in sun
             for j in range(tmrt_1d.__len__()):
                 ts_temp2 = np.zeros((treeinput.rows, treeinput.cols))
-                ts_temp2[y1:y2, x1:x2] = treerasters.treeshade_bool[:, :, j]
+                ts_temp2[yslice2, xslice2] = treerasters.treeshade_bool[yslice1, xslice1, j]
                 sum_tmrt[res_y[i],res_x[i]] += np.sum(ts_temp2 * treeinput.buildings * shadows_copy[:,:,j] * tmrt_copy[:,:,j])
                 sum_tmrt_tsh[res_y[i], res_x[i]] += np.sum(ts_temp2 * treeinput.buildings * shadows_copy[:,:,j] * tmrt_1d[j,0])
 
@@ -87,40 +94,39 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
         x1 = np.int_(temp_x[0] - treerasters.buffer_x[0])
         x2 = np.int_(temp_x[0] + treerasters.buffer_x[1])
 
+        yslice1, xslice1, yslice2, xslice2 = tree_slice(y1,y2,x1,x2,treeinput,treerasters)
+
         for j in range(tmrt_1d.__len__()):
             temp_shadow = np.zeros((treeinput.rows,treeinput.cols))
-            temp_shadow[y1:y2,x1:x2] = treerasters.treeshade_bool[:,:,j]
+            temp_shadow[yslice2, xslice2] = treerasters.treeshade_bool[yslice1 , xslice1,j]
             temp_shadow = 1 - temp_shadow
             shadows_copy[:,:,j] = shadows_copy[:,:,j] * temp_shadow
             tmrt_copy[:,:,j] = tmrt_copy[:,:,j] * temp_shadow
 
         # Determine where to recalcaulate d_tmrt
         y1 = np.int_(temp_y[0] - treerasters.buffer_y[0] - treerasters.buffer_y[1])
-        if y1 < 0:
-            y1 = 0
         y2 = np.int_(temp_y[0] + treerasters.buffer_y[1] + treerasters.buffer_y[0])
-        if y2 < 0:
-            y2 = 0
         x1 = np.int_(temp_x[0] - treerasters.buffer_x[0] - treerasters.buffer_x[1])
-        if x1 < 0:
-            x1 = 0
         x2 = np.int_(temp_x[0] + treerasters.buffer_x[1] + treerasters.buffer_x[0])
-        if x2 < 0:
-            x2 = 0
+
+        _, __, yslice2, xslice2 = tree_slice(y1,y2,x1,x2,treeinput,treerasters)
    
         recalc_positions = np.zeros((bld_copy.shape[0], bld_copy.shape[1])) 
-        recalc_positions[y1:y2,x1:x2] = 1                                   
-        treerasters.d_tmrt[y1:y2,x1:x2] = 0
-        sum_tmrt[y1:y2,x1:x2] = 0
-        sum_tmrt_tsh[y1:y2,x1:x2] = 0
+        recalc_positions[yslice2, xslice2] = 1                                   
+        treerasters.d_tmrt[yslice2, xslice2] = 0
+        sum_tmrt[yslice2, xslice2] = 0
+        sum_tmrt_tsh[yslice2, xslice2] = 0
 
         # Remove position and one radian of tree canopy of added tree
         yt1 = np.int_(temp_y[0] - treerasters.buffer_y[0])
         yt2 = np.int_(temp_y[0] + treerasters.buffer_y[1])
         xt1 = np.int_(temp_x[0] - treerasters.buffer_x[0])
         xt2 = np.int_(temp_x[0] + treerasters.buffer_x[1])
+
+        yslice1, xslice1, yslice2, xslice2 = tree_slice(yt1,yt2,xt1,xt2,treeinput,treerasters)
+
         added_tree = np.zeros((bld_copy.shape[0], bld_copy.shape[1]))
-        added_tree[yt1:yt2,xt1:xt2] = treerasters.cdsm
+        added_tree[yslice2, xslice2] = treerasters.cdsm[yslice1, xslice1]
         added_tree = added_tree > 0
         added_tree = 1 - added_tree
 

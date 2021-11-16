@@ -245,6 +245,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
         # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
 
+        feedback.setProgressText('Starting model at ' + str(datetime.datetime.now()) + '...')
+
         feedback.setProgressText("Initializing and loading layers...")
 
         # TREE PLANTER CODE

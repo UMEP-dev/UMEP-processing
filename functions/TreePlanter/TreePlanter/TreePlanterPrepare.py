@@ -4,6 +4,7 @@ from ...TreeGenerator import makevegdems
 # from ..TreeGeneratorTemp import makevegdems
 from ..TreePlanter.TreePlanterClasses import Treerasters
 from ..TreePlanter.TreePlanterClasses import Position
+from ..TreePlanter.TreePlanterTreeshade import tree_slice
 
 def treeplanter(treeinput,treedata,treerasters,tmrt_1d):
 
@@ -49,14 +50,16 @@ def treeplanter(treeinput,treedata,treerasters,tmrt_1d):
         x1 = np.int_(res_x[i] - treerasters.buffer_x[0])
         x2 = np.int_(res_x[i] + treerasters.buffer_x[1])
 
+        yslice1, xslice1, yslice2, xslice2 = tree_slice(y1,y2,x1,x2,treeinput,treerasters)
+
         ts_temp1 = np.zeros((treeinput.rows, treeinput.cols))
-        ts_temp1[y1:y2,x1:x2] = treerasters.treeshade
+        ts_temp1[yslice2, xslice2] = treerasters.treeshade[yslice1, xslice1]
 
         # Klistra in skugga!! Fixa för TreePlanterTreeshade.py
         # Gör samma som i TreePlanterOptimizer (regional groups, etc)
         for j in range(tmrt_1d.__len__()):
             ts_temp2 = np.zeros((treeinput.rows, treeinput.cols))
-            ts_temp2[y1:y2, x1:x2] = treerasters.treeshade_bool[:, :, j]
+            ts_temp2[yslice2, xslice2] = treerasters.treeshade_bool[yslice1, xslice1, j]
             sum_tmrt[res_y[i],res_x[i]] += np.sum(ts_temp2 * treeinput.buildings * treeinput.shadow[:,:,j] * treeinput.tmrt_ts[:,:,j])
             sum_tmrt_tsh[res_y[i], res_x[i]] += np.sum(ts_temp2 * treeinput.buildings * treeinput.shadow[:,:,j] * tmrt_1d[j,0])
 
