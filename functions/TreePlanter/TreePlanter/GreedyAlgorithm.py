@@ -13,7 +13,7 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
     bld_copy = treeinput.buildings.copy()
 
     # Creating boolean for where it is possible to plant a tree
-    bd_b = np.int_(np.ceil(treedata.dia / 2))
+    bd_b = np.int_( np.ceil( (treedata.dia / 2) / treeinput.gt[1] ) )
 
     # Buffer on building raster so that trees can't be planted next to walls. Can be planted one radius from walls.
     for i1 in range(bd_b):

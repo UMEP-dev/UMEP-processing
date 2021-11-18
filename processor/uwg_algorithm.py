@@ -1,0 +1,262 @@
+# -*- coding: utf-8 -*-
+
+__author__ = 'Fredrik Lindberg'
+__date__ = '2021-02-04'
+__copyright__ = '(C) 2021 by Fredrik Lindberg'
+
+__revision__ = '$Format:%H$'
+
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.core import (QgsProcessing,
+                       QgsProcessingAlgorithm,
+                       QgsProcessingParameterString,
+                       QgsProcessingParameterBoolean,
+                       QgsProcessingParameterNumber,
+                       QgsProcessingParameterFolderDestination,
+                       QgsProcessingParameterDefinition,
+                       QgsProcessingParameterFile,
+                       QgsProcessingParameterRasterLayer,
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterDateTime,
+                       QgsProcessingParameterFeatureSource,
+                       QgsProcessingParameterField,
+                       QgsProcessingException,
+                       QgsVectorLayer,
+                       QgsFeature,
+                       QgsVectorFileWriter,
+                       QgsVectorDataProvider,
+                       QgsField)
+
+from qgis.PyQt.QtGui import QIcon
+# from osgeo import gdal, osr, ogr
+from osgeo.gdalconst import *
+import os
+import numpy as np
+import inspect
+from pathlib import Path
+import shutil
+# from ..util import misc
+from ..util.umep_uwg_export_component import get_uwg_file, read_uwg_file
+from uwg import UWG
+
+
+class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
+    """
+    This algorithm make use of UWG for the processing toolbox
+    """
+    
+    INPUT_FOLDER = 'INPUT_FOLDER'
+    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
+    ID_FIELD = 'ID_FIELD'
+    START_DATE = 'START_DATE'
+    NDAYS = 'NDAYS'
+    INPUT_MET = 'INPUT_MET'
+    UMEP_OUTPUT = 'UMEP_OUTPUT'
+    OUTPUT_DIR = 'OUTPUT_DIR'
+    OUTPUT_FORMAT = 'OUTPUT_FORMAT'
+
+
+    def initAlgorithm(self, config):
+        self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
+            self.tr('Path to folder where UWG input files are located'),
+            QgsProcessingParameterFile.Folder))
+        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
+            self.tr('Vector data including location(s) to model'),
+            [QgsProcessing.TypeVector]))
+        self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
+            self.tr('ID field'),
+            '',
+            self.INPUT_POLYGONLAYER,
+            QgsProcessingParameterField.Numeric))
+        self.addParameter(QgsProcessingParameterDateTime(self.START_DATE, 
+            self.tr('Start date of simulation'), 
+            QgsProcessingParameterDateTime.Date))
+        self.addParameter(QgsProcessingParameterNumber(self.NDAYS,
+            self.tr('Number of days to run simulation'),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(5), False, minValue=1, maxValue=365))
+        self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
+            self.tr('Input meteorological file (*.epw)'), 
+            extension = 'epw'))
+
+        # output
+        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
+            self.tr('Output folder')))
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_FORMAT,
+            self.tr('Save output in UMEP specific format. Leave ticked off to store in epw-format.')))
+
+
+    def processAlgorithm(self, parameters, context, feedback):
+        # InputParameters
+        inputDir = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
+        inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
+        idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
+        startDate = self.parameterAsString(parameters, self.START_DATE, context)
+        nDays =  self.parameterAsDouble(parameters, self.NDAYS, context)
+        inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_FORMAT, context)
+        
+        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+            if not (os.path.isdir(outputDir)):
+                os.mkdir(outputDir)
+
+        fileList = os.listdir(inputDir)
+        a = fileList[0].find("_")
+        prefix = fileList[0][0:a]
+
+        # poly = inputPolygonlayer
+        poly_field = idField
+        vlayer = inputPolygonlayer
+        # prov = vlayer.dataProvider()
+        # fields = prov.fields()
+        idx = vlayer.fields().indexFromName(poly_field[0])
+        nGrids = vlayer.featureCount()
+
+        feedback.setProgressText("Number of grids to calculate: " + str(nGrids))
+
+        mm = startDate[5:7]
+        dd = startDate[8:10]
+
+        index = 1
+
+        if umepformat:
+            header = '%iy  id  it imin   Q*      QH      QE      Qs      Qf    Wind    RH     Td     press   rain ' \
+                        '   Kdn    snow    ldown   fcld    wuh     xsmd    lai_hr  Kdiff   Kdir    Wd'
+            numformat = '%d %d %d %d %.2f %.2f %.2f %.2f %.2f %.5f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
+                            '%.2f %.2f %.2f %.2f %.2f %.2f %.2f' 
+
+        for f in vlayer.getFeatures():  # looping through each vector object
+            feedback.setProgress(int((index * 100) / nGrids))
+            if feedback.isCanceled():
+                feedback.setProgressText("Calculation cancelled")
+                break
+            
+            ## generate input files for UWG
+            uwgDict = read_uwg_file(inputDir, prefix + '_' + str(f.attributes()[idx]))
+            uwgDict['Month'] = mm
+            uwgDict['Day'] = dd
+            uwgDict['nDay'] = nDays
+            get_uwg_file(uwgDict, inputDir, prefix + '_' + str(f.attributes()[idx]))
+            
+            # inputUWGfile = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.uwg'
+            epw_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.epw'
+            uwg_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '_UWG.epw'
+            param_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.uwg'
+
+            shutil.copy(inputMet, epw_path)
+
+            if index == 1:
+                if umepformat:
+                    epwdata = np.genfromtxt(inputMet, skip_header=8, delimiter=',', filling_values=99999)
+                    umep_forcing = self.epw2UMEP(epwdata)
+                    np.savetxt(outputDir + '/metdata_UMEP.txt', umep_forcing, fmt=numformat, header=header, comments='')
+                # else:
+                #     shutil.copy(inputMet, )
+
+            # run model
+            feedback.setProgressText("UWG calculating grid: " + str(f.attributes()[idx]))
+            model = UWG.from_param_file(param_path, epw_path=epw_path)
+            model.generate()
+            model.simulate()
+            model.write_epw()
+
+            if umepformat:
+                epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
+                umep_uwg = self.epw2UMEP(epwdata_uwg)
+                np.savetxt(outputDir + '/' + prefix + '_' + str(f.attributes()[idx]) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
+                os.remove(uwg_path)
+            else:
+                shutil.move(uwg_path, outputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '_UWG.epw')
+            
+            os.remove(epw_path)
+
+            index += 1
+
+        return {self.OUTPUT_DIR: outputDir}
+
+    def epw2UMEP(self, met_old):
+        met_new = np.zeros((met_old.shape[0], 24)) - 999
+
+        # yyyy
+        met_new[:, 0] = 1985
+        met_new[met_old.shape[0] - 1, 0] = 1986
+
+        # hour
+        met_new[:, 2] = met_old[:, 3]
+        test = met_new[:, 2] == 24
+        met_new[test, 2] = 0
+
+        # day of year
+        mm = met_old[:, 1]
+        dd = met_old[:, 2]
+        rownum = met_old.shape[0]
+        for i in range(0, rownum):
+            yy = int(met_new[i, 0])
+            if (yy % 4) == 0:
+                if (yy % 100) == 0:
+                    if (yy % 400) == 0:
+                        leapyear = 1
+                    else:
+                        leapyear = 0
+                else:
+                    leapyear = 1
+            else:
+                leapyear = 0
+            if leapyear == 1:
+                dayspermonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            else:
+                dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            met_new[i, 1] = sum(dayspermonth[0:int(mm[i] - 1)]) + dd[i]
+
+        met_new[np.where(met_new[:, 2] == 0), 1] = met_new[np.where(met_new[:, 2] == 0), 1] + 1
+        met_new[met_old.shape[0] - 1, 1] = 1
+
+        # minute
+        met_new[:, 3] = 0
+
+        # met variables
+        met_new[:, 11] = met_old[:, 6]  # Ta
+        met_new[:, 10] = met_old[:, 8]  # Rh
+        met_new[:, 12] = met_old[:, 9] / 1000.  # P
+        met_new[:, 16] = met_old[:, 12]  # Ldown
+        met_new[:, 14] = met_old[:, 13]  # Kdown
+        met_new[:, 22] = met_old[:, 14]  # Kdir
+        met_new[:, 21] = met_old[:, 15]  # Kdiff
+        met_new[:, 23] = met_old[:, 20]  # Wdir
+        met_new[:, 9] = met_old[:, 21]  # Ws
+        met_new[:, 13] = met_old[:, 33]  # Rain
+        met_new[np.where(met_new[:, 13] == 999), 13] = 0
+
+        return met_new
+    
+    def name(self):
+        return 'Urban Heat Island: Urban Weather Generator'
+
+    def displayName(self):
+        return self.tr(self.name())
+
+    def group(self):
+        return self.tr(self.groupId())
+
+    def groupId(self):
+        return 'Processor'
+
+    def shortHelpString(self):
+        return self.tr('UNDER CONSTRUCTION.\n'
+        '-------------\n')
+
+    def helpUrl(self):
+        url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/SUEWS%20Prepare.html"
+        return url
+
+    def tr(self, string):
+        return QCoreApplication.translate('Processing', string)
+
+    def icon(self):
+        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        icon = QIcon(str(cmd_folder) + "/icons/SuewsLogo.png")
+        return icon
+
+    def createInstance(self):
+        return ProcessingUWGPreprocessorAlgorithm()

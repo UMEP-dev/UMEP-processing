@@ -84,8 +84,8 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
             self.tr('Point of interest'), optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
-            self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
+        #     self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
             self.tr('Point vector layer'), [QgsProcessing.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
@@ -132,7 +132,7 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                 os.mkdir(outputDir)
 
         # Get POI
-        if inputPointLayer in None:
+        if inputPointLayer is None:
             feedback.setProgressText("Point location obtained manually")
             inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
             x = float(inputPoint[0])

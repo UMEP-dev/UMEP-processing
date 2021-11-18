@@ -359,7 +359,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
             tv = [year, month, day, hour, minu, sec]
             timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
-            feedback.setProgressText('Test:' + str(tv))
+            # feedback.setProgressText('Test:' + str(tv))
             shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
                                             timeInterval, onetime, feedback, outputDir, gdal_dsm, trans,
                                             dst, wallsh, wheight, waspect)
@@ -423,6 +423,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                '\n'
                '------------------<br>'
                'Lindberg, F., Grimmond, C.S.B., 2011a. The influence of vegetation and building morphology on shadow patterns and mean radiant temperatures in urban areas: model development and evaluation. Theoret. Appl. Climatol. 105, 311–323 <br>'
+               '\n'
                'Ratti CF, Richens P (1999) Urban texture analysis with image processing techniques. In: Proceedings of the CAADFutures99, Atalanta, GA'
                '\n'
                'Full manual available via the <b>Help</b>-button.')
