@@ -53,6 +53,7 @@ from .processor.uwg_algorithm import ProcessingUWGPreprocessorAlgorithm
 
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
 from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
+from .postprocessor.uwganalyzer_algorithm import ProcessingUWGAnalyzerAlgorithm
 
 import os.path
 from qgis.PyQt.QtGui import QIcon
@@ -105,6 +106,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         #Postprocessor
         self.addAlgorithm(ProcessingSolweigAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
+        self.addAlgorithm(ProcessingUWGAnalyzerAlgorithm())
 
     def id(self):
         """
@@ -138,4 +140,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 1.7'
+        return 'UMEP for Processing, Version 1.5.2'

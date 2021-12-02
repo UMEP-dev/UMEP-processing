@@ -31,13 +31,18 @@ from qgis.PyQt.QtGui import QIcon
 # from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
 import os
+import sys
 import numpy as np
 import inspect
 from pathlib import Path
 import shutil
-# from ..util import misc
+import traceback
+import math
 from ..util.umep_uwg_export_component import get_uwg_file, read_uwg_file
-from uwg import UWG
+try:
+    from uwg import UWG
+except:
+    pass
 
 
 class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
@@ -68,15 +73,15 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
             '',
             self.INPUT_POLYGONLAYER,
             QgsProcessingParameterField.Numeric))
-        self.addParameter(QgsProcessingParameterDateTime(self.START_DATE, 
-            self.tr('Start date of simulation'), 
+        self.addParameter(QgsProcessingParameterDateTime(self.START_DATE,
+            self.tr('Start date of simulation'),
             QgsProcessingParameterDateTime.Date))
         self.addParameter(QgsProcessingParameterNumber(self.NDAYS,
             self.tr('Number of days to run simulation'),
             QgsProcessingParameterNumber.Integer,
             QVariant(5), False, minValue=1, maxValue=365))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
-            self.tr('Input meteorological file (*.epw)'), 
+            self.tr('Input meteorological file (*.epw)'),
             extension = 'epw'))
 
         # output
@@ -87,6 +92,13 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
 
 
     def processAlgorithm(self, parameters, context, feedback):
+
+        try:
+            import uwg
+        except:
+            pass
+            raise QgsProcessingException("uwg python library not found: Instructions on how to install missing python libraries: https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")
+
         # InputParameters
         inputDir = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
         inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
@@ -131,18 +143,22 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
                 break
+
+            numtype = math.modf(f.attributes()[idx])
+            if numtype[0] == 0.0:
+                attr = int(f.attributes()[idx])
             
             ## generate input files for UWG
-            uwgDict = read_uwg_file(inputDir, prefix + '_' + str(f.attributes()[idx]))
+            uwgDict = read_uwg_file(inputDir, prefix + '_' + str(attr))
             uwgDict['Month'] = mm
             uwgDict['Day'] = dd
             uwgDict['nDay'] = nDays
-            get_uwg_file(uwgDict, inputDir, prefix + '_' + str(f.attributes()[idx]))
+            get_uwg_file(uwgDict, inputDir, prefix + '_' + str(attr))
             
             # inputUWGfile = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.uwg'
-            epw_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.epw'
-            uwg_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '_UWG.epw'
-            param_path = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.uwg'
+            epw_path = inputDir + '/' + prefix + '_' + str(attr)  + '.epw'
+            uwg_path = inputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'
+            param_path = inputDir + '/' + prefix + '_' + str(attr)  + '.uwg'
 
             shutil.copy(inputMet, epw_path)
 
@@ -155,21 +171,29 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
                 #     shutil.copy(inputMet, )
 
             # run model
-            feedback.setProgressText("UWG calculating grid: " + str(f.attributes()[idx]))
-            model = UWG.from_param_file(param_path, epw_path=epw_path)
-            model.generate()
-            model.simulate()
-            model.write_epw()
+            feedback.setProgressText("UWG calculating grid: " + str(attr))
+            try:
+                model = UWG.from_param_file(param_path, epw_path=epw_path)
+                model.generate()
+                model.simulate()
+                model.write_epw()
 
-            if umepformat:
-                epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
-                umep_uwg = self.epw2UMEP(epwdata_uwg)
-                np.savetxt(outputDir + '/' + prefix + '_' + str(f.attributes()[idx]) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
-                os.remove(uwg_path)
-            else:
-                shutil.move(uwg_path, outputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '_UWG.epw')
-            
-            os.remove(epw_path)
+                if umepformat:
+                    epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
+                    umep_uwg = self.epw2UMEP(epwdata_uwg)
+                    np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
+                    os.remove(uwg_path)
+                else:
+                    shutil.move(uwg_path, outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw')
+                
+                os.remove(epw_path)
+
+            except Exception as e:
+                feedback.pushWarning("Calculating grid " + str(attr) + ' failed: ' + str(e))
+                feedback.pushWarning('To get the full traceback error message, open the Python console in QGIS and re-run the simulation.')
+                feedback.pushWarning('If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details).')
+                print('Traceback error message while caclulation grid: ' + str(attr))
+                print(traceback.format_exc())
 
             index += 1
 
@@ -243,11 +267,13 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('UNDER CONSTRUCTION.\n'
-        '-------------\n')
+        return self.tr('The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>'
+        '\n'
+        '--------------\n'
+        'Full manual is available via the <b>Help</b>-button.')
 
     def helpUrl(self):
-        url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/SUEWS%20Prepare.html"
+        url = "https://umep-docs.readthedocs.io/en/latest/processor/Urban%20Heat%20Island%20Urban%20Weather%20Generator.html"
         return url
 
     def tr(self, string):
@@ -255,7 +281,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
 
     def icon(self):
         cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
-        icon = QIcon(str(cmd_folder) + "/icons/SuewsLogo.png")
+        icon = QIcon(str(cmd_folder) + "/icons/icon_uwg.png")
         return icon
 
     def createInstance(self):

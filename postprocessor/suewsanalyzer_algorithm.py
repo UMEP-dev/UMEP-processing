@@ -341,6 +341,9 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         vlayer = inputPolygonlayer #QgsVectorLayer(poly.source(), "polygon", "ogr")
         prov = vlayer.dataProvider()
         fields = prov.fields()
+        path=vlayer.dataProvider().dataSourceUri()
+        polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+
         # idx = vlayer.fieldNameIndex(poly_field)
         idx = vlayer.fields().indexFromName(poly_field[0])
         typetest = fields.at(idx).type()
@@ -500,7 +503,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 os.remove(self.plugin_dir + '/tempgrid.tif')
 
         crs = vlayer.crs().toWkt()
-        self.rasterize(str(poly.source()), str(self.plugin_dir + '/tempgrid.tif'), str(poly_field[0]), resx, crs, extent)
+        self.rasterize(polygonpath, str(self.plugin_dir + '/tempgrid.tif'), str(poly_field[0]), resx, crs, extent)
 
         dataset = gdal.Open(self.plugin_dir + '/tempgrid.tif')
         idgrid_array = dataset.ReadAsArray().astype(float)

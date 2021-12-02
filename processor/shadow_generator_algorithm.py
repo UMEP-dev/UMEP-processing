@@ -389,7 +389,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Outdoor Thermal Comfort: Shadow Generator'
+        return 'Solar Radiation: Shadow Generator'
 
     def displayName(self):
         """
