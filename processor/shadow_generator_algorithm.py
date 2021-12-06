@@ -40,8 +40,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingException,
-                    #    QgsProcessingParameterPoint,
+                       QgsProcessingParameterDateTime,               
                        QgsProcessingParameterRasterLayer)
+
 from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
@@ -52,6 +53,7 @@ from ..functions import dailyshading as dsh
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
+import datetime
 # import matplotlib.pyplot as plt
 
 
@@ -142,11 +144,17 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 self.DST,
                 self.tr("Add Daylight savings time"), 
                 defaultValue=False))       
-        param = QgsProcessingParameterString(
-            self.DATEINI, 
-            'Date')
-        param.setMetadata({'widget_wrapper': {'class': DateWidget}})
-        self.addParameter(param)
+        
+        # param = QgsProcessingParameterString(
+        #     self.DATEINI, 
+        #     'Date')
+        # param.setMetadata({'widget_wrapper': {'class': DateWidget}})
+        # self.addParameter(param)
+
+        self.addParameter(QgsProcessingParameterDateTime(self.DATEINI,
+            self.tr('Date'),
+            QgsProcessingParameterDateTime.Date))
+        
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ITERTIME,
@@ -161,11 +169,17 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 self.ONE_SHADOW,
                 self.tr("Cast only one shadow"), 
                 defaultValue=False))
-        paramT = QgsProcessingParameterString(
-            self.TIMEINI, 
-            'Time for single shadow')
-        paramT.setMetadata({'widget_wrapper': {'class': TimeWidget}})
-        self.addParameter(paramT)
+
+        # paramT = QgsProcessingParameterString(
+        #     self.TIMEINI, 
+        #     'Time for single shadow')
+        # paramT.setMetadata({'widget_wrapper': {'class': TimeWidget}})
+        # self.addParameter(paramT)
+
+        self.addParameter(QgsProcessingParameterDateTime(self.TIMEINI,
+            self.tr('Time for single shadow'),
+            QgsProcessingParameterDateTime.Time))
+
         self.addParameter(
             QgsProcessingParameterFolderDestination(
                 self.OUTPUT_DIR,
@@ -340,17 +354,24 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         if outputDir is 'None':
             raise QgsProcessingException("Error: No selected folder")
         else:
-            # date = myDate  #self.dlg.calendarWidget.selectedDate()
-            year = int(myDate[0:4]) #date.year()
-            month = int(myDate[5:7]) #date.month()
-            day = int(myDate[8:10]) #date.day()
+            startDate = datetime.datetime.strptime(myDate, '%Y-%m-%d')
+            year = startDate.year
+            month = startDate.month
+            day = startDate.day
+            # year = int(myDate[0:4]) #date.year()
+            # month = int(myDate[5:7]) #date.month()
+            # day = int(myDate[8:10]) #date.day()
             UTC = utc #self.dlg.spinBoxUTC.value()
             if oneShadow: #self.dlg.shadowCheckBox.isChecked():
                 onetime = 1
+                onetimetime = datetime.datetime.strptime(myTime, '%H:%M:%S.%f')
                 # time = myTime # self.dlg.timeEdit.time()
-                hour = int(myTime[11:13]) #time.hour()
-                minu = int(myTime[14:16]) #time.minute()
-                sec = int(myTime[17:19]) #time.second()
+                hour = onetimetime.hour
+                minu = onetimetime.minute
+                sec = onetimetime.second
+                # hour = int(myTime[11:13]) #time.hour()
+                # minu = int(myTime[14:16]) #time.minute()
+                # sec = int(myTime[17:19]) #time.second()
             else:
                 onetime = 0
                 hour = 0
@@ -358,6 +379,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 sec = 0
 
             tv = [year, month, day, hour, minu, sec]
+
             timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
             # feedback.setProgressText('Test:' + str(tv))
             shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
