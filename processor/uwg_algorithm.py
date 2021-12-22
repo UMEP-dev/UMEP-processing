@@ -97,7 +97,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
             import uwg
         except:
             pass
-            raise QgsProcessingException("uwg python library not found: Instructions on how to install missing python libraries: https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")
+            raise QgsProcessingException("uwg python library not found: Instructions on how to install missing python libraries using the pip command: https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")
 
         # InputParameters
         inputDir = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
@@ -267,9 +267,16 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>'
+        return self.tr('<b>THIS PLUGIN IS EXPERIMENTAL</b>'
         '\n'
-        '--------------\n'
+        'The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>'
+        '\n'
+        'For more detailed information during execution, open the QGIS Python console (Plugins>Python Console).'
+        '\n'
+        '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: '
+        'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
+        '\n'
+        '----------------------\n'
         'Full manual is available via the <b>Help</b>-button.')
 
     def helpUrl(self):

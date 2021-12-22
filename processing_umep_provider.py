@@ -140,4 +140,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 1.5.2'
+        return 'UMEP for Processing, Version 1.6'
