@@ -670,11 +670,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
             if np.min(radD) == -999:
-                raise QgsProcessingException("Diffuse radiation include NoData values",
+                raise QgsProcessingException('Diffuse radiation include NoData values. '
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
             if np.min(radI) == -999:
-                raise QgsProcessingException("Direct radiation include NoData values",
+                raise QgsProcessingException('Direct radiation include NoData values. '
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
 
@@ -683,6 +683,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
                         'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
                         'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
+
+            if np.min(Ws) == -999:
+                raise QgsProcessingException('Wind speed include NoData values (-999).'
+                                             'Wind speed is required to calculate PET and UTCI at the POIs')
             # poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
             # if poilyr is None:
                 # raise QgsProcessingException("No valid point layer is selected")
