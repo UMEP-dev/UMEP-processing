@@ -43,6 +43,7 @@ from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractio
 from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
 from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
 from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
+from. preprocessor.uwgprepare_algorithm import ProcessingUWGPrepareAlgorithm
 
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
@@ -94,6 +95,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
         # self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
         self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
+        self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
         
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
@@ -140,4 +142,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 1.6'
+        return 'UMEP for Processing, Version 1.6.1'

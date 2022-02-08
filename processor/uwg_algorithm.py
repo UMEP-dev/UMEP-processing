@@ -59,6 +59,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
     UMEP_OUTPUT = 'UMEP_OUTPUT'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_FORMAT = 'OUTPUT_FORMAT'
+    DTSIM = 'DTSIM'
 
 
     def initAlgorithm(self, config):
@@ -83,7 +84,10 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
             self.tr('Input meteorological file (*.epw)'),
             extension = 'epw'))
-
+        self.addParameter(QgsProcessingParameterNumber(self.DTSIM,
+            self.tr('Simulation time step in seconds'),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(300), False, minValue=1, maxValue=1440))
         # output
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
@@ -108,6 +112,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_FORMAT, context)
+        dtSim = self.parameterAsDouble(parameters, self.DTSIM, context)
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
@@ -153,6 +158,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
             uwgDict['Month'] = mm
             uwgDict['Day'] = dd
             uwgDict['nDay'] = nDays
+            uwgDict['dtSim'] = dtSim
             get_uwg_file(uwgDict, inputDir, prefix + '_' + str(attr))
             
             # inputUWGfile = inputDir + '/' + prefix + '_' + str(f.attributes()[idx])  + '.uwg'
@@ -275,6 +281,8 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         '\n'
         '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: '
         'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
+        '\n'
+        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time.'
         '\n'
         '----------------------\n'
         'Full manual is available via the <b>Help</b>-button.')
