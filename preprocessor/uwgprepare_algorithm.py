@@ -193,7 +193,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             vlayerBT = polyBT
             pathBT=vlayerBT.dataProvider().dataSourceUri()
             if pathBT.rfind('|') > 0:
-                polygonpathBT = path [:path.rfind('|')] # work around. Probably other solution exists
+                polygonpathBT = pathBT [:pathBT.rfind('|')] # work around. Probably other solution exists
             else:
                 polygonpathBT = pathBT
             # feedback.setProgressText("polygonpathBT: " + str(polygonpathBT))
@@ -232,6 +232,8 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             'OVERLAY_FIELDS' : [], 
             'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
 
+            # feedback.setProgressText(str(parin))
+
             processing.run('native:intersection', parin)
 
             vlayertype = QgsVectorLayer(urbantypelayer, "polygon", "ogr")
@@ -249,6 +251,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             index += 1
 
             feat_id = int(feature.attribute(poly_field[0]))
+            # feedback.setProgressText(str(feat_id))
 
             # create a default dict with all input
             uwgDict = create_uwgdict()
@@ -307,8 +310,11 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                         timeDict[featureType.attribute(type_field)] = featureType.attribute(time_field)
                         totarea = totarea + area
                 for key in fracDict:
-                    fracDict[key] = fracDict[key] / totarea
-                
+                    if totarea > 0:
+                        fracDict[key] = fracDict[key] / totarea
+                    else: 
+                        fracDict['MidRiseApartment'] = 1.0
+
                 # Populate dict from type polygon layer
                 for i in range(0, len(uwgDict['bld'][0])):
                     uwgDict['bld'][1][i] = timeDict[types[i]] 
