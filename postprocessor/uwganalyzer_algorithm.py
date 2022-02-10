@@ -187,7 +187,11 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # prov = vlayer.dataProvider()
 
         path=vlayer.dataProvider().dataSourceUri()
-        polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        # polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        if path.rfind('|') > 0:
+            polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        else:
+            polygonpath = path
 
         # fields = prov.fields()
         idx = vlayer.fields().indexFromName(poly_field[0])

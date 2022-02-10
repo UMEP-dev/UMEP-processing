@@ -164,19 +164,23 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             if not os.path.exists(outputDir + '/' + pre):
                 os.makedirs(outputDir + '/' + pre)
 
-        poly = inputPolygonlayer
+        # poly = inputPolygonlayer
         poly_field = idField
         vlayer = inputPolygonlayer
-        prov = vlayer.dataProvider()
-        fields = prov.fields()
-        idx = vlayer.fields().indexFromName(poly_field[0])
+        # prov = vlayer.dataProvider()
+        # fields = prov.fields()
+        # idx = vlayer.fields().indexFromName(poly_field[0])
         # dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to process: " + str(nGrids))
 
         path=vlayer.dataProvider().dataSourceUri()
-        polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        if path.rfind('|') > 0:
+            polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        else:
+            polygonpath = path
+        # feedback.setProgressText("polygonpath: " + str(polygonpath))
 
         map_units = vlayer.crs().mapUnits()
         if not map_units == 0 or map_units == 1 or map_units == 2:
@@ -187,9 +191,12 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             vlayerBT = None
         else:
             vlayerBT = polyBT
-            path=vlayerBT.dataProvider().dataSourceUri()
-            polygonpathBT = path [:path.rfind('|')] # work around. Probably other solution exists
-            # feedback.setProgressText("fff: " + str(polygonpathBT))
+            pathBT=vlayerBT.dataProvider().dataSourceUri()
+            if pathBT.rfind('|') > 0:
+                polygonpathBT = path [:path.rfind('|')] # work around. Probably other solution exists
+            else:
+                polygonpathBT = pathBT
+            # feedback.setProgressText("polygonpathBT: " + str(polygonpathBT))
 
         a = {}
         a['0'] = '1A'
@@ -210,7 +217,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         a['15'] = '8'
 
         zone = a[climateZone]
-        feedback.setProgressText("eee: " + str(zone))
+        # feedback.setProgressText("eee: " + str(zone))
 
         # Intersect grids with building type polygons 
         if vlayerBT:
