@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=1.6
+version=1.6.1
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    1.6.1 : Adjustments in the UWG tools
     1.6   : New version for the QGIS plugin repository
     1.5.2 : Added Urban Weather Genrator (Experimental)
     1.5.1 : Adjustment to shadowcastingalgorithm to include vegetation pergolas. Removed tickbox in point tools.
