@@ -149,7 +149,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         feedback.setProgressText('lon = ' + str(lon))
         feedback.setProgressText('Start = ' + str(startDate))
         feedback.setProgressText('End = ' + str(endDate))
-        feedback.setProgressText(outputDir)
+        feedback.setProgressText('Output folder = ' + str(outputDir))
 
         if startDate >= endDate:
             raise QgsProcessingException('Start date is greater or equal than end date')
@@ -157,7 +157,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         logger_sp = logging.getLogger('SuPy')
         logger_sp.disabled = True
 
-        sp.util.gen_forcing_era5(lat, lon, startDate, endDate, dir_save=outputDir)
+        sp.util.gen_forcing_era5(lat, lon, startDate, endDate, dir_save=Path(outputDir))
 
         results = {self.OUTPUT_DIR: outputDir}
 
