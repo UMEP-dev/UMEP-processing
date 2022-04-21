@@ -255,7 +255,7 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
 
         # Assign feature the buffered geometry
         radius = r
-        featurepoly.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)).buffer(radius, 1000, 1, 1, 1.0))
+        featurepoly.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)).buffer(radius, 1000)) # fix issue #400
         featurepoly.setAttributes([fc])
         self.polyLayer.startEditing()
         self.polyLayer.addFeature(featurepoly)

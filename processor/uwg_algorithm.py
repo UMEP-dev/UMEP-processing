@@ -60,6 +60,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_FORMAT = 'OUTPUT_FORMAT'
     DTSIM = 'DTSIM'
+    EXCLUDE_RURAL = 'EXCLUDE_RURAL'
 
 
     def initAlgorithm(self, config):
@@ -88,6 +89,8 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
             self.tr('Simulation time step in seconds'),
             QgsProcessingParameterNumber.Integer,
             QVariant(300), False, minValue=1, maxValue=1440))
+        self.addParameter(QgsProcessingParameterBoolean(self.EXCLUDE_RURAL,
+            self.tr('Exculde grids with very small building fractions (< 0.5%)'), defaultValue=False))
         # output
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
@@ -113,6 +116,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_FORMAT, context)
         dtSim = self.parameterAsDouble(parameters, self.DTSIM, context)
+        excludeRural = self.parameterAsBoolean(parameters, self.EXCLUDE_RURAL, context)
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
@@ -177,29 +181,41 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
                 #     shutil.copy(inputMet, )
 
             # run model
-            feedback.setProgressText("UWG calculating grid: " + str(attr))
-            try:
-                model = UWG.from_param_file(param_path, epw_path=epw_path)
-                model.generate()
-                model.simulate()
-                model.write_epw()
+            if excludeRural:
+                if uwgDict['bldDensity'] < 0.005:
+                    feedback.setProgressText("Grid: " + str(attr) + ' not calculated. Less than 0.005 in building fraction.')
 
-                if umepformat:
-                    epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
-                    umep_uwg = self.epw2UMEP(epwdata_uwg)
-                    np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
-                    os.remove(uwg_path)
+                    if umepformat:
+                        epwdata_uwg = np.genfromtxt(epw_path, skip_header=8, delimiter=',', filling_values=99999)
+                        umep_uwg = self.epw2UMEP(epwdata_uwg)
+                        np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
+                        os.remove(uwg_path)
+                    else:
+                        shutil.move(epw_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
                 else:
-                    shutil.move(uwg_path, outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw')
-                
-                os.remove(epw_path)
+                    feedback.setProgressText("UWG calculating grid: " + str(attr))
+                    try:
+                        model = UWG.from_param_file(param_path, epw_path=epw_path)
+                        model.generate()
+                        model.simulate()
+                        model.write_epw()
 
-            except Exception as e:
-                feedback.pushWarning("Calculating grid " + str(attr) + ' failed: ' + str(e))
-                feedback.pushWarning('To get the full traceback error message, open the Python console in QGIS and re-run the simulation.')
-                feedback.pushWarning('If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details).')
-                print('Traceback error message while caclulation grid: ' + str(attr))
-                print(traceback.format_exc())
+                        if umepformat:
+                            epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
+                            umep_uwg = self.epw2UMEP(epwdata_uwg)
+                            np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
+                            os.remove(uwg_path)
+                        else:
+                            shutil.move(uwg_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
+                        
+                        os.remove(epw_path)
+
+                    except Exception as e:
+                        feedback.pushWarning("Calculating grid " + str(attr) + ' failed: ' + str(e))
+                        feedback.pushWarning('To get the full traceback error message, open the Python console in QGIS and re-run the simulation.')
+                        feedback.pushWarning('If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details).')
+                        print('Traceback error message while caclulation grid: ' + str(attr))
+                        print(traceback.format_exc())
 
             index += 1
 
@@ -282,7 +298,9 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: '
         'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
         '\n'
-        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time.'
+        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time but make the model more stable.'
+        '\n'
+        'You can also increase stability by ticking in the box to exclude grids with very low building fraction.'
         '\n'
         '----------------------\n'
         'Full manual is available via the <b>Help</b>-button.')

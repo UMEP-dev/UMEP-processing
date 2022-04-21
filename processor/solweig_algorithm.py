@@ -359,6 +359,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
+        # Makes it possible to run many grids in model dsigner
+        if not (os.path.isdir(outputDir)):
+            os.mkdir(outputDir)
+
         # Code from old plugin
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
