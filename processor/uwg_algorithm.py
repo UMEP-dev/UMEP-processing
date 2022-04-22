@@ -189,7 +189,7 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
                         epwdata_uwg = np.genfromtxt(epw_path, skip_header=8, delimiter=',', filling_values=99999)
                         umep_uwg = self.epw2UMEP(epwdata_uwg)
                         np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
-                        os.remove(uwg_path)
+                        os.remove(epw_path)
                     else:
                         shutil.move(epw_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
                 else:
@@ -216,6 +216,31 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
                         feedback.pushWarning('If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details).')
                         print('Traceback error message while caclulation grid: ' + str(attr))
                         print(traceback.format_exc())
+                
+            else:
+                feedback.setProgressText("UWG calculating grid: " + str(attr))
+                try:
+                    model = UWG.from_param_file(param_path, epw_path=epw_path)
+                    model.generate()
+                    model.simulate()
+                    model.write_epw()
+
+                    if umepformat:
+                        epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
+                        umep_uwg = self.epw2UMEP(epwdata_uwg)
+                        np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
+                        os.remove(uwg_path)
+                    else:
+                        shutil.move(uwg_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
+                    
+                    os.remove(epw_path)
+
+                except Exception as e:
+                    feedback.pushWarning("Calculating grid " + str(attr) + ' failed: ' + str(e))
+                    feedback.pushWarning('To get the full traceback error message, open the Python console in QGIS and re-run the simulation.')
+                    feedback.pushWarning('If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details).')
+                    print('Traceback error message while caclulation grid: ' + str(attr))
+                    print(traceback.format_exc())
 
             index += 1
 
