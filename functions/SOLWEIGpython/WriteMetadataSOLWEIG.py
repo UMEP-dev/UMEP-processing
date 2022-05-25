@@ -141,7 +141,7 @@ def writeRunInfo(folderPath, filepath_dsm, gdal_dsm, usevegdem, filePath_cdsm, t
             file.write('Human considered as a standing cube')
         file.write('\n')
         if ani == 1:
-            file.write('Anisotropic sky (Perez et al. 1993)')
+            file.write('Anisotropic sky diffuse shortwave (Perez et al. 1993) and longwave (Martin & Berdahl, 1984) radiation')
         else:
             file.write('Isotropic sky')
         file.write('\n')

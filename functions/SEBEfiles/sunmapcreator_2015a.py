@@ -5,6 +5,7 @@ import numpy as np
 from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
 from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 
 def sunmapcreator_2015a(met, altitude, azimuth, onlyglobal, output, jday, albedo, location, zen):
@@ -22,20 +23,27 @@ def sunmapcreator_2015a(met, altitude, azimuth, onlyglobal, output, jday, albedo
     """
     np.seterr(over='raise')
     np.seterr(invalid='raise')
+
+
     # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
-    # index = 1
-    skyvaultaltint = np.array([6, 18, 30, 42, 54, 66, 78, 90])
-    skyvaultaziint = np.array([12, 12, 15, 15, 20, 30, 60, 360])
-    aziinterval = np.array([30, 30, 24, 24, 18, 12, 6, 1])
-    azistart = np.array([0, 4, 2, 5, 8, 0, 10, 0])
+    patch_option = 1 # 145 patches
+    # patch_option = 2 # 153 patches
+    # patch_option = 3 # 306 patches
+    # patch_option = 4 # 612 patches    
+    skyvaultalt, skyvaultazi, annulino, skyvaultaltint, aziinterval, skyvaultaziint, azistart = create_patches(patch_option)
+
+    # skyvaultaltint = np.array([6, 18, 30, 42, 54, 66, 78, 90])
+    # skyvaultaziint = np.array([12, 12, 15, 15, 20, 30, 60, 360])
+    # aziinterval = np.array([30, 30, 24, 24, 18, 12, 6, 1])
+    # azistart = np.array([0, 4, 2, 5, 8, 0, 10, 0])
     # annulino = np.array([0, 12, 24, 36, 48, 60, 72, 84, 90])
-    skyvaultazi = np.array([])
-    for j in range(8):
-        for k in range(1, int(360/skyvaultaziint[j]) + 1):
-            # skyvaultalt(index)=skyvaultaltint(j);
-            skyvaultazi = np.append(skyvaultazi, k*skyvaultaziint[j] + azistart[j])
-            if skyvaultazi[-1] > 360:
-                skyvaultazi[-1] = skyvaultazi[-1] - 360
+    # skyvaultazi = np.array([])
+    # for j in range(8):
+    #     for k in range(1, int(360/skyvaultaziint[j]) + 1):
+    #         # skyvaultalt(index)=skyvaultaltint(j);
+    #         skyvaultazi = np.append(skyvaultazi, k*skyvaultaziint[j] + azistart[j])
+    #         if skyvaultazi[-1] > 360:
+    #             skyvaultazi[-1] = skyvaultazi[-1] - 360
             # index = index + 1
 
     iangle2 = np.array([])
@@ -75,8 +83,8 @@ def sunmapcreator_2015a(met, altitude, azimuth, onlyglobal, output, jday, albedo
 
             G = met[i, 14]
 
-            # anisotrophic diffuse distribution (Perez)
-            lv, _, _ = Perez_v3(90-altitude[0, i], azimuth[0, i], D, I, jday[0, i], 1)
+            # Anisotropic diffuse distribution (Perez et al., 1993/Robinson & Stone, 2004)
+            lv, _, _ = Perez_v3(90-altitude[0, i], azimuth[0, i], D, I, jday[0, i], 1, patch_option)
 
             distalt = np.abs(iangle2-alt)
             altlevel = distalt == (np.min(np.abs(distalt)))

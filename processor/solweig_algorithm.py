@@ -63,10 +63,11 @@ from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2
 from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
-from ..functions.SOLWEIGpython import Solweig_2021a_calc_forprocessing as so
+from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
 from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
 from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
+from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 
 # For "Save necessary rasters for TreePlanter tool"
 from shutil import copyfile
@@ -168,7 +169,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
             self.tr("Save generated building grid"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
-            self.tr('Shadow maps used for anisotrophic model for diffuse radiation (.npz)'), extension='npz', optional=True))
+            self.tr('Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
 
         #Environmental parameters
         self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_WALLS,
@@ -358,10 +359,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-
-        # Makes it possible to run many grids in model dsigner
-        if not (os.path.isdir(outputDir)):
-            os.mkdir(outputDir)
 
         # Code from old plugin
         provider = dsmlayer.dataProvider()
@@ -674,23 +671,24 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
             if np.min(radD) == -999:
-                raise QgsProcessingException('Diffuse radiation include NoData values. '
+                raise QgsProcessingException("Diffuse radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
             if np.min(radI) == -999:
-                raise QgsProcessingException('Direct radiation include NoData values. '
+                raise QgsProcessingException("Direct radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
 
         # POIs check
         if poilyr is not None: # usePOI:
+            #header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
+            #            'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
+            #            'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
+
             header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
                         'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
-                        'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
+                        'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI  CI_Tg   CI_TgG  KsideD  Lside   diffDown    Kside'                            
 
-            if np.min(Ws) == -999:
-                raise QgsProcessingException('Wind speed include NoData values (-999).'
-                                             'Wind speed is required to calculate PET and UTCI at the POIs')
             # poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
             # if poilyr is None:
                 # raise QgsProcessingException("No valid point layer is selected")
@@ -807,23 +805,47 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # Import shadow matrices (Anisotropic sky)
         if folderPathPerez:  #UseAniso
-            ani = 1
+            anisotropic_sky = 1
             data = np.load(folderPathPerez)
             shmat = data['shadowmat']
             vegshmat = data['vegshadowmat']
+            vbshvegshmat = data['vbshmat']
             if usevegdem == 1:
-                diffsh = np.zeros((rows, cols, 145))
-                for i in range(0, 145):
+                diffsh = np.zeros((rows, cols, shmat.shape[2]))
+                for i in range(0, shmat.shape[2]):
                     diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
             else:
                 diffsh = shmat
+
+            # Estimate number of patches based on shadow matrices
+            if shmat.shape[2] == 145:
+                patch_option = 1 # patch_option = 1 # 145 patches
+            elif shmat.shape[2] == 153:
+                patch_option = 2 # patch_option = 2 # 153 patches
+            elif shmat.shape[2] == 306:
+                patch_option = 3 # patch_option = 3 # 306 patches
+            elif shmat.shape[2] == 612:
+                patch_option = 4 # patch_option = 4 # 612 patches
+
+            # asvf to calculate sunlit and shaded patches
+            asvf = np.arccos(np.sqrt(svf))
+
+            anisotropic_feedback = "Sky divided into " + str(int(shmat.shape[2])) + " patches\n \
+                                    Anisotropic sky for diffuse shortwave radiation (Perez et al., 1993) and longwave radiation (Martin & Berdahl, 1984)"
+            feedback.setProgressText(anisotropic_feedback)
         else:
-            ani = 0
+            feedback.setProgressText("Isotropic sky")
+            anisotropic_sky = 0
             diffsh = None
+            shmat = None
+            vegshmat = None
+            vbshvegshmat = None
+            asvf = None
+            patch_option = 0
 
         # % Ts parameterisation maps
         if landcover == 1.:
-            if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
+            if np.max(lcgrid) > 21 or np.min(lcgrid) < 1:
                 raise QgsProcessingException("The land cover grid includes integer values higher (or lower) than UMEP-formatted" 
                     "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
@@ -856,9 +878,32 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                               filePath_cdsm, trunkfile, filePath_tdsm, lat, lon, utc, landcover,
                                               filePath_lc, metfileexist, inputMet, self.metdata, self.plugin_dir,
                                               absK, absL, albedo_b, albedo_g, ewall, eground, onlyglobal, trunkratio,
-                                              transVeg, rows, cols, pos, elvis, cyl, demforbuild, ani)
+                                              transVeg, rows, cols, pos, elvis, cyl, demforbuild, anisotropic_sky)
 
         feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoSOLWEIG_YYYY_DOY_HHMM.txt)")
+
+        # Save svf
+        if anisotropic_sky:
+            if not poisxy is None:
+                patch_characteristics = np.zeros((shmat.shape[2], poisxy.shape[0]))
+                for idx in range(poisxy.shape[0]):
+                    for idy in range(shmat.shape[2]):
+                        # Calculations for patches on sky, shmat = 1 = sky is visible
+                        temp_sky = ((shmat[:,:,idy] == 1) & (vegshmat[:,:,idy] == 1))
+                        # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
+                        temp_vegsh = ((vegshmat[:,:,idy] == 0) | (vbshvegshmat[:,:,idy] == 0))
+                        # Calculations for patches that are buildings, shmat = 0 = shade from buildings
+                        temp_vbsh = (1 - shmat[:,:,idy]) * vbshvegshmat[:,:,idy]
+                        temp_sh = (temp_vbsh == 1)
+                        # Sky patch
+                        if temp_sky[int(poisxy[idx, 2]), int(poisxy[idx, 1])]:
+                            patch_characteristics[idy,idx] = 1.8
+                        # Vegetation patch
+                        elif (temp_vegsh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
+                            patch_characteristics[idy,idx] = 2.5
+                        # Building patch
+                        elif (temp_sh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
+                            patch_characteristics[idy,idx] = 4.5
 
         #  If metfile starts at night
         CI = 1.
@@ -869,8 +914,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         tmrtplot = np.zeros((rows, cols))
         TgOut1 = np.zeros((rows, cols))
 
+        #numformat = '%d %d %d %d %.5f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
+        #            '%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f'
+
         numformat = '%d %d %d %d %.5f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
-                    '%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f'
+                    '%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
+                        '%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f'
 
         for i in np.arange(0, Ta.__len__()):
             feedback.setProgress(int(i * (100. / Ta.__len__()))) # move progressbar forward
@@ -897,18 +946,38 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 else:
                     CI = 1.
 
+            # radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
+
             Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
                     Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
-                    Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout = so.Solweig_2021a_calc(
+                    Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout, \
+                    Lside, Lsky_patch_characteristics, CI_Tg, CI_TgG, KsideD, \
+                        dRad, Kside = so.Solweig_2022a_calc(
                         i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
-                        svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
+                        svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, \
                         vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
                         azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
                         psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
                         wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
                         bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
                         TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
-                        Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
+                        Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, 
+                        anisotropic_sky, asvf, patch_option)
+
+            # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
+            #         Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
+            #         Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout = so.Solweig_2021a_calc(
+            #             i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
+            #             svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
+            #             vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
+            #             azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+            #             psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
+            #             wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
+            #             bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
+            #             TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
+            #             Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
+
+
 
             # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
             # Tgmap1, timeaddE, Tgmap1E, timeaddS, Tgmap1S, timeaddW, Tgmap1W, timeaddN, Tgmap1N, \
@@ -930,10 +999,62 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             else:
                 w = 'N'
 
+            # # Write to POIs
+            # if not poisxy is None:
+            #     for k in range(0, poisxy.shape[0]):
+            #         poi_save = np.zeros((1, 35))
+            #         poi_save[0, 0] = YYYY[0][i]
+            #         poi_save[0, 1] = jday[0][i]
+            #         poi_save[0, 2] = hours[i]
+            #         poi_save[0, 3] = minu[i]
+            #         poi_save[0, 4] = dectime[i]
+            #         poi_save[0, 5] = altitude[0][i]
+            #         poi_save[0, 6] = azimuth[0][i]
+            #         poi_save[0, 7] = radIout
+            #         poi_save[0, 8] = radDout
+            #         poi_save[0, 9] = radG[i]
+            #         poi_save[0, 10] = Kdown[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 11] = Kup[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 12] = Keast[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 13] = Ksouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 14] = Kwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 15] = Knorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 16] = Ldown[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 17] = Lup[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 18] = Least[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 19] = Lsouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 20] = Lwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 21] = Lnorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 22] = Ta[i]
+            #         poi_save[0, 23] = TgOut[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 24] = RH[i]
+            #         poi_save[0, 25] = esky
+            #         poi_save[0, 26] = Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 27] = I0
+            #         poi_save[0, 28] = CI
+            #         poi_save[0, 29] = shadow[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 30] = svf[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 31] = svfbuveg[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         poi_save[0, 32] = KsideI[int(poisxy[k, 2]), int(poisxy[k, 1])]
+            #         # Recalculating wind speed based on powerlaw
+            #         WsPET = (1.1 / sensorheight) ** 0.2 * Ws[i]
+            #         WsUTCI = (10. / sensorheight) ** 0.2 * Ws[i]
+            #         resultPET = p._PET(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])], WsPET,
+            #                             mbody, age, ht, activity, clo, sex)
+            #         poi_save[0, 33] = resultPET
+            #         resultUTCI = utci.utci_calculator(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])],
+            #                                             WsUTCI)
+            #         poi_save[0, 34] = resultUTCI
+            #         data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
+            #         # f_handle = file(data_out, 'a')
+            #         f_handle = open(data_out, 'ab')
+            #         np.savetxt(f_handle, poi_save, fmt=numformat)
+            #         f_handle.close()
+
             # Write to POIs
             if not poisxy is None:
                 for k in range(0, poisxy.shape[0]):
-                    poi_save = np.zeros((1, 35))
+                    poi_save = np.zeros((1, 41))
                     poi_save[0, 0] = YYYY[0][i]
                     poi_save[0, 1] = jday[0][i]
                     poi_save[0, 2] = hours[i]
@@ -976,6 +1097,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     resultUTCI = utci.utci_calculator(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])],
                                                         WsUTCI)
                     poi_save[0, 34] = resultUTCI
+                    poi_save[0, 35] = CI_Tg
+                    poi_save[0, 36] = CI_TgG
+                    poi_save[0, 37] = KsideD[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                    poi_save[0, 38] = Lside[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                    poi_save[0, 39] = dRad[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                    poi_save[0, 40] = Kside[int(poisxy[k, 2]), int(poisxy[k, 1])]
                     data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
                     # f_handle = file(data_out, 'a')
                     f_handle = open(data_out, 'ab')
@@ -1010,6 +1137,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 saveraster(gdal_dsm, outputDir + '/Shadow_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
                                 + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', shadow)
 
+            # Sky view image of patches
+            if ((anisotropic_sky == 1) & (i == 0) & (not poisxy is None)):
+                    for k in range(poisxy.shape[0]):
+                        Lsky_patch_characteristics[:,2] = patch_characteristics[:,k]
+                        skyviewimage_out = outputDir + '/POI_' + str(poiname[k]) + '.png'
+                        PolarBarPlot(Lsky_patch_characteristics, altitude[0][i], azimuth[0][i], 'Hemisphere partitioning', skyviewimage_out, 0, 5, 0)
+
         # Save files for Tree Planter
         if outputTreeplanter:
             feedback.setProgressText("Saving files for Tree Planter tool")
@@ -1024,9 +1158,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 copyfile(filePath_cdsm, outputDir + '/CDSM.tif')
 
             # Saving settings from SOLWEIG for SOLWEIG1D in TreePlanter
-            settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation'
-            settingsFmt = '%i', '%i', '%i', '%i', '%i', '%i', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f'
-            settingsData = np.array([[utc, pos, onlyglobal, landcover, ani, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt]])
+            settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation, patch_option'
+            settingsFmt = '%i', '%i', '%i', '%i', '%i', '%i', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%i'
+            settingsData = np.array([[utc, pos, onlyglobal, landcover, anisotropic_sky, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt, patch_option]])
             np.savetxt(outputDir + '/treeplantersettings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
 
         tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
@@ -1070,7 +1204,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG (v2021a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
+        return self.tr('SOLWEIG (v2022a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
                        'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same '
                        'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
                        'six directions being individually calculated to derive Tmrt. The model requires a limited number '

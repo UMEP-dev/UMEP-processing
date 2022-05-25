@@ -8,12 +8,13 @@ from ...SOLWEIGpython.cylindric_wedge import cylindric_wedge
 # from .Kup_veg_2015a import Kup_veg_2015a
 from ...SOLWEIGpython.Lside_veg_v2015a import Lside_veg_v2015a
 from ..SOLWEIG1D.Kside1D_veg_v2019a import Kside_veg_v2019a
-from ...SOLWEIGpython.Perez_v3_moved import Perez_v3
+#from ...SOLWEIGpython.Perez_v3_moved import Perez_v3
+from ....util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 
 def Solweig1D_2019a_calc(svf, svfveg, svfaveg, sh, vegsh,  albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude, azimuth, zen, jday,
                          onlyglobal, location, dectime, altmax, cyl, elvis, Ta, RH, radG, radD, radI, P,
                          Twater, TgK, Tstart, albedo_g, eground, TgK_wall, Tstart_wall, TmaxLST, TmaxLST_wall,
-                         svfalfa, CI, ani, diffsh, trans):
+                         svfalfa, CI, ani, diffsh, trans, patch_option):
 
     # This is the core function of the SOLWEIG1D model, 2019-Jun-21
     # Fredrik Lindberg, fredrikl@gvc.gu.se, Goteborg Urban Climate Group, Gothenburg University, Sweden
@@ -70,7 +71,7 @@ def Solweig1D_2019a_calc(svf, svfveg, svfaveg, sh, vegsh,  albedo_b, absK, absL,
         if ani == 1:
             patchchoice = 1
             zenDeg = zen*(180/np.pi)
-            lv = Perez_v3(zenDeg, azimuth, radD, radI, jday, patchchoice)   # Relative luminance
+            lv = Perez_v3(zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option)   # Relative luminance
 
             aniLum = 0.
             for idx in range(0, 145):

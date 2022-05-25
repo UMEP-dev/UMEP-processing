@@ -85,7 +85,7 @@ def tsh_gen_mt2(y,x,treerasters,treeinput):
 
         yslice1, xslice1, yslice2, xslice2 = tree_slice(y1,y2,x1,x2,treeinput,treerasters)
 
-        tsh_bool_pad[yslice2, xslice2, :] += treerasters.treeshade_bool[yslice1, xslice2, :]
+        tsh_bool_pad[yslice2, xslice2, :] += treerasters.treeshade_bool[yslice1, xslice1, :]
 
     tsh_bool_pad = tsh_bool_pad > 0
 

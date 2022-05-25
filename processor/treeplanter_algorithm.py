@@ -378,23 +378,26 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         t_y = t_y + cropped_rasters.clip_rows[0]
         t_x = t_x + cropped_rasters.clip_cols[0]
 
-        cdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols, nTree))
-        tdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols, nTree))
+        # cdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols))
+        # tdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols))
+
+        cdsm_empty = np.zeros((tree_input.rows,tree_input.cols))
+        tdsm_empty = np.zeros((tree_input.rows,tree_input.cols))
 
         cdsm_new = np.zeros((tree_input.rows,tree_input.cols))
         tdsm_new = np.zeros((tree_input.rows,tree_input.cols))
 
         for i in range(0,t_y.shape[0]):
-            cdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty cdsm
-            tdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty tdsm
+            # cdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty cdsm
+            # tdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty tdsm
 
-            cdsm_tmrt[:,:,i], tdsm_tmrt[:,:,i] = makevegdems.vegunitsgeneration(bld_orig, cdsm_, tdsm_, 
+            cdsm_temp, tdsm_temp = makevegdems.vegunitsgeneration(bld_orig, cdsm_empty, tdsm_empty, 
                                                                 treedata.ttype, treedata.height, treedata.trunk, treedata.dia, 
                                                                 t_y[i], t_x[i], 
                                                                 tree_input.cols, tree_input.rows, tree_input.scale)
 
-            cdsm_new = cdsm_new + cdsm_tmrt[:, :, i]
-            tdsm_new = tdsm_new + tdsm_tmrt[:, :, i]
+            cdsm_new += cdsm_temp
+            tdsm_new += tdsm_temp
 
         cdsm_new = cdsm_new + tree_input.cdsm
         # Save CDSM as raster

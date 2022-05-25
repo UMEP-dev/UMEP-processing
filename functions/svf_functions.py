@@ -1,5 +1,6 @@
 import numpy as np
 from ..util import shadowingfunctions as shadow
+from ..util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 def annulus_weight(altitude, aziinterval):
     n = 90.
@@ -40,7 +41,7 @@ def svf_angles_100121():
     return angleresult
 
 
-def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
+def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     rows = dsm.shape[0]
     cols = dsm.shape[1]
     svf = np.zeros([rows, cols])
@@ -72,19 +73,24 @@ def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     # % Bush separation
     bush = np.logical_not((vegdem2 * vegdem)) * vegdem
 
-    shmat = np.zeros((rows, cols, 145))
-    vegshmat = np.zeros((rows, cols, 145))
-
     index = int(0)
-    iangle = np.array([6, 18, 30, 42, 54, 66, 78, 90])
-    skyvaultaziint = np.array([12, 12, 15, 15, 20, 30, 60, 360])
-    aziinterval = np.array([30, 30, 24, 24, 18, 12, 6, 1])
-    azistart = np.array([0, 4, 2, 5, 8, 0, 10, 0])
-    annulino = np.array([0, 12, 24, 36, 48, 60, 72, 84, 90])
-    iazimuth = np.hstack(np.zeros((1, 145)))
-    # ialtitude = np.zeros((1, 145))
-    skyvaultaltint = np.array([6, 18, 30, 42, 54, 66, 78, 90])
-    for j in range(0, 8):
+
+    # patch_option = 1 # 145 patches
+    patch_option = 2 # 153 patches
+    # patch_option = 3 # 306 patches
+    # patch_option = 4 # 612 patches
+    
+    # Create patches based on patch_option
+    skyvaultalt, skyvaultazi, annulino, skyvaultaltint, aziinterval, skyvaultaziint, azistart = create_patches(patch_option)
+
+    skyvaultaziint = np.array([360/patches for patches in aziinterval])
+    iazimuth = np.hstack(np.zeros((1, np.sum(aziinterval)))) # Nils
+
+    shmat = np.zeros((rows, cols, np.sum(aziinterval)))
+    vegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
+    vbshvegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
+
+    for j in range(0, skyvaultaltint.shape[0]):
         for k in range(0, int(360 / skyvaultaziint[j])):
             iazimuth[index] = k * skyvaultaziint[j] + azistart[j]
             if iazimuth[index] > 360.:
@@ -97,8 +103,8 @@ def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
                 break
-            altitude = iangle[int(i)]
-            azimuth = iazimuth[int(index)-1]
+            altitude = skyvaultaltint[int(i)]
+            azimuth = iazimuth[int(index)]
 
             # Casting shadow
             if usevegdem == 1:
@@ -108,6 +114,7 @@ def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
                 vbshvegsh = shadowresult["vbshvegsh"]
                 sh = shadowresult["sh"]
                 vegshmat[:, :, index] = vegsh
+                vbshvegshmat[:, :, index] = vbshvegsh
             else:
                 sh = shadow.shadowingfunctionglobalradiation(dsm, azimuth, altitude, scale, feedback, 1)
 
@@ -148,7 +155,7 @@ def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
                         svfNaveg = svfNaveg + weight * vbshvegsh
 
             index += 1
-            feedback.setProgress(int(index * (100. / 145.)))
+            feedback.setProgress(int(index * (100. / np.sum(aziinterval))))
 
     svfS = svfS + 3.0459e-004
     svfW = svfW + 3.0459e-004
@@ -182,7 +189,7 @@ def svfForProcessing145(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     svfresult = {'svf': svf, 'svfE': svfE, 'svfS': svfS, 'svfW': svfW, 'svfN': svfN,
                     'svfveg': svfveg, 'svfEveg': svfEveg, 'svfSveg': svfSveg, 'svfWveg': svfWveg,
                     'svfNveg': svfNveg, 'svfaveg': svfaveg, 'svfEaveg': svfEaveg, 'svfSaveg': svfSaveg,
-                    'svfWaveg': svfWaveg, 'svfNaveg': svfNaveg, 'shmat': shmat, 'vegshmat': vegshmat}
+                    'svfWaveg': svfWaveg, 'svfNaveg': svfNaveg, 'shmat': shmat, 'vegshmat': vegshmat, 'vbshvegshmat': vbshvegshmat}
                     # ,
                     # 'vbshvegshmat': vbshvegshmat, 'wallshmat': wallshmat, 'wallsunmat': wallsunmat,
                     # 'wallshvemat': wallshvemat, 'facesunmat': facesunmat}

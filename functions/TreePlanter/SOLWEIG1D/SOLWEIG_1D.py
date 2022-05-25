@@ -3,6 +3,7 @@ import os
 from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 from ....util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..SOLWEIG1D import Solweig1D_2019a_calc as so
+from ....util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     
@@ -22,6 +23,7 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     absK = settingsSolweig[10]
     absL = settingsSolweig[11]
     alt = settingsSolweig[12]
+    patch_option = settingsSolweig[13]
 
     metfile = 1  # 1 if time series data is used
     sensorheight = 2.0
@@ -163,17 +165,23 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
     CI = 1.
 
     if ani == 1:
-        skyvaultalt = np.atleast_2d([])
-        skyvaultazi = np.atleast_2d([])
-        skyvaultaltint = [6, 18, 30, 42, 54, 66, 78]
-        skyvaultaziint = [12, 12, 15, 15, 20, 30, 60]
-        for j in range(7):
-            for k in range(1, int(360 / skyvaultaziint[j]) + 1):
-                skyvaultalt = np.append(skyvaultalt, skyvaultaltint[j])
+        # skyvaultalt = np.atleast_2d([])
+        # skyvaultazi = np.atleast_2d([])
+        # skyvaultaltint = [6, 18, 30, 42, 54, 66, 78]
+        # skyvaultaziint = [12, 12, 15, 15, 20, 30, 60]
+        # for j in range(7):
+        #     for k in range(1, int(360 / skyvaultaziint[j]) + 1):
+        #         skyvaultalt = np.append(skyvaultalt, skyvaultaltint[j])
 
-        skyvaultalt = np.append(skyvaultalt, 90)
+        # skyvaultalt = np.append(skyvaultalt, 90)
 
-        diffsh = np.zeros((145))
+        # diffsh = np.zeros((145))
+
+        # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
+        skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(patch_option)
+        
+        diffsh = np.zeros((skyvaultalt.shape[0]))
+
         svfalfadeg = svfalfa / (np.pi / 180.)
         for k in range(0, 145):
             if skyvaultalt[k] > svfalfadeg:
@@ -213,7 +221,7 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range):
                                                                          Twater, TgK, Tstart, albedo_g, eground,
                                                                          TgK_wall, Tstart_wall,
                                                                          TmaxLST, TmaxLST_wall, svfalfa, CI, ani,
-                                                                         diffsh, trans)
+                                                                         diffsh, trans, patch_option)
 
         tmrt_1d[i_c, 0] = Tmrt
         tmrt_1d[i_c, 1] = hours[i]

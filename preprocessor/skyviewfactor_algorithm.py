@@ -91,7 +91,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
-            self.tr("Use method with 145 shadow images instead of 655. Required for anisotrophic sky scheme (SOLWEIG)"),
+            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG)"),
             defaultValue=True))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
         'Output folder for individual raster files'))
@@ -184,8 +184,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             usevegdem = 0
 
         if aniso == 1:
-            feedback.setProgressText('Calculating SVF using 145 iterations')
-            ret = svf.svfForProcessing145(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
+            feedback.setProgressText('Calculating SVF using 153 iterations')
+            ret = svf.svfForProcessing153(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
         else:
             feedback.setProgressText('Calculating SVF using 655 iterations')
             ret = svf.svfForProcessing655(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
@@ -287,13 +287,13 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             if aniso == 1:
                 shmat = ret["shmat"]
                 vegshmat = ret["vegshmat"]
-                # vbshvegshmat = ret["vbshvegshmat"]
+                vbshvegshmat = ret["vbshvegshmat"]
                 # wallshmat = ret["wallshmat"]
                 # wallsunmat = ret["wallsunmat"]
                 # wallshvemat = ret["wallshvemat"]
                 # facesunmat = ret["facesunmat"]
 
-                np.savez_compressed(outputDir + '/' + "shadowmats.npz", shadowmat=shmat, vegshadowmat=vegshmat) #,
+                np.savez_compressed(outputDir + '/' + "shadowmats.npz", shadowmat=shmat, vegshadowmat=vegshmat, vbshmat=vbshvegshmat) #,
                                     # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
                                     # facesunmat=facesunmat, wallshvemat=wallshvemat)
 
