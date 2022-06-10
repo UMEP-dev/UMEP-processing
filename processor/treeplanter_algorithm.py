@@ -493,7 +493,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         '   + Use hourly meteorological data, preferably one single day.\n'
         '   If running with a large number of trees, or over a large extent, consider using the greedy algorithm.\n'
         '-------------\n'
-        'Wallenberg and Lindberg (2020): Geoscientific Model Development, in review<br>'
+        'Wallenberg and Lindberg (2020): https://doi.org/10.5194/gmd-15-1107-2022<br>'
         '--------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
