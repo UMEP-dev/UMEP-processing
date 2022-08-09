@@ -129,7 +129,7 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         else:
             dRad = radD * svfbuveg
             patchchoice = 1
-            zenDeg = zen*(180/np.pi)
+            # zenDeg = zen*(180/np.pi)
             lv = None
             # lv, pc_, pb_ = Perez_v3(zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option)   # Relative luminance
 
