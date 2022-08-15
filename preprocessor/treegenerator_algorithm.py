@@ -48,7 +48,8 @@ from qgis.core import (QgsProcessing,
                        QgsFeature,
                        QgsGeometry,
                        QgsPointXY,
-                       QgsVectorFileWriter)
+                       QgsVectorFileWriter,
+                       QgsUnitTypes)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr
@@ -205,6 +206,23 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         geotransform = dataset.GetGeoTransform()
         scale = 1 / geotransform[1]
 
+        # Check units of raster data. Should be in meters or feet.
+        if build:
+            crs_temp = build.crs()
+            unit_temp = crs_temp.mapUnits()
+        else:
+            crs_temp = dsm.crs()
+            unit_temp = crs_temp.mapUnits()   
+
+        # print(QgsUnitTypes.toString(unit_temp))         
+        temp_crs = osr.SpatialReference()
+        temp_crs.ImportFromWkt(dataset.GetProjection())
+        temp_unit = temp_crs.GetAttrValue('UNIT')
+        possible_units = ['metre', 'US survey foot', 'meter', 'm', 'ft', 'feet', 'foot', 'ftUS', 'International foot'] # Possible units
+        if not temp_unit in possible_units:
+            raise QgsProcessingException('Error! Raster data is currently in ' + QgsUnitTypes.toString(unit_temp) + '. Meters or feet required. Please reproject.')
+            return
+
         # Get attributes
         vlayer = inputPointLayer
         idx_ttype = vlayer.fields().indexFromName(ttype_field[0])
@@ -219,6 +237,26 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         miny = geotransform[3] + width * geotransform[4] + height * geotransform[5]
         rows = build_array.shape[0]
         cols = build_array.shape[1]
+
+        # Check CRS of raster and vector layers. Needs to be the same.
+        if build:
+            if cdsm:
+                if not ((build.crs().authid() == vlayer.crs().authid()) & (build.crs().authid() == cdsm.crs().authid())):
+                    raise QgsProcessingException("Error! Check the coordinate systems of your input data. Have to match!")
+                    return
+            else:
+                if not (build.crs().authid() == vlayer.crs().authid()):
+                    raise QgsProcessingException("Error! Check the coordinate systems of your input data. Have to match!")
+                    return
+        else:
+            if cdsm:
+                if not ((dsm.crs().authid() == vlayer.crs().authid()) & (dsm.crs().authid() == cdsm.crs().authid())):
+                    raise QgsProcessingException("Error! Check the coordinate systems of your input data. Have to match!")
+                    return
+            else:
+                if not (dsm.crs().authid() == vlayer.crs().authid()):
+                    raise QgsProcessingException("Error! Check the coordinate systems of your input data. Have to match!")
+                    return
 
         index = 1
         # Main loop
@@ -253,6 +291,11 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             # QMessageBox.information(None, "cola=", str(cola))
             # QMessageBox.information(None, "rowa=", str(rowa))
             # QMessageBox.information(None, "rows=", str(rows))
+
+            # Check if there are trees with a tree canopy diameter smaller than the pixel resolution of the input raster data
+            if dia < geotransform[1]:
+                raise QgsProcessingException("Error! You have tree canopy diameters that are smaller than the pixel resolution.")
+                return
 
             cdsm_array, tdsm_array = makevegdems.vegunitsgeneration(build_array, cdsm_array, tdsm_array, ttype, height,
                                                                     trunk, dia, rowa, cola, sizex, sizey, scale)
