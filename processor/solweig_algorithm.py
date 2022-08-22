@@ -89,6 +89,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
     TRANS_VEG = 'TRANS_VEG'
+    LEAF_START = 'LEAF_START'
+    LEAF_END = 'LEAF_END'
+    CONIFER_TREES = 'CONIFER_TREES'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     INPUT_LC = 'INPUT_LC'
     USE_LC_BUILD = 'USE_LC_BUILD'
@@ -154,6 +157,21 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Transmissivity of light through vegetation (%):'),
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
+        
+        self.addParameter(QgsProcessingParameterNumber(self.LEAF_START,
+            self.tr('First day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Integer,
+            QVariant(97), False, minValue=0, maxValue=366))
+
+        self.addParameter(QgsProcessingParameterNumber(self.LEAF_END,
+            self.tr('Last day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Integer,
+            QVariant(300), False, minValue=0, maxValue=366))
+
+        self.addParameter(QgsProcessingParameterBoolean(self.CONIFER_TREES,
+            self.tr("Coniferous trees (deciduous default)"), defaultValue=False))
+
+        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
+            self.tr('Digital Elevation Model (DEM)'), '', optional=True))
+        
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
@@ -286,6 +304,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.
+        firstdayleaf = self.parameterAsInt(parameters, self.LEAF_START, context)
+        lastdayleaf = self.parameterAsInt(parameters, self.LEAF_END, context)
+        conifer_bool = self.parameterAsBool(parameters, self.CONIFER_TREES, context)
         vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
         vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
         lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context)
@@ -653,7 +674,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Calculating sun positions for each time step")
         location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
-        YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
+        YYYY, altitude, azimuth, zen, jday, _, dectime, altmax = \
             Solweig_2015a_metdata_noload(self.metdata,location, utc)
 
         # Creating vectors from meteorological input
@@ -745,6 +766,17 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         second = np.round((height * 20.))
 
         if usevegdem == 1:
+            # Conifer or deciduous
+            if conifer_bool:
+                leafon = np.ones((1, DOY.shape[0]))
+            else:
+                leafon = np.zeros((1, DOY.shape[0]))
+                if firstdayleaf > lastdayleaf:
+                    leaf_bool = ((DOY > firstdayleaf) | (DOY < lastdayleaf))
+                else:
+                    leaf_bool = ((DOY > firstdayleaf) & (DOY < lastdayleaf))
+                leafon[0, leaf_bool] = 1
+
             # % Vegetation transmittivity of shortwave radiation
             psi = leafon * transVeg
             psi[leafon == 0] = 0.5
