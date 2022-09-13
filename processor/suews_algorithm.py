@@ -31,6 +31,7 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
+# from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
@@ -38,10 +39,14 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterNumber,
-                       QgsProcessingParameterBoolean)
+                       QgsProcessingParameterBoolean,
+                       QgsProcessingException)
 
-import supy as sp
-from supy import __version__ as ver_supy
+# try:
+#     import supy as sp
+#     from supy import __version__ as ver_supy
+# except:
+#     pass
 from pathlib import Path
 from ..util import f90nml
 import sys, os
@@ -155,6 +160,17 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
 
 
     def processAlgorithm(self, parameters, context, feedback):
+        try:
+            import supy as sp
+            from supy import __version__ as ver_supy
+        except:
+            raise QgsProcessingException('This plugin requires the supy package '
+                        'to be installed OR upgraded. Please consult the FAQ in the manual '
+                        'for further information on how to install missing python packages.')
+            # QMessageBox.critical(None, 'Error', 'This plugin requires the supy package '
+            #             'to be installed OR upgraded. Please consult the FAQ in the manual '
+            #             'for further information on how to install missing python packages.')
+            # return
         feedback.setProgressText('SuPy version: ' + ver_supy)
         self.supylib = sys.modules["supy"].__path__[0]
         feedback.setProgressText(self.supylib)

@@ -45,7 +45,7 @@ from processing.gui.wrappers import WidgetWrapper
 # from qgis.PyQt.QtWidgets import QDateEdit
 
 # from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
+from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
@@ -61,8 +61,15 @@ import sys
 # import subprocess
 import datetime
 # import webbrowser
-import supy as sp
-from supy import __version__ as ver_supy
+# try:
+#     import supy as sp
+#     from supy import __version__ as ver_supy
+# except:
+#     QMessageBox.critical(None, 'Error', 'This plugin requires the supy package '
+#                         'to be installed OR upgraded. Please consult the FAQ in the manual '
+#                         'for further information on how to install missing python packages.')
+#     pass
+
 import logging
 
 
@@ -95,6 +102,14 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
 
     def processAlgorithm(self, parameters, context, feedback):
+        try:
+            import supy as sp
+            from supy import __version__ as ver_supy
+        except:
+            raise QgsProcessingException('This plugin requires the supy package '
+                        'to be installed OR upgraded. Please consult the FAQ in the manual '
+                        'for further information on how to install missing python packages.')
+
         # InputParameters
         inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
         inputCRS = self.parameterAsCrs(parameters, self.CRS, context)

@@ -18,7 +18,8 @@ except:
             setup_supy(ver=None)
             QMessageBox.information(None, "Packages successfully installed",
                                     "Currently, we have a numpy version conflict that might produce a Python error after UMEP installation. "
-                                    "This will be resolved if you restart your QGIS session.")
+                                    "We are working on a solution. Please consult the FAQ in the manual for further information on how to "
+                                    "install or upgrade python packages.")
         except Exception as e:
             QMessageBox.information(None, "An error occurred",
                                     "Packages not installed. report any errors to https://github.com/UMEP-dev/UMEP/issues")

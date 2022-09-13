@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=1.7.5
+version=1.7.6
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    1.7.6 : Minor bug fixing.
     1.7.5 : Response to #452. Minor bug fix in TreeGenerator.
     1.7.4 : Response to #441. Minor bug fix in SOLWEIG.
     1.7.3 : Minor changes in Tree Generator. Response to #443.

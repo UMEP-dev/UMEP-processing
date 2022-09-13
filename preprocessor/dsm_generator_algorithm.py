@@ -218,7 +218,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         dem_crs.ImportFromWkt(gdal_dem.GetProjection())
         dem_unit = dem_crs.GetAttrValue('UNIT')
 
-        possible_units = ['metre', 'US survey foot', 'meter', 'm', 'ft', 'feet', 'foot', 'ftUS', 'International foot'] # Possible units
+        possible_units = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm', 'ft', 'US survey foot', 'feet', 'Feet', 'foot', 'Foot', 'ftUS', 'International foot'] # Possible units
         if not dem_unit in possible_units:
             raise QgsProcessingException('Error! Raster projection is not in meters or feet. Please reproject.')
 
@@ -471,8 +471,8 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             vlayer.startEditing()
             for f in vlayer.getFeatures():
                 geom = f.geometry()
-                possible_units_metre = ['metre', 'meter', 'm']  # Possible metre units
-                possible_units_feet = ['US survey foot', 'ft', 'feet', 'foot', 'ftUS', 'International foot'] # Possible foot units
+                possible_units_metre = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm']  # Possible metre units
+                possible_units_feet = ['ft', 'US survey foot', 'feet', 'Feet', 'foot', 'Foot', 'ftUS', 'International foot'] # Possible foot units
                 if dem_unit in possible_units_metre:
                     sqUnit = 1
                 elif dem_unit in possible_units_feet:
