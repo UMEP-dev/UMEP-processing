@@ -674,7 +674,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Calculating sun positions for each time step")
         location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
-        YYYY, altitude, azimuth, zen, jday, _, dectime, altmax = \
+        YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
             Solweig_2015a_metdata_noload(self.metdata,location, utc)
 
         # Creating vectors from meteorological input
