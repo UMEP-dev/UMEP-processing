@@ -168,9 +168,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         self.addParameter(QgsProcessingParameterBoolean(self.CONIFER_TREES,
             self.tr("Coniferous trees (deciduous default)"), defaultValue=False))
-
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-            self.tr('Digital Elevation Model (DEM)'), '', optional=True))
         
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
