@@ -4,12 +4,11 @@ import platform
 from packaging import version
 
 
-
 # locate QGIS-python interpreter
 def locate_py():
 
     # get Python version
-    str_ver_qgis = sys.version.split(' ')[0]
+    str_ver_qgis = sys.version.split(" ")[0]
 
     try:
         # non-Linux
@@ -24,7 +23,12 @@ def locate_py():
     # pre-defined paths for python executable
     dict_pybin = {
         "Darwin": path_py / "bin" / "python3",
-        "Windows": path_py / ("../../bin/pythonw.exe" if version.parse(str_ver_qgis) >= version.parse("3.9.1") else "pythonw.exe"),
+        "Windows": path_py
+        / (
+            "../../bin/pythonw.exe"
+            if version.parse(str_ver_qgis) >= version.parse("3.9.1")
+            else "pythonw.exe"
+        ),
         "Linux": path_py,
     }
 
@@ -52,22 +56,29 @@ def check_supy_version():
 # install supy
 def install_supy(ver=None):
     str_ver = f"=={ver}" if ver else ""
+    # get Python version
+    str_ver_qgis = sys.version.split(" ")[0]
     try:
         path_pybin = locate_py()
-        #update pip to use new features
+        # update pip to use new features
         list_cmd0 = f"{str(path_pybin)} -m pip install pip -U --user".split()
         str_info0 = subprocess.check_output(
             list_cmd0, stderr=subprocess.STDOUT, encoding="UTF8"
         )
 
-        #add netCDF4 TODO: Should later be replaced with xarrays
+        # add netCDF4 TODO: Should later be replaced with xarrays
         list_cmd0 = f"{str(path_pybin)} -m pip install netCDF4 -U --user".split()
         str_info0 = subprocess.check_output(
             list_cmd0, stderr=subprocess.STDOUT, encoding="UTF8"
         )
 
         # install supy and dependencies
-        list_cmd = f"{str(path_pybin)} -m pip install supy{str_ver} -U --user --use-feature=2020-resolver".split()
+        str_use_feature = (
+            "--use-feature=2020-resolver"
+            if version.parse(str_ver_qgis) <= version.parse("3.9.1")
+            else ""
+        )
+        list_cmd = f"{str(path_pybin)} -m pip install supy{str_ver} -U --user {str_use_feature}".split()
         str_info = subprocess.check_output(
             list_cmd, stderr=subprocess.STDOUT, encoding="UTF8"
         )
@@ -76,7 +87,7 @@ def install_supy(ver=None):
 
         str_info = (
             str_info
-            if 'Successfully installed supy' in str_info
+            if "Successfully installed supy" in str_info
             else f"supy{str_ver} has already been installed!"
         )
         return str_info
@@ -113,61 +124,3 @@ def setup_supy(ver=None, debug=False):
     except Exception:
         # install supy
         install_supy(ver)
-
-# TODO: these are added temporarily to resolve the issue of installation of UWG; but should be included in a separate place.
-
-# install uwg
-def install_uwg(ver=None):
-    str_ver = f"=={ver}" if ver else ""
-    try:
-        path_pybin = locate_py()
-        #update pip to use new features
-        list_cmd0 = f"{str(path_pybin)} -m pip install pip -U --user".split()
-        str_info0 = subprocess.check_output(
-            list_cmd0, stderr=subprocess.STDOUT, encoding="UTF8"
-        )
-
-        # install uwg and dependencies
-        list_cmd = f"{str(path_pybin)} -m pip install uwg{str_ver} -U --user --use-feature=2020-resolver".split()
-        str_info = subprocess.check_output(
-            list_cmd, stderr=subprocess.STDOUT, encoding="UTF8"
-        )
-
-        str_info = str_info.split("\n")[-2].strip()
-
-        str_info = (
-            str_info
-            if 'Successfully installed uwg' in str_info
-            else f"uwg{str_ver} has already been installed!"
-        )
-        return str_info
-    except Exception:
-        raise RuntimeError(f"UMEP couldn't install uwg{str_ver}!") from Exception
-
-
-# uninstall uwg
-def uninstall_uwg():
-
-    try:
-        path_pybin = locate_py()
-        list_cmd = f"{str(path_pybin)} -m pip uninstall uwg -y".split()
-        list_info = subprocess.check_output(list_cmd, encoding="UTF8").split("\n")
-
-        str_info = list_info[-2].strip()
-        return str_info
-    except Exception:
-        raise RuntimeError(f"UMEP couldn't uninstall uwg!") from Exception
-
-# set up uwg
-def setup_uwg(ver=None, debug=False):
-    if debug:
-        uninstall_uwg()
-        install_uwg(ver)
-
-    try:
-        # check if uwg has been installed
-        import uwg
-
-    except Exception:
-        # install uwg
-        install_uwg(ver)
