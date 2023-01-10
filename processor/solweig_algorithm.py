@@ -845,6 +845,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
             else:
                 diffsh = shmat
+                vegshmat += 1
+                vbshvegshmat += 1
 
             # Estimate number of patches based on shadow matrices
             if shmat.shape[2] == 145:
