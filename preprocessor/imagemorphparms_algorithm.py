@@ -96,8 +96,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                         (self.tr('MacDonald et al. (1998)'), '3'),
                         (self.tr('Millward-Hopkins et al. (2011)'), '4'),
                         (self.tr('Kanda et al. (2013)'), '5'))
-        self.search = ((self.tr('Search throughout the grid extent (search distance not used)'), '0'),
-                        (self.tr('Search from grid centroid'), '1'))
+        self.search = ((self.tr('Throughout the grid extent (Use squared polygons)'), '0'),
+                        (self.tr('From grid centroid'), '1'))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
             self.tr('Vector polygon grid'), [QgsProcessing.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
@@ -106,7 +106,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             self.tr('Search method'),
             options=[i[0] for i in self.search], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
-            self.tr('Search distance from grid cell centroid (meter)'),
+            self.tr('Search distance from grid cell centroid (m)'),
             QgsProcessingParameterNumber.Integer,
             QVariant(200), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL, 
@@ -159,7 +159,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        r = inputDistance
+        # r = inputDistance
         
         degree = float(inputInterval)
         pre = filePrefix
@@ -189,7 +189,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         index = 1
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
 
-        feedback.setProgressText(str(attrTable))
+        # feedback.setProgressText(str(attrTable))
 
         # #Calculate Z0m and Zdm depending on the Z0 method
         if ro == 0:
@@ -219,10 +219,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             feature.setAttributes(attributes)
             feature.setGeometry(geometry)
 
+            y = f.geometry().centroid().asPoint().y()
+            x = f.geometry().centroid().asPoint().x()
+
             if imid == 1:  # use center point
                 r = inputDistance
-                y = f.geometry().centroid().asPoint().y()
-                x = f.geometry().centroid().asPoint().x()
             else:
                 r = 0  # Uses as info to separate from IMP point to grid
                 writer = QgsVectorFileWriter(self.dir_poly, "CP1250", fields, prov.wkbType(),
@@ -231,12 +232,6 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     raise QgsProcessingException("Error when creating shapefile: ", str(writer.hasError()))
                 writer.addFeature(feature)
                 del writer
-
-            # y = f.geometry().centroid().asPoint().y()
-            # x = f.geometry().centroid().asPoint().x()
-
-            # feedback.setProgressText(str(x))
-            # feedback.setProgressText(str(y))
 
             if useDsmBuild:  # Only building heights
                 dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSMBUILD, context)
@@ -314,6 +309,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                     raise QgsProcessingException("All grids must be of same extent and resolution")
 
+            if not sizex == sizey:
+                raise QgsProcessingException('Vector polygon is not squared in this CRS. Reproject or generate new grid based on current CRS.')
+            
             feedback.setProgressText(str(bbox))
             geotransform = dataset.GetGeoTransform()
             scale = 1 / geotransform[1]

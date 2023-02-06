@@ -8,7 +8,7 @@ def diffusefraction(radG,altitude,Kt,Ta,RH):
 
     :param radG:
     :param altitude:
-    :param Kt:
+    :param Kt: # radiation at the top of the atmosphere
     :param Ta:
     :param RH:
     :return:

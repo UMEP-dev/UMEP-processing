@@ -46,40 +46,55 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
     # Input variables:
     # dsm = digital surface model
     # scale = height to pixel size (2m pixel gives scale = 0.5)
-    # header = ESRI Ascii Grid header
-    # sizey,sizex = no. of pixels in x and y
     # svf,svfN,svfW,svfE,svfS = SVFs for building and ground
     # svfveg,svfNveg,svfEveg,svfSveg,svfWveg = Veg SVFs blocking sky
     # svfaveg,svfEaveg,svfSaveg,svfWaveg,svfNaveg = Veg SVFs blocking buildings
     # vegdem = Vegetation canopy DSM
     # vegdem2 = Vegetation trunk zone DSM
-    # albedo_b = buildings
+    # albedo_b = building wall albedo
     # absK = human absorption coefficient for shortwave radiation
     # absL = human absorption coefficient for longwave radiation
     # ewall = Emissivity of building walls
     # Fside = The angular factors between a person and the surrounding surfaces
     # Fup = The angular factors between a person and the surrounding surfaces
+    # Fcyl = The angular factors between a culidric person and the surrounding surfaces
     # altitude = Sun altitude (degree)
     # azimuth = Sun azimuth (degree)
     # zen = Sun zenith angle (radians)
     # jday = day of year
     # usevegdem = use vegetation scheme
-    # onlyglobal = calculate dir and diff from global
+    # onlyglobal = calculate dir and diff from global shortwave (Reindl et al. 1990)
     # buildings = Boolena grid to identify building pixels
     # location = geographic location
-    # height = height of measurements point
+    # height = height of measurements point (center of gravity of human)
     # psi = 1 - Transmissivity of shortwave through vegetation
-    # output = output settings
-    # fileformat = fileformat of output grids
     # landcover = use landcover scheme !!!NEW IN 2015a!!!
-    # sensorheight = Sensorheight of wind sensor
     # lc_grid = grid with landcoverclasses
     # lc_class = table with landcover properties
     # dectime = decimal time
     # altmax = maximum sun altitude
     # dirwalls = aspect of walls
-    # walls = one pixel row outside building footprints
+    # walls = one pixel row outside building footprint. height of building walls
     # cyl = consider man as cylinder instead of cude
+    # elvis = dummy
+    # Ta = air temp
+    # RH
+    # radG = global radiation
+    # radD = diffuse
+    # radI = direct
+    # P = pressure
+    # amaxvalue = max height of buildings
+    # bush = grid representing bushes
+    # Twater = temperature of water (daily)
+    # TgK, Tstart, TgK_wall, Tstart_wall, TmaxLST,TmaxLST_wall, 
+    # alb_grid, emis_grid = albedo and emmissivity on ground
+    # first, second = conneted to old Ts model (source area based on Smidt et al.)
+    # svfalfa = SVF recalculated to angle
+    # svfbuveg = complete SVF 
+    # firstdaytime, timeadd, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, 
+    # CI = Clearness index
+    # TgOut1 = old Ts model
+    # diffsh, ani = Used in anisotrpic models (Wallenberg et al. 2019, 2022)
 
     # # # Core program start # # #
     # Instrument offset in degrees

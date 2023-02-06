@@ -83,6 +83,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
     DATEINISTART = 'DATEINISTART'
     DATEINIEND = 'DATEINIEND'
     OUTPUT_DIR = 'OUTPUT_DIR'
+    DIAG_HEIGHT = 'DIAG_HEIGHT'
 
     
     def initAlgorithm(self, config):
@@ -97,6 +98,10 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         paramE = QgsProcessingParameterString(self.DATEINIEND, 'End date')
         paramE.setMetadata({'widget_wrapper': {'class': DateWidgetEnd}})
         self.addParameter(paramE)
+        self.addParameter(QgsProcessingParameterNumber(self.DIAG_HEIGHT,
+            self.tr("Height above ground level to diagnose forcing variables (m)"), 
+            QgsProcessingParameterNumber.Double,
+            QVariant(100), minValue=2, maxValue=500))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
 
@@ -116,6 +121,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         startDate = self.parameterAsString(parameters, self.DATEINISTART, context)
         endDate = self.parameterAsString(parameters, self.DATEINIEND, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        diagHeight = self.parameterAsDouble(parameters, self.DIAG_HEIGHT, context)
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
@@ -164,6 +170,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         feedback.setProgressText('lon = ' + str(lon))
         feedback.setProgressText('Start = ' + str(startDate))
         feedback.setProgressText('End = ' + str(endDate))
+        feedback.setProgressText('Diagnostic height = ' + str(diagHeight))
         feedback.setProgressText('Output folder = ' + str(outputDir))
 
         if startDate >= endDate:
@@ -172,7 +179,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         logger_sp = logging.getLogger('SuPy')
         logger_sp.disabled = True
 
-        sp.util.gen_forcing_era5(lat, lon, startDate, endDate, dir_save=Path(outputDir))
+        sp.util.gen_forcing_era5(lat, lon, startDate, endDate, hgt_agl_diag=diagHeight, dir_save=Path(outputDir))
 
         results = {self.OUTPUT_DIR: outputDir}
 
@@ -193,6 +200,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
     def shortHelpString(self):
         return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. If observed data are not available for a particular location, hourly data can be retrieved from the global the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be extracted for a specific location and period of interest (1979-2020), and transformed into formatted forcing files suitable for models within UMEP.'
         '\n'
+        'TIP: Open cdsapi can occasionally be very busy. Open the Python Console in QGIS to get more detailed pregress information about the status of your request.'
         '---------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
