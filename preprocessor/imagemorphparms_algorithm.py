@@ -33,23 +33,16 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                    #    QgsProcessingParameterPoint,
                        QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                    #    QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                    #    QgsProcessingParameterVectorDestination,
-                    #    QgsProcessingParameterExtent,
                        QgsProcessingException,
-                       QgsVectorLayer,
                        QgsFeature,
-                    #    QgsGeometry,
-                    #    QgsPointXY,
                        QgsVectorFileWriter,
                        QgsVectorDataProvider,
                        QgsField)
@@ -62,9 +55,8 @@ import numpy as np
 import inspect
 from pathlib import Path
 import sys
-from ..util import misc
 from ..util import RoughnessCalcFunctionV2 as rg
-from ..util import imageMorphometricParms_v1 as morph
+from ..util import imageMorphometricParms_v2 as morph
 from ..functions import wallalgorithms as wa
 
 
@@ -96,7 +88,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                         (self.tr('MacDonald et al. (1998)'), '3'),
                         (self.tr('Millward-Hopkins et al. (2011)'), '4'),
                         (self.tr('Kanda et al. (2013)'), '5'))
-        self.search = ((self.tr('Throughout the grid extent (Use squared polygons)'), '0'),
+        self.search = ((self.tr('Throughout the grid extent'), '0'),
                         (self.tr('From grid centroid'), '1'))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
             self.tr('Vector polygon grid'), [QgsProcessing.TypeVectorPolygon]))
@@ -163,8 +155,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         
         degree = float(inputInterval)
         pre = filePrefix
-        header = ' Wd pai   fai   zH  zHmax   zHstd zd z0'
-        numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        header = ' Wd pai   fai   zH  zHmax   zHstd zd z0  noOfPixels'
+        numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.0f'
         header2 = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai'
         numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
         ret = 0
@@ -188,8 +180,6 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
-
-        # feedback.setProgressText(str(attrTable))
 
         # #Calculate Z0m and Zdm depending on the Z0 method
         if ro == 0:
@@ -309,10 +299,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                     raise QgsProcessingException("All grids must be of same extent and resolution")
 
-            if not sizex == sizey:
-                raise QgsProcessingException('Vector polygon is not squared in this CRS. Reproject or generate new grid based on current CRS.')
+            # if not sizex == sizey:
+                # raise QgsProcessingException('Vector polygon is not squared in this CRS. Reproject or generate new grid based on current CRS.')
             
-            feedback.setProgressText(str(bbox))
+            # feedback.setProgressText(str(bbox))
             geotransform = dataset.GetGeoTransform()
             scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
@@ -324,6 +314,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 else:
                     dsm_array[dsm_array == nd] = np.mean(dem_array)
                     dem_array[dem_array == nd] = np.mean(dem_array)
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to mean of whole grid.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -345,7 +336,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
                 # save to file
                 arr = np.concatenate((immorphresult["deg"], immorphresult["pai"], immorphresult["fai"],
-                                    immorphresult["zH"], immorphresult["zHmax"], immorphresult["zH_sd"], zd, z0), axis=1)
+                                    immorphresult["zH"], immorphresult["zHmax"], immorphresult["zH_sd"], zd, z0, immorphresult["test"]), axis=1)
                 np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_anisotropic_' + str(f.attributes()[idx]) + '.txt', arr,
                             fmt=numformat, delimiter=' ', header=header, comments='')
                 del arr
@@ -377,13 +368,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
                                     immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all, wai]])
 
-
-
                 arrmat = np.vstack([arrmat, arr2])
 
             dataset = None
             dataset2 = None
-            dataset3 = None
 
         arrmatsave = arrmat[1: arrmat.shape[0], :]
         np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_isotropic.txt', arrmatsave,
@@ -420,34 +408,6 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     attr_dict[current_index_length + x - 1] = float(matdata[wo[0], x])
                 vlayer.dataProvider().changeAttributeValues({id: attr_dict})
     
-    # def addattributes(self, vlayer, matdata, header, pre):
-    #     current_index_length = len(vlayer.dataProvider().attributeIndexes())
-    #     caps = vlayer.dataProvider().capabilities()
-
-    #     if caps & QgsVectorDataProvider.AddAttributes:
-    #         line_split = header.split()
-    #         for x in range(1, len(line_split)):
-
-    #             vlayer.dataProvider().addAttributes([QgsField(pre + '_' + line_split[x], QVariant.Double)])
-    #             vlayer.commitChanges()
-    #             vlayer.updateFields()
-
-    #         attr_dict = {}
-
-    #         for y in range(0, matdata.shape[0]):
-    #             attr_dict.clear()
-    #             idx = int(matdata[y, 0])
-    #             for x in range(1, matdata.shape[1]):
-    #                 attr_dict[current_index_length + x - 1] = float(matdata[y, x])
-    #             vlayer.dataProvider().changeAttributeValues({idx: attr_dict})
-
-    #         vlayer.commitChanges()
-    #         vlayer.updateFields()
-
-    #         # self.iface.mapCanvas().refresh()
-    #     else:
-    #         QMessageBox.critical(None, "Error", "Vector Layer does not support adding attributes")
-    
     def name(self):
         return 'Urban Morphology: Morphometric Calculator (Grid)'
 
@@ -463,7 +423,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self):
         return self.tr('The Morphometric Calculator (Grid) plugin calculates various morphometric parameters based on digital surface models for '
         'separate vector polygons. The polygons should preferable be squares or any other regular shape. To create such a grid, built in functions '
-        'in QGIS can be used (see Vector geometry -> Create Grid in the Processing Toolbox). The morphometric parameters are used to describe the '
+        'in QGIS can be used (see Vector geometry -> Research Tools -> Create Grid in the Processing Toolbox). The morphometric parameters are used to describe the '
         'roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending '
         'on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. '
         'Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D '

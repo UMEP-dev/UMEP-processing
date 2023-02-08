@@ -33,45 +33,36 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                    #    QgsProcessingParameterPoint,
                        QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                    #    QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                    #    QgsProcessingParameterVectorDestination,
-                    #    QgsProcessingParameterExtent,
                        QgsProcessingException,
-                       QgsVectorLayer,
                        QgsFeature,
-                    #    QgsGeometry,
-                    #    QgsPointXY,
                        QgsVectorFileWriter,
                        QgsVectorDataProvider,
                        QgsField)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr, ogr
+from osgeo import gdal, ogr
 from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
 import sys
-from ..util import misc
-from ..util import landCoverFractions_v1 as land
-# # from ..util import RoughnessCalcFunctionV2 as rg
-# from ..util import imageMorphometricParms_v1 as morph
-
+# from ..util import misc
+# from ..util import landCoverFractions_v1 as land
+from ..util import landCoverFractions_v2 as land
 
 
 class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
     """
-    This algorithm is a processing version of Image Morphometric Calculator Point
+    This algorithm is a processing version of Land Cover Fraction Grid
     """
 
     INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
@@ -143,7 +134,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         degree = float(inputInterval)
         pre = filePrefix
         ret = 0
-        imp_point = 0
+        imp_point = 0 # set to 1 when user for LCF point
         imid = int(searchMethod)
         arrmat = np.empty((1, 8))
 
@@ -158,19 +149,26 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             if not os.path.exists(outputDir + '/' + pre):
                 os.makedirs(outputDir + '/' + pre)
 
-        poly = inputPolygonlayer
+        #poly = inputPolygonlayer
+        vlayer = inputPolygonlayer
         poly_field = idField
         feedback.setProgressText("poly_field: " + str(poly_field))
-        vlayer = inputPolygonlayer
         prov = vlayer.dataProvider()
         fields = prov.fields()
         idx = vlayer.fields().indexFromName(poly_field[0])
-        dir_poly = self.plugin_dir + '/data/poly_temp.shp'
+        #dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
 
         feedback.setProgressText("idx: " + str(idx))
+
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        if dsmlayer is None:
+            raise QgsProcessingException("No valid building land cover raster layer is selected")
+
+        provider = dsmlayer.dataProvider()
+        filePath_dsm_build = str(provider.dataSourceUri())
 
         for f in vlayer.getFeatures():  # looping through each grid polygon
             feedback.setProgress(int((index * 100) / nGrids))
@@ -199,13 +197,6 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 writer.addFeature(feature)
                 del writer
 
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
-            if dsmlayer is None:
-                raise QgsProcessingException("No valid building land cover raster layer is selected")
-
-            provider = dsmlayer.dataProvider()
-            filePath_dsm_build = str(provider.dataSourceUri())
-
             if imid == 1:
                 bbox = (x - r, y + r, x + r, y - r)
             else:
@@ -226,12 +217,12 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
 
             dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
             lcgrid = dataset.ReadAsArray().astype(float)
-            sizex = lcgrid.shape[0]
-            sizey = lcgrid.shape[1]
+            #sizex = lcgrid.shape[0]
+            #sizey = lcgrid.shape[1]
 
             # feedback.setProgressText(str(bbox))
-            geotransform = dataset.GetGeoTransform()
-            scale = 1 / geotransform[1]
+            #geotransform = dataset.GetGeoTransform()
+            #scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
             nodata_test = (lcgrid == nd)
             if ignoreNodata:
@@ -239,8 +230,8 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
                     cal = 0
                 else:
-                    lcgrid[lcgrid== nd] = np.mean(lcgrid)
-                    lcgrid[lcgrid == nd] = np.mean(lcgrid)
+                    lcgrid[lcgrid == nd] = 1
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to paved.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -250,9 +241,8 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     cal = 1
 
             if cal == 1:
-                landcoverresult = land.landcover_v1(lcgrid, imid, degree, feedback, imp_point)
+                landcoverresult = land.landcover_v2(lcgrid, imid, degree, feedback, imp_point)
                 landcoverresult = self.resultcheck(landcoverresult)
-                # immorphresult = morph.imagemorphparam_v2(dsm_array, dem_array, scale, imid, degree, feedback, imp_point)
 
                 arr = np.concatenate((landcoverresult["deg"], landcoverresult["lc_frac"]), axis=1)
                 np.savetxt(outputDir + '/' + pre + '_' + 'LCFG_anisotropic_result_' + str(f.attributes()[idx]) + '.txt', arr,
@@ -265,8 +255,6 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 arrmat = np.vstack([arrmat, arr2])
 
             dataset = None
-            dataset2 = None
-            dataset3 = None
 
         arrmatsave = arrmat[1: arrmat.shape[0], :]
         np.savetxt(outputDir + '/' + pre + '_' + 'LCFG_isotropic.txt', arrmatsave,
@@ -283,8 +271,6 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
         caps = vlayer.dataProvider().capabilities()
 
-        # feedback.setProgressText("matdata:" + str(matdata))
-
         if caps & QgsVectorDataProvider.AddAttributes:
             line_split = header.split()
             for x in range(1, len(line_split)):
@@ -300,50 +286,12 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         for f in features:
             attr_dict.clear()
             id = f.id()
-            # feedback.setProgressText("id:" + str(id))
-            # feedback.setProgressText("idx:" + str(f.attributes()[idx]))
             wo = np.where(f.attributes()[idx] == matdata[:, 0])
-            # feedback.setProgressText("wo:" + str(wo[0]))
             if wo[0] >= 0:
                 for x in range(1, matdata.shape[1]):
                     attr_dict[current_index_length + x - 1] = float(matdata[wo[0], x])
-                # feedback.setProgressText("attr_dict:" + str(attr_dict))
                 vlayer.dataProvider().changeAttributeValues({id: attr_dict})
 
-
-    # def addattributes(self, vlayer, matdata, header, pre,feedback):
-    #     current_index_length = len(vlayer.dataProvider().attributeIndexes())
-    #     caps = vlayer.dataProvider().capabilities()
-
-    #     feedback.setProgressText("current_index_length:" + str(current_index_length))
-
-    #     if caps & QgsVectorDataProvider.AddAttributes:
-    #         line_split = header.split()
-    #         for x in range(1, len(line_split)):
-
-    #             vlayer.dataProvider().addAttributes([QgsField(pre + '_' + line_split[x], QVariant.Double)])
-    #             vlayer.commitChanges()
-    #             vlayer.updateFields()
-
-    #         attr_dict = {}
-
-    #         feedback.setProgressText("matdata:" + str(matdata))
-
-    #         for y in range(0, matdata.shape[0]):
-    #             attr_dict.clear()
-    #             idx = int(matdata[y, 0])
-    #             feedback.setProgressText("idx:" + str(idx))
-    #             for x in range(1, matdata.shape[1]):
-    #                 attr_dict[current_index_length + x - 1] = float(matdata[y, x])
-    #                 feedback.setProgressText("attr_dict:" + str(attr_dict))
-    #             vlayer.dataProvider().changeAttributeValues({idx: attr_dict})
-
-    #         vlayer.commitChanges()
-    #         vlayer.updateFields()
-
-    #         # self.iface.mapCanvas().refresh()
-    #     else:
-    #         raise QgsProcessingException("Vector Layer does not support adding attributes")
 
     def resultcheck(self, landcoverresult):
         total = 0.
@@ -383,8 +331,8 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         'from a point location based on a land cover raster grid. A land cover grid suitable for the processor in UMEP can be derived using '
         'the Land Cover Classifier. The fraction will vary depending on what angle (wind direction) you are interested in. Thus, this plugin '
         'is able to derive the land cover fractions for different directions. It is the same as the Land Cover Fraction (Point) except that '
-        'this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares or '
-        'any other regular shape. To create such a grid, built in functions in QGIS can be used (see Vector geometry -> Create Grid in the '
+        'this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares but could '
+        'be any other regular shape. To create such a grid, built in functions in QGIS can be used (see Vector geometry -> Research Tools -> Create Grid in the '
         'Processing Toolbox).\n'
         '--------------\n'
         'Full manual available via the <b>Help</b>-button.')
