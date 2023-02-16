@@ -119,7 +119,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
         self.addParameter(QgsProcessingParameterBoolean(self.IGNORE_NODATA,
-            self.tr("Ignore NoData pixels"), defaultValue=False))
+            self.tr("Ignore NoData pixels"), defaultValue=True))
         self.addParameter(QgsProcessingParameterBoolean(self.ATTR_TABLE,
             self.tr("Add result to polygon grid attribute table"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
@@ -170,13 +170,13 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             if not os.path.exists(outputDir + '/' + pre):
                 os.makedirs(outputDir + '/' + pre)
 
-        poly = inputPolygonlayer
+        # poly = inputPolygonlayer
         poly_field = idField
         vlayer = inputPolygonlayer
         prov = vlayer.dataProvider()
         fields = prov.fields()
         idx = vlayer.fields().indexFromName(poly_field[0])
-        dir_poly = self.plugin_dir + '/data/poly_temp.shp'
+        # dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
@@ -223,6 +223,18 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 writer.addFeature(feature)
                 del writer
 
+            if imid == 1: # from centroid point
+                bbox = (x - r, y + r, x + r, y - r)
+            else: # from cutline polygon
+                VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
+                Vector = VectorDriver.Open(self.dir_poly, 0)  #self.dir_poly
+                layer = Vector.GetLayer()
+                feature = layer.GetFeature(0)
+                geom = feature.GetGeometryRef()
+                minX, maxX, minY, maxY = geom.GetEnvelope()
+                bbox = (minX, maxY, maxX, minY)  # Reorder bbox to use with gdal_translate
+                Vector.Destroy()
+
             if useDsmBuild:  # Only building heights
                 dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSMBUILD, context)
                 if dsmlayer is None:
@@ -231,22 +243,17 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 provider = dsmlayer.dataProvider()
                 filePath_dsm_build = str(provider.dataSourceUri())
 
-                if imid == 1:
-                    bbox = (x - r, y + r, x + r, y - r)
-                else:
-                    # Remove gdalwarp cuttoline with gdal.Translate. Cut to envelope of polygon feature
-                    VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
-                    Vector = VectorDriver.Open(self.dir_poly, 0)  #self.dir_poly
-                    layer = Vector.GetLayer()
-                    feature = layer.GetFeature(0)
-                    geom = feature.GetGeometryRef()
-                    minX, maxX, minY, maxY = geom.GetEnvelope()
-                    bbox = (minX, maxY, maxX, minY)  # Reorder bbox to use with gdal_translate
-                    Vector.Destroy()
-
-                # Remove gdalwarp with gdal.Translate
+                # added gdal.Warp() for irregular grids
                 bigraster = gdal.Open(filePath_dsm_build)
-                gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                if imid == 1:
+                    gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                else:
+                    clip_spec = gdal.WarpOptions(
+                        format="GTiff",
+                        cutlineDSName=self.dir_poly,
+                        cropToCutline=True
+                    )
+                    gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
                 bigraster = None
 
                 dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
@@ -269,27 +276,38 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 provider = demlayer.dataProvider()
                 filePath_dem = str(provider.dataSourceUri())
 
-                # # get raster source - gdalwarp
-                if imid == 1:
-                    bbox = (x - r, y + r, x + r, y - r)
-                else:
-                    # Remove gdalwarp cuttoline with gdal.Translate. Cut to envelope of polygon feature
-                    VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
-                    Vector = VectorDriver.Open(self.dir_poly, 0)
-                    layer = Vector.GetLayer()
-                    feature = layer.GetFeature(0)
-                    geom = feature.GetGeometryRef()
-                    minX, maxX, minY, maxY = geom.GetEnvelope()
-                    bbox = (minX, maxY, maxX, minY)  # Reorder bbox to use with gdal_translate
-                    Vector.Destroy()
 
-                # Remove gdalwarp with gdal.Translate
+                # added gdal.Warp() for irregular grids
                 bigraster = gdal.Open(filePath_dsm)
-                gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                if imid == 1:
+                    gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                else:
+                    clip_spec = gdal.WarpOptions(
+                        format="GTiff",
+                        cutlineDSName=self.dir_poly,
+                        cropToCutline=True
+                    )
+                    gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
                 bigraster = None
                 bigraster = gdal.Open(filePath_dem)
-                gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
+                if imid == 1:
+                    gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
+                else:
+                    clip_spec = gdal.WarpOptions(
+                        format="GTiff",
+                        cutlineDSName=self.dir_poly,
+                        cropToCutline=True
+                    )
+                    gdal.Warp(self.plugin_dir + '/data/clipdem.tif', bigraster, options=clip_spec)
                 bigraster = None
+
+                # # Remove gdalwarp with gdal.Translate
+                # bigraster = gdal.Open(filePath_dsm)
+                # gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                # bigraster = None
+                # bigraster = gdal.Open(filePath_dem)
+                # gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
+                # bigraster = None
 
                 dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
                 dsm_array = dataset.ReadAsArray().astype(float)
@@ -312,9 +330,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
                     cal = 0
                 else:
-                    dsm_array[dsm_array == nd] = np.mean(dem_array)
-                    dem_array[dem_array == nd] = np.mean(dem_array)
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to mean of whole grid.")
+                    # dsm_array[dsm_array == nd] = np.mean(dem_array)
+                    # dem_array[dem_array == nd] = np.mean(dem_array)
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
+                    # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to mean of whole grid.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -322,6 +341,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     cal = 0
                 else:
                     cal = 1
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
 
             if cal == 1:
                 immorphresult = morph.imagemorphparam_v2(dsm_array, dem_array, scale, imid, degree, feedback, imp_point)
