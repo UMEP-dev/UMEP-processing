@@ -209,11 +209,12 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             feature.setAttributes(attributes)
             feature.setGeometry(geometry)
 
-            y = f.geometry().centroid().asPoint().y()
-            x = f.geometry().centroid().asPoint().x()
+
 
             if imid == 1:  # use center point
                 r = inputDistance
+                y = f.geometry().centroid().asPoint().y()
+                x = f.geometry().centroid().asPoint().x()
             else:
                 r = 0  # Uses as info to separate from IMP point to grid
                 writer = QgsVectorFileWriter(self.dir_poly, "CP1250", fields, prov.wkbType(),

@@ -196,7 +196,11 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     raise QgsProcessingException("Error when creating shapefile: ", str(writer.hasError()))
                 writer.addFeature(feature)
                 del writer
-
+            
+            
+            
+            
+            
             if imid == 1:
                 bbox = (x - r, y + r, x + r, y - r)
             else:
@@ -211,8 +215,17 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 Vector.Destroy()
 
             # Remove gdalwarp with gdal.Translate
+            # added gdal.Warp() for irregular grids
             bigraster = gdal.Open(filePath_dsm_build)
-            gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+            if imid == 1:
+                gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+            else:
+                clip_spec = gdal.WarpOptions(
+                    format="GTiff",
+                    cutlineDSName=self.dir_poly,
+                    cropToCutline=True
+                )
+                gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
             bigraster = None
 
             dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
@@ -231,7 +244,8 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     cal = 0
                 else:
                     lcgrid[lcgrid == nd] = 1
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to paved.")
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
+                    # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to paved.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -239,6 +253,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     cal = 0
                 else:
                     cal = 1
+                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
 
             if cal == 1:
                 landcoverresult = land.landcover_v2(lcgrid, imid, degree, feedback, imp_point)
