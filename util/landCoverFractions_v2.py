@@ -24,7 +24,8 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point):
     for i in range(0, 7):
         lc_gridvec = lc_grid[np.where(lc_grid == i + 1)]
         if lc_gridvec.size > 0:
-            lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size * 1.0), 3)
+            # lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size * 1.0), 3)
+            lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size - (lc_grid == 0).sum()),3) # ignoring NoData (0) pixels
 
     # Anisotropic (Adjusted for irregular grids)
     lc_frac = np.zeros((int(360./dtheta), 7))
@@ -57,7 +58,7 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point):
             lineMid = d[0:imidy,imid]
         else: #whole grid
             lineMid = d[:,int(imid)] # whole center line
-        bld = lineMid[np.where(lineMid > -99)] # line within grid only  
+        bld = lineMid[np.where(lineMid > 0)] # line within grid only  
 
         #b = np.round(((lc_grid.max()-lc_grid.min())/d.max())*d+lc_grid.min(), 0) #not needed anymore
         #bld = b[dY, dX]  # lc array

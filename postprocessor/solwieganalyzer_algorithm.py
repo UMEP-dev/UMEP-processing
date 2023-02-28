@@ -376,7 +376,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
                     sizey = grid.shape[1]
                     daymean = np.zeros((sizex, sizey))
 
-                tempgrid = (grid > thresNum)
+                tempgrid = (grid >= thresNum)
                 daymean = daymean + tempgrid
                 index += 1
 

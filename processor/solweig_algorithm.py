@@ -550,8 +550,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if alt > 0:
                 alt = 3.
 
-        if (dsmraise != demraise) and (dsmraise - demraise > 0.5):
-            feedback.setProgressText('WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!')
+            if (dsmraise != demraise) and (dsmraise - demraise > 0.5):
+                feedback.setProgressText('WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!')
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')

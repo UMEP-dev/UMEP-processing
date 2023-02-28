@@ -101,7 +101,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
         self.addParameter(QgsProcessingParameterBoolean(self.IGNORE_NODATA,
-            self.tr("Ignore NoData pixels"), defaultValue=False))
+            self.tr("Ignore NoData pixels"), defaultValue=True))
         self.addParameter(QgsProcessingParameterBoolean(self.ATTR_TABLE,
             self.tr("Add result to polygon grid attribute table"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
@@ -197,10 +197,6 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 writer.addFeature(feature)
                 del writer
             
-            
-            
-            
-            
             if imid == 1:
                 bbox = (x - r, y + r, x + r, y - r)
             else:
@@ -243,7 +239,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
                     cal = 0
                 else:
-                    lcgrid[lcgrid == nd] = 1
+                    lcgrid[lcgrid == nd] = 0
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
                     # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to paved.")
                     cal = 1

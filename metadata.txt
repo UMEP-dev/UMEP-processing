@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=1.7.11
+version=1.7.12
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    1.7.12: Response to #496
     1.7.11: Added capabilities to consider irregular grids in LCfraction and MorphCalc.
     1.7.10: Response to #498. Added diagnostic height in ERA5 downloader.
     1.7.9 : Minor bug fixing.
