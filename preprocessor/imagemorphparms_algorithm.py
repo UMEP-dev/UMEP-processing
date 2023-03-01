@@ -182,15 +182,15 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
 
         # #Calculate Z0m and Zdm depending on the Z0 method
-        if ro == 0:
+        if int(ro) == 0:
             Roughnessmethod = 'RT'
-        elif ro == 1:
+        elif int(ro) == 1:
             Roughnessmethod = 'Rau'
-        elif ro == 2:
+        elif int(ro) == 2:
             Roughnessmethod = 'Bot'
-        elif ro == 3:
+        elif int(ro) == 3:
             Roughnessmethod = 'Mac'
-        elif ro == 4:
+        elif int(ro) == 4:
             Roughnessmethod = 'Mho'
         else:
             Roughnessmethod = 'Kan'
@@ -208,8 +208,6 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             feature = QgsFeature()
             feature.setAttributes(attributes)
             feature.setGeometry(geometry)
-
-
 
             if imid == 1:  # use center point
                 r = inputDistance
@@ -262,6 +260,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 sizex = dsm_array.shape[0]
                 sizey = dsm_array.shape[1]
                 dem_array = np.zeros((sizex, sizey))
+                ndDEM = -9999
 
             else:  # Both building ground heights
                 dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
@@ -314,6 +313,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 dsm_array = dataset.ReadAsArray().astype(float)
                 dataset2 = gdal.Open(self.plugin_dir + '/data/clipdem.tif')
                 dem_array = dataset2.ReadAsArray().astype(float)
+                ndDEM = dataset2.GetRasterBand(1).GetNoDataValue()
 
                 if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                     raise QgsProcessingException("All grids must be of same extent and resolution")
@@ -321,7 +321,6 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             # if not sizex == sizey:
                 # raise QgsProcessingException('Vector polygon is not squared in this CRS. Reproject or generate new grid based on current CRS.')
             
-            # feedback.setProgressText(str(bbox))
             geotransform = dataset.GetGeoTransform()
             scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
@@ -331,8 +330,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
                     cal = 0
                 else:
-                    # dsm_array[dsm_array == nd] = np.mean(dem_array)
-                    # dem_array[dem_array == nd] = np.mean(dem_array)
+                    # dsm_array[dsm_array == nd] = -9999
+                    # dem_array[dem_array == nd] = -9999
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
                     # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to mean of whole grid.")
                     cal = 1
@@ -345,6 +344,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
 
             if cal == 1:
+                #set nodata to same
+                dsm_array[dsm_array == nd] = -9999
+                dem_array[dem_array == ndDEM] = -9999
                 immorphresult = morph.imagemorphparam_v2(dsm_array, dem_array, scale, imid, degree, feedback, imp_point)
 
                 zH = immorphresult["zH"]
@@ -352,7 +354,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 pai = immorphresult["pai"]
                 zMax = immorphresult["zHmax"]
                 zSdev = immorphresult["zH_sd"]
-
+                
                 zd, z0 = rg.RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev)
 
                 # save to file
@@ -382,8 +384,13 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
                 # adding wai area to isotrophic (wall area index)
                 total = 100. / (int(dsm_array.shape[0] * dsm_array.shape[1]))
-                wallarea = np.sum(wa.findwalls(dsm_array, 2., feedback, total))
-                gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
+
+                numPixels = len(dsm_array[np.where(dsm_array != nd)])
+                dsmwall = np.copy(dsm_array)
+                dsmwall[dsmwall == nd] = 0
+                wallarea = np.sum(wa.findwalls(dsmwall, 2., feedback, total))
+                gridArea = numPixels * geotransform[1] * geotransform[1] # changed to work for irregular grids
+                # gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
                 wai = wallarea / gridArea
 
                 arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],

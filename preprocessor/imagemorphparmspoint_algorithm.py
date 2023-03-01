@@ -247,15 +247,15 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
 
         # #Calculate Z0m and Zdm depending on the Z0 method
-        if ro == 0:
+        if int(ro) == 0:
             Roughnessmethod = 'RT'
-        elif ro == 1:
+        elif int(ro) == 1:
             Roughnessmethod = 'Rau'
-        elif ro == 2:
+        elif int(ro) == 2:
             Roughnessmethod = 'Bot'
-        elif ro == 3:
+        elif int(ro) == 3:
             Roughnessmethod = 'Mac'
-        elif ro == 4:
+        elif int(ro) == 4:
             Roughnessmethod = 'Mho'
         else:
             Roughnessmethod = 'Kan'

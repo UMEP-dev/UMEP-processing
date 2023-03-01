@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    1.7.13: Response to #19
     1.7.12: Response to #496
     1.7.11: Added capabilities to consider irregular grids in LCfraction and MorphCalc.
     1.7.10: Response to #498. Added diagnostic height in ERA5 downloader.
