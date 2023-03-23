@@ -182,7 +182,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
             self.tr('Digital Elevation Model (DEM)'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
-            self.tr("Save generated building grid"), defaultValue=False, optional=True))
+            self.tr("Save generated building grid (Mandatory for Spatial TC in post-processing)"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
             self.tr('Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
 
@@ -1194,6 +1194,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             settingsData = np.array([[utc, pos, onlyglobal, landcover, anisotropic_sky, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt, patch_option]])
             np.savetxt(outputDir + '/treeplantersettings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
 
+        # Copying met file for SpatialTC
+        copyfile(inputMet, outputDir + '/metforcing.txt')
+        
         tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
         saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
@@ -1215,7 +1218,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2022a')
 
     def group(self):
         """

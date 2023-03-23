@@ -79,6 +79,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_DIR = 'OUTPUT_DIR'
     IGNORE_NODATA = 'IGNORE_NODATA'
     ATTR_TABLE = 'ATTR_TABLE'
+    CALC_SS = 'CALC_SS'
+    SS_HEIGHTS = 'SS_HEIGHTS'
     
     
     def initAlgorithm(self, config):
@@ -124,6 +126,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             self.tr("Add result to polygon grid attribute table"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
             self.tr('Output folder')))
+        self.addParameter(QgsProcessingParameterBoolean(self.CALC_SS,
+            self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True))
+        self.addParameter(QgsProcessingParameterString(self.SS_HEIGHTS, 
+            self.tr('Height intervals for SUEWS/SS (magl). Use comma (,) as seprator. Leave blank for automatic intervals.'),
+            optional=True))
 
         self.plugin_dir = os.path.dirname(__file__)
         if not (os.path.isdir(self.plugin_dir + '/data')):
@@ -145,22 +152,33 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         attrTable = self.parameterAsBool(parameters, self.ATTR_TABLE, context)
         ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-
+        calcSS = self.parameterAsBool(parameters, self.CALC_SS, context)
+        ssHeights = self.parameterAsString(parameters, self.SS_HEIGHTS, context)
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        # r = inputDistance
+        #adding parameters for SUEWS/SS
+        if calcSS:
+            ssAuto = 0
+            ssValues = []
+            if ssHeights == '':
+                ssAuto = 1
+            else:
+                ssIntervals = ssHeights.split(',')
+                for i in ssIntervals:
+                    ssValues.append(int(i))
         
+        # preparing headers etc.
         degree = float(inputInterval)
         pre = filePrefix
-        header = ' Wd pai   fai   zH  zHmax   zHstd zd z0  noOfPixels'
+        headerAniso = ' Wd pai   fai   zH  zHmax   zHstd zd z0  noOfPixels'
         numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.0f'
-        header2 = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai'
-        numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        ret = 0
-        imp_point = 0
+        #headerIso = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai ' moved inside loop
+        #numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+
+        imp_point = 0 # only used in menu-based tool
         imid = int(searchMethod)
         arrmat = np.empty((1, 9))
 
@@ -361,7 +379,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 arr = np.concatenate((immorphresult["deg"], immorphresult["pai"], immorphresult["fai"],
                                     immorphresult["zH"], immorphresult["zHmax"], immorphresult["zH_sd"], zd, z0, immorphresult["test"]), axis=1)
                 np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_anisotropic_' + str(f.attributes()[idx]) + '.txt', arr,
-                            fmt=numformat, delimiter=' ', header=header, comments='')
+                            fmt=numformat, delimiter=' ', header=headerAniso, comments='')
                 del arr
 
                 zHall = immorphresult["zH_all"]
@@ -403,11 +421,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
         arrmatsave = arrmat[1: arrmat.shape[0], :]
         np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_isotropic.txt', arrmatsave,
-                    fmt=numformat2, delimiter=' ', header=header2, comments='')
+                    fmt=numformat2, delimiter=' ', header=headerIso, comments='')
 
         if attrTable: 
             feedback.setProgressText("Adding result to layer attribute table") 
-            self.addattr(vlayer, arrmatsave, header, pre, feedback, idx)
+            self.addattr(vlayer, arrmatsave, headerIso, pre, feedback, idx)
 
         return {self.OUTPUT_DIR: outputDir}
 

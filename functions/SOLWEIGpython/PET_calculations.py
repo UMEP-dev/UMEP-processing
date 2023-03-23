@@ -14,9 +14,33 @@ def calculate_PET_index(Ta, Pa, Tmrt, va, pet):
     sex=pet.sex
     clo=pet.clo
     pet_index=np.zeros_like(Tmrt)
-    for x in range(pet_index.shape[0]):
-        for y in range(pet_index.shape[1]):
-            pet_index[x][y]=_PET(Ta[x],Pa[x],Tmrt[x][y],va[x][y],mbody,age,height,activity,clo,sex)
+    for y in range(pet_index.shape[0]):
+        for x in range(pet_index.shape[1]):
+            pet_index[y,y]=_PET(Ta[x],Pa[x],Tmrt[x][y],va[x][y],mbody,age,height,activity,clo,sex)
+
+def calculate_PET_grid(Ta, RH, Tmrt, va, pet, feedback):
+    mbody=pet.mbody
+    age=pet.age
+    height=pet.height
+    activity=pet.activity
+    sex=pet.sex
+    clo=pet.clo
+    pet_index=np.zeros_like(Tmrt)
+    total = 100. / (int(pet_index.shape[0] * pet_index.shape[1]))
+    index = 0
+    # print(Tmrt.shape)
+    # print(va.shape)
+    for y in range(pet_index.shape[0]):
+        if feedback.isCanceled():
+            feedback.setProgressText("Calculation cancelled")
+            break
+        for x in range(pet_index.shape[1]):
+            if va[y, x] > 0:
+                index = index + 1
+                feedback.setProgress(int(index * total))
+                pet_index[y,x]=_PET(Ta,RH,Tmrt[y,x],va[y,x],mbody,age,height,activity,clo,sex)
+
+    return pet_index
 
 def calculate_PET_index_vec(Ta, Pa, Tmrt, va,pet):
     mbody=pet.mbody
@@ -170,6 +194,7 @@ def _PET(ta,RH,tmrt,v,mbody,age,ht,work,icl,sex):
                 c_10 = 5.28 * adu - c_6 - c_5 * tsk
                 c_11 = c_10 * c_10 - 4 * c_5 * (c_6 * tsk - c_1 - 5.28 * adu * tsk)
                 # tsk[tsk==36]=36.01
+                #print(tsk.shape)
                 if tsk == 36:
                     tsk = 36.01
 
