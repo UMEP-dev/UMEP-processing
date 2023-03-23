@@ -42,6 +42,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterString,
                        QgsProcessingParameterRasterLayer,
+                       QgsProcessingParameterVectorDestination,
                        QgsProcessingParameterBoolean,
                        QgsVectorLayer,
                        QgsCoordinateReferenceSystem,
@@ -156,9 +157,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
 
         # We add several output parameters
         self.addParameter(
-            QgsProcessingParameterFileDestination(
+            QgsProcessingParameterVectorDestination(
                 self.OUTPUT_BUILDING_FILE,
-                self.tr('Output building vector file (geojson or shp)')))
+                self.tr('Output building vector file')))
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_BUILD_HEIGHT_FIELD,
@@ -166,9 +167,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 defaultValue = 'ROOF_HEIGHT',
                 optional = True))
         self.addParameter(
-            QgsProcessingParameterFileDestination(
+            QgsProcessingParameterVectorDestination(
                 self.OUTPUT_VEGETATION_FILE,
-                self.tr('Output vegetation vector file (geojson or shp')))
+                self.tr('Output vegetation vector file')))
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_VEG_HEIGHT_FIELD,
@@ -206,9 +207,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         veg_dsm = self.parameterAsRasterLayer(parameters, self.INPUT_VEG_CDSM, context)
         
         # Get output file paths
-        outputBuildFilepath = self.parameterAsString(parameters, self.OUTPUT_BUILDING_FILE, context)
+        outputBuildFilepath = self.parameterAsOutputLayer(parameters, self.OUTPUT_BUILDING_FILE, context)
         buildingHeightField = self.parameterAsString(parameters, self.OUTPUT_BUILD_HEIGHT_FIELD, context)
-        outputVegFilepath = self.parameterAsString(parameters, self.OUTPUT_VEGETATION_FILE, context)
+        outputVegFilepath = self.parameterAsOutputLayer(parameters, self.OUTPUT_VEGETATION_FILE, context)
         vegetHeightField = self.parameterAsString(parameters, self.OUTPUT_VEG_HEIGHT_FIELD, context)
         loadOutput = self.parameterAsBool(parameters, self.LOAD_OUTPUT, context)
         
@@ -280,11 +281,11 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                             'BAND_E':None,
                                             'INPUT_F':None,
                                             'BAND_F':None,
-                                            'FORMULA':'(A>B)*(A-B)+(A<=B)*0',
+                                            'FORMULA':'(A > B) * (A - B) + (A <= B) * 0',
                                             'NO_DATA':None,
                                             'RTYPE':5,
                                             'OPTIONS':'',
-                                            'EXTRA':'','OUTPUT':'TEMPORARY_OUTPUT'})
+                                            'EXTRA':'','OUTPUT':'TEMPORARY_OUTPUT'})["OUTPUT"]
             
             # Make valid all vector geometries
             tempoBuildinglayer = processing.run("native:fixgeometries", 
