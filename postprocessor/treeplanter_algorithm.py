@@ -66,13 +66,13 @@ from ..util import misc
 # Modules necessary for Tree Planter
 #import numpy as np
 #from osgeo import gdal, osr, ogr
-import matplotlib.pylab as plt
+# import matplotlib.pylab as plt
 #import os
-import time
+# import time
 import math
 import glob
 import datetime
-import scipy as sp
+# import scipy as sp
 from scipy.ndimage import label
 
 # Import UMEP tools
@@ -463,13 +463,13 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         return 'Outdoor Thermal Comfort: TreePlanter'
 
     def displayName(self):
-        return self.tr(self.name())
+        return self.tr('Outdoor Thermal Comfort: TreePlanter v1.0.1')
 
     def group(self):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Processor'
+        return 'Post-Processor'
 
     def shortHelpString(self):
         return self.tr('This is a model for optimization of tree arrangement to mitigate thermal ' 

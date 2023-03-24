@@ -50,12 +50,12 @@ from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
 from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
 from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
-from .processor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
 from .processor.uwg_algorithm import ProcessingUWGPreprocessorAlgorithm
 from .processor.urock_processing_algorithm import URockAlgorithm
 
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
 from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
+from .postprocessor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
 from .postprocessor.uwganalyzer_algorithm import ProcessingUWGAnalyzerAlgorithm
 from .postprocessor.spatialtc_algorithm import ProcessingSpatialTCAlgorithm
 from .postprocessor.urock_analyser_algorithm import URockAnalyserAlgorithm
