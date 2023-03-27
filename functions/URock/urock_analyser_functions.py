@@ -6,7 +6,10 @@ Created on Wed Jan 19 13:09:33 2022
 @author: Jérémy Bernard, University of Gothenburg (Sweden)
 """
 
-import xarray as xr
+try:
+    import xarray as xr
+except:
+    pass
 import os
 import pandas as pd
 import numpy as np

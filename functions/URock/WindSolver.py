@@ -14,7 +14,10 @@ Created on Mon Mar 29 14:57:25 2021
 import numpy as np
 import time
 from .GlobalVariables import MAX_ITERATIONS, THRESHOLD_ITERATIONS, DESCENDING_Y
-from numba import jit
+try:
+    from numba import jit
+except Exception:
+    pass
 import pandas as pd
 
 def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, cursor,

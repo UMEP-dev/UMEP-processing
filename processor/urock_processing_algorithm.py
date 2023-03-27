@@ -59,18 +59,12 @@ from qgis.PyQt.QtGui import QIcon
 import inspect
 
 from ..functions.URock import DataUtil
-try:
-    path_pybin = DataUtil.locate_py()
-    subprocess.check_call([str(path_pybin), "-m", "pip", "install", "jaydebeapi"])
-    import jaydebeapi
-except Exception:
-    QMessageBox.critical(None, 'Error', "'jaydebeapi' Python package is missing, cannot connect to H2 Driver")
-    pass
 
 from ..functions.URock import MainCalculation
 from ..functions.URock.GlobalVariables import *
 from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
 from ..functions.URock import WriteMetadataURock
+
 
 
 
@@ -325,6 +319,21 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+        
+        try:
+            import jaydebeapi
+        except:
+            raise QgsProcessingException("'jaydebeapi' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
+        try:
+            import numba
+        except Exception:
+            raise QgsProcessingException("'numba' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
+
+        try:
+            import xarray
+        except Exception:
+            raise QgsProcessingException("'xarray' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
+
         # Get the plugin directory to save some useful files
 
         plugin_directory = self.plugin_dir = os.path.dirname(__file__)
