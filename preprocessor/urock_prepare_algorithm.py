@@ -90,7 +90,6 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
     # Output variables    
     OUTPUT_BUILDING_FILE = "BUILDINGS_WITH_HEIGHT"
     OUTPUT_VEGETATION_FILE = "VEGETATION_WITH_HEIGHT"
-    LOAD_OUTPUT = "LOAD_OUTPUT"
     
     def initAlgorithm(self, config):
         """
@@ -175,12 +174,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 self.OUTPUT_VEG_HEIGHT_FIELD,
                 self.tr('Attribute name for vegetation height in output table'),
                 defaultValue = 'VEG_HEIGHT',
-                optional = True))
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.LOAD_OUTPUT,
-                self.tr("Open output file after running algorithm"),
-                defaultValue=True))   
+                optional = True))  
         
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -211,7 +205,6 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         buildingHeightField = self.parameterAsString(parameters, self.OUTPUT_BUILD_HEIGHT_FIELD, context)
         outputVegFilepath = self.parameterAsOutputLayer(parameters, self.OUTPUT_VEGETATION_FILE, context)
         vegetHeightField = self.parameterAsString(parameters, self.OUTPUT_VEG_HEIGHT_FIELD, context)
-        loadOutput = self.parameterAsBool(parameters, self.LOAD_OUTPUT, context)
         
         #  If output not set, create temporary files for building and vegetation
         if outputVegFilepath.split(".")[-1] == 'file':
@@ -308,19 +301,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                                   'OUTPUT':outputBuildFilepath})["OUTPUT"]
             
             
-            # Load output files into QGIS if user set it
-            if loadOutput:
-                # Load and display buildings
-                loadedBuildVector = \
-                    QgsVectorLayer(outputBuildFilepath,
-                                   "Building layer",
-                                   "ogr")
-                context.addLayerToLoadOnCompletion(loadedBuildVector.id(),
-                                                   QgsProcessingContext.LayerDetails("Building with height",
-                                                                                     QgsProject.instance(),
-                                                                                     ''))
-                context.temporaryLayerStore().addMapLayer(loadedBuildVector)
-        
+
         # VEGETATION LAYER CREATION
         # Create the vegetation vector layer if vegetation DSM has been provided
         if veg_dsm and inputVeglayer:
@@ -427,18 +408,6 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                                         'FORMULA':heightExpression,
                                                         'OUTPUT':outputVegFilepath})["OUTPUT"]
                 
-            # Load output files into QGIS if user set it
-            if loadOutput:
-                # Load and display vegetation
-                loadedVegVector = \
-                    QgsVectorLayer(outputVegFilepath,
-                                   "Vegetation layer",
-                                   "ogr")
-                context.addLayerToLoadOnCompletion(loadedVegVector.id(),
-                                                   QgsProcessingContext.LayerDetails("Vegetation with height",
-                                                                                     QgsProject.instance(),
-                                                                                     ''))
-                context.temporaryLayerStore().addMapLayer(loadedVegVector)
             
         # Return the output file names
         return {self.OUTPUT_BUILDING_FILE: outputBuildFilepath,
