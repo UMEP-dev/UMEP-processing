@@ -2,8 +2,13 @@ from builtins import str
 # This file prints out run information used for each specific run
 from time import strftime
 
+from .GlobalVariables import *
 
-def writeRunInfo(folderPath, build_file, veg_file, attenuationVeg):
+def writeRunInfo(folderPath, build_file, heightBuild,
+                 veg_file, attenuationVeg, baseHeightVeg, topHeightVeg,
+                 z_ref, v_ref, windDirection, profileType,
+                 profileFile,
+                 meshSize, dz):
 
     # with open(folderPath + '/RunInfoSOLWEIG.txt', 'w') as file:           	#FO#
     #FO#
@@ -11,7 +16,7 @@ def writeRunInfo(folderPath, build_file, veg_file, attenuationVeg):
         file.write('This file provides run settings for the URock run initiated at: ' + strftime("%a, %d %b %Y %H:%M:%S"))
         file.write('\n')
         file.write('\n')
-        file.write('Version: ' + 'URock v1.0.1')
+        file.write('Version: ' + 'URock v2023a')
         file.write('\n')
         file.write('\n')
         file.write('SURFACE DATA')
@@ -19,7 +24,8 @@ def writeRunInfo(folderPath, build_file, veg_file, attenuationVeg):
         if build_file is not None:
             file.write('Building layer: ' + build_file)
             file.write('\n')
-            #TODO: More info?
+            file.write('Building height (attribute name): ' + heightBuild)
+            file.write('\n')
         else:
             file.write('No building data used')
             file.write('\n')
@@ -27,21 +33,49 @@ def writeRunInfo(folderPath, build_file, veg_file, attenuationVeg):
         if veg_file is not None:
             file.write('Vegetation layer: ' + veg_file)
             file.write('\n')
-            file.write('Attenuation though vegetation: ' + attenuationVeg)
+            file.write('Vegetation top height (attribute name): ' + topHeightVeg)
             file.write('\n')
+            if baseHeightVeg is not None:
+                file.write('Vegetation base height (attribute name): ' + baseHeightVeg)
+            else:
+                file.write('Vegetation base height (fraction of top height): ' + str(DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC))
+            file.write('\n')
+            if attenuationVeg is not None:
+                file.write('Attenuation though vegetation (attribute name): ' + attenuationVeg)
+            else:
+                file.write('Attenuation though vegetation (value): ' + str(DEFAULT_VEG_ATTEN_FACT))
+            file.write('\n')
+
         else:
             file.write('No vegetation data used')
             file.write('\n')
-
+ 
+        file.write('METEOROLOGICAL DATA')
         file.write('\n')
-        file.write('METEOROLOGICAL FORCING DATA')
-        file.write('\n')
-        #TODO: Add more info
+            
+        if profileFile is not None:
+            file.write('Wind profile file: ' + profileFile)
+            file.write('\n')
+            
+        else:
+            file.write('Reference height for wind (m): ' + str(z_ref))
+            file.write('\n')
+            file.write('Reference wind speed at ref height (m/s): ' + str(v_ref))
+            file.write('\n')
+            file.write('Wind direction (° from North): ' + str(windDirection))
+            file.write('\n')
+            file.write('Wind profile type: ' + profileType)
+            file.write('\n')
 
         file.write('\n')
         file.write('MODEL SETTINGS')
         file.write('\n')
-        #TODO: Add more info
+
+        file.write('Horizontal resolution (m): ' + str(meshSize))
+        file.write('\n')
+        file.write('Vertical resolution (m): ' + str(dz))
+        file.write('\n')
+        
 
         file.write('\n')
         file.close()

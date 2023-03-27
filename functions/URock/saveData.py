@@ -71,7 +71,10 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                          v = v,
                                          w = w,
                                          verticalWindProfile = verticalWindProfile,
-                                         path = netcdf_base_dir_name)
+                                         path = netcdf_base_dir_name,
+                                         urock_srid = srid,
+                                         horizontal_res = meshSize,
+                                         vertical_res = dz)
 
     horizOutputUrock = {z_i : "HORIZ_OUTPUT_UROCK_{0}".format(str(z_i).replace(".","_")) for z_i in z_out}
     for z_i in z_out:
@@ -139,6 +142,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                                                 prefix(outputFilename, prefix_name)+\
                                                                 OUTPUT_VECTOR_EXTENSION),
                                          delete = DELETE_OUTPUT_IF_EXISTS)
+            
             # -------------------------------------------------------------------
             # SAVE RASTER -------------------------------------------------------
             # -------------------------------------------------------------------     
@@ -186,7 +190,10 @@ def saveToNetCDF(longitude,
                  v,
                  w,
                  verticalWindProfile,
-                 path):
+                 path,
+                 urock_srid,
+                 horizontal_res,
+                 vertical_res):
     """
     Create a netCDF file and save wind speed, direction and initial 
     vertical wind profile in it (based on https://pyhogs.github.io/intro_netcdf4.html )
@@ -211,6 +218,8 @@ def saveToNetCDF(longitude,
             Initial wind speed profile for each each z from ground (2 columns)
         path: String
             Path and filename to save NetCDF file
+        urock_srid: int
+            EPSG code initially used for the URock calculations
     
     Returns
     -------
@@ -279,6 +288,13 @@ def saveToNetCDF(longitude,
     #Add global attributes
     f.description = "URock dataset containing one group of 3D wind field value and one group of input vertical wind speed profile"
     f.history = "Created " + datetime.today().strftime("%y-%m-%d")
+    
+    # Add the srid (epsg code) used for the URock processing calculation
+    f.urock_srid = urock_srid
+    
+    # Add horizontal and vertical resolution into the metadata
+    f.horizontal_res = horizontal_res
+    f.vertical_res = vertical_res
     
     f.close()
     
@@ -408,7 +424,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             SELECT  ST_XMIN({0}) AS XMIN, ST_XMAX({0}) AS XMAX,
                     ST_YMIN({0}) AS YMIN, ST_YMAX({0}) AS YMAX
             FROM    (SELECT ST_ACCUM({0}) AS {0} FROM {1})
-            """.format(GEOM_FIELD            , horizOutputUrock[z_i]))     
+            """.format(GEOM_FIELD            , horizOutputUrock[z_i]))
         vectorBounds = cursor.fetchall()[0]
         width = int((vectorBounds[1] - vectorBounds[0]) / meshSize) + 1
         height = int((vectorBounds[3] - vectorBounds[2]) / meshSize) + 1

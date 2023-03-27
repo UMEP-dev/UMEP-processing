@@ -556,12 +556,6 @@ def main(javaEnvironmentPath,
     # ----------------------------------------------------------------
     # 7. DEALS WITH SUPERIMPOSED ZONES -------------------------------
     # ----------------------------------------------------------------
-    if feedback:
-        feedback.setProgressText('Deals with zones superimposition')
-        if feedback.isCanceled():
-            cursor.close()
-            feedback.setProgressText("Calculation cancelled by user")
-            return {}
     # Calculates the final weighting factor for each point, dealing with duplicates (superimposition)
     dicAllWeightFactorsTables = dicOfBuildZone3DWindFactor.copy()
     dicAllWeightFactorsTables[ALL_VEGETATION_NAME] = vegetationWeightFactorTable
@@ -574,7 +568,8 @@ def main(javaEnvironmentPath,
                                             upstreamWeightingInterRules = UPSTREAM_WEIGHTING_INTER_RULES,
                                             upstreamWeightingIntraRules = UPSTREAM_WEIGHTING_INTRA_RULES,
                                             downstreamWeightingTable = DOWNSTREAM_WEIGTHING_TABLE,
-                                            prefix = prefix)
+                                            prefix = prefix,
+                                            feedback = feedback)
     if debug or saveRockleZones:
         cursor.execute("""
             DROP TABLE IF EXISTS point3D_All;

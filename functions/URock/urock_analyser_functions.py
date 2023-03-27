@@ -34,7 +34,8 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                        idLines='', isStream = False, savePlot = False,
                        polygons_file='', srid_polygons=None, idPolygons='', 
                        outputDirectory = None, simulationName = "",
-                       fig = None, ax = None, scale = None, color = None):
+                       fig = None, ax = None, scale = None, color = None,
+                       feedback = None):
 
     if savePlot:
         plt.ioff()
@@ -56,15 +57,22 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     outputPointsDir = os.path.join(TEMPO_DIRECTORY, "urock_selectedPoints.csv")
     outputPolygonsDir = os.path.join(TEMPO_DIRECTORY, "urock_selectedPolygons.csv")
     
+    if feedback:
+        feedback.setProgressText('Load NetCDF file in Python and save as csv file...')
+        
     # Load the group of the NetCDF file containing the wind speed field
     ds = xr.open_dataset(inputWindFile, group = WIND_GROUP)
+    
+    # Get the SRID that has been used in the URock processing calculation
+    urock_srid = xr.open_dataset(inputWindFile).urock_srid    
     
     # Send to a csv file
     ds.to_dataframe().to_csv(pointsDir, index_label = ['rlat', 'rlon', 'zlev'])
     
+    if feedback:
+        feedback.setProgressText('Load csv file into H2GIS Database...')    
     # Initialize an H2GIS database connection
     dBDir = os.path.join(Path(pluginDirectory).parent, 'functions','URock')
-    print(dBDir)
     cursor = H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
                                                 dbInstanceDir = TEMPO_DIRECTORY)
     
@@ -82,7 +90,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
             SELECT  NULL, {3}, {4}, {8}, {9}, {10}, {11},
                     ST_TRANSFORM(ST_SETSRID(ST_MakePoint({6}, {7}), 4326), {1}) AS {5}
             FROM CSVREAD('{2}')
-        """.format(allPointsTab             , srid_all, 
+        """.format(allPointsTab             , urock_srid, 
                     pointsDir               , RLON,
                     RLAT                    , GEOM_FIELD,
                     LON                     , LAT,
@@ -93,12 +101,14 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     fig_poly = None
     ax_poly = None
     if polygons_file and srid_polygons and idPolygons:
+        if feedback:
+            feedback.setProgressText('Calculates average wind profile (within polygons)...')    
         # Load polygons
         loadFile(cursor = cursor, 
                  filePath = polygons_file, 
                  tableName = polygonsTab, 
                  srid = srid_polygons,
-                 srid_repro = srid_all)    
+                 srid_repro = urock_srid)    
         
         # Calculates horizontal mean wind speed within each polygon
         cursor.execute("""
@@ -167,6 +177,8 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     ax = None
     scale = None
     if lines_file and srid_lines and idLines:
+        if feedback:
+            feedback.setProgressText('Calculates vertical sectional plot (along lines)...')    
         # Get the resolution of the wind speed data
         cursor.execute("""
            SELECT ST_DISTANCE(a.{0}, b.{0}) AS dist 
@@ -182,7 +194,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                  filePath = lines_file, 
                  tableName = linesTab, 
                  srid = srid_lines,
-                 srid_repro = srid_all)
+                 srid_repro = urock_srid)
     
         # Calculates a buffer of about half the horizontal resolution of the
         # wind data around the lines and project the points contained in this buffer
