@@ -1977,7 +1977,8 @@ def manageSuperimposition(cursor,
                           upstreamWeightingIntraRules = UPSTREAM_WEIGHTING_INTRA_RULES,
                           upstreamBackPriorityTables = UPSTREAM_BACKWARD_PRIORITY_TABLES,
                           downstreamWeightingTable = DOWNSTREAM_WEIGTHING_TABLE,
-                          prefix = PREFIX_NAME):
+                          prefix = PREFIX_NAME,
+                          feedback = None):
     """ Keep only one value per 3D point, dealing with superimposition from
     different Röckle zones. It is performed in three steps:
         - if a point is covered by several zones, keep the value only from
@@ -2035,6 +2036,8 @@ def manageSuperimposition(cursor,
                 the wind speed factors at the end
             prefix: String, default PREFIX_NAME
                 Prefix to add to the output table name
+            feedback: Qgis.core class QgsProcessingFeedback
+                Base class for providing feedback to QGIS from a processing algorithm (if not in standalone mode).
             
     		Returns
     		_ _ _ _ _ _ _ _ _ _ 
@@ -2066,6 +2069,14 @@ def manageSuperimposition(cursor,
                                 for t in backwardZoneName}
     tempoPrioritiesWeightedAllPlusBack = DataUtil.postfix("TEMPO_PRIORITY_WEIGHTED_ALL_PLUS_BACK")    
     tempoUpstreamAndDownstream = DataUtil.postfix("TEMPO_UPSTREAM_AND_DOWNSTREAM")
+    
+    # Give feedback to user
+    if feedback:
+        feedback.setProgressText('Deals with building zones superimposition')
+        if feedback.isCanceled():
+            cursor.close()
+            feedback.setProgressText("Calculation cancelled by user")
+            return {}
     
     # Deal with superimposition when duplicated points in non backward zones
     tempoPrioritiesWeightedAll = \
@@ -2188,6 +2199,12 @@ def manageSuperimposition(cursor,
                       tempoPrioritiesWeightedAll        , ID_POINT,
                       ID_POINT_Z))
 
+    if feedback:
+        feedback.setProgressText('Deals with vegetation zones superimposition')
+        if feedback.isCanceled():
+            cursor.close()
+            feedback.setProgressText("Calculation cancelled by user")
+            return {}
     # MANAGE THE DOWNSTREAM WEIGHTING ZONES
     # Weight the wind speeds factors by the downstream weights (vegetation)
     cursor.execute("""

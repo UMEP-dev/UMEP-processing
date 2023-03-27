@@ -328,7 +328,9 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         # Get the plugin directory to save some useful files
 
         plugin_directory = self.plugin_dir = os.path.dirname(__file__)
-        #print(plugin_directory)
+        
+        # Get the resource folder where styles are located
+        resourceDir = os.path.join(Path(plugin_directory).parent, 'functions', 'URock')
         
         # Defines inputs
         javaEnvVar = self.parameterAsString(parameters, self.JAVA_PATH, context)
@@ -382,8 +384,8 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         #prefix = self.parameterAsString(parameters, self.PREFIX, context)
         
         # Defines outputs
-        z_out = self.parameterAsString(parameters, self.WIND_HEIGHT, context).split(",")
-        z_out = [float(i) for i in z_out]
+        z_out_str = self.parameterAsString(parameters, self.WIND_HEIGHT, context).split(",")
+        z_out = [float(i) for i in z_out_str]
         outputDirectory = self.parameterAsString(parameters, self.OUTPUT_DIRECTORY, context)
         outputFilename = self.parameterAsString(parameters, self.OUTPUT_FILENAME, context)
         saveRaster = self.parameterAsBool(parameters, self.SAVE_RASTER, context)
@@ -412,8 +414,12 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         
         if feedback:
             feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoURock_YYYY_DOY_HHMM.txt)")
-        WriteMetadataURock.writeRunInfo(outputDirectory, build_file, veg_file, attenuationVeg)
-
+        WriteMetadataURock.writeRunInfo(outputDirectory, build_file, heightBuild,
+                                        veg_file, attenuationVeg, baseHeightVeg, topHeightVeg,
+                                        z_ref, v_ref, windDirection, profileType,
+                                        profileFile,
+                                        meshSize, dz)
+        
         # Make the calculations
         u, v, w, u0, v0, w0, x, y, z, buildingCoordinates, cursor, gridName,\
         rotationCenterCoordinates, verticalWindProfile, dicVectorTables,\
@@ -472,7 +478,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                         feedback.pushWarning("Vector layer failed to load!")
                         break
                     else:
-                        loadedVector.loadNamedStyle(os.path.join(plugin_directory,\
+                        loadedVector.loadNamedStyle(os.path.join(resourceDir,\
                                                                  "Resources",
                                                                  VECTOR_STYLE_FILENAME), True)
                         context.addLayerToLoadOnCompletion(loadedVector.id(),
@@ -510,14 +516,14 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'URock'
+        return 'Urban Wind Field: URock'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Urban Wind Fields: URock v2023a')
+        return self.tr('Urban Wind Field: URock v2023a')
 
     def group(self):
         """

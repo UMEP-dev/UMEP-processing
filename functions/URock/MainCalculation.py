@@ -95,11 +95,12 @@ def main(javaEnvironmentPath,
     outputDataRel["vegetation_open"] = os.path.join(tempoDirectory, "vegetationOpen.geojson")
     
     # Grid points
-    outputDataRel["point_BuildZone"] = os.path.join(tempoDirectory, "point_BuildZone")
     outputDataRel["point3D_BuildZone"] = os.path.join(tempoDirectory, "point3D_BuildZone")
-    outputDataRel["point_VegZone"] = os.path.join(tempoDirectory, "point_VegZone")
     outputDataRel["point3D_VegZone"] = os.path.join(tempoDirectory, "point3D_VegZone")
     outputDataRel["point3D_All"] = os.path.join(tempoDirectory, "point3D_All")
+    
+    # Put 2D grid points in the output directory
+    outputDataRel["point_2DRockleZone"] = os.path.join(outputFilePath, "Rockle_zones")
     
     # Convert relative to absolute paths
     outputDataAbs = {i : os.path.abspath(outputDataRel[i]) for i in outputDataRel}
@@ -445,31 +446,6 @@ def main(javaEnvironmentPath,
                                           dz = dz,
                                           prefix = prefix)
     
-    if debug or saveRockleZones:
-        for t in dicOfBuildZoneGridPoint:
-            cursor.execute("""
-               DROP TABLE IF EXISTS point_Buildzone_{0};
-               {5};
-               {6};
-               CREATE TABLE point_Buildzone_{0}
-                   AS SELECT   a.{2}, b.*
-                   FROM {3} AS a RIGHT JOIN {4} AS b
-                       ON a.{1} = b.{1}
-                   WHERE b.{1} IS NOT NULL
-               """.format( t                            , ID_POINT, 
-                           GEOM_FIELD                   , gridPoint, 
-                           dicOfBuildZoneGridPoint[t]   , DataUtil.createIndex(tableName=gridPoint, 
-                                                                               fieldName=ID_POINT,
-                                                                               isSpatial=False),
-                           DataUtil.createIndex(tableName=dicOfBuildZoneGridPoint[t], 
-                                                fieldName=ID_POINT,
-                                                isSpatial=False)))
-            saveData.saveTable(cursor = cursor,
-                               tableName = "point_Buildzone_"+t,
-                               filedir = outputDataAbs["point_BuildZone"]+t+".geojson",
-                               delete = True,
-                               rotationCenterCoordinates = rotationCenterCoordinates,
-                               rotateAngle = - windDirection)
     
     # -----------------------------------------------------------------------------------
     # 6. INITIALIZE THE 3D WIND FACTORS IN THE ROCKLE ZONES -------------------------------
@@ -556,12 +532,6 @@ def main(javaEnvironmentPath,
     # ----------------------------------------------------------------
     # 7. DEALS WITH SUPERIMPOSED ZONES -------------------------------
     # ----------------------------------------------------------------
-    if feedback:
-        feedback.setProgressText('Deals with zones superimposition')
-        if feedback.isCanceled():
-            cursor.close()
-            feedback.setProgressText("Calculation cancelled by user")
-            return {}
     # Calculates the final weighting factor for each point, dealing with duplicates (superimposition)
     dicAllWeightFactorsTables = dicOfBuildZone3DWindFactor.copy()
     dicAllWeightFactorsTables[ALL_VEGETATION_NAME] = vegetationWeightFactorTable
@@ -574,7 +544,8 @@ def main(javaEnvironmentPath,
                                             upstreamWeightingInterRules = UPSTREAM_WEIGHTING_INTER_RULES,
                                             upstreamWeightingIntraRules = UPSTREAM_WEIGHTING_INTRA_RULES,
                                             downstreamWeightingTable = DOWNSTREAM_WEIGTHING_TABLE,
-                                            prefix = prefix)
+                                            prefix = prefix,
+                                            feedback = feedback)
     if debug or saveRockleZones:
         cursor.execute("""
             DROP TABLE IF EXISTS point3D_All;
@@ -819,6 +790,15 @@ def main(javaEnvironmentPath,
     else:
         dicVectorTables_ini = None
         netcdf_path_ini = None
+
+    # Last save the 2D grid for each Röckle zone
+    saveData.saveRockleZones(cursor = cursor,
+                             outputDataAbs = outputDataAbs,
+                             dicOfBuildZoneGridPoint = dicOfBuildZoneGridPoint,
+                             dicOfVegZoneGridPoint = dicOfVegZoneGridPoint,
+                             gridPoint = gridPoint,
+                             rotationCenterCoordinates = rotationCenterCoordinates, 
+                             windDirection = windDirection)
 
     return  u_rot, v_rot, w, u0_rot, v0_rot, w0, x_rot, y_rot, z,\
             buildingCoordinates, cursor, rotated_grid, rotationCenterCoordinates,\

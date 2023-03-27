@@ -54,6 +54,7 @@ from pathlib import Path
 import struct
 from qgis.PyQt.QtGui import QIcon
 import inspect
+import xarray as xr
 
 from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
 from ..functions.URock.urock_analyser_functions import plotSectionalViews
@@ -126,7 +127,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.IS_STREAM,
-                self.tr("Plot streams instead of arrows"),
+                self.tr("Plot streams instead of arrows (works only for cubic voxels"),
                 defaultValue=False))
         
         self.addParameter(
@@ -144,7 +145,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT_POLYGONS,
-                self.tr('Input polygons layer for for average vind profile'),
+                self.tr('Input polygons layer for average wind profile'),
                 [QgsProcessing.TypeVectorPolygon],
                 optional = True
             )
@@ -152,7 +153,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterField(
                 self.ID_FIELD_POLYGONS,
-                self.tr('Polygons ID field (used if mutiple poltgons is present)'),
+                self.tr('Polygons ID field (used if mutiple polygons is present)'),
                 None,
                 self.INPUT_POLYGONS,
                 QgsProcessingParameterField.Numeric,
@@ -208,7 +209,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             lines_file = str(inputLines.dataProvider().dataSourceUri())
             if lines_file.count("|") > 0:
                 lines_file = lines_file.split("|")[0]
-            srid_lines = inputLines.crs().srsid()
+            srid_lines = inputLines.crs().authid()[5:]
         else:
             lines_file = ''
             srid_lines = None
@@ -220,7 +221,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             polygons_file = str(inputPolygons.dataProvider().dataSourceUri())
             if polygons_file.count("|") > 0:
                 polygons_file = polygons_file.split("|")[0]
-            srid_polygons = inputPolygons.crs().srsid()
+            srid_polygons = inputPolygons.crs().authid()[5:]
         else:
             polygons_file = ''
             srid_polygons = None
@@ -241,6 +242,13 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             else:
                 raise QgsProcessingException('The output directory does not exist, neither its parent directory')
         
+        # Check that conditions are fullfilled for stream calculation
+        if isStream:
+            horizontal_res = xr.open_dataset(inputWindFile).horizontal_res
+            vertical_res = xr.open_dataset(inputWindFile).vertical_res
+            if horizontal_res != vertical_res:
+                raise QgsProcessingException('For stream plots, your netCDF file should contain cubic voxels')
+        
         # Start the analyser
         fig, ax, scale, fig_poly, ax_poly =\
             plotSectionalViews(pluginDirectory = plugin_directory, 
@@ -254,7 +262,8 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                                isStream = isStream,
                                savePlot = True,
                                outputDirectory = outputDirectory,
-                               simulationName = simulationName)
+                               simulationName = simulationName,
+                               feedback = feedback)
         
         # Return the results of the algorithm.
         return {self.OUTPUT_DIRECTORY: outputDirectory}
@@ -267,14 +276,14 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'URock analyzer'
+        return 'Urban Wind Field: URock analyzer'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return self.tr('Urban Wind Field: URock AnalyZer')
 
     def group(self):
         """
