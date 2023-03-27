@@ -18,13 +18,13 @@ import re
 import pandas as pd
 
 try:
-    path_pybin = DataUtil.locate_py()
-    subprocess.check_call([str(path_pybin), "-m", "pip", "install", "jaydebeapi"])
+    #path_pybin = DataUtil.locate_py()
+    #subprocess.check_call([str(path_pybin), "-m", "pip", "install", "jaydebeapi"])
     import jaydebeapi
-except ImportError:
-    print("'jaydebeapi' Python package is missing, cannot connect to H2 Driver")
-    exit(1)
-
+except:
+    #print("'jaydebeapi' Python package is missing, cannot connect to H2 Driver")
+    #exit(1)
+    pass
 # Global variables
 # H2GIS_VERSION = "1.5.0"
 # H2GIS_URL = H2GIS_VERSION.join(["https://github.com/orbisgis/h2gis/releases/download/v",

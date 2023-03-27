@@ -270,7 +270,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr(self.name())
+        return self.tr('Urban Energy Balance: SUEWS v2020a')
 
     def group(self):
         return self.tr(self.groupId())
