@@ -439,3 +439,66 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
                                                    vectorBounds[0] + meshSize * (width - 0.5),
                                                    vectorBounds[3] - meshSize * (height + 0.5)],
                                    algorithm = "average:radius1={0}:radius2={0}".format(1.1*meshSize)))
+        
+def saveRockleZones(cursor, outputDataAbs, dicOfBuildZoneGridPoint, dicOfVegZoneGridPoint,
+                    gridPoint, rotationCenterCoordinates, windDirection):
+    """ Save the 2D Röckle zones (building and vegetation) as points.
+    
+    Parameters
+	_ _ _ _ _ _ _ _ _ _ 
+        cursor: conn.cursor
+            A cursor object, used to perform spatial SQL queries
+		outputDataAbs : Dictionary
+			Object containing the absolute path where should be saved the Röckle points
+        dicOfBuildZoneGridPoint: Dictionary
+            Dictionary containing all building table names to be saved
+        dicOfVegZoneGridPoint: Dictionary
+            Dictionary containing all vegetation table names to be saved
+        gridPoint: String
+            Grid table name
+        rotationCenterCoordinates: tuple of float, default None
+            x and y values of the point used as center of rotation
+        windDirection: float, default None
+            Wind direction used for calculation (° clock-wise from North)
+        
+    
+    Returns
+	_ _ _ _ _ _ _ _ _ _ 	
+		None"""
+    # Creates a folder if not exist
+    if not os.path.exists(outputDataAbs["point_2DRockleZone"]):
+        os.mkdir(outputDataAbs["point_2DRockleZone"])
+    # Save Building Röckle zones
+    for t in dicOfBuildZoneGridPoint:
+        cursor.execute("""
+           DROP TABLE IF EXISTS point_Buildzone_{0};
+           {5};
+           {6};
+           CREATE TABLE point_Buildzone_{0}
+               AS SELECT   a.{2}, b.*
+               FROM {3} AS a RIGHT JOIN {4} AS b
+                   ON a.{1} = b.{1}
+               WHERE b.{1} IS NOT NULL
+           """.format( t                            , ID_POINT, 
+                       GEOM_FIELD                   , gridPoint, 
+                       dicOfBuildZoneGridPoint[t]   , createIndex(tableName=gridPoint, 
+                                                                  fieldName=ID_POINT,
+                                                                  isSpatial=False),
+                       createIndex(tableName=dicOfBuildZoneGridPoint[t], 
+                                   fieldName=ID_POINT,
+                                   isSpatial=False)))
+        saveTable(cursor = cursor,
+                  tableName = "point_Buildzone_"+t,
+                  filedir = os.path.join(outputDataAbs["point_2DRockleZone"], t+".geojson"),
+                  delete = True,
+                  rotationCenterCoordinates = rotationCenterCoordinates,
+                  rotateAngle = - windDirection)
+    
+    # Save vegetation Röckle zones
+    for t in dicOfVegZoneGridPoint:
+        saveTable(cursor = cursor,
+                  tableName = dicOfVegZoneGridPoint[t],
+                  filedir = os.path.join(outputDataAbs["point_2DRockleZone"], t+".geojson"),
+                  delete = True,
+                  rotationCenterCoordinates = rotationCenterCoordinates,
+                  rotateAngle = - windDirection)
