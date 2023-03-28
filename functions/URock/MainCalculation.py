@@ -18,9 +18,13 @@ from . import InitWindField
 from . import DataUtil
 from . import WindSolver
 import time
-from numba import jit
-import copy as cp
+try:
+    from numba import jit
+except:
+    pass
+#import copy as cp
 from pathlib import Path
+from qgis.core import QgsProcessingException
 
 import os
 
