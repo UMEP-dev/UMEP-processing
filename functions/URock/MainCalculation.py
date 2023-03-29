@@ -18,10 +18,10 @@ from . import InitWindField
 from . import DataUtil
 from . import WindSolver
 import time
-try:
+try :
     from numba import jit
-except:
-    pass
+except ImportError:
+    exit("'numba' Python package is missing")
 #import copy as cp
 from pathlib import Path
 from qgis.core import QgsProcessingException

@@ -16,8 +16,8 @@ import time
 from .GlobalVariables import MAX_ITERATIONS, THRESHOLD_ITERATIONS, DESCENDING_Y
 try:
     from numba import jit
-except Exception:
-    pass
+except ImportError:
+    exit("'numba' Python package is missing")
 import pandas as pd
 
 def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, cursor,
