@@ -2,20 +2,22 @@
 # __author__ = 'xlinfr'
 
 from qgis.PyQt.QtWidgets import QMessageBox
-from .supy_installer import setup_supy
+from .umep_installer import setup_umep_python
 from qgis.core import Qgis, QgsMessageLog
 # we can specify a version if needed
 try: 
     import supy as sp
     from supy import __version__ as ver_supy
     QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
+    import numba
+    import jaydebeapi
 except:
-    if QMessageBox.question(None, "Supy and related dependencies not installed", 
-              "Do you want UMEP to automatically install missing python modules? \r\n"
-              "QGIS will be non-responsive for a couple of minutes.", 
+    if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
+              "Do you automatically want install missing python modules? \r\n"
+              "QGIS will be non-responsive for a couple of minutes.",
                QMessageBox.Ok | QMessageBox.Cancel) == QMessageBox.Ok:
         try:
-            setup_supy(ver=None)
+            setup_umep_python(ver=None)
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:
