@@ -268,7 +268,18 @@ def identifyJavaDir(java_path_os_list):
         i += 1
     if JavaExists:
         listJavaVersion = os.listdir(javaBaseDir)
-        listSplit = pd.Series({i: re.split('\.|\-', v) for i, v in enumerate(listJavaVersion)})
+        listSplit = pd.Series()
+        for i, v in enumerate(listJavaVersion):
+            tempo_split = re.split('\.|\-', v)
+            # Previous command supposed to split version number based on usual characters. 
+            # If unusual need the following...
+            if len(tempo_split) != 3:
+                pattern = re.compile(r'java|jdk|jre1')
+                jvm_match = pattern.search(v).group(0)
+                tempo_split = re.split('{0}|u'.format(jvm_match), v)
+                tempo_split[0] = jvm_match
+            listSplit.loc[i] = tempo_split
+
         df_version = pd.DataFrame({"version": [listSplit[i][1] \
                                                 for i in listSplit.index],
                                     "startWith": [listSplit[i][0] \
