@@ -176,7 +176,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         headerAniso = ' Wd pai   fai   zH  zHmax   zHstd zd z0  noOfPixels'
         numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.0f'
         #headerIso = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai ' moved inside loop
-        #numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
 
         imp_point = 0 # only used in menu-based tool
         imid = int(searchMethod)
