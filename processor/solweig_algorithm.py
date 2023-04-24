@@ -1198,7 +1198,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             copyfile(filepath_dsm, outputDir + '/DSM.tif')
 
             # Save met file
-            copyfile(inputMet, outputDir + '/metfile.txt')
+            #copyfile(inputMet, outputDir + '/metfile.txt')
 
             # Save CDSM
             if usevegdem == 1:

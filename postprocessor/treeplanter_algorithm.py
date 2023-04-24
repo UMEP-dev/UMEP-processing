@@ -229,7 +229,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         nTree = self.parameterAsInt(parameters, self.NTREE, context)
         transVeg = (self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100)
         #INPUT_MET = self.parameterAsString(parameters, self.INPUT_MET, context)
-        INPUT_MET = infolder + '/metfile.txt'
+        INPUT_MET = infolder + '/metforcing.txt'
         ITERATIONS = self.parameterAsInt(parameters, self.ITERATIONS, context)
         h_start = self.parameterAsString(parameters, self.START_HOUR, context)
         h_end = self.parameterAsString(parameters, self.END_HOUR, context)
