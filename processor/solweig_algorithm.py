@@ -182,7 +182,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
             self.tr('Digital Elevation Model (DEM)'), '', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
-            self.tr("Save generated building grid (Mandatory for Spatial TC in post-processing)"), defaultValue=False, optional=True))
+            self.tr("Save generated building grid"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
             self.tr('Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
 
@@ -288,7 +288,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_SH,
             self.tr("Save shadow raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TREEPLANTER,
-            self.tr("Save necessary raster(s) for the TreePlanter tool"), defaultValue=False))
+            self.tr("Save necessary raster(s) for the TreePlanter and Spatial TC tools"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
 
@@ -367,12 +367,20 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         outputLup = self.parameterAsBool(parameters, self.OUTPUT_LUP, context)
         outputLdown = self.parameterAsBool(parameters, self.OUTPUT_LDOWN, context)
         outputTreeplanter = self.parameterAsBool(parameters, self.OUTPUT_TREEPLANTER, context)
+        outputKdiff = False
+        #outputSstr = False
 
-        # If "Save necessary rasters for TreePlanter tool" is ticked, save Tmrt and Shadow rasters
+        # If "Save necessary rasters for TreePlanter tool" is ticked, save the following raster for TreePlanter or Spatial TC
         if outputTreeplanter:
             outputTmrt = True
+            outputKup = True
+            outputKdown = True
+            outputLup = True
+            outputLdown = True
             outputSh = True
             saveBuild = True
+            outputKdiff = True
+            #outputSstr = True
 
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
@@ -1167,6 +1175,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if outputSh:
                 saveraster(gdal_dsm, outputDir + '/Shadow_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
                                 + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', shadow)
+                
+            if outputKdiff:
+                saveraster(gdal_dsm, outputDir + '/Kdiff_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
+                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', dRad)
+
+            # if outputSstr:
+            #     saveraster(gdal_dsm, outputDir + '/Sstr_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
+            #                     + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Sstr)
 
             # Sky view image of patches
             if ((anisotropic_sky == 1) & (i == 0) & (not poisxy is None)):
