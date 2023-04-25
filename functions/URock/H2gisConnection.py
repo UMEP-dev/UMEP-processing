@@ -32,7 +32,7 @@ except ImportError:
 #                                 "-bin.zip"])
 # H2GIS_UNZIPPED_NAME = "h2gis-standalone"+os.sep+"h2gis-dist-"+H2GIS_VERSION+".jar"
 
-H2GIS_VERSION = "2.2.1"
+H2GIS_VERSION = "2.0.0"
 H2GIS_URL = "https://jenkins.orbisgis.org/job/H2GIS/lastSuccessfulBuild/artifact/h2gis-dist/target/h2gis-standalone-bin.zip"
 H2GIS_UNZIPPED_NAME = "h2gis-standalone"+os.sep+"h2gis-dist-"+H2GIS_VERSION+"-SNAPSHOT.jar"
 
