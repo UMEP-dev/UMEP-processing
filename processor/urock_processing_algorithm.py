@@ -87,7 +87,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     # Input variables
-    JAVA_PATH = "JAVA_PATH"
+    # JAVA_PATH = "JAVA_PATH"
     BUILDING_TABLE_NAME = 'BUILDINGS'
     VEGETATION_TABLE_NAME = "VEGETATION"
     INPUT_WIND_HEIGHT = "INPUT_WIND_HEIGHT"
@@ -121,23 +121,6 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        # Get the plugin directory to save some useful files
-        plugin_directory = self.plugin_dir = os.path.dirname(__file__)
-        
-        # Get the default value of the Java environment path if already exists
-        javaDirDefault = getJavaDir(plugin_directory)        
-        
-        if not javaDirDefault:  # Raise an error if could not find a Java installation
-            raise QgsProcessingException("No Java installation found")            
-        elif ("Program Files (x86)" in javaDirDefault) and (struct.calcsize("P") * 8 != 32):
-            # Raise an error if Java is 32 bits but Python 64 bits
-            raise QgsProcessingException('Only a 32 bits version of Java has been'+
-                                         'found while your Python installation is 64 bits.'+
-                                         'Consider installing a 64 bits Java version.')
-        else:   # Set a Java dir if not exist and save it into a file in the plugin repository
-            setJavaDir(javaDirDefault)
-            saveJavaDir(javaPath = javaDirDefault,
-                        pluginDirectory = plugin_directory)
         
         # We add the input parameters
         # First the layers used as input and output
@@ -307,13 +290,13 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         #         "",
         #         False,
         #         True))
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.JAVA_PATH,
-                self.tr('Java environment path (should be set automatically)'),
-                javaDirDefault,
-                False,
-                False)) 
+        # self.addParameter(
+        #     QgsProcessingParameterString(
+        #         self.JAVA_PATH,
+        #         self.tr('Java environment path (should be set automatically)'),
+        #         javaDirDefault,
+        #         False,
+        #         False)) 
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -323,26 +306,40 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         try:
             import jaydebeapi
         except:
-            raise QgsProcessingException("'jaydebeapi' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
+            raise QgsProcessingException("'jaydebeapi' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install.")
         try:
             import numba
         except Exception:
-            raise QgsProcessingException("'numba' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
-
+            raise QgsProcessingException("'numba' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install.")
         try:
             import xarray
         except Exception:
-            raise QgsProcessingException("'xarray' Python package is missing. Most tools is still works. Visit the UMEP manual (Getting Started) for instructions on how to install.")
+            raise QgsProcessingException("'xarray' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install.")
 
         # Get the plugin directory to save some useful files
-
         plugin_directory = self.plugin_dir = os.path.dirname(__file__)
+        
+        # Get the default value of the Java environment path if already exists
+        javaDirDefault = getJavaDir(plugin_directory)        
+        
+        if not javaDirDefault:  # Raise an error if could not find a Java installation
+            raise QgsProcessingException("No Java installation found")            
+        elif ("Program Files (x86)" in javaDirDefault) and (struct.calcsize("P") * 8 != 32):
+            # Raise an error if Java is 32 bits but Python 64 bits
+            raise QgsProcessingException('Only a 32 bits version of Java has been'+
+                                         'found while your Python installation is 64 bits.'+
+                                         'Consider installing a 64 bits Java version.')
+        else:   # Set a Java dir if not exist and save it into a file in the plugin repository
+            setJavaDir(javaDirDefault)
+            saveJavaDir(javaPath = javaDirDefault,
+                        pluginDirectory = plugin_directory)
+        
+        javaEnvVar = javaDirDefault
         
         # Get the resource folder where styles are located
         resourceDir = os.path.join(Path(plugin_directory).parent, 'functions', 'URock')
         
         # Defines inputs
-        javaEnvVar = self.parameterAsString(parameters, self.JAVA_PATH, context)
         z_ref = self.parameterAsDouble(parameters, self.INPUT_WIND_HEIGHT, context)
         v_ref = self.parameterAsDouble(parameters, self.INPUT_WIND_SPEED, context)
         windDirection = self.parameterAsDouble(parameters, self.INPUT_WIND_DIRECTION, context)
