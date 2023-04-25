@@ -265,22 +265,22 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterBoolean(
                 self.SAVE_RASTER,
                 self.tr("Save 2D wind speed as raster file(s)"),
-                defaultValue=False))
+                defaultValue=True))
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.SAVE_VECTOR,
                 self.tr("Save 2D wind field as vector file(s)"),
-                defaultValue=False))
+                defaultValue=True))
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.SAVE_NETCDF,
                 self.tr("Save 3D wind field in a NetCDF file"),
-                defaultValue=False))
+                defaultValue=True))
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.LOAD_OUTPUT,
                 self.tr("Open output 2D file(s) after running algorithm"),
-                defaultValue=False))        
+                defaultValue=True))        
         
         # Optional parameters
         # self.addParameter(
