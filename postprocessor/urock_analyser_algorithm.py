@@ -79,7 +79,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     # Input variables
-    JAVA_PATH = "JAVA_PATH"
+    # JAVA_PATH = "JAVA_PATH"
     INPUT_LINES = 'INPUT_LINES'
     INPUT_POLYGONS = 'INPUT_POLYGONS'
     ID_FIELD_LINES = "ID_FIELD_LINES"
@@ -95,24 +95,6 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        
-        # Get the plugin directory to save some useful files
-        plugin_directory = self.plugin_dir = os.path.dirname(__file__)
-        
-        # Get the default value of the Java environment path if already exists
-        javaDirDefault = getJavaDir(plugin_directory)
-        
-        if not javaDirDefault:  # Raise an error if could not find a Java installation
-            raise QgsProcessingException("No Java installation found")            
-        elif ("Program Files (x86)" in javaDirDefault) and (struct.calcsize("P") * 8 != 32):
-            # Raise an error if Java is 32 bits but Python 64 bits
-            raise QgsProcessingException('Only a 32 bits version of Java has been'+
-                                         'found while your Python installation is 64 bits.'+
-                                         'Consider installing a 64 bits Java version.')
-        else:   # Set a Java dir if not exist and save it into a file in the plugin repository
-            setJavaDir(javaDirDefault)
-            saveJavaDir(javaPath = javaDirDefault,
-                        pluginDirectory = plugin_directory)
 
         # We add the input vector features source (line layer)
         self.addParameter(
@@ -180,13 +162,13 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                 optional = True))
         
         # Optional parameter
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.JAVA_PATH,
-                self.tr('Java environment path (should be set automatically'),
-                javaDirDefault,
-                False,
-                False)) 
+        # self.addParameter(
+        #     QgsProcessingParameterString(
+        #         self.JAVA_PATH,
+        #         self.tr('Java environment path (should be set automatically'),
+        #         javaDirDefault,
+        #         False,
+        #         False)) 
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -196,8 +178,23 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         # Get the plugin directory to save some useful files
         plugin_directory = self.plugin_dir = os.path.dirname(__file__)
 
+        # Get the default value of the Java environment path if already exists
+        javaDirDefault = getJavaDir(plugin_directory)
+        
+        if not javaDirDefault:  # Raise an error if could not find a Java installation
+            raise QgsProcessingException("No Java installation found")            
+        elif ("Program Files (x86)" in javaDirDefault) and (struct.calcsize("P") * 8 != 32):
+            # Raise an error if Java is 32 bits but Python 64 bits
+            raise QgsProcessingException('Only a 32 bits version of Java has been'+
+                                         'found while your Python installation is 64 bits.'+
+                                         'Consider installing a 64 bits Java version.')
+        else:   # Set a Java dir if not exist and save it into a file in the plugin repository
+            setJavaDir(javaDirDefault)
+            saveJavaDir(javaPath = javaDirDefault,
+                        pluginDirectory = plugin_directory)
+
         # Defines java environmenet variable
-        javaEnvVar = self.parameterAsString(parameters, self.JAVA_PATH, context)
+        javaEnvVar = javaDirDefault
                 
         # Defines path of the NetCDF file
         inputWindFile = self.parameterAsString(parameters, self.INPUT_WIND_FILE, context)
