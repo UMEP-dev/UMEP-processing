@@ -310,6 +310,12 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                        'NetCDF file is loaded in Java AND in Python. '+
                        'Thus it could take some time if the NetCDF file is large.'
         '\n'
+        '\n'
+        'This tools requires Java. If Java is not installed on your system,'+ 
+        'visit www.java.com and install the latest version. Make sure to install correct version '+
+        'based on your system architecture (32- or 64-bit).'
+        '\n'
+        '\n'
         '---------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
