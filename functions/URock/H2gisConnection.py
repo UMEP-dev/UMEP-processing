@@ -209,10 +209,11 @@ def getJavaDir(pluginDirectory):
             javaFilePath.close()
         else:
             os_type = os.name
-            if os_type == "posix":
-                javaPath = identifyJavaDir(JAVA_PATH_POSIX)
-            else:
-                javaPath = identifyJavaDir(JAVA_PATH_NT)
+            javaPath = getJavaHome(os_type)
+            # if os_type == "posix":
+            #     javaPath = identifyJavaDir(JAVA_PATH_POSIX)
+            # else:
+            #     javaPath = identifyJavaDir(JAVA_PATH_NT)
  
     return javaPath
 
@@ -286,9 +287,42 @@ def identifyJavaDir(java_path_os_list):
                                                     for i in listSplit.index]})
         highestVersion = df_version[(df_version.startWith == "java")\
                                      | (df_version.startWith == "jdk")\
-                                     | (df_version.startWith == "jre1")].version.astype(int).idxmax()
+                                     | (df_version.startWith == "jre1")\
+                                     | (df_version.startWith == "jre")].version.astype(int).idxmax()
         javaPath = os.path.join(javaBaseDir, listJavaVersion[highestVersion])
     else:
         javaPath = None
+    
+    return javaPath
+
+def getJavaHome(os_type):
+    """ Try to get the Java home path of the machine if Java installed...
+
+		Parameters
+		_ _ _ _ _ _ _ _ _ _ 
+
+            os_type: String
+                Type of OS (POSIX or NT)
+        
+		Returns
+		_ _ _ _ _ _ _ _ _ _ 
+
+            javaPath: String
+                JAVA variable path"""
+    # Within a subprocess calling Java, get the line corresponding to java_home
+    if os_type == "posix":
+        command = "java -XshowSettings:properties -version 2>&1 > /dev/null | grep 'java.home'"
+    else:
+        command = 'java -XshowSettings:properties -version 2>&1 | findstr "java.home"'
+    proc = subprocess.Popen(['bash', '-c', command], 
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    output, err = proc.communicate()
+    
+    # Identify the string corresponding to the java_home in the resulting line
+    if os_type == "posix":
+        javaPath = os.path.abspath(str(output).split("java.home = ")[1].split("\\n")[0])
+    else:
+        javaPath = os.path.abspath(str(output).split("java.home = ")[1].split("\\n")[0].split("\\r")[0])
     
     return javaPath
