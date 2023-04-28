@@ -561,6 +561,12 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                        '(note that roofs are considered flats in the current version)'+
                        'Minimum attribute column for vegetation file is "vegetation crown top height".'
         '\n'
+        '\n'
+        'This tools requires Java. If Java is not installed on your system,'+ 
+        'visit www.java.com and install the latest version. Make sure to install correct version '+
+        'based on your system architecture (32- or 64-bit).'
+        '\n'
+        '\n'
         '---------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
