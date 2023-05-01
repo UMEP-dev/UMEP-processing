@@ -297,6 +297,7 @@ def identifyJavaDir(java_path_os_list):
 
 def getJavaHome(os_type):
     """ Try to get the Java home path of the machine if Java installed...
+    Inspired from https://www.baeldung.com/find-java-home
 
 		Parameters
 		_ _ _ _ _ _ _ _ _ _ 
@@ -312,17 +313,24 @@ def getJavaHome(os_type):
     # Within a subprocess calling Java, get the line corresponding to java_home
     if os_type == "posix":
         command = "java -XshowSettings:properties -version 2>&1 > /dev/null | grep 'java.home'"
-    else:
-        command = 'java -XshowSettings:properties -version 2>&1 | findstr "java.home"'
-    proc = subprocess.Popen(['bash', '-c', command], 
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            stdin=subprocess.PIPE)
-    output, err = proc.communicate()
-    
-    # Identify the string corresponding to the java_home in the resulting line
-    if os_type == "posix":
+        proc = subprocess.Popen(['bash', '-c', command], 
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                stdin=subprocess.PIPE)
+        output, err = proc.communicate()
+        # Identify the string corresponding to the java_home in the resulting line
         javaPath = os.path.abspath(str(output).split("java.home = ")[1].split("\\n")[0])
-    else:
-        javaPath = os.path.abspath(str(output).split("java.home = ")[1].split("\\n")[0].split("\\r")[0])
     
+    else:
+        import winreg
+
+        try:
+            java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\Java Runtime Environment")
+        except WindowsError:
+            print("Java not found")
+            exit()
+
+        current_version, _ = winreg.QueryValueEx(java_key, "CurrentVersion")
+        java_version_key = winreg.OpenKey(java_key, current_version)
+        javaPath, _ = winreg.QueryValueEx(java_version_key, "JavaHome")
+        
     return javaPath
