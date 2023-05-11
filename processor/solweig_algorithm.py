@@ -69,6 +69,8 @@ from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 
+import matplotlib.pyplot as plt
+
 # For "Save necessary rasters for TreePlanter tool"
 from shutil import copyfile
 
@@ -519,6 +521,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Error in land cover grid: Land cover grid includes Confier land cover class. Ground cover information (underneath canopy) is required.")
             if baddataDecid.any():
                 raise QgsProcessingException("Error in land cover grid: Land cover grid includes Decidiuous land cover class. Ground cover information (underneath canopy) is required.")
+            if np.isnan(lcgrid).any():
+                raise QgsProcessingException("Error in land cover grid: Land cover grid includes NaN values. Use the QGIS Fill NoData cells tool to remove NaN values.")
         else:
             filePath_lc = None
             landcover = 0
@@ -953,6 +957,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         tmrtplot = np.zeros((rows, cols))
         TgOut1 = np.zeros((rows, cols))
 
+        # Initiate array for I0 values
+        if np.unique(DOY).shape[0] > 1:
+            unique_days = np.unique(DOY)
+            first_unique_day = DOY[DOY == unique_days[0]]
+            I0_array = np.zeros((first_unique_day.shape[0]))
+        else:
+            first_unique_day = DOY.copy()
+            I0_array = np.zeros((DOY.shape[0]))
+
         #numformat = '%d %d %d %d %.5f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
         #            '%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f'
 
@@ -1030,6 +1043,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             #         bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
             #         TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timeaddE, timeaddS,
             #         timeaddW, timeaddN, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
+
+            # Save I0 for I0 vs. Kdown output plot to check if UTC is off
+            if i < first_unique_day.shape[0]:
+                I0_array[i] = I0
 
             tmrtplot = tmrtplot + Tmrt
 
@@ -1209,6 +1226,18 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             settingsFmt = '%i', '%i', '%i', '%i', '%i', '%i', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%i'
             settingsData = np.array([[utc, pos, onlyglobal, landcover, anisotropic_sky, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt, patch_option]])
             np.savetxt(outputDir + '/treeplantersettings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
+
+        # Output I0 vs. Kglobal plot
+        radG_for_plot = radG[DOY == unique_days[0]]
+        hours_for_plot = hours[DOY == unique_days[0]]
+        fig, ax = plt.subplots()
+        ax.plot(hours_for_plot, I0_array, label='I0')
+        ax.plot(hours_for_plot, radG_for_plot, label='Kglobal')
+        ax.set_ylabel('Shortwave radiation [$Wm^{-2}$]')
+        ax.set_xlabel('Hours')
+        ax.set_title('UTC' + str(int(utc)))
+        ax.legend()
+        fig.savefig(outputDir + '/metCheck.png', dpi=150)
 
         # Copying met file for SpatialTC
         copyfile(inputMet, outputDir + '/metforcing.txt')

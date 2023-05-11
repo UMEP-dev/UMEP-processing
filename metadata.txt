@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.0.2
+version=2.0.3
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.3 : Added an output line plot of I0 and Kglobal in SOLWEIG. SOLWEIG also raises an error if landcover contains NaN values.
     2.0.2 : Updated Spatial TC. COMFA and UTCI now available.
     2.0.1 : Fixed automatic installation of dependent Python packages
     2.0   : New plugins; URock and Spatial TC (Thermal Comfort). Many plugins moved over to UMEP for Processing.
