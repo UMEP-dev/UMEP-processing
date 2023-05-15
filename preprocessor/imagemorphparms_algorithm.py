@@ -45,7 +45,8 @@ from qgis.core import (QgsProcessing,
                        QgsFeature,
                        QgsVectorFileWriter,
                        QgsVectorDataProvider,
-                       QgsField)
+                       QgsField,
+                       QgsProcessingParameterDefinition)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
@@ -81,6 +82,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
     ATTR_TABLE = 'ATTR_TABLE'
     CALC_SS = 'CALC_SS'
     SS_HEIGHTS = 'SS_HEIGHTS'
+    INPUT_CDSM = 'INPUT_CDSM'
     
     
     def initAlgorithm(self, config):
@@ -126,11 +128,32 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             self.tr("Add result to polygon grid attribute table"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
             self.tr('Output folder')))
-        self.addParameter(QgsProcessingParameterBoolean(self.CALC_SS,
-            self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True))
-        self.addParameter(QgsProcessingParameterString(self.SS_HEIGHTS, 
+
+
+
+        # sex = QgsProcessingParameterEnum(
+        #     self.SEX, self.tr('Sex'), ['Male', 'Female'], optional=True, defaultValue=0)
+        # sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        # self.addParameter(sex)
+        # SPARTACUS PARAMETERS (ADVANCED)
+        ss = QgsProcessingParameterBoolean(self.CALC_SS,
+            self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True)
+        ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(ss)
+        # self.addParameter(QgsProcessingParameterBoolean(self.CALC_SS,
+            # self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True))
+        ssh = QgsProcessingParameterString(self.SS_HEIGHTS, 
             self.tr('Height intervals for SUEWS/SS (magl). Use comma (,) as seprator. Leave blank for automatic intervals.'),
-            optional=True))
+            optional=True)
+        ssh.setFlags(ssh.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(ssh)
+        sscdsm = QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
+            self.tr('Raster DSM (3D objects and ground)'), '', True)
+        sscdsm.setFlags(sscdsm.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(sscdsm)
+        # self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
+            # self.tr('Raster DSM (3D objects and ground)'), '', True))
+
 
         self.plugin_dir = os.path.dirname(__file__)
         if not (os.path.isdir(self.plugin_dir + '/data')):

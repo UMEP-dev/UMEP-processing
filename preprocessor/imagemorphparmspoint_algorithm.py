@@ -61,7 +61,7 @@ from pathlib import Path
 import sys
 from ..util import misc
 from ..util import RoughnessCalcFunctionV2 as rg
-from ..util import imageMorphometricParms_v1 as morph
+from ..util import imageMorphometricParms_v2 as morph
 from ..functions import wallalgorithms as wa
 
 
