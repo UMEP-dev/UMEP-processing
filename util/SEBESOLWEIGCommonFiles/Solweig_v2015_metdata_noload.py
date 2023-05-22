@@ -75,9 +75,11 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
         time['hour'] = YMDHM.hour
         time['min'] = YMDHM.minute
         sun = sp.sun_position(time, location)
+        if (sun['zenith'] > 89.0) & (sun['zenith'] <= 90.0):    # Hopefully fixes weird values in Perez et al. when altitude < 1.0, i.e. close to sunrise/sunset
+            sun['zenith'] = 89.0
         altitude[0, i] = 90. - sun['zenith']
-        azimuth[0, i] = sun['azimuth']
         zen[0, i] = sun['zenith'] * (np.pi/180.)
+        azimuth[0, i] = sun['azimuth']
 
         # day of year and check for leap year
         if calendar.isleap(time['year']):
