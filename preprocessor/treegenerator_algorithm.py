@@ -190,14 +190,16 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             cdsm_array = dataset.ReadAsArray().astype(float)
             # tdsm = self.layerComboManagerCDSM.currentLayer()
             if tdsm is None:
-                raise QgsProcessingException("No valid vegetation TDSM raster layer is selected. Both CDSM and TDSM must be selected if merging with existing.")
-                return
+                # raise QgsProcessingException("No valid vegetation TDSM raster layer is selected. Both CDSM and TDSM must be selected if merging with existing.")
+                feedback.setProgressText("No TDSM raster layer is selected. Creating new TDSM raster layer.")
+                tdsm_array = np.zeros((sizey, sizex))
+                # return
+            else:
+                provider = tdsm.dataProvider()
+                filePath_tdsm = str(provider.dataSourceUri())
 
-            provider = tdsm.dataProvider()
-            filePath_tdsm = str(provider.dataSourceUri())
-
-            dataset = gdal.Open(filePath_tdsm)
-            tdsm_array = dataset.ReadAsArray().astype(float)
+                dataset = gdal.Open(filePath_tdsm)
+                tdsm_array = dataset.ReadAsArray().astype(float)
 
         else:
             cdsm_array = np.zeros((sizey, sizex))
