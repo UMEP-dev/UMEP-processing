@@ -126,9 +126,10 @@ def main(javaEnvironmentPath,
     #Initialize a H2GIS database connection
     dBDir = os.path.join(Path(pluginDirectory).parent, 'functions','URock')
     #print(dBDir)
-    cursor = H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
-                                                dbInstanceDir = tempoDirectory)
-    
+    cursor, conn, localH2InstanceDir = \
+        H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
+                                           dbInstanceDir = tempoDirectory)
+        
     # Load data
     loadData.loadData(fromCad = False, 
                       prefix = prefix,
@@ -803,6 +804,12 @@ def main(javaEnvironmentPath,
                              gridPoint = gridPoint,
                              rotationCenterCoordinates = rotationCenterCoordinates, 
                              windDirection = windDirection)
+    
+    # Close the Database connection and remove the file
+    if not debug:
+        H2gisConnection.closeAndRemoveH2gisInstance(localH2InstanceDir = localH2InstanceDir, 
+                                                    conn = conn,
+                                                    cur = cursor)
 
     return  u_rot, v_rot, w, u0_rot, v0_rot, w0, x_rot, y_rot, z,\
             buildingCoordinates, cursor, rotated_grid, rotationCenterCoordinates,\

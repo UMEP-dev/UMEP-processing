@@ -76,8 +76,8 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
         feedback.setProgressText('Load csv file into H2GIS Database...')    
     # Initialize an H2GIS database connection
     dBDir = os.path.join(Path(pluginDirectory).parent, 'functions','URock')
-    cursor = H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
-                                                dbInstanceDir = TEMPO_DIRECTORY)
+    cursor, conn, localH2InstanceDir = H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
+                                                                          dbInstanceDir = TEMPO_DIRECTORY)
     
     # Load coordinates in a H2GIS table
     cursor.execute("""
@@ -345,6 +345,11 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                 fig[line].savefig(os.path.join(outputDirectory, simulationName + "_line" + str(line) + ".png"))
             else:
                 ax[line].set_title("Line {0}".format(line))
+
+    # Close the Database connection and remove the file
+    H2gisConnection.closeAndRemoveH2gisInstance(localH2InstanceDir = localH2InstanceDir, 
+                                                conn = conn,
+                                                cur = cursor)
 
     return fig, ax, scale, fig_poly, ax_poly
             

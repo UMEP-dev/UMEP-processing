@@ -16,6 +16,7 @@ from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS, NEW_DB,\
 import subprocess
 import re
 import pandas as pd
+import time
 
 try:
     #path_pybin = DataUtil.locate_py()
@@ -39,6 +40,10 @@ H2GIS_UNZIPPED_NAME = "h2gis-standalone"+os.sep+"h2gis-dist-"+H2GIS_VERSION+"-SN
 JAVA_PATH_POSIX = [os.path.join(os.sep, "usr", "lib", "jvm")]
 JAVA_PATH_NT = [os.path.join("C:", os.sep, "Program Files", "Java"), os.path.join("C:", os.sep, "Program Files", "OpenJDK"),
 		        os.path.join("C:", os.sep, "Program Files (x86)", "Java"), os.path.join("C:", os.sep, "Program Files (x86)", "OpenJDK")]
+
+# DB extension
+DB_EXTENSION = ".mv.db"
+DB_TRACE_EXTENSION = ".trace.db"
 
 def downloadH2gis(dbDirectory):
     """ Download the H2GIS spatial database management system (used for Röckle zone calculation)
@@ -90,7 +95,7 @@ def downloadH2gis(dbDirectory):
            
 def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY, 
                        instanceName = INSTANCE_NAME, instanceId=INSTANCE_ID, 
-                       instancePass = INSTANCE_PASS, newDB = NEW_DB):
+                       instancePass = INSTANCE_PASS):
     """ Start an H2GIS spatial database instance (used for Röckle zone calculation)
     For more information about use with Python: https://github.com/orbisgis/h2gis/wiki/4.4-Use-H2GIS-with-Python
 
@@ -107,34 +112,31 @@ def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY,
                 ID used to connect to the database
             instancePass: String, default INSTANCE_PASS
                 password used to connect to the database
-            newDB: Boolean, default NEW_DB
-                Whether or not all existing 'public' tables should be deleted
-                (if the DB already exists)
         
 		Returns
 		_ _ _ _ _ _ _ _ _ _ 
 
             cur: conn.cursor
-                A cursor object, used to perform queries"""
-    # DB extension
-    dbExtension = ".mv.db"
-    dbTraceExtension = ".trace.db"
-    
+                A cursor object, used to perform queries
+            conn: 
+                A connection object to the database
+            localH2InstanceDir: String
+                File directory of the database to delete (without extension)"""    
     # Define where are the jar of the DB and the H2GIS instance (in absolute paths)
     localH2JarDir = dbDirectory+os.sep+H2GIS_UNZIPPED_NAME
-    localH2InstanceDir = dbInstanceDir+os.sep+instanceName
+    localH2InstanceDir = dbInstanceDir+os.sep+instanceName + str(time.time()).replace(".", "_")
 
-    isDbExist = os.path.exists(localH2InstanceDir+dbExtension)
+    isDbExist = os.path.exists(localH2InstanceDir+DB_EXTENSION)
     
     # print the connection string we will use to connect
     print("Connecting to database\n	->%s" % (localH2InstanceDir))
     print (localH2JarDir)
 
     # If the DB already exists and if 'newDB' is set to True, delete all the DB files
-    if isDbExist & newDB:
-        os.remove(localH2InstanceDir+dbExtension)
-        if os.path.exists(localH2InstanceDir+dbTraceExtension):
-            os.remove(localH2InstanceDir+dbTraceExtension)
+    if isDbExist:
+        os.remove(localH2InstanceDir+DB_EXTENSION)
+        if os.path.exists(localH2InstanceDir+DB_TRACE_EXTENSION):
+            os.remove(localH2InstanceDir+DB_TRACE_EXTENSION)
     
     # get a connection, if a connect cannot be made an exception will be raised here
     conn = jaydebeapi.connect(  "org.h2.Driver",
@@ -146,21 +148,39 @@ def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY,
     cur = conn.cursor()
     print("Connected!\n")
     
-    # If the DB already exists and if 'newDB' is set to True, delete all 'public' tables 
-    # if isDbExist & newDB:
-    #     cur.execute("""SELECT TABLE_NAME 
-    #                     FROM INFORMATION_SCHEMA.TABLES 
-    #                     WHERE TABLE_SCHEMA = 'PUBLIC'""")
-    #     tableNames = [i[0] for i in cur.fetchall()]
-    #     cur.execute("""
-    #         DROP TABLE IF EXISTS {0}""".format(",".join(tableNames)))
-            
+
     # Init spatial features
     cur.execute("CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR \"org.h2gis.functions.factory.H2GISFunctions.load\";")
     cur.execute("CALL H2GIS_SPATIAL();")
     print("Spatial functions added!\n")
     
-    return cur
+    return cur, conn, localH2InstanceDir
+
+def closeAndRemoveH2gisInstance(localH2InstanceDir, conn, cur):
+    """ Close an H2GIS instance and remove the database file
+
+		Parameters
+		_ _ _ _ _ _ _ _ _ _ 
+
+            localH2InstanceDir: String
+                File directory of the database to delete (without extension)
+            conn: 
+                A connection object to the database
+            cur: conn.cursor
+                A cursor object, used to perform queries
+            
+        
+		Returns
+		_ _ _ _ _ _ _ _ _ _ 
+
+            None"""
+    # Close cursor and connection and then delete the H2GIS database file
+    cur.close()
+    conn.close()
+    if os.path.exists(localH2InstanceDir + DB_EXTENSION):
+        os.remove(localH2InstanceDir + DB_EXTENSION)
+    if os.path.exists(localH2InstanceDir + DB_TRACE_EXTENSION):
+        os.remove(localH2InstanceDir + DB_TRACE_EXTENSION)
 
 def setJavaDir(javaPath):
     """ If there is no JAVA variable environment set or neither already one 
