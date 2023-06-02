@@ -261,7 +261,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # Creating vector with hours from file names
         h_fl = np.zeros((sh_fl.__len__(),1))
         for iz in range(sh_fl.__len__()):
-            h_fl[iz,0] = np.float(sh_fl[iz][-9:-5])
+            h_fl[iz,0] = np.float32(sh_fl[iz][-9:-5])
 
         for ix in range(sh_fl.__len__()):
             if h_start in sh_fl[ix]:
