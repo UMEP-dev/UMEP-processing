@@ -128,7 +128,8 @@ def main(javaEnvironmentPath,
     #print(dBDir)
     cursor, conn, localH2InstanceDir = \
         H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
-                                           dbInstanceDir = tempoDirectory)
+                                           dbInstanceDir = tempoDirectory,
+                                           suffix = str(time.time()).replace(".", "_"))
         
     # Load data
     loadData.loadData(fromCad = False, 

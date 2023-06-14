@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from matplotlib.patches import Rectangle
 from pathlib import Path
+import time
 
 from . import H2gisConnection
 from .loadData import loadFile
@@ -77,7 +78,8 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     # Initialize an H2GIS database connection
     dBDir = os.path.join(Path(pluginDirectory).parent, 'functions','URock')
     cursor, conn, localH2InstanceDir = H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
-                                                                          dbInstanceDir = TEMPO_DIRECTORY)
+                                                                          dbInstanceDir = TEMPO_DIRECTORY,
+                                                                          suffix = str(time.time()).replace(".", "_"))
     
     # Load coordinates in a H2GIS table
     cursor.execute("""

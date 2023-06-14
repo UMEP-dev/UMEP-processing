@@ -16,7 +16,6 @@ from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS, NEW_DB,\
 import subprocess
 import re
 import pandas as pd
-import time
 
 try:
     #path_pybin = DataUtil.locate_py()
@@ -94,7 +93,8 @@ def downloadH2gis(dbDirectory):
 
            
 def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY, 
-                       instanceName = INSTANCE_NAME, instanceId=INSTANCE_ID, 
+                       instanceName = INSTANCE_NAME, suffix = "", 
+                       instanceId=INSTANCE_ID, 
                        instancePass = INSTANCE_PASS):
     """ Start an H2GIS spatial database instance (used for Röckle zone calculation)
     For more information about use with Python: https://github.com/orbisgis/h2gis/wiki/4.4-Use-H2GIS-with-Python
@@ -108,6 +108,8 @@ def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY,
                 Directory where should be started the H2GIS instance
             instanceName: String, default INSTANCE_NAME
                 File name used for the database
+            suffix: String, default ""
+                Suffix to add at the end of the database name
             instanceId: String, default INSTANCE_ID
                 ID used to connect to the database
             instancePass: String, default INSTANCE_PASS
@@ -124,7 +126,7 @@ def startH2gisInstance(dbDirectory, dbInstanceDir = TEMPO_DIRECTORY,
                 File directory of the database to delete (without extension)"""    
     # Define where are the jar of the DB and the H2GIS instance (in absolute paths)
     localH2JarDir = dbDirectory+os.sep+H2GIS_UNZIPPED_NAME
-    localH2InstanceDir = dbInstanceDir+os.sep+instanceName + str(time.time()).replace(".", "_")
+    localH2InstanceDir = dbInstanceDir+os.sep+instanceName + suffix
 
     isDbExist = os.path.exists(localH2InstanceDir+DB_EXTENSION)
     
