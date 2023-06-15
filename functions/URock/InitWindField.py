@@ -2953,7 +2953,7 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
                             verticalProfileFile = verticalProfileFile)
     
     # Insert the initial vertical wind profile values into a table
-    valuesForEachRowProfile = [str(i)+","+str(j) for i, j in verticalWindSpeedProfile[HORIZ_WIND_SPEED].iteritems()]
+    valuesForEachRowProfile = [str(i)+","+str(j) for i, j in verticalWindSpeedProfile[HORIZ_WIND_SPEED].items()]
     cursor.execute("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
@@ -2982,7 +2982,7 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
                                     verticalProfileFile = verticalProfileFile)
             
         # ... and insert it into a table
-        valuesForEachRowBuilding = [str(i)+","+str(j) for i, j in buildingHeightWindSpeed.set_index(Z)[HORIZ_WIND_SPEED].iteritems()]
+        valuesForEachRowBuilding = [str(i)+","+str(j) for i, j in buildingHeightWindSpeed.set_index(Z)[HORIZ_WIND_SPEED].items()]
         cursor.execute("""
                DROP TABLE IF EXISTS {0};
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
