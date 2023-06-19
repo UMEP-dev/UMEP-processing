@@ -316,7 +316,7 @@ def loadFile(cursor, filePath, tableName, srid = None, srid_repro = None):
             """.format( tableName, filePath, readFunction))
     else: # Import and then copy into a new table to remove all constraints (primary keys...)
         cursor.execute("""
-           DROP TABLE IF EXISTS TEMPO;
+           DROP TABLE IF EXISTS TEMPO, {0};
             CALL {2}('{1}','TEMPO');
             CREATE TABLE {0}
                 AS SELECT *
