@@ -266,8 +266,8 @@ def saveToNetCDF(longitude,
     vertWindProfGrp.createDimension('z', verticalWindProfile.index.size)
     
     # Build the variables 
-    z_profile = vertWindProfGrp.createVariable(Z, 'i4', 'z')
-    WindSpeed = vertWindProfGrp.createVariable(WINDSPEED_PROFILE, 'f4', ('z'))
+    z_profile = vertWindProfGrp.createVariable(Z, 'f4', 'z')
+    WindSpeed = vertWindProfGrp.createVariable(WINDSPEED_PROFILE, 'f4', 'z')
     
     # Fill the variables
     z_profile[:] = verticalWindProfile[Z].values
