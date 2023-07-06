@@ -41,7 +41,7 @@ from .preprocessor.imagemorphparms_algorithm import ProcessingImageMorphParmsAlg
 from .preprocessor.landcoverfractionpoint_algorithm import ProcessingLandCoverFractionPointAlgorithm
 from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
 from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
-from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
+#from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
 from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
 from .preprocessor.uwgprepare_algorithm import ProcessingUWGPrepareAlgorithm
 from .preprocessor.urock_prepare_algorithm import URockPrepareAlgorithm
@@ -97,7 +97,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingLandCoverFractionPointAlgorithm())
         self.addAlgorithm(ProcessingLandCoverFractionAlgorithm())
         self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
-        # self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
+        #self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
         self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())

@@ -59,6 +59,7 @@ import sys
 from ..util import RoughnessCalcFunctionV2 as rg
 from ..util import imageMorphometricParms_v2 as morph
 from ..functions import wallalgorithms as wa
+from ..util import ssParms as ss
 
 
 class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
@@ -81,7 +82,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
     IGNORE_NODATA = 'IGNORE_NODATA'
     ATTR_TABLE = 'ATTR_TABLE'
     CALC_SS = 'CALC_SS'
-    SS_HEIGHTS = 'SS_HEIGHTS'
+    #SS_HEIGHTS = 'SS_HEIGHTS'
     INPUT_CDSM = 'INPUT_CDSM'
     
     
@@ -129,30 +130,15 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
             self.tr('Output folder')))
 
-
-
-        # sex = QgsProcessingParameterEnum(
-        #     self.SEX, self.tr('Sex'), ['Male', 'Female'], optional=True, defaultValue=0)
-        # sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        # self.addParameter(sex)
-        # SPARTACUS PARAMETERS (ADVANCED)
+        # Advanced parameters (SS)
         ss = QgsProcessingParameterBoolean(self.CALC_SS,
-            self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True)
+            self.tr("Calculate parameters for SUEWS/SS"), defaultValue=False, optional=True)
         ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(ss)
-        # self.addParameter(QgsProcessingParameterBoolean(self.CALC_SS,
-            # self.tr("Calculate parameters for SUEWS/SS"), defaultValue=True, optional=True))
-        ssh = QgsProcessingParameterString(self.SS_HEIGHTS, 
-            self.tr('Height intervals for SUEWS/SS (magl). Use comma (,) as seprator. Leave blank for automatic intervals.'),
-            optional=True)
-        ssh.setFlags(ssh.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(ssh)
         sscdsm = QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
             self.tr('Raster DSM (3D objects and ground)'), '', True)
         sscdsm.setFlags(sscdsm.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(sscdsm)
-        # self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-            # self.tr('Raster DSM (3D objects and ground)'), '', True))
 
 
         self.plugin_dir = os.path.dirname(__file__)
@@ -176,22 +162,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         calcSS = self.parameterAsBool(parameters, self.CALC_SS, context)
-        ssHeights = self.parameterAsString(parameters, self.SS_HEIGHTS, context)
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-
-        #adding parameters for SUEWS/SS
-        if calcSS:
-            ssAuto = 0
-            ssValues = []
-            if ssHeights == '':
-                ssAuto = 1
-            else:
-                ssIntervals = ssHeights.split(',')
-                for i in ssIntervals:
-                    ssValues.append(int(i))
         
         # preparing headers etc.
         degree = float(inputInterval)
@@ -201,6 +175,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         headerIso = ' id  pai   fai   zH  zHmax   zHstd  zd  z0  wai ' #moved inside loop
         numformat2 = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
 
+        #adding parameters for SUEWS/SS
+        if calcSS:
+            headerSS = ' z  paib waib paiv waiv '
+            numformatSS = '%3d %4.3f %4.3f %4.3f %4.3f'
+            
         imp_point = 0 # only used in menu-based tool
         imid = int(searchMethod)
         arrmat = np.empty((1, 9))
@@ -236,7 +215,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         else:
             Roughnessmethod = 'Kan'
 
-        for f in vlayer.getFeatures():  # looping through each grid polygon
+        # looping through each grid polygon
+        for f in vlayer.getFeatures():  
             feedback.setProgress(int((index * 100) / nGrids))
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
@@ -250,22 +230,19 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             feature.setAttributes(attributes)
             feature.setGeometry(geometry)
 
-            if imid == 1:  # use center point
+            if imid == 1: # from centroid point
                 r = inputDistance
                 y = f.geometry().centroid().asPoint().y()
                 x = f.geometry().centroid().asPoint().x()
-            else:
-                r = 0  # Uses as info to separate from IMP point to grid
+                bbox = (x - r, y + r, x + r, y - r)
+            else: # from cutline polygon
+                r = 0  # Used as info to separate from IMP point to grid
                 writer = QgsVectorFileWriter(self.dir_poly, "CP1250", fields, prov.wkbType(),
                                                 prov.crs(), "ESRI shapefile")
                 if writer.hasError() != QgsVectorFileWriter.NoError:
                     raise QgsProcessingException("Error when creating shapefile: ", str(writer.hasError()))
                 writer.addFeature(feature)
                 del writer
-
-            if imid == 1: # from centroid point
-                bbox = (x - r, y + r, x + r, y - r)
-            else: # from cutline polygon
                 VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
                 Vector = VectorDriver.Open(self.dir_poly, 0)  #self.dir_poly
                 layer = Vector.GetLayer()
@@ -288,11 +265,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if imid == 1:
                     gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
                 else:
-                    clip_spec = gdal.WarpOptions(
-                        format="GTiff",
-                        cutlineDSName=self.dir_poly,
-                        cropToCutline=True
-                    )
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=self.dir_poly, cropToCutline=True)
                     gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
                 bigraster = None
 
@@ -304,8 +277,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 ndDEM = -9999
 
             else:  # Both building ground heights
-                dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-                demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context) 
+                dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+                demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
 
                 if dsmlayer is None:
                     raise QgsProcessingException("No valid ground and building DSM raster layer is selected")
@@ -317,38 +290,21 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 provider = demlayer.dataProvider()
                 filePath_dem = str(provider.dataSourceUri())
 
-
                 # added gdal.Warp() for irregular grids
                 bigraster = gdal.Open(filePath_dsm)
                 if imid == 1:
                     gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
                 else:
-                    clip_spec = gdal.WarpOptions(
-                        format="GTiff",
-                        cutlineDSName=self.dir_poly,
-                        cropToCutline=True
-                    )
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=self.dir_poly, cropToCutline=True)
                     gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
                 bigraster = None
                 bigraster = gdal.Open(filePath_dem)
                 if imid == 1:
                     gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
                 else:
-                    clip_spec = gdal.WarpOptions(
-                        format="GTiff",
-                        cutlineDSName=self.dir_poly,
-                        cropToCutline=True
-                    )
+                    clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=self.dir_poly, cropToCutline=True)
                     gdal.Warp(self.plugin_dir + '/data/clipdem.tif', bigraster, options=clip_spec)
                 bigraster = None
-
-                # # Remove gdalwarp with gdal.Translate
-                # bigraster = gdal.Open(filePath_dsm)
-                # gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
-                # bigraster = None
-                # bigraster = gdal.Open(filePath_dem)
-                # gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
-                # bigraster = None
 
                 dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
                 dsm_array = dataset.ReadAsArray().astype(float)
@@ -359,9 +315,26 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if not (dsm_array.shape[0] == dem_array.shape[0]) & (dsm_array.shape[1] == dem_array.shape[1]):
                     raise QgsProcessingException("All grids must be of same extent and resolution")
 
-            # if not sizex == sizey:
-                # raise QgsProcessingException('Vector polygon is not squared in this CRS. Reproject or generate new grid based on current CRS.')
-            
+            if calcSS: #add vegetion (if present) for SUEWS/SS
+                cdsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+                if cdsmlayer is None:
+                    cdsm_array = dsm_array * 0.0
+                    ndCDSM = -9999
+                else:
+                    provider = cdsmlayer.dataProvider()
+                    filePath_cdsm = str(provider.dataSourceUri())
+                    bigraster = gdal.Open(filePath_cdsm)
+                    if imid == 1:
+                        gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                    else:
+                        clip_spec = gdal.WarpOptions(format="GTiff", cutlineDSName=self.dir_poly, cropToCutline=True)
+                        gdal.Warp(self.plugin_dir + '/data/clipcdsm.tif', bigraster, options=clip_spec)
+                    bigraster = None
+                    dataseti = gdal.Open(self.plugin_dir + '/data/clipcdsm.tif')
+                    ndCDSM = dataseti.GetRasterBand(1).GetNoDataValue()
+                    cdsm_array = dataseti.ReadAsArray().astype(float)
+
+
             geotransform = dataset.GetGeoTransform()
             scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
@@ -371,10 +344,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
                     cal = 0
                 else:
-                    # dsm_array[dsm_array == nd] = -9999
-                    # dem_array[dem_array == nd] = -9999
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
-                    # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to mean of whole grid.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -388,6 +358,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 #set nodata to same
                 dsm_array[dsm_array == nd] = -9999
                 dem_array[dem_array == ndDEM] = -9999
+                cdsm_array[cdsm_array == ndCDSM] = -9999
+                
+                #calculate morphometric params
                 immorphresult = morph.imagemorphparam_v2(dsm_array, dem_array, scale, imid, degree, feedback, imp_point)
 
                 zH = immorphresult["zH"]
@@ -429,9 +402,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 numPixels = len(dsm_array[np.where(dsm_array != nd)])
                 dsmwall = np.copy(dsm_array)
                 dsmwall[dsmwall == nd] = 0
-                wallarea = np.sum(wa.findwalls(dsmwall, 2., feedback, total))
-                gridArea = numPixels * geotransform[1] * geotransform[1] # changed to work for irregular grids
-                # gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
+                walls = wa.findwalls(dsmwall, 2., feedback, total)
+                wallarea = np.sum(walls)
+                gridArea = numPixels * geotransform[1] * abs(geotransform[5]) # changed to work for irregular grids
                 wai = wallarea / gridArea
 
                 arr2 = np.array([[f.attributes()[idx], immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
@@ -439,15 +412,22 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
                 arrmat = np.vstack([arrmat, arr2])
 
+                if calcSS:
+                    #arrmatSS = np.empty((1, 5))
+                    ssResults = ss.ss_calc(dsm_array, dem_array, cdsm_array, walls, numPixels, feedback)                    
+                    arrSS = np.hstack([ssResults["z"], ssResults["paiZ_b"], ssResults["waiZ_b"], ssResults["paiZ_v"], ssResults["waiZ_v"]])
+                    np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_SS_'  + str(f.attributes()[idx]) + '.txt', arrSS,
+                    fmt=numformatSS, delimiter=' ', header=headerSS, comments='')
+
             dataset = None
             dataset2 = None
 
         arrmatsave = arrmat[1: arrmat.shape[0], :]
         np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_isotropic.txt', arrmatsave,
                     fmt=numformat2, delimiter=' ', header=headerIso, comments='')
-
+  
         if attrTable: 
-            feedback.setProgressText("Adding result to layer attribute table") 
+            feedback.setProgressText("Adding result to layer attribute table")
             self.addattr(vlayer, arrmatsave, headerIso, pre, feedback, idx)
 
         return {self.OUTPUT_DIR: outputDir}

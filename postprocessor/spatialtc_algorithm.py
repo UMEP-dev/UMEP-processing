@@ -232,7 +232,8 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # Get SOLWEIG output folder path from Tmrt raster path
         provider = tmrt.dataProvider()
         filepath_tmrt = str(provider.dataSourceUri()) # Path for Tmrt raster
-        solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
+        #solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
+        solweig_path = os.path.dirname(filepath_tmrt) # issue 31 
 
         # LOAD raster data
         filepath_build = solweig_path + '/buildings.tif' # Load buildings raster (should be in SOLWEIG output folder)
@@ -300,7 +301,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
 
         # Loading Kup, Kdown, Kdiff, Lup and Ldown if calculating COMFA
         if tcType == 2:
-            filepath = filepath_tmrt.split('Tmrt')
+            filepath = os.path.dirname(filepath_tmrt) # issue 31  filepath_tmrt.split('Tmrt')
             # Load Kup, Kdown, Lup, Ldown grids
             Kup, rows, cols = load_grid(filepath[0] + 'Kup' + filepath[1], feedback)
             Kdown, _, __ = load_grid(filepath[0] + 'Kdown' + filepath[1], feedback)

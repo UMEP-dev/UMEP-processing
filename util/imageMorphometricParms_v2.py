@@ -29,21 +29,23 @@ import scipy.ndimage.interpolation as sc
 
 def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 
+    numPixels = len(dsm[np.where(dsm != -9999)]) # too deal with irregular grids
+
     build = dsm - dem
     build[(build < 2.)] = 0.  # building should be higher than 2 meter
 
-    # new part
+    # new part (when did i write this?)
     buildvec = build[np.where(build > 0)]
     if buildvec.size > 0:
         zH_all = buildvec.mean()
         zHmax_all = buildvec.max()
         zH_sd_all = buildvec.std()
-        pai_all = (buildvec.size * 1.0) / (build.size * 1.0)
+        pai_all = (buildvec.size * 1.0) / numPixels #(build.size * 1.0)
     else:
-        zH_all = 0
-        zHmax_all = 0
-        zH_sd_all = 0
-        pai_all = 0
+        zH_all = 0.0
+        zHmax_all = 0.0
+        zH_sd_all = 0.0
+        pai_all = 0.0
 
     fai = np.zeros((int(360./dtheta), 1))
     zH = np.zeros((int(360./dtheta), 1))
@@ -75,10 +77,9 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
         # Rotating buildings
         # d = sc.rotate(build, angle, order=0, reshape=False, mode='nearest') #old
         a = sc.rotate(build, angle, order=0, reshape=True, mode='constant', cval=-99)
-        # b = ((build.max()-build.min())/d.max())*d+build.min() # not needed any more
        
         #% convolve leading edge filter with domain
-        c = a * 0.0 # np.zeros((n, n))
+        c = a * 0.0
 
         n = c.shape[1]
         imid = np.floor((n/2.))

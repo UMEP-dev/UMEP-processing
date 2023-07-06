@@ -30,11 +30,11 @@ from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
 import os
+import sys
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
-from ..util import misc
+# from ..util import misc
 
 
 class ProcessingSUEWSPreprocessorAlgorithm(QgsProcessingAlgorithm):
@@ -44,6 +44,7 @@ class ProcessingSUEWSPreprocessorAlgorithm(QgsProcessingAlgorithm):
 
     INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
     ID_FIELD = 'ID_FIELD'
+    INPUT_POLYGONLAYERTYPOLOGY = 'INPUT_POLYGONLAYERTYPOLOGY'
     LOD0 = 'LOD0'
     LOD1 = 'LOD1'
     LOD2_GRASS = 'LOD2_GRASS'
@@ -65,12 +66,17 @@ class ProcessingSUEWSPreprocessorAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
                                                             self.tr('Vector polygon grid'),
-                                                            [QgsProcessing.TypeVectorPolygon]))
+                                                            [QgsProcessing.TypeVectorPolygon],
+                                                            optional=False))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
                                                       self.tr('ID field'),
                                                       '',
                                                       self.INPUT_POLYGONLAYER,
                                                       QgsProcessingParameterField.Numeric))
+        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYERTYPOLOGY,
+                                                              self.tr('Building type polygon layer'), 
+                                                              [QgsProcessing.TypeVectorPolygon], 
+                                                              optional=True))
         self.lod0Opt = ((self.tr('Urban/dense'), '0'),
                         (self.tr('Urban/medium'), '1'),
                         (self.tr('Urban/low'), '2'),
@@ -191,28 +197,94 @@ class ProcessingSUEWSPreprocessorAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
+        polyBT = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYERTYPOLOGY, context)
+        morphFileBuild = self.parameterAsString(parameters, self.INPUT_BUILD, context)
+        morphFileVeg = self.parameterAsString(parameters, self.INPUT_DEC, context)
+        lcFile = self.parameterAsString(parameters, self.INPUT_LC, context)
         # lod1 = self.parameterAsString(parameters, self.LOD0, context)
-        # inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
         # useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
-        # outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        prefix = self.parameterAsString(parameters, self.FILE_CODE, context)
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        poly = inputPolygonlayer
+        if not (os.path.isdir(self.plugin_dir + '/tempdata')):
+            os.mkdir(self.plugin_dir + '/tempdata')
+
+        pre = prefix
+        
+        # temporary fix for mac, ISSUE #15
+        pf = sys.platform
+        if pf == 'darwin' or pf == 'linux2' or pf == 'linux':
+            if not os.path.exists(outputDir + '/' + pre):
+                os.makedirs(outputDir + '/' + pre)
+
         poly_field = idField
         vlayer = inputPolygonlayer
-        prov = vlayer.dataProvider()
-        fields = prov.fields()
-        idx = vlayer.fields().indexFromName(poly_field[0])
-        dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
-        
+        feedback.setProgressText("Number of grids to process: " + str(nGrids))
+
+        path=vlayer.dataProvider().dataSourceUri()
+        if path.rfind('|') > 0:
+            polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        else:
+            polygonpath = path
+
+        map_units = vlayer.crs().mapUnits()
+        if not map_units == 0 or map_units == 1 or map_units == 2:
+            raise QgsProcessingException("Could not identify the map units of the polygon layer CRS.")
+
+        if polyBT is None:
+            feedback.pushWarning('No valid building type polygon layer is selected. All buildings are classified as mid-rise residental buildings.')
+            vlayerBT = None
+        else:
+            vlayerBT = polyBT
+            pathBT=vlayerBT.dataProvider().dataSourceUri()
+            if pathBT.rfind('|') > 0:
+                polygonpathBT = pathBT [:pathBT.rfind('|')] # work around. Probably other solution exists
+            else:
+                polygonpathBT = pathBT
+
+
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
 
-        feedback.setProgressText("Adding result to layer attribute table") 
+        # Intersect grids with building type polygons 
+        if vlayerBT:
+            feedback.setProgressText("Intersecting polygon grid and urban typology layer")
+            import processing
+            urbantypelayer = self.plugin_dir + '/tempdata/' + 'intersected.shp'
+
+            intersectPrefix = 'i'
+            parin = { 'INPUT' : polygonpath, 
+            'INPUT_FIELDS' : [], 
+            'OUTPUT' : urbantypelayer, 
+            'OVERLAY' : polygonpathBT, 
+            'OVERLAY_FIELDS' : [], 
+            'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
+
+            processing.run('native:intersection', parin)
+
+            vlayertype = QgsVectorLayer(urbantypelayer, "polygon", "ogr")
+            type_field = parin['OVERLAY_FIELDS_PREFIX'] + 'uwgType'
+            time_field = parin['OVERLAY_FIELDS_PREFIX'] + 'uwgTime'
+
+        #Start loop of polygon grids
+        ##land cover and morphology
+        index = 0
+        for feature in vlayer.getFeatures():
+            feedback.setProgress(int((index * 100) / nGrids))
+            if feedback.isCanceled():
+                feedback.setProgressText("Calculation cancelled")
+                break
+            index += 1
+
+            feat_id = int(feature.attribute(poly_field[0]))
+            feedback.setProgressText("Processing grid ID: " + str(feat_id))
+
+        #feedback.setProgressText("Adding result to layer attribute table") 
 
 
         return {self.OUTPUT_DIR: outputDir}

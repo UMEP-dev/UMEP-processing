@@ -35,24 +35,13 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFile,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                    #    QgsProcessingParameterFeatureSink,
-                       QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                    #    QgsProcessingParameterVectorDestination,
-                    #    QgsProcessingParameterExtent,
                        QgsProcessingException,
-                       QgsVectorLayer,
-                       QgsFeature,
-                    #    QgsGeometry,
-                    #    QgsPointXY,
-                       QgsVectorFileWriter,
-                       QgsVectorDataProvider,
-                       QgsField)
+                       QgsVectorLayer)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
@@ -63,9 +52,6 @@ import inspect
 from pathlib import Path
 import sys
 from ..util.umep_uwg_export_component import create_uwgdict, get_uwg_file
-# from ..util import RoughnessCalcFunctionV2 as rg
-# from ..util import imageMorphometricParms_v1 as morph
-# from ..functions import wallalgorithms as wa
 
 
 class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
@@ -164,13 +150,8 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             if not os.path.exists(outputDir + '/' + pre):
                 os.makedirs(outputDir + '/' + pre)
 
-        # poly = inputPolygonlayer
         poly_field = idField
         vlayer = inputPolygonlayer
-        # prov = vlayer.dataProvider()
-        # fields = prov.fields()
-        # idx = vlayer.fields().indexFromName(poly_field[0])
-        # dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to process: " + str(nGrids))
@@ -180,7 +161,6 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
         else:
             polygonpath = path
-        # feedback.setProgressText("polygonpath: " + str(polygonpath))
 
         map_units = vlayer.crs().mapUnits()
         if not map_units == 0 or map_units == 1 or map_units == 2:
@@ -196,7 +176,6 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                 polygonpathBT = pathBT [:pathBT.rfind('|')] # work around. Probably other solution exists
             else:
                 polygonpathBT = pathBT
-            # feedback.setProgressText("polygonpathBT: " + str(polygonpathBT))
 
         a = {}
         a['0'] = '1A'
@@ -217,7 +196,6 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         a['15'] = '8'
 
         zone = a[climateZone]
-        # feedback.setProgressText("eee: " + str(zone))
 
         # Intersect grids with building type polygons 
         if vlayerBT:
@@ -312,7 +290,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                 for key in fracDict:
                     if totarea > 0:
                         fracDict[key] = fracDict[key] / totarea
-                    else: 
+                    else:
                         fracDict['MidRiseApartment'] = 1.0
 
                 # Populate dict from type polygon layer
