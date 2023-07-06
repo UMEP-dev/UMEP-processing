@@ -333,15 +333,18 @@ def loadFile(cursor, filePath, tableName, srid = None, srid_repro = None):
     if srid:
         listCols = DataUtil.getColumns(cursor, tableName)
         listCols.remove(GEOM_FIELD)
+        listCols_sql = ",".join(listCols)
+        if listCols_sql != "":
+            listCols_sql += ","
         
         cursor.execute("""
            DROP TABLE IF EXISTS TEMPO_LOAD;
            CREATE TABLE TEMPO_LOAD
-               AS SELECT {0}, {4}ST_SETSRID({1}, {2}){5} AS {1}
+               AS SELECT {0} {4}ST_SETSRID({1}, {2}){5} AS {1}
                FROM {3};
            DROP TABLE {3};
            ALTER TABLE TEMPO_LOAD RENAME TO {3}
-           """.format(",".join(listCols), 
+           """.format(listCols_sql, 
                        GEOM_FIELD, 
                        srid,
                        tableName,
