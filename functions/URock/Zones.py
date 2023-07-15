@@ -190,26 +190,39 @@ def cavityAndWakeZones(cursor, downwindWithPropTable, srid, ellipseResolution,
                     WAKE_NAME: WAKE_NAME + DataUtil.postfix("_ZONE_POLYGONS")}
     
     # First densify the downwind facades
-    cursor.execute("""
-       DROP TABLE IF EXISTS {0};
-       CREATE TABLE {0}
-           AS SELECT EXPLOD_ID, {1}, X_MED, HALF_WIDTH, {2}, {3}, {4}
-           FROM ST_EXPLODE('(SELECT ST_TOMULTIPOINT(ST_DENSIFY({1}, {5})) AS {1},
-                                    {2}, {3}, {4},
-                                    {7} AS X_MED,
-                                    {8} / 2 AS HALF_WIDTH
-                           FROM {6})')
-       """.format( densifiedLinePoints               , GEOM_FIELD,
-                   CAVITY_LENGTH_FIELD               , WAKE_LENGTH_FIELD,
-                   DOWNWIND_FACADE_FIELD             , ellipseResolution,
-                   downwindWithPropTable             , STACKED_BLOCK_X_MED,
-                   STACKED_BLOCK_WIDTH))
+    cursor.execute(
+       f"""
+       DROP TABLE IF EXISTS {densifiedLinePoints};
+       CREATE TABLE {densifiedLinePoints}
+           AS SELECT   EXPLOD_ID, 
+                       {GEOM_FIELD}, 
+                       X_MED, 
+                       HALF_WIDTH, 
+                       {CAVITY_LENGTH_FIELD},
+                       {WAKE_LENGTH_FIELD}, 
+                       {DOWNWIND_FACADE_FIELD}
+           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
+                                                            ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
+                                    MAX({CAVITY_LENGTH_FIELD}) AS {CAVITY_LENGTH_FIELD}, 
+                                    MAX({WAKE_LENGTH_FIELD}) AS {WAKE_LENGTH_FIELD},
+                                    {DOWNWIND_FACADE_FIELD},
+                                    MAX(X_MED) AS X_MED, 
+                                    MAX(HALF_WIDTH) AS HALF_WIDTH
+                           FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
+                                                    {CAVITY_LENGTH_FIELD}, 
+                                                    {WAKE_LENGTH_FIELD}, 
+                                                    {DOWNWIND_FACADE_FIELD},
+                                                    {STACKED_BLOCK_X_MED} AS X_MED,
+                                                    {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
+                                           FROM {downwindWithPropTable})'')
+                           GROUP BY {DOWNWIND_FACADE_FIELD})')
+       """)
              
     # Define the names of variables for cavity and wake zones
     variablesNames = pd.DataFrame({"L": [CAVITY_LENGTH_FIELD, WAKE_LENGTH_FIELD]},
                                   index = [CAVITY_NAME, WAKE_NAME])
     
-    # Create the half ellipse for cavity and wake zones from the densified upwind facade points
+    # Create the half ellipse for cavity and wake zones from the densified downwind facade points
     cursor.execute(";".join(["""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
@@ -234,38 +247,39 @@ def cavityAndWakeZones(cursor, downwindWithPropTable, srid, ellipseResolution,
         for z in variablesNames.index]))
     
     # Create the zone from the half ellipse and the densified line and then join missing columns
-    cursor.execute(";".join(["""
-        {5}
-        DROP TABLE IF EXISTS {0}, {8};
-        CREATE TABLE {0}
-            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({1},2))))) AS {1},
-                        {3}
-            FROM {4}
-            GROUP BY {3};
-        {6}{7}
-        CREATE TABLE {8}
-            AS SELECT   a.{3}, a.{1}, b.{2}, b.{10}, b.{11}, b.{12}, b.{13}, 
-                        b.{14}, b.{15}, b.{16}, b.{17}
-            FROM {0} AS a LEFT JOIN {9} AS b
-            ON a.{3} = b.{3}
-            WHERE ST_AREA(a.{1}) > 0;
-        """.format(ZonePolygons[z]                  , GEOM_FIELD,
-                    ID_FIELD_STACKED_BLOCK          , DOWNWIND_FACADE_FIELD,
-                    ZonePoints[z]                   , DataUtil.createIndex(tableName=ZonePoints[z], 
-                                                                           fieldName=DOWNWIND_FACADE_FIELD,
-                                                                           isSpatial=False),
-                    DataUtil.createIndex(tableName=ZonePolygons[z], 
-                                         fieldName=DOWNWIND_FACADE_FIELD,
-                                         isSpatial=False),
-                    DataUtil.createIndex(tableName=downwindWithPropTable, 
-                                         fieldName=DOWNWIND_FACADE_FIELD,
-                                         isSpatial=False),
-                    outputZoneTableNames[z]         , downwindWithPropTable,
-                    HEIGHT_FIELD                    , STACKED_BLOCK_X_MED,
-                    STACKED_BLOCK_UPSTREAMEST_X     , SIN_BLOCK_LEFT_AZIMUTH,
-                    COS_BLOCK_LEFT_AZIMUTH          , COS_BLOCK_RIGHT_AZIMUTH,
-                    SIN_BLOCK_RIGHT_AZIMUTH         , STACKED_BLOCK_WIDTH)
-        for z in variablesNames.index]))
+    cursor.execute(";".join([
+        f"""
+        {DataUtil.createIndex(tableName=ZonePoints[z], 
+                              fieldName=DOWNWIND_FACADE_FIELD,
+                              isSpatial=False)}
+        DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
+        CREATE TABLE {ZonePolygons[z]}
+            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
+                        {DOWNWIND_FACADE_FIELD}
+            FROM {ZonePoints[z]}
+            GROUP BY {DOWNWIND_FACADE_FIELD};
+        {DataUtil.createIndex(tableName=ZonePolygons[z], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        {DataUtil.createIndex(tableName=downwindWithPropTable, 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        CREATE TABLE {outputZoneTableNames[z]}
+            AS SELECT   a.{DOWNWIND_FACADE_FIELD}, 
+                        a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
+                        b.{HEIGHT_FIELD},
+                        b.{STACKED_BLOCK_X_MED},
+                        b.{STACKED_BLOCK_UPSTREAMEST_X},
+                        b.{SIN_BLOCK_LEFT_AZIMUTH}, 
+                        b.{COS_BLOCK_LEFT_AZIMUTH},
+                        b.{COS_BLOCK_RIGHT_AZIMUTH},
+                        b.{SIN_BLOCK_RIGHT_AZIMUTH}, 
+                        b.{STACKED_BLOCK_WIDTH}
+            FROM {ZonePolygons[z]} AS a LEFT JOIN {downwindWithPropTable} AS b
+            ON a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
+            WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
+        """
+            for z in variablesNames.index]))
                     
     if not DEBUG:
         # Drop intermediate tables
