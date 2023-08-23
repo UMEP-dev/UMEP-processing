@@ -99,7 +99,7 @@ def tree_adjust(i_y, i_x, i_tmrt, counter, trees, treerasters, treeinput):
     while a_counter < trees:
         tmrt_temp = np.zeros((trees))
         for ix in range(trees):
-            tmrt_temp[ix] = treerasters.d_tmrt[np.int(i_y[counter,ix]),np.int(i_x[counter,ix])]
+            tmrt_temp[ix] = treerasters.d_tmrt[np.int_(i_y[counter,ix]),np.int_(i_x[counter,ix])]
 
         y_min = tmrt_temp[:] == np.min(tmrt_temp[:])    # Bool of position of tree with least decrease in Tmrt
         if y_min.shape[0] > 1:

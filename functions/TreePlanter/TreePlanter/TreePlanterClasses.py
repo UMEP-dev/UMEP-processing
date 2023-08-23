@@ -136,7 +136,7 @@ class Treerasters():
         self.buffer_y[0] = np.int_(y)
         self.buffer_y[1] = np.int_(self.cdsm.shape[0] - y)
         self.buffer_x[0] = np.int_(x)
-        self.buffer_x[1] = np.int(self.cdsm.shape[1] - x)
+        self.buffer_x[1] = np.int_(self.cdsm.shape[1] - x)
         self.tpy = y
         self.tpx = x
         self.rows = treeshade.shape[0]

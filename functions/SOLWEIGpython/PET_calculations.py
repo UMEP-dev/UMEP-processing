@@ -39,6 +39,8 @@ def calculate_PET_grid(Ta, RH, Tmrt, va, pet, feedback):
                 index = index + 1
                 feedback.setProgress(int(index * total))
                 pet_index[y,x]=_PET(Ta,RH,Tmrt[y,x],va[y,x],mbody,age,height,activity,clo,sex)
+            else:
+                pet_index[y, x] = -9999
 
     return pet_index
 

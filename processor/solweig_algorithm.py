@@ -1228,8 +1228,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             np.savetxt(outputDir + '/treeplantersettings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
 
         # Output I0 vs. Kglobal plot
-        radG_for_plot = radG[DOY == unique_days[0]]
-        hours_for_plot = hours[DOY == unique_days[0]]
+        radG_for_plot = radG[DOY == first_unique_day[0]]
+        hours_for_plot = hours[DOY == first_unique_day[0]]
         fig, ax = plt.subplots()
         ax.plot(hours_for_plot, I0_array, label='I0')
         ax.plot(hours_for_plot, radG_for_plot, label='Kglobal')
