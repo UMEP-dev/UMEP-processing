@@ -136,7 +136,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(ss)
         sscdsm = QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-            self.tr('Raster DSM (3D objects and ground)'), '', True)
+            self.tr('Raster vegetation DSM (CDSM)'), '', True)
         sscdsm.setFlags(sscdsm.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(sscdsm)
 
@@ -177,7 +177,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
         #adding parameters for SUEWS/SS
         if calcSS:
-            headerSS = ' z  paib waib paiv waiv '
+            headerSS = ' z  paib bScale paiv vScale '
             numformatSS = '%3d %4.3f %4.3f %4.3f %4.3f'
             
         imp_point = 0 # only used in menu-based tool
@@ -338,6 +338,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             geotransform = dataset.GetGeoTransform()
             scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
+            if nd is None:
+                feedback.pushWarning("NoData in DSM layer not set. Tick off 'Ignore NoData pixels' to make use of this tool or assign NoData value to your raster data.")
+            else:
+                feedback.setProgressText("NoData-value in DSM-layer: " + str(nd))
             nodata_test = (dsm_array == nd)
             if ignoreNodata:
                 if np.sum(dsm_array) == (dsm_array.shape[0] * dsm_array.shape[1] * nd):
@@ -400,9 +404,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 total = 100. / (int(dsm_array.shape[0] * dsm_array.shape[1]))
 
                 numPixels = len(dsm_array[np.where(dsm_array != nd)])
-                dsmwall = np.copy(dsm_array)
-                dsmwall[dsmwall == nd] = 0
-                walls = wa.findwalls(dsmwall, 2., feedback, total)
+                buildDSM = np.copy(dsm_array) - np.copy(dem_array)
+                buildDSM[buildDSM == nd] = 0
+                buildDSM[(buildDSM < 2.)] = 0 # building should be higher than 2 meter
+                walls = wa.findwalls(buildDSM, 0.5, feedback, total) # 0.5 meter difference in kernel filter identify a wall
                 wallarea = np.sum(walls)
                 gridArea = numPixels * geotransform[1] * abs(geotransform[5]) # changed to work for irregular grids
                 wai = wallarea / gridArea
@@ -414,8 +419,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
 
                 if calcSS:
                     #arrmatSS = np.empty((1, 5))
-                    ssResults = ss.ss_calc(dsm_array, dem_array, cdsm_array, walls, numPixels, feedback)                    
-                    arrSS = np.hstack([ssResults["z"], ssResults["paiZ_b"], ssResults["waiZ_b"], ssResults["paiZ_v"], ssResults["waiZ_v"]])
+                    ssResults = ss.ss_calc(buildDSM, cdsm_array, walls, numPixels, feedback)                    
+                    arrSS = np.hstack([ssResults["z"], ssResults["paiZ_b"], ssResults["bScale"], ssResults["paiZ_v"], ssResults["vScale"]])
                     np.savetxt(outputDir + '/' + pre + '_' + 'IMPGrid_SS_'  + str(f.attributes()[idx]) + '.txt', arrSS,
                     fmt=numformatSS, delimiter=' ', header=headerSS, comments='')
 
