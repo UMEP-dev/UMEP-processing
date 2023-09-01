@@ -347,12 +347,13 @@ def getJavaHome(os_type):
 
         try:
             java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\Java Runtime Environment")
-            if not java_key:
+
+        except FileNotFoundError:
+            try:
                 java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\Java Development Kit")
-        
-        except WindowsError:
-            print("Java not found")
-            exit()
+            except FileNotFoundError:
+                print("Java not found")
+                exit()
 
         current_version, _ = winreg.QueryValueEx(java_key, "CurrentVersion")
         java_version_key = winreg.OpenKey(java_key, current_version)
