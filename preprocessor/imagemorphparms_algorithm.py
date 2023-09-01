@@ -362,7 +362,8 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 #set nodata to same
                 dsm_array[dsm_array == nd] = -9999
                 dem_array[dem_array == ndDEM] = -9999
-                cdsm_array[cdsm_array == ndCDSM] = -9999
+                if calcSS:  
+                    cdsm_array[cdsm_array == ndCDSM] = -9999
                 
                 #calculate morphometric params
                 immorphresult = morph.imagemorphparam_v2(dsm_array, dem_array, scale, imid, degree, feedback, imp_point)
