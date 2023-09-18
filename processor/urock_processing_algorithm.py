@@ -57,6 +57,7 @@ import pandas as pd
 import struct
 from qgis.PyQt.QtGui import QIcon
 import inspect
+import processing
 
 from ..functions.URock import DataUtil
 
@@ -358,6 +359,13 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             srid_build = inputBuildinglayer.crs().postgisSrid()
             if not heightBuild:
                 raise QgsProcessingException("A building height attribute should be defined")
+            # Save the file as geojson in case of .gpkg format
+            if build_file.split(".")[-1].lower() == "gpkg":
+                new_build_file = os.path.join(TEMPO_DIRECTORY, BUILDING_FILENAME + OUTPUT_VECTOR_EXTENSION)
+                processing.run("native:savefeatures", 
+                               {'INPUT': build_file,
+                                'OUTPUT': new_build_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                build_file = new_build_file
         else:
             build_file = None
             srid_build = None
@@ -375,6 +383,12 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 feedback.pushWarning('Coordinate system of input building layer and vegetation layer differ!')
             if not topHeightVeg:
                 raise QgsProcessingException("A vegetation crown top height attribute should be defined")
+            if veg_file.split(".")[-1].lower() == "gpkg":
+                new_veg_file = os.path.join(TEMPO_DIRECTORY, VEGETATION_FILENAME + OUTPUT_VECTOR_EXTENSION)
+                processing.run("native:savefeatures", 
+                               {'INPUT': veg_file,
+                                'OUTPUT': new_veg_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                veg_file = new_veg_file
         else:
             veg_file = None
             srid_veg = None

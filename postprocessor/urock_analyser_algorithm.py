@@ -31,6 +31,7 @@ __copyright__ = '(C) 2022 by Jérémy Bernard, University of Gothenburg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication
+import processing
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterField,
@@ -58,6 +59,7 @@ import xarray as xr
 
 from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
 from ..functions.URock.urock_analyser_functions import plotSectionalViews
+from ..functions.URock.GlobalVariables import TEMPO_DIRECTORY, OUTPUT_VECTOR_EXTENSION
 
 
 class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
@@ -207,6 +209,13 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             if lines_file.count("|") > 0:
                 lines_file = lines_file.split("|")[0]
             srid_lines = inputLines.crs().authid()[5:]
+            # Save the file as geojson in case of .gpkg format
+            if lines_file.split(".")[-1].lower() == "gpkg":
+                new_lines_file = os.path.join(TEMPO_DIRECTORY, "LINES" + OUTPUT_VECTOR_EXTENSION)
+                processing.run("native:savefeatures", 
+                               {'INPUT': lines_file,
+                                'OUTPUT': new_lines_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                lines_file = new_lines_file
         else:
             lines_file = ''
             srid_lines = None
@@ -219,6 +228,13 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             if polygons_file.count("|") > 0:
                 polygons_file = polygons_file.split("|")[0]
             srid_polygons = inputPolygons.crs().authid()[5:]
+            # Save the file as geojson in case of .gpkg format
+            if polygons_file.split(".")[-1].lower() == "gpkg":
+                new_polygons_file = os.path.join(TEMPO_DIRECTORY, "POLYGONS" + OUTPUT_VECTOR_EXTENSION)
+                processing.run("native:savefeatures", 
+                               {'INPUT': polygons_file,
+                                'OUTPUT': new_polygons_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                polygons_file = new_polygons_file
         else:
             polygons_file = ''
             srid_polygons = None
