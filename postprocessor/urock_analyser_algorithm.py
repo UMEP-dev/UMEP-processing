@@ -205,6 +205,14 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         inputLines = self.parameterAsVectorLayer(parameters, self.INPUT_LINES, context)
         idLines = self.parameterAsString(parameters, self.ID_FIELD_LINES, context)
         if inputLines:
+            # Test the number of vertices (points) per line
+            features = inputLines.getFeatures()
+            for feature in features:
+                if len(feature.geometry().asMultiPolyline()[0]) > 2:
+                    raise QgsProcessingException("Only 2 vertices (point) lines are accepted. "+
+                                                 "One of your lines contains more than 2 vertices,"+
+                                                 " please explode it into several 2 vertices lines.")  
+                    
             lines_file = str(inputLines.dataProvider().dataSourceUri())
             if lines_file.count("|") > 0:
                 lines_file = lines_file.split("|")[0]

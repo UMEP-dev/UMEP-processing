@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.12: Fix URock analyser (response to #546 in UMEP repo)
     2.0.11: Fix URock .gpkg file import (response to #32 - in UMEP-Processing)
     2.0.10: Response to #37
     2.0.9 : Response to #33, #34 and #35.
