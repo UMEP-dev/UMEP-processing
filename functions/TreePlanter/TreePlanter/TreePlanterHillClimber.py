@@ -178,6 +178,10 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
         # Progress bar
         feedback.setProgress(int(counter * (100 / r_iters)))
 
+    # Save locations for occurrence map
+    i_y_all = i_y.copy()
+    i_x_all = i_x.copy()
+
     # Finding best position from all r_iters iteration, i.e. if r_iters = 1000 then best position out of 1000 runs
     t_max = np.max(i_tmrt)
     y = np.where(i_tmrt == t_max)
@@ -192,5 +196,5 @@ def treeoptinit(treerasters, treeinput, positions, treedata, shadow_rg, tmrt_1d,
     i_y = i_y[y[0][0], :]
     i_x = i_x[y[0][0], :]
 
-    return i_y, i_x, t_max
+    return i_y, i_x, t_max, i_y_all, i_x_all
     #return i_y, i_x, unique_tmrt, unique_tmrt_max, tree_paths

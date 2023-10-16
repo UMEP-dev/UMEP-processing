@@ -36,7 +36,7 @@ from qgis.core import (QgsProcessing,
                     #    QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
-                    #    QgsProcessingParameterFolderDestination,
+                       QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterVectorDestination,
                        QgsProcessingParameterFileDestination,
@@ -127,6 +127,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_CDSM = 'OUTPUT_CDSM'
     OUTPUT_POINTFILE = 'OUTPUT_POINTFILE'
     OUTPUT_TMRT = 'OUTPUT_TMRT'
+    OUTPUT_OCCURRENCE = 'OUTPUT_OCCURRENCE'
+    OUTPUT_DIR = 'OUTPUT_DIR'
 
     def initAlgorithm(self, config):
 
@@ -173,19 +175,28 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             QVariant(3), False, minValue=1))
         
         # Output
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_CDSM,
-            self.tr("Canopy Digital Surface Model"),
-            None, False))
+        # self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_CDSM,
+        #     self.tr("Canopy Digital Surface Model"),
+        #     None, False))
 
-        self.addParameter(QgsProcessingParameterVectorDestination(
-            self.OUTPUT_POINTFILE,
-            self.tr("Vector point file with tree location(s)")
-            )
-        )
+        # self.addParameter(QgsProcessingParameterVectorDestination(
+        #     self.OUTPUT_POINTFILE,
+        #     self.tr("Vector point file with tree location(s)")
+        #     )
+        # )
 
-        #self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_TMRT,
-        #    self.tr("Mean Tmrt of timesteps studied"),
-        #    None, False))
+        # self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_OCCURRENCE,
+        #     self.tr("Occurrence map (Only available when running with random or genetic and more than one tree)"), optional=True, createByDefault=False))
+
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_CDSM,
+            self.tr("Save Canopy Digital Surface Model"), defaultValue=True))
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_POINTFILE,
+            self.tr("Save Vector point file with tree location(s)"), defaultValue=True))
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_OCCURRENCE,
+            self.tr("Save Occurrence map (Only available when running with random or genetic algorithms and more than one tree)"), defaultValue=False))
+
+        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
+                                                    'Output folder'))
 
         # Advanced parameters
         iterations = QgsProcessingParameterNumber(self.ITERATIONS,
@@ -241,9 +252,30 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # inputPolygonlayer = parameters[self.INPUT_POLYGONLAYER]
         inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context).dataProvider().dataSourceUri()
 
-        outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
-        outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
+        # outputCDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_CDSM, context)
+        # outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINTFILE, context)
         # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
+        # outputOCCURRENCE = self.parameterAsOutputLayer(parameters, self.OUTPUT_OCCURRENCE, context)
+
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+
+        outputCDSM = self.parameterAsBool(parameters, self.OUTPUT_CDSM, context)
+        outputPoint = self.parameterAsBool(parameters, self.OUTPUT_POINTFILE, context)
+        outputOccurrence = self.parameterAsBool(parameters, self.OUTPUT_OCCURRENCE, context)
+
+        # Output path for CDSM
+        if outputCDSM:
+            outputCDSM = outputDir + '/treePlanterCDSM.tif'
+        # Output path for vector point file
+        if outputPoint:
+            outputPoint = outputDir + '/treePlanterPoint.shp'
+        # Output path for occurrences map
+        if (outputOccurrence & (nTree > 1) & (not greedy)):
+            outputOccurrence = outputDir + '/occurrences.tif'
+        elif nTree == 1:
+            feedback.setProgressText('Finding location for one tree. Occurrence raster will not be produced.')
+        elif greedy:
+            feedback.setProgressText('Running with greedy algorithm. Occurrence raster will not be produced.')
 
         feedback.setProgressText('Starting model at ' + str(datetime.datetime.now()) + '...')
 
@@ -372,14 +404,25 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                 possible_locations = np.sum(treerasters.d_tmrt > 0)
                 feedback.setProgressText(str(possible_locations) + " possible locations for trees...")
                 # Running tree planter
-                t_y, t_x, tmrt_max = TreePlanterHillClimber.treeoptinit(treerasters, cropped_rasters, positions, treedata,
+                t_y, t_x, tmrt_max, t_y_all, t_x_all = TreePlanterHillClimber.treeoptinit(treerasters, cropped_rasters, positions, treedata,
                                                                                                     shadow_rg, tmrt_1d, nTree, ITERATIONS, sa, feedback)
+                
+                if outputOccurrence:
+                    # Create occurrence map
+                    t_y_all += cropped_rasters.clip_rows[0]
+                    t_x_all += cropped_rasters.clip_rows[0]
+                    occurrence_map = np.zeros((tree_input.rows,tree_input.cols))
+                    for row in np.arange(t_y_all.shape[0]):
+                        for col in np.arange(t_y_all.shape[1]):
+                            occurrence_map[t_y_all[row, col].astype(int), t_x_all[row, col].astype(int)] += 1
+                    occurrence_map /= ITERATIONS
 
+                    # Save occurrence map as raster
+                    saveraster(tree_input.dataSet, outputOccurrence, occurrence_map)
+
+        # Optimal locations for CDSM and point outputs
         t_y = t_y + cropped_rasters.clip_rows[0]
         t_x = t_x + cropped_rasters.clip_cols[0]
-
-        # cdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols))
-        # tdsm_tmrt = np.zeros((tree_input.rows, tree_input.cols))
 
         cdsm_empty = np.zeros((tree_input.rows,tree_input.cols))
         tdsm_empty = np.zeros((tree_input.rows,tree_input.cols))
@@ -388,9 +431,6 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         tdsm_new = np.zeros((tree_input.rows,tree_input.cols))
 
         for i in range(0,t_y.shape[0]):
-            # cdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty cdsm
-            # tdsm_ = np.zeros((tree_input.rows,tree_input.cols))       # Empty tdsm
-
             cdsm_temp, tdsm_temp = makevegdems.vegunitsgeneration(bld_orig, cdsm_empty, tdsm_empty, 
                                                                 treedata.ttype, treedata.height, treedata.trunk, treedata.dia, 
                                                                 t_y[i], t_x[i], 
@@ -400,11 +440,9 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             tdsm_new += tdsm_temp
 
         cdsm_new = cdsm_new + tree_input.cdsm
+        
         # Save CDSM as raster
         saveraster(tree_input.dataSet, outputCDSM, cdsm_new)
-
-        # Save Tmrt raster
-        # saveraster(tree_input.dataSet, outputTMRT, tree_input.tmrt_avg)
 
         # Create point vector and save as shapefile
         srs = osr.SpatialReference()
@@ -457,7 +495,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("TreePlanter: Model calculation finished.")
 
-        return {self.OUTPUT_CDSM: outputCDSM, self.OUTPUT_POINTFILE: outputPoint}
+        return {self.OUTPUT_DIR: outputDir}
     
     def name(self):
         return 'Outdoor Thermal Comfort: TreePlanter'
