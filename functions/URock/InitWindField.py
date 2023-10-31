@@ -40,7 +40,7 @@ from .GlobalVariables import ALONG_WIND_ZONE_EXTEND, CROSS_WIND_ZONE_EXTEND,\
     SIN_BLOCK_LEFT_AZIMUTH, SIN_BLOCK_AZIMUTH, STACKED_BLOCK_WIDTH,\
     DOWNSTREAM_X_RELATIVE_POSITION, V_WEIGHT, U_WEIGHT, W_WEIGHT,\
     STACKED_BLOCK_X_MED, REMOVE_INITIALIZATION_OFFSET, IS_UPSTREAM_FIELD,\
-    IS_UPSTREAM_UPSTREAM_WEIGHTING
+    IS_UPSTREAM_UPSTREAM_WEIGHTING, CANYON_DELTAH_FIELD
 import math
 import numpy as np
 import os
@@ -378,38 +378,26 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 LENGTH_ZONE_FIELD+WAKE_NAME[0],
                                                 Y_WALL,
                                                 ID_FIELD_STACKED_BLOCK),
-        STREET_CANYON_NAME      : """b.{0},
-                                    b.{1},
-                                    LEAST(b.{3}, b.{1}) AS {4},
-                                    b.{5},
-                                    a.{2},
-                                    b.{8},
-                                    ST_YMAX(ST_INTERSECTION(a.{6}, 
-                                                            b.{6})
-                                            ) AS {9},
-                                    ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{6},
-                                                                                          b.{6})
+        STREET_CANYON_NAME      : f"""b.{idZone[STREET_CANYON_NAME]},
+                                    b.{UPSTREAM_HEIGHT_FIELD},
+                                    LEAST(b.{DOWNSTREAM_HEIGHT_FIELD}, b.{UPSTREAM_HEIGHT_FIELD}) AS {MAX_CANYON_HEIGHT_FIELD},
+                                    b.{DOWNSTREAM_HEIGHT_FIELD}-b.{UPSTREAM_HEIGHT_FIELD} AS CANYON_DELTAH_FIELD,
+                                    b.{UPWIND_FACADE_ANGLE_FIELD},
+                                    a.{ID_POINT_X},
+                                    b.{BASE_HEIGHT_FIELD},
+                                    ST_YMAX(ST_INTERSECTION(a.{GEOM_FIELD}, 
+                                                            b.{GEOM_FIELD}
+                                            ) AS {Y_WALL},
+                                    ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{GEOM_FIELD},
+                                                                                          b.{GEOM_FIELD})
                                                                           )
                                                           )
-                                              ) AS {7},
-                                    b.{10},
-                                    b.{11},
-                                    a.{12},
-                                    b.{13}
-                                    """.format( idZone[STREET_CANYON_NAME],
-                                                UPSTREAM_HEIGHT_FIELD,
-                                                ID_POINT_X,
-                                                DOWNSTREAM_HEIGHT_FIELD,
-                                                MAX_CANYON_HEIGHT_FIELD,
-                                                UPWIND_FACADE_ANGLE_FIELD,
-                                                GEOM_FIELD,
-                                                LENGTH_ZONE_FIELD+STREET_CANYON_NAME[0],
-                                                BASE_HEIGHT_FIELD,
-                                                Y_WALL,
-                                                UPWIND_FACADE_FIELD,
-                                                ID_UPSTREAM_STACKED_BLOCK,
-                                                ID_POINT_Y,
-                                                DOWNWIND_FACADE_FIELD),
+                                              ) AS {LENGTH_ZONE_FIELD+STREET_CANYON_NAME[0]},
+                                    b.{UPWIND_FACADE_FIELD},
+                                    b.{ID_UPSTREAM_STACKED_BLOCK},
+                                    a.{ID_POINT_Y},
+                                    b.{DOWNWIND_FACADE_FIELD}
+                                    """,
         ROOFTOP_PERP_NAME       : """b.{0},
                                     b.{1},
                                     a.{2},
@@ -452,76 +440,75 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
     # The cavity zone length is needed for the wind speed calculation of
     # wake zone points and for the upper height limit of the street canyon
     # while the wake zone length is needed for cavity zone wind speed calculation
-    cursor.execute("""
-       {0}{1}{2}{3}
+    cursor.execute(f"""
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
        DROP TABLE IF EXISTS TEMPO_WAKE;
        CREATE TABLE TEMPO_WAKE 
            AS SELECT   a.*, 
-                       b.{4}, b.{19}, b.{20}, b.{21}
-           FROM     {5} AS a LEFT JOIN {6} AS b 
-                    ON a.{7} = b.{7} AND a.{8} = b.{8};
-       DROP TABLE IF EXISTS {5};
-       ALTER TABLE TEMPO_WAKE RENAME TO {5};
-       {9}{10}{11}{12}
+                       b.{LENGTH_ZONE_FIELD+CAVITY_NAME[0]}, 
+                       b.{COS_BLOCK_AZIMUTH}, b.{SIN_BLOCK_AZIMUTH}, 
+                       b.{DOWNSTREAM_X_RELATIVE_POSITION}
+           FROM     {dicOfPrefixZoneLim[WAKE_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[CAVITY_NAME]} AS b 
+                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD} 
+                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
+       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[WAKE_NAME]};
+       ALTER TABLE TEMPO_WAKE RENAME TO {dicOfPrefixZoneLim[WAKE_NAME]};
+       
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[STREET_CANYON_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[STREET_CANYON_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
        DROP TABLE IF EXISTS TEMPO_CANYON;
        CREATE TABLE TEMPO_CANYON 
            AS SELECT   a.*, 
-                       b.{4}
-           FROM     {13} AS a LEFT JOIN {6} AS b 
-                    ON a.{7} = b.{7} AND a.{8} = b.{8};
-       DROP TABLE IF EXISTS {13};
-       ALTER TABLE TEMPO_CANYON RENAME TO {13};
-       {14}{15}{16}{17}
+                       b.{LENGTH_ZONE_FIELD+CAVITY_NAME[0]}
+           FROM     {dicOfPrefixZoneLim[STREET_CANYON_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[CAVITY_NAME]} AS b 
+                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
+                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
+       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[STREET_CANYON_NAME]};
+       ALTER TABLE TEMPO_CANYON RENAME TO {dicOfPrefixZoneLim[STREET_CANYON_NAME]};
+       
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
+                             fieldName=ID_POINT_X,
+                             isSpatial=False)}
        DROP TABLE IF EXISTS TEMPO_CAV;
        CREATE TABLE TEMPO_CAV 
            AS SELECT   a.*, 
-                       b.{18}
-           FROM     {6} AS a LEFT JOIN {5} AS b 
-                    ON a.{7} = b.{7} AND a.{8} = b.{8};
-       DROP TABLE IF EXISTS {6};
-       ALTER TABLE TEMPO_CAV RENAME TO {6};
-       """.format(  DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[WAKE_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[WAKE_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    LENGTH_ZONE_FIELD+CAVITY_NAME[0], dicOfPrefixZoneLim[WAKE_NAME],
-                    dicOfPrefixZoneLim[CAVITY_NAME] , DOWNWIND_FACADE_FIELD,
-                    ID_POINT_X, 
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[STREET_CANYON_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[STREET_CANYON_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    dicOfPrefixZoneLim[STREET_CANYON_NAME],             
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[CAVITY_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[WAKE_NAME], 
-                                            fieldName=DOWNWIND_FACADE_FIELD,
-                                            isSpatial=False),
-                    DataUtil.createIndex(   dicOfPrefixZoneLim[WAKE_NAME], 
-                                            fieldName=ID_POINT_X,
-                                            isSpatial=False),
-                    LENGTH_ZONE_FIELD+WAKE_NAME[0]  , COS_BLOCK_AZIMUTH,
-                    SIN_BLOCK_AZIMUTH               , DOWNSTREAM_X_RELATIVE_POSITION))
+                       b.{LENGTH_ZONE_FIELD+WAKE_NAME[0]}
+           FROM     {dicOfPrefixZoneLim[CAVITY_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[WAKE_NAME]} AS b 
+                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
+                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
+       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[CAVITY_NAME]};
+       ALTER TABLE TEMPO_CAV RENAME TO {dicOfPrefixZoneLim[CAVITY_NAME]}
+       """)
     
     # Fields to keep in the point table (zone dependent)
     varToKeepPoint = {
@@ -633,11 +620,17 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
         STREET_CANYON_NAME      : """b.{0},
                                     SIN(2*(a.{1}-PI()/2))*(0.5+(a.{9}-b.{13})*
                                     (a.{2}-(a.{9}-b.{13}))/
-                                    (0.5*POWER(a.{2},2))) AS {3},
+                                    (0.5*POWER(a.{2},2)))*
+                                    (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
+                                    (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {3},
                                     1-POWER(COS(a.{1}-PI()/2),2)*(1+(a.{9}-b.{13})*
-                                    (a.{2}-(a.{9}-b.{13}))/(POWER(0.5*a.{2},2))) AS {4},
+                                    (a.{2}-(a.{9}-b.{13}))/(POWER(0.5*a.{2},2)))*
+                                    (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
+                                    (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {4},
                                     -ABS(0.5*(1-(a.{9}-b.{13})/(0.5*a.{2})))*
-                                    (1-(a.{2}-(a.{9}-b.{13}))/(0.5*a.{2})) AS {5},
+                                    (1-(a.{2}-(a.{9}-b.{13}))/(0.5*a.{2}))*
+                                    (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
+                                    (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {5},
                                     a.{6},
                                     a.{7},
                                     a.{8},
@@ -669,7 +662,8 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 ID_POINT_Y,
                                                 DOWNWIND_FACADE_FIELD,
                                                 LENGTH_ZONE_FIELD+CAVITY_NAME[0],
-                                                UPPER_VERTICAL_THRESHOLD),
+                                                UPPER_VERTICAL_THRESHOLD,
+                                                CANYON_DELTAH_FIELD),
         ROOFTOP_PERP_NAME       : """b.{0},
                                     a.{3}*SQRT(1-POWER(((a.{6}-b.{8})-a.{4}/2)/
                                                                      a.{4}, 2)) AS {5},
