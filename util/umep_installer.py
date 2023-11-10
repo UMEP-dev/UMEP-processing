@@ -21,24 +21,29 @@ def locate_py():
     path_py = Path(path_py)
 
     # pre-defined paths for python executable
-    dict_pybin = {
-        "Darwin": path_py / "bin" / "python3",
-        "Windows": path_py
-        / (
-            "../../bin/pythonw.exe"
-            if version.parse(str_ver_qgis) >= version.parse("3.9.1")
-            else "pythonw.exe"
-        ),
-        "Linux": path_py,
-    }
-
-    # python executable
-    path_pybin = dict_pybin[platform.system()]
-
-    if path_pybin.exists():
-        return path_pybin
+    if platform.system() == "Windows":
+        candidates = [
+            path_py
+            / (
+                "../../bin/pythonw.exe"
+                if version.parse(str_ver_qgis) >= version.parse("3.9.1")
+                else "pythonw.exe"
+            ),
+            path_py.with_name("pythonw.exe"),
+        ]
     else:
-        raise RuntimeError("UMEP cannot locate the Python interpreter used by QGIS!")
+        candidates = [
+            path_py / "bin" / "python3",
+            path_py / "bin" / "python",
+            path_py.with_name("python3"),
+            path_py.with_name("python"),
+        ]
+
+    for candidate_path in candidates:
+        if candidate_path.exists():
+            return candidate_path
+
+    raise RuntimeError("UMEP cannot locate the Python interpreter used by QGIS!")
 
 
 # check if supy is installed
