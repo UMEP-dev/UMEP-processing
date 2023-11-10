@@ -2,7 +2,7 @@
 # __author__ = 'xlinfr'
 
 from qgis.PyQt.QtWidgets import QMessageBox
-from .umep_installer import setup_umep_python
+from .umep_installer import locate_py, setup_umep_python
 from qgis.core import Qgis, QgsMessageLog
 # we can specify a version if needed
 try: 
@@ -16,6 +16,15 @@ except:
               "Do you automatically want install missing python modules? \r\n"
               "QGIS will be non-responsive for a couple of minutes.",
                QMessageBox.Ok | QMessageBox.Cancel) == QMessageBox.Ok:
+        try:
+            path_pybin = locate_py()
+        except Exception:
+            QMessageBox.information(
+                None,
+                "Could not determine location of QGIS Python binary",
+                "Please report at https://github.com/UMEP-dev/UMEP-processing/issues",
+            )
+
         try:
             setup_umep_python(ver=None)
             QMessageBox.information(None, "Packages successfully installed",
