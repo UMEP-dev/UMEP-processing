@@ -85,7 +85,8 @@ def install_umep_python(ver=None):
             if version.parse(str_ver_qgis) <= version.parse("3.9.1")
             else ""
         )
-        list_cmd = f"{str(path_pybin)} -m pip install umep-reqs{str_ver} -U --user {str_use_feature}".split()
+        # --prefer-binary because https://github.com/jameskermode/f90wrap/issues/203
+        list_cmd = f"{str(path_pybin)} -m pip install umep-reqs{str_ver} -U --user --prefer-binary {str_use_feature}".split()
         str_info = subprocess.check_output(
             list_cmd, stderr=subprocess.STDOUT, encoding="UTF8"
         )
