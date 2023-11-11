@@ -3,6 +3,8 @@ from pathlib import Path
 import platform
 from packaging import version
 
+from qgis.core import Qgis, QgsMessageLog
+
 
 # locate QGIS-python interpreter
 def locate_py():
@@ -96,8 +98,9 @@ def install_umep_python(ver=None):
             else f"UMEP dependent Python packages has already been installed!"
         )
         return str_info
-    except Exception:
-        raise RuntimeError(f"UMEP couldn't install Python packages!") from Exception
+    except subprocess.CalledProcessError as exc:
+        QgsMessageLog.logMessage(f"Error running {exc.args}:\n{exc.stdout}", level=Qgis.Warning)
+        raise
 
 
 # uninstall supy

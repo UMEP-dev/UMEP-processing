@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xlinfr'
+import traceback
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from .umep_installer import locate_py, setup_umep_python
@@ -30,8 +31,11 @@ except:
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:
+            QgsMessageLog.logMessage(traceback.format_exc(), level=Qgis.Warning)
             QMessageBox.information(None, "An error occurred",
-                                    "Packages not installed. report any errors to https://github.com/UMEP-dev/UMEP/issues")
+                                    "UMEP couldn't install Python packages!\n"
+                                    "See 'General' tab in 'Log Messages' panel for details.\n"
+                                    "Report any errors to https://github.com/UMEP-dev/UMEP-processing/issues")
     else:
         QMessageBox.information(None,
                                 "Information", "Packages not installed. Some UMEP tools will not be fully operational.")
