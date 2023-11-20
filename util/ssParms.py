@@ -14,10 +14,6 @@ from ..util.umep_suewsss_export_component import write_GridLayout_file, create_G
 
 def ss_calc(build, cdsm, walls, numPixels, feedback):
 
-    #build = dsm - dem
-    #build[(build < 1.)] = 0.  # building should be higher than 1? meter
-
-    #noOfPixels = int(dsm.shape[0] * dsm.shape[1])
     walllimit = 0.3 # 30 centimeters height variation identifies a vegetation edge pixel
     total = 100. / (int(build.shape[0] * build.shape[1]))
 
@@ -25,7 +21,7 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
         vegEdges = wa.findwalls(cdsm, walllimit, feedback, total)
  
     buildvec = build[np.where(build > 0)]
-    if buildvec.size > 0:
+    if buildvec.size > 0: #TODO: What if vegetation is higher that building OR only vegetation?
         #zH_all = buildvec.mean()
         zHmax_all = buildvec.max()
         #zH_sd_all = buildvec.std()
@@ -38,13 +34,13 @@ def ss_calc(build, cdsm, walls, numPixels, feedback):
         #pai_all = 0
         iterHeights = int(0)
 
-    z = np.zeros((iterHeights, 1))
-    paiZ_b = np.zeros((iterHeights, 1))
-    bScale = np.zeros((iterHeights, 1)) # building scale
-    paiZ_v = np.zeros((iterHeights, 1))
-    vScale = np.zeros((iterHeights, 1)) # vegetation scale
+    z = np.zeros((iterHeights + 1, 1))
+    paiZ_b = np.zeros((iterHeights + 1, 1))
+    bScale = np.zeros((iterHeights + 1, 1)) # building scale
+    paiZ_v = np.zeros((iterHeights + 1, 1))
+    vScale = np.zeros((iterHeights + 1, 1)) # vegetation scale
 
-    for i in np.arange(0, iterHeights):
+    for i in np.arange(0, iterHeights + 1):
         z[i] = i
         buildZ = build - i
         wallsZ = walls - i
