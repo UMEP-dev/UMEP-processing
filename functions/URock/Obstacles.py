@@ -502,7 +502,7 @@ def updateUpwindFacadeBase(cursor, upwindTable, prefix = PREFIX_NAME):
        {10};
        DROP TABLE IF EXISTS {3};
        CREATE TABLE {3} 
-           AS SELECT   a.{1}, a.{4}, a.{5}, a.{7}, a.{8},
+           AS SELECT   a.{1}, a.{4}, a.{5}, a.{7}, a.{8}, a.{11},
                        COALESCE(b.{6}, a.{6}) AS {6}
            FROM {0} AS a LEFT JOIN {2} AS b ON a.{5} = b.{5}
        """.format( upwindTable              , ID_FIELD_STACKED_BLOCK,
@@ -514,7 +514,8 @@ def updateUpwindFacadeBase(cursor, upwindTable, prefix = PREFIX_NAME):
                                                                     isSpatial=False),
                    DataUtil.createIndex(tableName=tempoUpwind, 
                                         fieldName=UPWIND_FACADE_FIELD,
-                                        isSpatial=False)))
+                                        isSpatial=False),
+                   ID_FIELD_BLOCK))
                         
     if not DEBUG:
         # Drop intermediate tables
@@ -591,7 +592,7 @@ def initDownwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
            AS SELECT    a.{1}, a.{2}, a.{4}, b.{8}, b.{9}, b.{10},
                        (ST_XMAX(b.{2}) + ST_XMIN(b.{2})) / 2 AS {12},
                        (ST_XMAX(b.{2}) - ST_XMIN(b.{2})) AS {13},
-                       b.{14}, b.{15}, b.{16}, b.{17}, b.{18}
+                       b.{14}, b.{15}, b.{16}, b.{17}, b.{18}, b.{19}
            FROM {0} AS a LEFT JOIN {11} AS b
            ON a.{4} = b.{4}
             """.format(tempoDownwindLines               , DOWNWIND_FACADE_FIELD,
@@ -608,7 +609,7 @@ def initDownwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
                         STACKED_BLOCK_X_MED             , STACKED_BLOCK_WIDTH,
                         STACKED_BLOCK_UPSTREAMEST_X     , SIN_BLOCK_LEFT_AZIMUTH,
                         COS_BLOCK_LEFT_AZIMUTH          , COS_BLOCK_RIGHT_AZIMUTH,
-                        SIN_BLOCK_RIGHT_AZIMUTH))
+                        SIN_BLOCK_RIGHT_AZIMUTH         , ID_FIELD_BLOCK))
     
     if not DEBUG:
         # Drop intermediate tables

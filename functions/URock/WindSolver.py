@@ -117,6 +117,15 @@ def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, c
     A = dx ** 2 / dy ** 2
     B = eta ** 2 * dx ** 2 / dz ** 2
 
+    ########################################################################
+    # # Used for debug only
+    # import matplotlib.pylab as plt
+    # fig, ax = plt.subplots()
+    # for i in range(buildingCoordinates[0].size):
+    #     if buildingCoordinates[2][i] == 1:
+    #         ax.plot(buildingCoordinates[0][i], buildingCoordinates[1][i], marker = "o")
+    ########################################################################
+
     # Set coefficients according to table 1 (Pardyjak et Brown, 2003) 
     # to modify the Equation near obstacles
     e = np.ones([nx, ny, nz])
@@ -129,66 +138,95 @@ def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, c
     p = np.ones([nx, ny, nz])
     q = np.ones([nx, ny, nz])
     
-    # Identify index having wall below AND front, left, right or behind
+    # Identify index having wall below AND (front, left, right or behind)
     indBelow = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
                                                     buildingCoordinates[1], 
                                                     buildingCoordinates[2] + 1])))
-    indBelowFront = indBelow.intersection(pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
-                                                                               buildingCoordinates[1] - 1, 
-                                                                               buildingCoordinates[2]]))))
-    indBelowBehind = indBelow.intersection(pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
-                                                                               buildingCoordinates[1] + 1, 
-                                                                               buildingCoordinates[2]]))))
-    indBelowLeft = indBelow.intersection(pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0] + 1, 
-                                                                               buildingCoordinates[1], 
-                                                                               buildingCoordinates[2]]))))
-    indBelowRight = indBelow.intersection(pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0] - 1, 
-                                                                               buildingCoordinates[1], 
-                                                                               buildingCoordinates[2]]))))
-    indBelowAnyAround = indBelowFront.union(indBelowBehind).union(indBelowLeft).union(indBelowRight)
-    indBelowLeftRight = indBelowLeft.union(indBelowRight)
-    indBelowFrontBehind = indBelowFront.union(indBelowBehind)  
+    indAbove = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
+                                                    buildingCoordinates[1], 
+                                                    buildingCoordinates[2] - 1])))
+    indFront = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
+                                                    buildingCoordinates[1] - 1, 
+                                                    buildingCoordinates[2]])))
+    indBehind = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0], 
+                                                    buildingCoordinates[1] + 1, 
+                                                    buildingCoordinates[2]])))
+    indLeft = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0] + 1, 
+                                                    buildingCoordinates[1], 
+                                                    buildingCoordinates[2]])))
+    indRight = pd.MultiIndex.from_tuples(list(zip(*[buildingCoordinates[0] - 1, 
+                                                    buildingCoordinates[1], 
+                                                    buildingCoordinates[2]])))
+    indBelowRight = indBelow.intersection(indRight)
+    indBelowLeft = indBelow.intersection(indLeft)
+    indBelowFront = indBelow.intersection(indFront)
+    indBelowBehind = indBelow.intersection(indBehind)
+    
+    indE = indBelowRight.union(indRight)
+    indF = indBelowLeft.union(indLeft)
+    indG = indBelowFront.union(indFront)
+    indH = indBelowBehind.union(indBehind)
+    indM = indAbove
+    indN = indBelow.union(indBelowFront).union(indBelowLeft)\
+        .union(indBelowRight).union(indBelowBehind)
+    indO = indRight.union(indLeft).union(indBelowLeft).union(indBelowRight)
+    indP = indBehind.union(indFront).union(indBelowBehind).union(indBelowFront)
+    indQ = indBelow.union(indAbove).union(indBelowFront).union(indBelowLeft)\
+        .union(indBelowRight).union(indBelowBehind)
     
     # Go descending order along y
     if DESCENDING_Y:
-        e[buildingCoordinates[0] + 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.
-        e[indBelowLeft.get_level_values(0), indBelowLeft.get_level_values(1), indBelowLeft.get_level_values(2)] = 0.
-        f[buildingCoordinates[0] - 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.
-        f[indBelowRight.get_level_values(0), indBelowRight.get_level_values(1), indBelowRight.get_level_values(2)] = 0. 
-        g[buildingCoordinates[0], buildingCoordinates[1] + 1, buildingCoordinates[2]] = 0.
-        g[indBelowBehind.get_level_values(0), indBelowBehind.get_level_values(1), indBelowBehind.get_level_values(2)] = 0.
-        h[buildingCoordinates[0], buildingCoordinates[1] - 1, buildingCoordinates[2]] = 0.  
-        h[indBelowFront.get_level_values(0), indBelowFront.get_level_values(1), indBelowFront.get_level_values(2)] = 0.
-        m[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] + 1] = 0.
-        n[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] - 1] = 0.
+        e[indF.get_level_values(0), indF.get_level_values(1), indF.get_level_values(2)] = 0.
+        f[indE.get_level_values(0), indE.get_level_values(1), indE.get_level_values(2)] = 0. 
+        g[indH.get_level_values(0), indH.get_level_values(1), indH.get_level_values(2)] = 0.
+        h[indG.get_level_values(0), indG.get_level_values(1), indG.get_level_values(2)] = 0.
+        m[indM.get_level_values(0), indM.get_level_values(1), indM.get_level_values(2)] = 0.
+        n[indN.get_level_values(0), indN.get_level_values(1), indN.get_level_values(2)] = 0.
     else:    
-        e[buildingCoordinates[0] - 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.
-        e[indBelowRight.get_level_values(0), indBelowRight.get_level_values(1), indBelowRight.get_level_values(2)] = 0.        
-        f[buildingCoordinates[0] + 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.
-        f[indBelowLeft.get_level_values(0), indBelowLeft.get_level_values(1), indBelowLeft.get_level_values(2)] = 0.    
-        g[buildingCoordinates[0], buildingCoordinates[1] - 1, buildingCoordinates[2]] = 0.
-        g[indBelowFront.get_level_values(0), indBelowFront.get_level_values(1), indBelowFront.get_level_values(2)] = 0.
-        h[buildingCoordinates[0], buildingCoordinates[1] + 1, buildingCoordinates[2]] = 0.
-        h[indBelowBehind.get_level_values(0), indBelowBehind.get_level_values(1), indBelowBehind.get_level_values(2)] = 0.
-        m[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] - 1] = 0.
-        n[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] + 1] = 0.
+        e[indE.get_level_values(0), indE.get_level_values(1), indE.get_level_values(2)] = 0.
+        f[indF.get_level_values(0), indF.get_level_values(1), indF.get_level_values(2)] = 0. 
+        g[indG.get_level_values(0), indG.get_level_values(1), indG.get_level_values(2)] = 0.
+        h[indH.get_level_values(0), indH.get_level_values(1), indH.get_level_values(2)] = 0.
+        m[indM.get_level_values(0), indM.get_level_values(1), indM.get_level_values(2)] = 0.
+        n[indN.get_level_values(0), indN.get_level_values(1), indN.get_level_values(2)] = 0.
     
-    o[buildingCoordinates[0] - 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.5
-    o[buildingCoordinates[0] + 1, buildingCoordinates[1], buildingCoordinates[2]] = 0.5
-    p[buildingCoordinates[0], buildingCoordinates[1] - 1, buildingCoordinates[2]] = 0.5
-    p[buildingCoordinates[0], buildingCoordinates[1] + 1, buildingCoordinates[2]] = 0.5
-    q[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] + 1] = 0.5
-    q[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2] - 1] = 0.5
-    n[indBelowAnyAround.get_level_values(0), indBelowAnyAround.get_level_values(1), indBelowAnyAround.get_level_values(2)] = 0.
-    o[indBelowLeftRight.get_level_values(0), indBelowLeftRight.get_level_values(1), indBelowLeftRight.get_level_values(2)] = 0.5
-    p[indBelowFrontBehind.get_level_values(0), indBelowFrontBehind.get_level_values(1), indBelowFrontBehind.get_level_values(2)] = 0.5
-    q[indBelowAnyAround.get_level_values(0), indBelowAnyAround.get_level_values(1), indBelowAnyAround.get_level_values(2)] = 0.5
-       
+    o[indO.get_level_values(0), indO.get_level_values(1), indO.get_level_values(2)] = 0.5
+    p[indP.get_level_values(0), indP.get_level_values(1), indP.get_level_values(2)] = 0.5
+    q[indQ.get_level_values(0), indQ.get_level_values(1), indQ.get_level_values(2)] = 0.5
+        
     for N in range(maxIterations):
         print("Iteration {0} (max {1})".format( N + 1, 
                                                 maxIterations))
         lambdaN = np.copy(lambdaN1)
-
+        
+        # ########################################################################
+        # # Only used for debug
+        # if DESCENDING_Y:
+        #     for k, j, i in np.flip(cells4Solver):
+        #         lambdaN1[i, j, k] = omega * (
+        #             ((-1.) * (dx ** 2 * (-2. * alpha1 ** 2) * (((u0[i, j, k] - u0[i + 1, j, k]) / (dx) + (
+        #                     v0[i, j, k] - v0[i, j + 1, k]) / (dy) +
+        #                                                         (w0[i, j, k] - w0[i, j, k + 1]) / (dz)))) + (
+        #                       e[i, j, k] * lambdaN[i - 1, j, k] + f[i, j, k] * lambdaN1[i + 1, j, k] + A * (
+        #                       g[i, j, k] * lambdaN[i, j - 1, k] + h[i, j, k] * lambdaN1[i, j + 1, k]) + B * (
+        #                               m[i, j, k] * lambdaN[i, j, k - 1] + n[i, j, k] * lambdaN1[i, j, k + 1]))) / (
+        #                     2. * (o[i, j, k] + A * p[i, j, k] + B * q[i, j, k]))) + (1 - omega) * lambdaN1[i, j, k]  
+                                          
+        # else:
+        #     for i, j, k in cells4Solver:
+        #         if i == 115 and j == 214:
+        #             print("ok")
+        #         lambdaN1[i, j, k] = omega * (
+        #             ((-1.) * (dx ** 2 * (-2. * alpha1 ** 2) * (((u0[i + 1, j, k] - u0[i, j, k]) / (dx) + (
+        #                     v0[i, j + 1, k] - v0[i, j, k]) / (dy) +
+        #                                                         (w0[i, j, k + 1] - w0[i, j, k]) / (dz)))) + (
+        #                       e[i, j, k] * lambdaN[i + 1, j, k] + f[i, j, k] * lambdaN1[i - 1, j, k] + A * (
+        #                       g[i, j, k] * lambdaN[i, j + 1, k] + h[i, j, k] * lambdaN1[i, j - 1, k]) + B * (
+        #                               m[i, j, k] * lambdaN[i, j, k + 1] + n[i, j, k] * lambdaN1[i, j, k - 1]))) / (
+        #                     2. * (o[i, j, k] + A * p[i, j, k] + B * q[i, j, k]))) + (1 - omega) * lambdaN1[i, j, k]  
+        # # end of debug
+        # ########################################################################
+                                          
         lambdaN1 = calcLambda(cells4Solver, lambdaN, lambdaN1, omega, alpha1,
                               u0, v0, w0, dx, dy, dz, e, f, g, h, m, n, o, p, q,
                               DESCENDING_Y, A, B)

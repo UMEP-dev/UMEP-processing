@@ -381,13 +381,12 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
         STREET_CANYON_NAME      : f"""b.{idZone[STREET_CANYON_NAME]},
                                     b.{UPSTREAM_HEIGHT_FIELD},
                                     LEAST(b.{DOWNSTREAM_HEIGHT_FIELD}, b.{UPSTREAM_HEIGHT_FIELD}) AS {MAX_CANYON_HEIGHT_FIELD},
-                                    b.{DOWNSTREAM_HEIGHT_FIELD}-b.{UPSTREAM_HEIGHT_FIELD} AS CANYON_DELTAH_FIELD,
+                                    b.{DOWNSTREAM_HEIGHT_FIELD}-b.{UPSTREAM_HEIGHT_FIELD} AS {CANYON_DELTAH_FIELD},
                                     b.{UPWIND_FACADE_ANGLE_FIELD},
                                     a.{ID_POINT_X},
                                     b.{BASE_HEIGHT_FIELD},
                                     ST_YMAX(ST_INTERSECTION(a.{GEOM_FIELD}, 
-                                                            b.{GEOM_FIELD}
-                                            ) AS {Y_WALL},
+                                                            b.{GEOM_FIELD})) AS {Y_WALL},
                                     ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{GEOM_FIELD},
                                                                                           b.{GEOM_FIELD})
                                                                           )
@@ -618,17 +617,17 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 DOWNSTREAM_X_RELATIVE_POSITION,
                                                 POINT_RELATIVE_POSITION_FIELD+WAKE_NAME[0]),
         STREET_CANYON_NAME      : """b.{0},
-                                    SIN(2*(a.{1}-PI()/2))*(0.5+(a.{9}-b.{13})*
+                                    (SIN(2*(a.{1}-PI()/2))*(0.5+(a.{9}-b.{13})*
                                     (a.{2}-(a.{9}-b.{13}))/
-                                    (0.5*POWER(a.{2},2)))*
+                                    (0.5*POWER(a.{2},2))))*
                                     (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
                                     (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {3},
-                                    1-POWER(COS(a.{1}-PI()/2),2)*(1+(a.{9}-b.{13})*
-                                    (a.{2}-(a.{9}-b.{13}))/(POWER(0.5*a.{2},2)))*
+                                    (1-POWER(COS(a.{1}-PI()/2),2)*(1+(a.{9}-b.{13})*
+                                    (a.{2}-(a.{9}-b.{13}))/(POWER(0.5*a.{2},2))))*
                                     (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
                                     (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {4},
-                                    -ABS(0.5*(1-(a.{9}-b.{13})/(0.5*a.{2})))*
-                                    (1-(a.{2}-(a.{9}-b.{13}))/(0.5*a.{2}))*
+                                    (-ABS(0.5*(1-(a.{9}-b.{13})/(0.5*a.{2})))*
+                                    (1-(a.{2}-(a.{9}-b.{13}))/(0.5*a.{2})))*
                                     (1+(0.6*a.{19})/(a.{12}+0.6*a.{19}))*
                                     (POWER(a.{2}/a.{12},2)/(1+POWER(a.{2}/a.{12},2))) AS {5},
                                     a.{6},
@@ -3030,6 +3029,7 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
                          'SELECT b.{14} - 1 AS {14}_MINUS_1,
                                  b.{15} - 1 AS {15}_MINUS_1,
                                  a.{2},
+                                 b.{5},
                                  a.{8} * WIND_SPEED AS {8},
                                  a.{6} * WIND_SPEED AS {6},
                                  a.{9} * WIND_SPEED AS {9}

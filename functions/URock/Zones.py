@@ -274,7 +274,8 @@ def cavityAndWakeZones(cursor, downwindWithPropTable, srid, ellipseResolution,
                         b.{COS_BLOCK_LEFT_AZIMUTH},
                         b.{COS_BLOCK_RIGHT_AZIMUTH},
                         b.{SIN_BLOCK_RIGHT_AZIMUTH}, 
-                        b.{STACKED_BLOCK_WIDTH}
+                        b.{STACKED_BLOCK_WIDTH},
+                        b.{ID_FIELD_BLOCK}
             FROM {ZonePolygons[z]} AS a LEFT JOIN {downwindWithPropTable} AS b
             ON a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
             WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
@@ -341,36 +342,38 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
     canyonExtendTable = DataUtil.postfix("canyon_extend_table")
     
     # Identify pieces of upwind facades intersected by cavity zones (only when street canyon angle < 45°)
-    intersectionQuery = """
-        {11};
-        {12};
-        DROP TABLE IF EXISTS {0};
-        CREATE TABLE {0}
-            AS SELECT   b.{1} AS {6},
-                        a.{1} AS {7},
-                        a.{9},
-                        a.{5},
-                        a.{8},
-                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{2}, b.{2}), 2) AS {2},
-                        a.{10},
-                        b.{13}
-            FROM {3} AS a, {4} AS b
-            WHERE   a.{2} && b.{2} AND ST_INTERSECTS(a.{2}, b.{2})
-                    AND a.{8} >= RADIANS({14}) AND a.{8} <= RADIANS(180-{14})
-           """.format( intersectTable                   , ID_FIELD_STACKED_BLOCK,
-                       GEOM_FIELD                       , upwindTable,
-                       cavityZonesTable                 , HEIGHT_FIELD,
-                       ID_UPSTREAM_STACKED_BLOCK        , ID_DOWNSTREAM_STACKED_BLOCK,
-                       UPWIND_FACADE_ANGLE_FIELD        , BASE_HEIGHT_FIELD,
-                       UPWIND_FACADE_FIELD              , DataUtil.createIndex( tableName=upwindTable, 
-                                                                                fieldName=GEOM_FIELD,
-                                                                                isSpatial=True),
-                       DataUtil.createIndex(tableName=cavityZonesTable, 
-                                            fieldName=GEOM_FIELD,
-                                            isSpatial=True),
-                       DOWNWIND_FACADE_FIELD            , STREET_CANYON_ANGLE_THRESH)
-                       
-    cursor.execute(intersectionQuery)
+    cursor.execute(f"""
+        {DataUtil.createIndex(tableName=upwindTable, 
+                              fieldName=GEOM_FIELD,
+                              isSpatial=True)};
+        {DataUtil.createIndex(tableName=cavityZonesTable, 
+                              fieldName=GEOM_FIELD,
+                              isSpatial=True)};
+        {DataUtil.createIndex(tableName=upwindTable, 
+                              fieldName=ID_FIELD_BLOCK,
+                              isSpatial=False)};
+        {DataUtil.createIndex(tableName=cavityZonesTable, 
+                              fieldName=ID_FIELD_BLOCK,
+                              isSpatial=False)};
+        DROP TABLE IF EXISTS {intersectTable};
+        CREATE TABLE {intersectTable}
+            AS SELECT   b.{ID_FIELD_STACKED_BLOCK} AS {ID_UPSTREAM_STACKED_BLOCK},
+                        a.{ID_FIELD_STACKED_BLOCK} AS {ID_DOWNSTREAM_STACKED_BLOCK},
+                        a.{BASE_HEIGHT_FIELD},
+                        a.{HEIGHT_FIELD},
+                        a.{UPWIND_FACADE_ANGLE_FIELD},
+                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{GEOM_FIELD}, 
+                                                             b.{GEOM_FIELD}),
+                                             2) AS {GEOM_FIELD},
+                        a.{UPWIND_FACADE_FIELD},
+                        b.{DOWNWIND_FACADE_FIELD}
+            FROM {upwindTable} AS a, {cavityZonesTable} AS b
+            WHERE   a.{GEOM_FIELD} && b.{GEOM_FIELD} AND ST_INTERSECTS(a.{GEOM_FIELD},
+                                                                       b.{GEOM_FIELD})
+                    AND a.{UPWIND_FACADE_ANGLE_FIELD} >= RADIANS({STREET_CANYON_ANGLE_THRESH}) 
+                    AND a.{UPWIND_FACADE_ANGLE_FIELD} <= RADIANS(180-{STREET_CANYON_ANGLE_THRESH})
+                    AND a.{ID_FIELD_BLOCK} != b.{ID_FIELD_BLOCK}
+            """)
     
     # Identify street canyon extend
     canyonExtendQuery = """

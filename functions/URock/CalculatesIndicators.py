@@ -143,7 +143,8 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                        1.*3*1.8*{9}/(POWER({8}/{3},0.3)*(1+0.24*{9}/{3})) AS {6},
                        0.22*(0.67*LEAST({3},{9})+0.33*GREATEST({3},{9})) AS {11},
                        0.9*(0.67*LEAST({3},{9})+0.33*GREATEST({3},{9})) AS {12},
-                       1+0.05*{9}/{3} AS {13}
+                       1+0.05*{9}/{3} AS {13},
+                       {14}
            FROM {7}""".format(tempoStackedLengthTab,
                                ID_FIELD_STACKED_BLOCK,
                                GEOM_FIELD, 
@@ -157,7 +158,8 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                DISPLACEMENT_LENGTH_VORTEX_FIELD,
                                ROOFTOP_PERP_HEIGHT,
                                ROOFTOP_PERP_LENGTH,
-                               ROOFTOP_WIND_FACTOR)
+                               ROOFTOP_WIND_FACTOR,
+                               ID_FIELD_BLOCK)
     cursor.execute(query)
     
     # Calculates the table containing the points corresponding to all polygons,
@@ -252,7 +254,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                         COS_BLOCK_LEFT_AZIMUTH          , SIN_BLOCK_LEFT_AZIMUTH,
                         COS_BLOCK_RIGHT_AZIMUTH         , SIN_BLOCK_RIGHT_AZIMUTH,
                         tempoStackedLengthTab           , stackedBlockAzimuths,
-                        ID_FIELD_STACKED_BLOCK))
+                        ID_FIELD_STACKED_BLOCK          , ID_FIELD_BLOCK))
     
     if not DEBUG:
         # Drop intermediate tables
