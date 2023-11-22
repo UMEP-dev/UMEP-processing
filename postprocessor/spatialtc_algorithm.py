@@ -233,6 +233,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         provider = tmrt.dataProvider()
         filepath_tmrt = str(provider.dataSourceUri()) # Path for Tmrt raster
         solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
+        _, solweigfile = os.path.split(filepath_tmrt)
         # solweig_path = os.path.dirname(filepath_tmrt) # issue 31 
 
         # LOAD raster data
@@ -271,8 +272,8 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # Ws = self.metdata[:, 9]
 
         # Derive metdata from Trmt raster name
-        yyyyTmrt = int(filepath_tmrt[-18:-14])
-        doyTmrt = int(filepath_tmrt[-13:-10])
+        yyyyTmrt = int(solweigfile.split('_')[-3]) #int(filepath_tmrt[-18:-14]) #issue 571
+        doyTmrt = int(solweigfile.split('_')[-2]) #int(filepath_tmrt[-13:-10])
         hoursTmrt = int(filepath_tmrt[-9:-7])
         minuTmrt = int(filepath_tmrt[-7:-5])
 

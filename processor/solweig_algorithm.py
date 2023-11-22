@@ -68,7 +68,6 @@ from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
 from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
-
 import matplotlib.pyplot as plt
 
 # For "Save necessary rasters for TreePlanter tool"
