@@ -402,7 +402,8 @@ def initUpwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
     cursor.execute("""
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}({5} SERIAL, {1} INTEGER, {2} GEOMETRY, {3} DOUBLE, 
-                        {6} INTEGER, {7} INTEGER, {8} INTEGER)
+                        {6} INTEGER, {7} INTEGER, {8} INTEGER, {9} DOUBLE,
+                        {10} DOUBLE, {11} DOUBLE, {12} DOUBLE)
            AS SELECT   NULL AS {5},
                        {1},
                        {2} AS {2},
@@ -410,12 +411,20 @@ def initUpwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
                                   ST_ENDPOINT({2})) AS {3},
                        {6},
                        {7},
-                       {8}
+                       {8},
+                       {9},
+                       {10},
+                       {11},
+                       {12}
            FROM ST_EXPLODE('(SELECT ST_TOMULTISEGMENTS({2}) AS {2},
                                   {1},
                                   {6},
                                   {7},
-                                  {8}
+                                  {8},
+                                  {9},
+                                  {10},
+                                  {11},
+                                  {12}
                                   FROM {4})')
            WHERE ST_AZIMUTH(ST_STARTPOINT({2}), 
                             ST_ENDPOINT({2})) < PI()
@@ -427,7 +436,11 @@ def initUpwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
                        UPWIND_FACADE_FIELD,
                        HEIGHT_FIELD,
                        BASE_HEIGHT_FIELD,
-                       ID_FIELD_BLOCK))
+                       ID_FIELD_BLOCK,
+                       STACKED_BLOCK_X_MED, 
+                       STACKED_BLOCK_WIDTH,
+                       DISPLACEMENT_LENGTH_FIELD,
+                       DISPLACEMENT_LENGTH_VORTEX_FIELD))
     
     return upwindTable
 
@@ -502,7 +515,8 @@ def updateUpwindFacadeBase(cursor, upwindTable, prefix = PREFIX_NAME):
        {10};
        DROP TABLE IF EXISTS {3};
        CREATE TABLE {3} 
-           AS SELECT   a.{1}, a.{4}, a.{5}, a.{7}, a.{8}, a.{11},
+           AS SELECT   a.{1}, a.{4}, a.{5}, a.{7}, a.{8}, a.{11}, a.{12}, a.{13},
+                       a.{14}, a.{15},
                        COALESCE(b.{6}, a.{6}) AS {6}
            FROM {0} AS a LEFT JOIN {2} AS b ON a.{5} = b.{5}
        """.format( upwindTable              , ID_FIELD_STACKED_BLOCK,
@@ -515,7 +529,9 @@ def updateUpwindFacadeBase(cursor, upwindTable, prefix = PREFIX_NAME):
                    DataUtil.createIndex(tableName=tempoUpwind, 
                                         fieldName=UPWIND_FACADE_FIELD,
                                         isSpatial=False),
-                   ID_FIELD_BLOCK))
+                   ID_FIELD_BLOCK           , STACKED_BLOCK_X_MED, 
+                   STACKED_BLOCK_WIDTH      , DISPLACEMENT_LENGTH_FIELD,
+                   DISPLACEMENT_LENGTH_VORTEX_FIELD))
                         
     if not DEBUG:
         # Drop intermediate tables
@@ -590,8 +606,7 @@ def initDownwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
        DROP TABLE IF EXISTS {7};
        CREATE TABLE {7}
            AS SELECT    a.{1}, a.{2}, a.{4}, b.{8}, b.{9}, b.{10},
-                       (ST_XMAX(b.{2}) + ST_XMIN(b.{2})) / 2 AS {12},
-                       (ST_XMAX(b.{2}) - ST_XMIN(b.{2})) AS {13},
+                       b.{12}, b.{13},
                        b.{14}, b.{15}, b.{16}, b.{17}, b.{18}, b.{19}
            FROM {0} AS a LEFT JOIN {11} AS b
            ON a.{4} = b.{4}

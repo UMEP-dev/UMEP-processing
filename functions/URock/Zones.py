@@ -9,6 +9,158 @@ from . import DataUtil as DataUtil
 import pandas as pd
 from .GlobalVariables import *
 
+def displacementZones2(cursor, upwindWithPropTable, srid,
+                      prefix = PREFIX_NAME):
+    """ Creates the displacement zone and the displacement vortex zone
+    for each of the building upwind facade based on Kaplan et Dinar (1996)
+    for the equations of the ellipsoid 
+        - Equation 2 when the facade is perpendicular to the wind,
+        - Figure 2 and Table 1 when the facade has an angle Theta with the wind.
+    Note that the displacement vortex zone is only calculated is the facade is 
+    nearly perpendicular to wind direction.
+    
+    Obstacle length and width in the equations are given in an input table.
+    Note that we strongly recommand to use the 'CalculatesIndicators.zoneProperties' function
+    to calculate effective length and width instead of maximum length and width...
+
+    References:
+       Kaplan, H., et N. Dinar. « A Lagrangian Dispersion Model for Calculating
+       Concentration Distribution within a Built-up Domain ». Atmospheric 
+       Environment 30, nᵒ 24 (1 décembre 1996): 4197‑4207.
+       https://doi.org/10.1016/1352-2310(96)00144-6.
+
+
+		Parameters
+		_ _ _ _ _ _ _ _ _ _ 
+
+            cursor: conn.cursor
+                A cursor object, used to perform spatial SQL queries
+            upwindWithPropTable: String
+                Name of the table containing upwind segment geometries
+                (and also the ID of each stacked obstacle)
+            srid: int
+                SRID of the building data (useful for zone calculation)
+            prefix: String, default PREFIX_NAME
+                Prefix to add to the output table name
+            
+		Returns
+		_ _ _ _ _ _ _ _ _ _ 
+
+            displacementZonesTable: String
+                Name of the table containing the displacement zones
+            displacementVortexZonesTable: String
+                Name of the table containing the displacement vortex zones"""
+    print("Creates displacement zones")
+    
+    # Output base names
+    outputZoneTableNames = {DISPLACEMENT_NAME: DataUtil.prefix("DISPLACEMENT_ZONES", prefix = prefix),
+                            DISPLACEMENT_VORTEX_NAME: DataUtil.prefix("DISPLACEMENT_VORTEX_ZONES", prefix = prefix)}
+
+    # Create temporary table names (for tables that will be removed at the end of the process)
+    densifiedLinePoints = DataUtil.postfix("DENSIFIED_LINE_POINTS")
+    ZonePoints = {DISPLACEMENT_NAME: DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POINTS"),
+                  DISPLACEMENT_VORTEX_NAME: DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POINTS")}
+    ZonePolygons = {DISPLACEMENT_NAME: DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POLYGONS"),
+                    DISPLACEMENT_VORTEX_NAME: DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POLYGONS")}
+    
+    # First densify the upwind facades
+    cursor.execute(
+       f"""
+       DROP TABLE IF EXISTS {densifiedLinePoints};
+       CREATE TABLE {densifiedLinePoints}
+           AS SELECT   EXPLOD_ID, 
+                       {GEOM_FIELD}, 
+                       X_MED, 
+                       HALF_WIDTH, 
+                       {DISPLACEMENT_LENGTH_FIELD},
+                       {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
+                       {UPWIND_FACADE_FIELD}
+           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
+                                                            ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
+                                    MAX({DISPLACEMENT_LENGTH_FIELD}) AS {DISPLACEMENT_LENGTH_FIELD}, 
+                                    MAX({DISPLACEMENT_LENGTH_VORTEX_FIELD}) AS {DISPLACEMENT_LENGTH_VORTEX_FIELD},
+                                    {UPWIND_FACADE_FIELD},
+                                    MAX(X_MED) AS X_MED, 
+                                    MAX(HALF_WIDTH) AS HALF_WIDTH
+                           FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
+                                                    {DISPLACEMENT_LENGTH_FIELD}, 
+                                                    {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
+                                                    {UPWIND_FACADE_FIELD},
+                                                    {STACKED_BLOCK_X_MED} AS X_MED,
+                                                    {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
+                                           FROM {upwindWithPropTable})'')
+                           GROUP BY {UPWIND_FACADE_FIELD})')
+       """)
+             
+    # Define the names of variables for displacement and displacement vortex zones
+    variablesNames = pd.DataFrame({"L": [DISPLACEMENT_LENGTH_FIELD, DISPLACEMENT_LENGTH_VORTEX_FIELD]},
+                                  index = [DISPLACEMENT_NAME, DISPLACEMENT_VORTEX_NAME])
+    
+    # Create the half ellipse for displacement and displacement vortex zones from the densified upwind facade points
+    cursor.execute(";".join(["""
+        DROP TABLE IF EXISTS {0};
+        CREATE TABLE {0}
+            AS SELECT {1}, {2}, EXPLOD_ID
+            FROM {3}
+            UNION ALL
+            SELECT  CASE WHEN ST_X({1}) - X_MED < HALF_WIDTH AND ST_X({1}) - X_MED > - HALF_WIDTH
+                         THEN ST_TRANSLATE({1}, 0, {4}*SQRT(1-POWER((ST_X({1}) - X_MED) /
+                                                          HALF_WIDTH, 2)))
+                         ELSE {1}
+                         END  AS {1},
+                    {2}, -EXPLOD_ID + 1000 AS EXPLOD_ID
+            FROM {3}
+            UNION ALL
+            SELECT {1}, {2}, 10000 AS EXPLOD_ID
+            FROM {3}
+            WHERE EXPLOD_ID = 1
+            ORDER BY EXPLOD_ID ASC
+        """.format(ZonePoints[z]                    , GEOM_FIELD, 
+                    UPWIND_FACADE_FIELD             , densifiedLinePoints,
+                    variablesNames.loc[z,"L"])
+        for z in variablesNames.index]))
+    
+    # Create the zone from the half ellipse and the densified line and then join missing columns
+    cursor.execute(";".join([
+        f"""
+        {DataUtil.createIndex(tableName=ZonePoints[z], 
+                              fieldName=UPWIND_FACADE_FIELD,
+                              isSpatial=False)}
+        DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
+        CREATE TABLE {ZonePolygons[z]}
+            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
+                        {UPWIND_FACADE_FIELD}
+            FROM {ZonePoints[z]}
+            GROUP BY {UPWIND_FACADE_FIELD};
+        {DataUtil.createIndex(tableName=ZonePolygons[z], 
+                             fieldName=UPWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        {DataUtil.createIndex(tableName=upwindWithPropTable, 
+                             fieldName=UPWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        CREATE TABLE {outputZoneTableNames[z]}
+            AS SELECT   a.{UPWIND_FACADE_FIELD}, 
+                        a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
+                        b.{HEIGHT_FIELD},
+                        b.{STACKED_BLOCK_X_MED},
+                        b.{STACKED_BLOCK_WIDTH},
+                        b.{ID_FIELD_BLOCK},
+                        b.{UPWIND_FACADE_ANGLE_FIELD}
+            FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
+            ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
+            WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
+        """
+            for z in variablesNames.index]))
+                    
+    if not DEBUG:
+        # Drop intermediate tables
+        cursor.execute("""
+           DROP TABLE IF EXISTS {0}
+           """.format(",".join([densifiedLinePoints] + list(ZonePoints.values())\
+                               + list(ZonePolygons.values()))))
+
+    return list(outputZoneTableNames.values())
+
 def displacementZones(cursor, upwindTable, zonePropertiesTable, srid,
                       prefix = PREFIX_NAME):
     """ Creates the displacement zone and the displacement vortex zone

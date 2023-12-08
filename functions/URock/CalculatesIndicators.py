@@ -60,7 +60,9 @@ def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
                        {3},
                        {4},
                        (ST_XMAX(ST_ENVELOPE({3}))-ST_XMIN({3}))*ST_AREA({3})/ST_AREA(ST_ENVELOPE({3})) AS {6},
-                       (ST_YMAX(ST_ENVELOPE({3}))-ST_YMIN({3}))*ST_AREA({3})/ST_AREA(ST_ENVELOPE({3})) AS {7}
+                       (ST_YMAX(ST_ENVELOPE({3}))-ST_YMIN({3}))*ST_AREA({3})/ST_AREA(ST_ENVELOPE({3})) AS {7},
+                       {8},
+                       {9}
            FROM {5}""".format(obstaclePropertiesTable, 
                                ID_FIELD_STACKED_BLOCK,
                                ID_FIELD_BLOCK,
@@ -68,7 +70,9 @@ def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
                                HEIGHT_FIELD,
                                obstaclesTable,
                                EFFECTIVE_WIDTH_FIELD, 
-                               EFFECTIVE_LENGTH_FIELD)
+                               EFFECTIVE_LENGTH_FIELD,
+                               BASE_HEIGHT_FIELD,
+                               CAVITY_BASE_HEIGHT_FIELD)
     cursor.execute(query)
     
     return obstaclePropertiesTable
@@ -131,6 +135,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
     #   - for wake: Lw (3*Lr, Kaplan et al. - 1996)
     #   - rooftop perpendicular: Hcm and Lc (Pol et al. 2006)
     #   - rooftop corner: C1 (Bagal et al. 2004 "Implementation of rooftop...)
+    #   - cross wind width and "center" of the building along x
     query = """
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}
@@ -144,7 +149,10 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                        0.22*(0.67*LEAST({3},{9})+0.33*GREATEST({3},{9})) AS {11},
                        0.9*(0.67*LEAST({3},{9})+0.33*GREATEST({3},{9})) AS {12},
                        1+0.05*{9}/{3} AS {13},
-                       {14}
+                       {14},
+                       {15},
+                       (ST_XMAX({2}) + ST_XMIN({2})) / 2 AS {16},
+                       (ST_XMAX({2}) - ST_XMIN({2})) AS {17}
            FROM {7}""".format(tempoStackedLengthTab,
                                ID_FIELD_STACKED_BLOCK,
                                GEOM_FIELD, 
@@ -159,7 +167,10 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                ROOFTOP_PERP_HEIGHT,
                                ROOFTOP_PERP_LENGTH,
                                ROOFTOP_WIND_FACTOR,
-                               ID_FIELD_BLOCK)
+                               ID_FIELD_BLOCK,
+                               BASE_HEIGHT_FIELD,
+                               STACKED_BLOCK_X_MED, 
+                               STACKED_BLOCK_WIDTH)
     cursor.execute(query)
     
     # Calculates the table containing the points corresponding to all polygons,

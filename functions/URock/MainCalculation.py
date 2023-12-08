@@ -126,10 +126,14 @@ def main(javaEnvironmentPath,
     #Initialize a H2GIS database connection
     dBDir = os.path.join(Path(pluginDirectory).parent, 'functions','URock')
     #print(dBDir)
+    if DEBUG:
+        db_suffix = ""
+    else:
+        db_suffix = str(time.time()).replace(".", "_")
     cursor, conn, localH2InstanceDir = \
         H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
                                            dbInstanceDir = tempoDirectory,
-                                           suffix = str(time.time()).replace(".", "_"))
+                                           suffix = db_suffix)
         
     # Load data
     loadData.loadData(fromCad = False, 
@@ -197,18 +201,7 @@ def main(javaEnvironmentPath,
     # Calculates base block height and base of block cavity zone
     rotatedPropStackedBlocks = \
         Obstacles.identifyBlockAndCavityBase(cursor, rotatedStackedBlocks,
-                                                               prefix = prefix)
-    
-    # Init the upwind facades
-    upwindInitedTable = \
-        Obstacles.initUpwindFacades(cursor = cursor,
-                                    obstaclesTable = rotatedPropStackedBlocks,
-                                    prefix = prefix)
-    # Update base height of upwind facades (if shared with the building below)
-    upwindTable = \
-        Obstacles.updateUpwindFacadeBase(cursor = cursor,
-                                        upwindTable = upwindInitedTable,
-                                        prefix = prefix)
+                                             prefix = prefix)
     
     # Calculates obstacles properties
     obstaclePropertiesTable = \
@@ -222,18 +215,29 @@ def main(javaEnvironmentPath,
                                             obstaclePropertiesTable = obstaclePropertiesTable,
                                             prefix = prefix)
     
+    # Init the upwind facades
+    upwindInitedTable = \
+        Obstacles.initUpwindFacades(cursor = cursor,
+                                    obstaclesTable = zonePropertiesTable,
+                                    prefix = prefix)
+    # Update base height of upwind facades (if shared with the building below)
+    upwindTable = \
+        Obstacles.updateUpwindFacadeBase(cursor = cursor,
+                                        upwindTable = upwindInitedTable,
+                                        prefix = prefix)
+        
+    # Calculates downwind facades 
+    downwindTable = \
+        Obstacles.initDownwindFacades(cursor = cursor,
+                                      obstaclesTable = zonePropertiesTable,
+                                      prefix = prefix)
+    
     # Calculates roughness properties of the study area
     z0, d, Hr, H_ob_max, lambda_f = \
         CalculatesIndicators.studyAreaProperties(cursor = cursor, 
                                                  upwindTable = upwindInitedTable, 
                                                  stackedBlockTable = rotatedStackedBlocks, 
                                                  vegetationTable = rotatedVegetation)
-    
-    # Calculates downwind facades 
-    downwindTable = \
-        Obstacles.initDownwindFacades(cursor = cursor,
-                                      obstaclesTable = zonePropertiesTable,
-                                      prefix = prefix)
 
 
     # Save the rotated obstacles and facades as geojson
@@ -267,11 +271,10 @@ def main(javaEnvironmentPath,
             return {}
     # Creates the displacement zone (upwind)
     displacementZonesTable, displacementVortexZonesTable = \
-        Zones.displacementZones(cursor = cursor,
-                                                  upwindTable = upwindTable,
-                                                  zonePropertiesTable = zonePropertiesTable,
-                                                  srid = srid,
-                                                  prefix = prefix)
+        Zones.displacementZones2(cursor = cursor,
+                                 upwindWithPropTable = upwindTable,
+                                 srid = srid,
+                                 prefix = prefix)
     
     
     # Save the resulting displacement zones as geojson
