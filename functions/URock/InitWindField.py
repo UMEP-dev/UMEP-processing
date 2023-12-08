@@ -3242,6 +3242,20 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
     # Remove potential duplicated indexes
     df_gridBuil = pd.DataFrame(index = df_gridBuil.index.drop_duplicates())
 
+    # Identify the cells located near buildings
+    df_wall_left = df_gridBuil.index.set_levels(df_gridBuil.index.levels[0] + 1, level=0)
+    df_wall_right = df_gridBuil.index.set_levels(df_gridBuil.index.levels[0] - 1, level=0)
+    df_wall_behind = df_gridBuil.index.set_levels(df_gridBuil.index.levels[1] + 1, level=1)
+    df_wall_face = df_gridBuil.index.set_levels(df_gridBuil.index.levels[1] - 1, level=1)
+    
+    # Consider as buildings points which are surrounded by 3 vertical walls (leads to numerical issues... See issue #)
+    ind2remove = df_wall_left.intersection(df_wall_right).intersection(df_wall_behind)\
+        .union(df_wall_left.intersection(df_wall_right).intersection(df_wall_face))\
+        .union(df_wall_left.intersection(df_wall_behind).intersection(df_wall_face))\
+        .union(df_wall_right.intersection(df_wall_behind).intersection(df_wall_face))\
+            .difference(df_gridBuil.index)
+    df_gridBuil.index = df_gridBuil.index.append(ind2remove)
+
     if not DEBUG:
         # Remove intermediate tables
         cursor.execute("""
