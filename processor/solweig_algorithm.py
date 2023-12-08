@@ -69,6 +69,7 @@ from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 import matplotlib.pyplot as plt
+from shutil import copyfile, rmtree
 import string
 import random
 
@@ -1248,6 +1249,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
 
+        rmtree(self.temp_dir, ignore_errors=True)  
+     
         return {self.OUTPUT_DIR: outputDir}
     
     def name(self):
