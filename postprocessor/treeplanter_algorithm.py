@@ -84,7 +84,7 @@ from ..functions.TreeGenerator import makevegdems as makevegdems
 
 # from ..functions.TreePlanter.SOLWEIG.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
 from ..util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-from ..functions.TreePlanter.SOLWEIG1D import Solweig1D_2019a_calc as so
+# from ..functions.TreePlanter.SOLWEIG1D import Solweig1D_2019a_calc as so
 from ..functions.wallalgorithms import findwalls
 # from ..functions.TreePlanter.SOLWEIG.misc import saveraster
 from ..util.misc import saveraster
@@ -94,7 +94,8 @@ from ..functions.TreePlanter.TreePlanter import TreePlanterPrepare
 from ..functions.TreePlanter.TreePlanter import TreePlanterHillClimber
 from ..functions.TreePlanter.TreePlanter.TreePlanterClasses import Inputdata, Treedata, Regional_groups, ClippedInputdata, Treerasters
 from ..functions.TreePlanter.TreePlanter import GreedyAlgorithm
-from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG_1D import tmrt_1d_fun
+# from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG_1D import tmrt_1d_fun
+from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG1D_2023a import tmrt_1d_fun
 # from ..functions.TreePlanter.treeplanterclasses import Treedata
 # from ..functions.TreePlanter.treeplanterclasses import Regional_groups
 # from ..functions.TreePlanter.treeplanterclasses import ClippedInputdata
@@ -318,8 +319,10 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                 tree_input.shadow[:,:,i] = tree_input.shadow[:,:,i] * tree_input.selected_area
 
         # Tmrt for shaded point
-        tmrt_1d, azimuth, altitude, amaxvalue = tmrt_1d_fun(INPUT_MET,infolder,transVeg,tree_input.lon,tree_input.lat,tree_input.dsm,r_range)
+        tmrt_1d, azimuth, altitude, amaxvalue = tmrt_1d_fun(INPUT_MET,infolder,transVeg,tree_input.lon,tree_input.lat,tree_input.dsm,r_range,outputDir)
         tmrt_1d = np.around(tmrt_1d, decimals=1) # Round Tmrt to one decimal
+
+        print(tmrt_1d)
 
         # Create tree in empty matrix
         treey = math.ceil(tree_input.rows / 2)  # Y-position of tree in empty setting. Y-position is in the middle of Y.

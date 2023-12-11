@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.0.14
+version=2.0.15
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.16: Bug fixing in TreePlanter. Response to #34 and #52
     2.0.15: URock: Reduce street canyon wind speed for narrow canyon - Keep cavity zone instead of street canyon when cavity zone is within a single block
     2.0.14: Response to #571
     2.0.13: Improvments of installation packages
