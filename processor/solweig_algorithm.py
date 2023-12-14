@@ -830,7 +830,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             lines = lin[i].split()
             for j in np.arange(1, 7):
                 lc_class[i - 1, j - 1] = float(lines[j])
-
+        f.close()
+        
         if demforbuild == 0:
             buildings = np.copy(lcgrid)
             buildings[buildings == 7] = 1
