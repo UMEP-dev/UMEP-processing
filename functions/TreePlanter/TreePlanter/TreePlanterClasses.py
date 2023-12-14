@@ -3,6 +3,56 @@ import numpy as np
 from scipy.ndimage import label
 import os
 
+def spatialReferenceData(self, feedback):
+    # Find latlon etc for input data.
+    old_cs = osr.SpatialReference()
+    dsm_ref = self.dataSet.GetProjection()
+    old_cs.ImportFromWkt(dsm_ref)
+
+    wgs84_wkt = """
+        GEOGCS["WGS 84",
+            DATUM["WGS_1984",
+                SPHEROID["WGS 84",6378137,298.257223563,
+                    AUTHORITY["EPSG","7030"]],
+                AUTHORITY["EPSG","6326"]],
+            PRIMEM["Greenwich",0,
+                AUTHORITY["EPSG","8901"]],
+            UNIT["degree",0.01745329251994328,
+                AUTHORITY["EPSG","9122"]],
+            AUTHORITY["EPSG","4326"]]"""
+
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromWkt(wgs84_wkt)
+
+    transform = osr.CoordinateTransformation(old_cs, new_cs)
+
+    width1 = self.dataSet.RasterXSize
+    height1 = self.dataSet.RasterYSize
+    self.gt = self.dataSet.GetGeoTransform()
+    minx = self.gt[0]
+    maxy = self.gt[3]
+    miny = self.gt[3] + width1 * self.gt[4] + height1 * self.gt[5]
+    maxx = minx + self.gt[1] * width1
+    
+    lonlat = transform.TransformPoint(minx, miny)
+    geotransform = self.dataSet.GetGeoTransform()
+    self.scale = 1 / self.gt[1]
+    gdalver = float(gdal.__version__[0])
+    if gdalver == 3.:
+        self.lon = lonlat[1] #changed to gdal 3
+        self.lat = lonlat[0] #changed to gdal 3
+    else:
+        self.lon = lonlat[0] #changed to gdal 2
+        self.lat = lonlat[1] #changed to gdal 2
+
+    # alt = np.median(self.dsm)
+    # if alt < 0:
+    #     alt = 3
+    feedback.setProgressText('Latitude derived from DSM: ' + str(self.lat))
+    feedback.setProgressText('Longitude derived from DSM: ' + str(self.lon))
+
+    return minx, miny, maxx, maxy
+
 class Inputdata():
     '''Class containing input data for Tree planter'''
     __slots__ = ('dataSet', 'buildings', 'selected_area', 'dsm', 'cdsm', 'cdsm_b', 'shadow', 'tmrt_ts', 'tmrt_s', 'tmrt_avg', 'rows', 'cols', 'scale', 'lat', 'lon', 'gt')
@@ -29,7 +79,9 @@ class Inputdata():
         if os.path.exists(infolder + '/CDSM.tif'):
             dataSet = gdal.Open(infolder + '/CDSM.tif')
             self.cdsm = dataSet.ReadAsArray().astype(float)
+            self.cdsm[self.cdsm < 0] = 0.
             self.cdsm_b = self.cdsm == 0
+            # self.cdsm_b = self.cdsm == np.nan
             self.buildings = (self.buildings == True) & (self.cdsm_b == True)
 
         c = 0
@@ -46,44 +98,10 @@ class Inputdata():
 
         self.tmrt_avg = (self.tmrt_s / c)
 
-        # Find latlon etc for input data.
-        old_cs = osr.SpatialReference()
-        # dsm_ref = dsmlayer.crs().toWkt()
-        dsm_ref = self.dataSet.GetProjection()
-        old_cs.ImportFromWkt(dsm_ref)
+        # Get spatial reference data
+        minx, miny, maxx, maxy = spatialReferenceData(self, feedback)
 
-        wgs84_wkt = """
-            GEOGCS["WGS 84",
-                DATUM["WGS_1984",
-                    SPHEROID["WGS 84",6378137,298.257223563,
-                        AUTHORITY["EPSG","7030"]],
-                    AUTHORITY["EPSG","6326"]],
-                PRIMEM["Greenwich",0,
-                    AUTHORITY["EPSG","8901"]],
-                UNIT["degree",0.01745329251994328,
-                    AUTHORITY["EPSG","9122"]],
-                AUTHORITY["EPSG","4326"]]"""
-
-        new_cs = osr.SpatialReference()
-        new_cs.ImportFromWkt(wgs84_wkt)
-
-        transform = osr.CoordinateTransformation(old_cs, new_cs)
-
-        width1 = self.dataSet.RasterXSize
-        height1 = self.dataSet.RasterYSize
-        self.gt = self.dataSet.GetGeoTransform()
-        minx = self.gt[0]
-        maxy = self.gt[3]
-        miny = self.gt[3] + width1 * self.gt[4] + height1 * self.gt[5]
-        maxx = minx + self.gt[1] * width1
-        
-        lonlat = transform.TransformPoint(minx, miny)
-        geotransform = self.dataSet.GetGeoTransform()
-        self.scale = 1 / self.gt[1]
-        self.lon = lonlat[0]
-        self.lat = lonlat[1]
-
-        # Import Planting area
+        # Import Planting area and rasterize
         rasterize_options = gdal.RasterizeOptions(options=[
             '-burn', '1',
             '-te', str(minx), str(miny), str(maxx), str(maxy),
@@ -94,6 +112,7 @@ class Inputdata():
         dataSetSel = gdal.Open(infolder + '/selected_area.tif')
         self.selected_area = dataSetSel.ReadAsArray().astype(float)
 
+        # Remove plant area raster from computer
         try:
             del dataSetSel
             os.remove(infolder + '/selected_area.tif')
@@ -167,17 +186,6 @@ class Treerasters():
         self.tmrt_sun = np.around(tmrt_sun, decimals=nr_dec)
         self.tmrt_shade = np.around(tmrt_shade, decimals=nr_dec)
         self.d_tmrt = (self.tmrt_sun - self.tmrt_shade)
-        #print(self.tmrt_sun - self.tmrt_shade)
-        # if filter == 1:
-        #     import scipy as sp
-        #     # Finding courtyards and small separate areas
-        #     sun_vs_tsh_filtered = sp.ndimage.label(self.d_tmrt)
-        #     sun_sh_d = sun_vs_tsh_filtered[0]
-        #     for i in range(1, sun_sh_d.max() + 1):
-        #         if np.sum(sun_sh_d[sun_sh_d == i]) < 2000:
-        #             self.d_tmrt[sun_sh_d == i] = 0
-        # self.tmrt_sun = np.around(self.tmrt_sun, decimals=nr_dec)
-        # self.d_tmrt = np.around(self.d_tmrt, decimals=nr_dec)
 
 class Position():
 # Class containing y and x positions of trees and their corresponding sum of Tmrt in shade and sum of Tmrt in same area as shade but sunlit
@@ -290,9 +298,6 @@ class ClippedInputdata():
         if self.clip_cols[1] > treeinput.selected_area.shape[1]:
             self.clip_cols[1] = treeinput.selected_area.shape[1]
 
-        # self.clip_rows[0] = sa_rows.min(); self.clip_rows[1] = sa_rows.max()
-        # self.clip_cols[0] = sa_cols.min(); self.clip_cols[1] = sa_cols.max()
-
         # Turn into integers to be able to use as indices
         self.clip_rows = np.int_(self.clip_rows); self.clip_cols = np.int_(self.clip_cols)
 
@@ -309,7 +314,6 @@ class ClippedInputdata():
 
         # Save other stuff from input rasters
         self.dataSet = treeinput.dataSet
-        #self.aoi = treeinput.aoi
         self.scale = treeinput.scale
         self.lat = treeinput.lat
         self.lon = treeinput.lon

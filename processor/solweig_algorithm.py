@@ -69,6 +69,9 @@ from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 import matplotlib.pyplot as plt
+from shutil import copyfile, rmtree
+import string
+import random
 
 # For "Save necessary rasters for TreePlanter tool"
 from shutil import copyfile
@@ -294,7 +297,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                                      'Output folder'))
 
         self.plugin_dir = os.path.dirname(__file__)
-        self.temp_dir = os.path.dirname(self.plugin_dir) + '/temp'
+        temp_dir_name = 'temp-' + ''.join(random.choice(string.ascii_uppercase) for _ in range(8))
+        self.temp_dir = os.path.join(os.path.dirname(self.plugin_dir), temp_dir_name)
 
     def processAlgorithm(self, parameters, context, feedback):
         np.seterr(divide='ignore', invalid='ignore')
@@ -1245,6 +1249,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
 
+        rmtree(self.temp_dir, ignore_errors=True)  
+     
         return {self.OUTPUT_DIR: outputDir}
     
     def name(self):
