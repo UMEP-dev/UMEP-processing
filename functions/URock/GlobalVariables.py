@@ -25,7 +25,7 @@ REMOVE_INITIALIZATION_OFFSET = False
 DESCENDING_Y = False
 
 # Street canyon scheme limitation (below this angle, no street canyon is created)
-STREET_CANYON_ANGLE_THRESH = 0
+STREET_CANYON_ANGLE_THRESH = 30
 
 # Temporary directory where are saved database and specific files exchanged between
 # the H2Database and Python
