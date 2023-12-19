@@ -120,6 +120,15 @@ def displacementZones2(cursor, upwindWithPropTable, srid,
                     variablesNames.loc[z,"L"])
         for z in variablesNames.index]))
     
+    # Create the zone only if the following conditions are respected
+    whereCond = {DISPLACEMENT_NAME :" b.{0}*SIN(b.{1})*SIN(b.{1})>{2}"\
+            .format(DISPLACEMENT_LENGTH_FIELD,
+                    UPWIND_FACADE_ANGLE_FIELD,
+                    ELLIPSOID_MIN_LENGTH),
+                 DISPLACEMENT_VORTEX_NAME : " b.{0}>RADIANS(90-{1}) AND b.{0}<RADIANS(90+{1}) "\
+            .format(UPWIND_FACADE_ANGLE_FIELD,
+                    PERPENDICULAR_THRESHOLD_ANGLE)}
+                             
     # Create the zone from the half ellipse and the densified line and then join missing columns
     cursor.execute(";".join([
         f"""
@@ -148,7 +157,7 @@ def displacementZones2(cursor, upwindWithPropTable, srid,
                         b.{UPWIND_FACADE_ANGLE_FIELD}
             FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
             ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
-            WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
+            WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
         """
             for z in variablesNames.index]))
                     

@@ -270,17 +270,29 @@ def main(javaEnvironmentPath,
             feedback.setProgressText("Calculation cancelled by user")
             return {}
     # Creates the displacement zone (upwind)
-    displacementZonesTable, displacementVortexZonesTable = \
-        Zones.displacementZones(cursor = cursor,
-                                upwindTable = upwindTable,
-                                zonePropertiesTable = zonePropertiesTable,
-                                srid = srid,
-                                prefix = prefix)
     # displacementZonesTable, displacementVortexZonesTable = \
     #     Zones.displacementZones(cursor = cursor,
-    #                              upwindWithPropTable = upwindTable,
-    #                              srid = srid,
-    #                              prefix = prefix)
+    #                             upwindTable = upwindTable,
+    #                             zonePropertiesTable = zonePropertiesTable,
+    #                             srid = srid,
+    #                             prefix = prefix)
+    displacementZonesTable, displacementVortexZonesTable = \
+        Zones.displacementZones2(cursor = cursor,
+                                  upwindWithPropTable = upwindTable,
+                                  srid = srid,
+                                  prefix = prefix)
+    # # Creates the displacement zone (upwind)
+    # displacementZonesTable = \
+    #     Zones.displacementZones(cursor = cursor,
+    #                             upwindTable = upwindTable,
+    #                             zonePropertiesTable = zonePropertiesTable,
+    #                             srid = srid,
+    #                             prefix = prefix)[0]
+    # displacementVortexZonesTable = \
+    #     Zones.displacementZonesVortex(cursor = cursor,
+    #                                   upwindWithPropTable = upwindTable,
+    #                                   srid = srid,
+    #                                   prefix = prefix)[0]
     
     
     # Save the resulting displacement zones as geojson
