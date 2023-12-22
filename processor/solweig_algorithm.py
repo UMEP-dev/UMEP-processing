@@ -743,11 +743,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
                 poiname.append(f.attributes()[idx])
                 poisxy[ind, 0] = ind
-                poisxy[ind, 1] = np.round((x - minx) * scale)
+                poisxy[ind, 1] = np.ceil((x - minx) * scale) - 1
                 if miny >= 0:
-                    poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+                    poisxy[ind, 2] = np.ceil((miny + rows * (1. / scale) - y) * scale) - 1
                 else:
-                    poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+                    poisxy[ind, 2] = np.ceil((miny + rows * (1. / scale) - y) * scale) - 1
 
                 ind += 1
 
