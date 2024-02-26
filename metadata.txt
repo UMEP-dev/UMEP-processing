@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.20: URock: Fix canyon scheme (resolve part of issue #589). 
     2.0.19: URock: New H2GIS version (2.2.1) and solve issue with open vegetation geometry validity (response to #63 - in UMEP-Processing) 
     2.0.18: URock: Canyon zone activation based on street orientation 30° and merge all displacement zones into one and all displacement vortex zones into one (fix #53 - in UMEP-Processing)
     2.0.17: URock: solve mass balance for cells surrounded by 3 walls.
