@@ -864,7 +864,11 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
         {11};
         DROP TABLE IF EXISTS {7};
         CREATE TABLE {7}
-            AS SELECT   ST_INTERSECTION(a.{1}, b.{1}) AS {1},
+            AS SELECT   ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{1}, 
+                                                             ST_MAKEVALID(ST_SNAP(b.{1}, 
+                                                                                  a.{1},
+                                                                                  {13}))),
+                                             3) AS {1},
                         a.{3},
                         a.{4},
                         a.{5},
@@ -882,6 +886,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                                         MIN({5}) AS {5},
                                         {6}
                             FROM {7}
+                            WHERE ST_ISEMPTY({1}) IS FALSE
                             GROUP BY {6})')
         """.format( vegetationTable                  , GEOM_FIELD,
                     wakeZonesTable                   , VEGETATION_CROWN_BASE_HEIGHT,
@@ -896,7 +901,8 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                                          isSpatial=True),
                     DataUtil.createIndex(tableName=temporary_built_vegetation, 
                                          fieldName=ID_VEGETATION,
-                                         isSpatial=False)))
+                                         isSpatial=False),
+                    GEOMETRY_SIMPLIFICATION_DISTANCE))
     
     # Identify vegetation zones being in open areas
     cursor.execute("""
