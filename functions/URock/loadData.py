@@ -131,7 +131,7 @@ def loadData(fromCad                        , prefix,
             if idFieldBuild is None or idFieldBuild == "":
                 cursor.execute(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
-                   ALTER TABLE {0} ADD COLUMN {1} SERIAL;
+                   ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
                    """.format( buildTablePreSrid     , ID_FIELD_BUILD))
                 idFieldBuild = ID_FIELD_BUILD
             
@@ -175,7 +175,7 @@ def loadData(fromCad                        , prefix,
             if idVegetation is None or idVegetation == "":
                 cursor.execute(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
-                   ALTER TABLE {0} ADD COLUMN {1} SERIAL;
+                   ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
                    """.format( vegTablePreSrid     , ID_VEGETATION))
                 idVegetation = ID_VEGETATION
             # Create an attenuation attribute with default 'DEFAULT_VEG_ATTEN_FACT'
@@ -391,8 +391,8 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
     # Add ID to the input data and remove vertical polygons...
     cursor.execute("""
        DROP TABLE IF EXISTS {0}; 
-       CREATE TABLE {0}(ID SERIAL, {1} GEOMETRY) 
-            AS (SELECT NULL, {1} 
+       CREATE TABLE {0}(ID BIGINT AUTO_INCREMENT, {1} GEOMETRY) 
+            AS (SELECT CAST((row_number() over()) as Integer) AS ID, {1} 
                 FROM ST_EXPLODE('(SELECT * FROM {2} WHERE ST_AREA({1})>0)'))
             """.format(trianglesWithId, GEOM_FIELD, triangles3d))
     

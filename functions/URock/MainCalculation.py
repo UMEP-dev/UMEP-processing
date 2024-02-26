@@ -363,16 +363,16 @@ def main(javaEnvironmentPath,
     # Creates the vegetation zones
     vegetationBuiltZoneTable, vegetationOpenZoneTable = \
         Zones.vegetationZones(cursor = cursor,
-                                                vegetationTable = rotatedVegetation,
-                                                wakeZonesTable = wakeZonesTable,
-                                                prefix = prefix)
+                              vegetationTable = rotatedVegetation,
+                              wakeZonesTable = wakeZonesTable,
+                              prefix = prefix)
     if debug or saveRockleZones:
-        saveData.saveTable(cursor = cursor                      , tableName = vegetationBuiltZoneTable,
-                  filedir = outputDataAbs["vegetation_built"]   , delete = True,
+        saveData.saveTable(cursor = cursor                              , tableName = vegetationBuiltZoneTable,
+                           filedir = outputDataAbs["vegetation_built"]  , delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)
-        saveData.saveTable(cursor = cursor                      , tableName = vegetationOpenZoneTable,
-                  filedir = outputDataAbs["vegetation_open"]    , delete = True,
+        saveData.saveTable(cursor = cursor                              , tableName = vegetationOpenZoneTable,
+                           filedir = outputDataAbs["vegetation_open"]   , delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)
     

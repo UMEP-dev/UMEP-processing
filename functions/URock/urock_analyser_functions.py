@@ -84,7 +84,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     # Load coordinates in a H2GIS table
     cursor.execute("""
        DROP TABLE IF EXISTS {0};
-       CREATE TABLE {0}(ID_POINT SERIAL,
+       CREATE TABLE {0}(ID_POINT BIGINT AUTO_INCREMENT,
                         {3} INTEGER,
                         {4} INTEGER,
                         {8} DOUBLE,
@@ -92,7 +92,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                         {10} DOUBLE,
                         {11} DOUBLE,
                         {5} GEOMETRY) AS
-            SELECT  NULL, {3}, {4}, {8}, {9}, {10}, {11},
+            SELECT  CAST((row_number() over()) as Integer) AS ID_POINT, {3}, {4}, {8}, {9}, {10}, {11},
                     ST_TRANSFORM(ST_SETSRID(ST_MakePoint({6}, {7}), 4326), {1}) AS {5}
             FROM CSVREAD('{2}')
         """.format(allPointsTab             , urock_srid, 

@@ -1559,16 +1559,16 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
                                              dz)]
         cursor.execute("""
                    DROP TABLE IF EXISTS {0};
-                   CREATE TABLE {0}({2} SERIAL, {3} DOUBLE);
-                   INSERT INTO {0} VALUES (NULL, {1})
+                   CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
+                   INSERT INTO {0} VALUES (DEFAULT, {1})
                    """.format(  zValueTable,
-                                "), (NULL, ".join(listOfZ),
+                                "), (DEFAULT, ".join(listOfZ),
                                 ID_POINT_Z,
                                 Z))
     else:
         cursor.execute("""
                    DROP TABLE IF EXISTS {0};
-                   CREATE TABLE {0}({1} SERIAL, {2} DOUBLE);
+                   CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} DOUBLE);
                    """.format(  zValueTable,
                                 ID_POINT_Z,
                                 Z))
@@ -1847,10 +1847,10 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                                          dz)]
     cursor.execute("""
             DROP TABLE IF EXISTS {0};
-            CREATE TABLE {0}({2} SERIAL, {3} DOUBLE);
-            INSERT INTO {0} VALUES (NULL, {1})
+            CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
+            INSERT INTO {0} VALUES (DEFAULT, {1})
                """.format(  zValueTable,
-                            "), (NULL, ".join(listOfZ),
+                            "), (DEFAULT, ".join(listOfZ),
                             ID_POINT_Z,
                             Z))
     
@@ -2617,7 +2617,7 @@ def identifyUpstreamer( cursor,
     
     for t in listOfTables:
         selectQueryDownstream[t] = """
-                SELECT  NULL AS {0}, {1}, {2},
+                SELECT  CAST((row_number() over()) as Integer) AS {0}, {1}, {2},
                         {3}, {4}, 
                 """.format( ID_3D_POINT         , ID_POINT,
                             ID_POINT_Z          , HEIGHT_FIELD,
@@ -2652,7 +2652,7 @@ def identifyUpstreamer( cursor,
     # Gather all data for the upstream weighting into a same table
     cursor.execute("""
            DROP TABLE IF EXISTS {0};
-           CREATE TABLE {0}({1} SERIAL, {2} INTEGER, {3} INTEGER,
+           CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} INTEGER, {3} INTEGER,
                             {4} INTEGER, {5} INTEGER, {6} 
                             {7} DOUBLE, {8} DOUBLE, {9} DOUBLE)
                AS {10}

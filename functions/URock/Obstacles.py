@@ -167,36 +167,39 @@ def createsBlocks(cursor, inputBuildings, snappingTolerance = GEOMETRY_MERGE_TOL
     
         # Create stacked blocks according to building blocks and height
         listOfSqlQueries = [
-            """ SELECT NULL, {2}, ST_MAKEVALID(ST_NORMALIZE({0})) AS {0} , {4}
-                FROM ST_EXPLODE('(SELECT ST_MAKEVALID(ST_SNAP(ST_SIMPLIFY(ST_UNION(ST_ACCUM(ST_BUFFER(a.{0},
-                                                                                        {6},
+            f""" SELECT {ID_FIELD_BLOCK}, ST_MAKEVALID(ST_NORMALIZE({GEOM_FIELD})) AS {GEOM_FIELD} , {height_i} AS {HEIGHT_FIELD}
+                FROM ST_EXPLODE('(SELECT ST_MAKEVALID(ST_SNAP(ST_SIMPLIFY(ST_UNION(ST_ACCUM(ST_BUFFER(a.{GEOM_FIELD},
+                                                                                        {snappingTolerance},
                                                                                         ''join=mitre''))),
-                                                                        {5}),
+                                                                        {GEOMETRY_SIMPLIFICATION_DISTANCE}),
                                                              a.GEOM_BLOCK,
-                                                             {6})
-                                                        ) AS {0},
-                                        a.{2} AS {2}
-                                FROM {3} AS a RIGHT JOIN (SELECT {2} 
-                                                          FROM {3}
-                                                          WHERE {1}={4}) AS b
-                                ON a.{2}=b.{2} WHERE a.{1}>={4}
-                                GROUP BY a.{2})')
-                                """.format(GEOM_FIELD       , HEIGHT_FIELD, 
-                                            ID_FIELD_BLOCK  , correlTable, 
-                                            height_i        , GEOMETRY_SIMPLIFICATION_DISTANCE,
-                                            snappingTolerance) for height_i in df_listOfHeight]
-        cursor.execute("""
-            DROP TABLE IF EXISTS {0};
-            CREATE TABLE {0}({1} SERIAL, {2} INT, {3} GEOMETRY, {4} INT)
-                AS {5}
-                """.format(stackedBlockTable, ID_FIELD_STACKED_BLOCK, ID_FIELD_BLOCK,
-                            GEOM_FIELD, HEIGHT_FIELD, " UNION ALL ".join(listOfSqlQueries)))
+                                                             {snappingTolerance})
+                                                        ) AS {GEOM_FIELD},
+                                        a.{ID_FIELD_BLOCK} AS {ID_FIELD_BLOCK}
+                                FROM {correlTable} AS a RIGHT JOIN (SELECT {ID_FIELD_BLOCK} 
+                                                         FROM {correlTable}
+                                                         WHERE {HEIGHT_FIELD}={height_i}) AS b
+                                ON a.{ID_FIELD_BLOCK}=b.{ID_FIELD_BLOCK} WHERE a.{HEIGHT_FIELD}>={height_i}
+                                GROUP BY a.{ID_FIELD_BLOCK})')
+                                """ for height_i in df_listOfHeight]
+        cursor.execute(f"""
+            DROP TABLE IF EXISTS {stackedBlockTable};
+            CREATE TABLE {stackedBlockTable}({ID_FIELD_STACKED_BLOCK} BIGINT AUTO_INCREMENT, 
+                                             {ID_FIELD_BLOCK} INT, 
+                                             {GEOM_FIELD} GEOMETRY, 
+                                             {HEIGHT_FIELD} INT)
+                AS SELECT   CAST((row_number() over()) as Integer) AS {ID_FIELD_STACKED_BLOCK},
+                            {ID_FIELD_BLOCK},
+                            {GEOM_FIELD},
+                            {HEIGHT_FIELD}
+                FROM ({" UNION ALL ".join(listOfSqlQueries)})
+                """)
     
     else:
         # Create an empty block table
         cursor.execute("""
             DROP TABLE IF EXISTS {0};
-            CREATE TABLE {0}({1} SERIAL, {2} INT, {3} GEOMETRY, {4} INT)
+            CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} INT, {3} GEOMETRY, {4} INT)
             """.format(stackedBlockTable, ID_FIELD_STACKED_BLOCK, ID_FIELD_BLOCK,
                        GEOM_FIELD, HEIGHT_FIELD))
     
@@ -249,7 +252,7 @@ def identifyBlockAndCavityBase(cursor, stackedBlockTable,
        {9};
        DROP TABLE IF EXISTS {4};
        CREATE TABLE {4} 
-           AS SELECT   a.{1}, a.{2}, a.{5}, MIN(a.{3}) AS {3}, MAX(b.{3}) AS {6},
+           AS SELECT   a.{2}, a.{5}, MIN(a.{3}) AS {3}, MAX(b.{3}) AS {6},
                        MAX((ST_XMAX(a.{1})-ST_XMIN(a.{1}))/
                            (ST_XMAX(b.{1})-ST_XMIN(b.{1}))) AS AREA_RATIO
            FROM {0} AS a LEFT JOIN {0} AS b ON a.{2} = b.{2}
@@ -401,10 +404,10 @@ def initUpwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
     # Identify upwind facade
     cursor.execute("""
        DROP TABLE IF EXISTS {0};
-       CREATE TABLE {0}({5} SERIAL, {1} INTEGER, {2} GEOMETRY, {3} DOUBLE, 
+       CREATE TABLE {0}({5} BIGINT AUTO_INCREMENT, {1} INTEGER, {2} GEOMETRY, {3} DOUBLE, 
                         {6} INTEGER, {7} INTEGER, {8} INTEGER, {9} DOUBLE,
                         {10} DOUBLE, {11} DOUBLE, {12} DOUBLE)
-           AS SELECT   NULL AS {5},
+           AS SELECT   CAST((row_number() over()) as Integer) AS {5},
                        {1},
                        {2} AS {2},
                        ST_AZIMUTH(ST_STARTPOINT({2}), 
@@ -575,9 +578,9 @@ def initDownwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
     # Identify upwind facade
     cursor.execute("""
        DROP TABLE IF EXISTS {0};
-       CREATE TABLE {0}({4} SERIAL, {1} INTEGER, {2} GEOMETRY, 
+       CREATE TABLE {0}({4} BIGINT AUTO_INCREMENT, {1} INTEGER, {2} GEOMETRY, 
                         {5} INTEGER)
-           AS SELECT   NULL AS {4},
+           AS SELECT   CAST((row_number() over()) as Integer) AS {4},
                        {1},
                        {2} AS {2},
                        {5}
@@ -597,8 +600,8 @@ def initDownwindFacades(cursor, obstaclesTable, prefix = PREFIX_NAME):
     # Merge the ones that intersect each other and join stacked block properties
     cursor.execute("""
        DROP TABLE IF EXISTS {0}; 
-       CREATE TABLE {0}({1} SERIAL, {2} GEOMETRY, {4} INTEGER) 
-            AS SELECT NULL AS {1}, ST_NORMALIZE({2}) AS {2}, {4} 
+       CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} GEOMETRY, {4} INTEGER) 
+            AS SELECT CAST((row_number() over()) as Integer) AS {1}, ST_NORMALIZE({2}) AS {2}, {4} 
             FROM ST_EXPLODE ('(SELECT ST_LINEMERGE(ST_UNION(ST_ACCUM({2}))) AS {2}, {4} 
                                FROM {3}
                                GROUP BY {4})');

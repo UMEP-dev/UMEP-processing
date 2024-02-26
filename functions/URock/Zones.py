@@ -581,7 +581,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
     streetCanyonQuery = """
         {15};
         DROP TABLE IF EXISTS {2};
-        CREATE TABLE {2}({13} SERIAL,
+        CREATE TABLE {2}({13} BIGINT AUTO_INCREMENT,
                          {1} INTEGER,
                          {8} INTEGER,
                          {3} GEOMETRY,
@@ -591,7 +591,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
                          {12} INTEGER,
                          {14} INTEGER,
                          {9} INTEGER)
-            AS SELECT   NULL AS {13},
+            AS SELECT   CAST((row_number() over()) as Integer) AS {13},
                         {1},
                         {8},
                         ST_SETSRID({3}, {16}) AS {3},
@@ -873,9 +873,9 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
             WHERE a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1});
         {12};
         DROP TABLE IF EXISTS {8};
-        CREATE TABLE {8}({9} SERIAL     , {1} GEOMETRY   , {3} DOUBLE,
-                         {4} DOUBLE     , {5} DOUBLE     , {6} INTEGER)
-            AS SELECT NULL, {1}, {3}, {4}, {5}, {6}
+        CREATE TABLE {8}({9} BIGINT AUTO_INCREMENT, {1} GEOMETRY   , {3} DOUBLE,
+                         {4} DOUBLE               , {5} DOUBLE     , {6} INTEGER)
+            AS SELECT CAST((row_number() over()) as Integer) AS {9}, {1}, {3}, {4}, {5}, {6}
             FROM ST_EXPLODE('(SELECT    ST_UNION(ST_ACCUM({1})) AS {1},
                                         MIN({3}) AS {3},
                                         MIN({4}) AS {4},
@@ -903,9 +903,9 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
         {9};
         {10};
         DROP TABLE IF EXISTS {7};
-        CREATE TABLE {7}({8} SERIAL     , {1} GEOMETRY   , {3} DOUBLE,
-                         {4} DOUBLE     , {5} DOUBLE     , {6} INTEGER)
-            AS SELECT   NULL, {1}, {3}, {4}, {5}, {6}
+        CREATE TABLE {7}({8} BIGINT AUTO_INCREMENT      , {1} GEOMETRY   , {3} DOUBLE,
+                         {4} DOUBLE                     , {5} DOUBLE     , {6} INTEGER)
+            AS SELECT   CAST((row_number() over()) as Integer) AS {8}, {1}, {3}, {4}, {5}, {6}
             FROM ST_EXPLODE('(SELECT    COALESCE(ST_DIFFERENCE(a.{1}, b.{1}),
                                                 a.{1}) AS {1},
                                         a.{3},
