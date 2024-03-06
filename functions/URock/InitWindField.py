@@ -2163,34 +2163,25 @@ def manageSuperimposition(cursor,
                                       prefix = PREFIX_NAME)
                          
     # Add backward zone points to the final table (replace points if exist)
-    cursor.execute("""
-          {0}{1}{2}{3}
-          DROP TABLE IF EXISTS {4};
-          CREATE TABLE {4}
+    cursor.execute(f"""
+          {DataUtil.createIndex(tableName=upstreamBackPrioritiesTempoTable, 
+                                           fieldName=[ID_POINT, ID_POINT_Z],
+                                           isSpatial=False)}
+          {DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
+                               fieldName=[ID_POINT, ID_POINT_Z],
+                               isSpatial=False)}
+          DROP TABLE IF EXISTS {tempoPrioritiesWeightedAllPlusBack};
+          CREATE TABLE {tempoPrioritiesWeightedAllPlusBack}
               AS SELECT   a.* 
-              FROM     {5} AS a LEFT JOIN {6} AS b
-                       ON a.{7} = b.{7} AND a.{8} = b.{8}
-              WHERE b.{7} IS NOT NULL AND b.{8} IS NOT NULL
+              FROM     {upstreamBackPrioritiesTempoTable} AS a LEFT JOIN {tempoPrioritiesWeightedAll} AS b
+                       ON a.{ID_POINT} = b.{ID_POINT} AND a.{ID_POINT_Z} = b.{ID_POINT_Z}
+              WHERE b.{ID_POINT} IS NOT NULL AND b.{ID_POINT_Z} IS NOT NULL
               UNION ALL
               SELECT  a.*
-              FROM     {6} AS a LEFT JOIN {5} AS b
-                       ON a.{7} = b.{7} AND a.{8} = b.{8}
-              WHERE b.{7} IS NULL AND b.{8} IS NULL
-          """.format( DataUtil.createIndex(tableName=upstreamBackPrioritiesTempoTable, 
-                                           fieldName=ID_POINT,
-                                           isSpatial=False),
-                      DataUtil.createIndex(tableName=upstreamBackPrioritiesTempoTable, 
-                                           fieldName=ID_POINT_Z,
-                                           isSpatial=False), 
-                      DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
-                                           fieldName=ID_POINT,
-                                           isSpatial=False), 
-                      DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
-                                           fieldName=ID_POINT_Z,
-                                           isSpatial=False), 
-                      tempoPrioritiesWeightedAllPlusBack, upstreamBackPrioritiesTempoTable,
-                      tempoPrioritiesWeightedAll        , ID_POINT,
-                      ID_POINT_Z))
+              FROM     {tempoPrioritiesWeightedAll} AS a LEFT JOIN {upstreamBackPrioritiesTempoTable} AS b
+                       ON a.{ID_POINT} = b.{ID_POINT} AND a.{ID_POINT_Z} = b.{ID_POINT_Z}
+              WHERE b.{ID_POINT} IS NULL AND b.{ID_POINT_Z} IS NULL
+          """)
 
     if feedback:
         feedback.setProgressText('Deals with vegetation zones superimposition')
@@ -2201,10 +2192,7 @@ def manageSuperimposition(cursor,
     # MANAGE THE DOWNSTREAM WEIGHTING ZONES
     # Weight the wind speeds factors by the downstream weights (vegetation)
     cursor.execute("""
-          {12};
-          {13};
-          {14};
-          {15};
+          {12}
           DROP TABLE IF EXISTS {10};
           CREATE TABLE {10}
               AS SELECT   a.{2}, a.{3}, COALESCE(b.{4}, NULL) AS {4},
@@ -2221,25 +2209,13 @@ def manageSuperimposition(cursor,
                       U                              , V,
                       W                              , REF_HEIGHT_FIELD, 
                       tempoUpstreamAndDownstream     , REF_HEIGHT_DOWNSTREAM_WEIGHTING,
-                      DataUtil.createIndex(tableName=dicAllWeightFactorsTables[downstreamWeightingTable], 
-                                            fieldName=ID_POINT,
-                                            isSpatial=False),
-                      DataUtil.createIndex(tableName=dicAllWeightFactorsTables[downstreamWeightingTable], 
-                                            fieldName=ID_POINT_Z,
-                                            isSpatial=False),
                       DataUtil.createIndex(tableName=tempoPrioritiesWeightedAllPlusBack, 
-                                            fieldName=ID_POINT,
-                                            isSpatial=False),
-                      DataUtil.createIndex(tableName=tempoPrioritiesWeightedAllPlusBack, 
-                                            fieldName=ID_POINT_Z,
+                                            fieldName=[ID_POINT, ID_POINT_Z],
                                             isSpatial=False)))
     
     # Join the downstream weigthted points to the non downstream weighted ones
     cursor.execute("""
-          {12};
-          {13};
           {10};
-          {11};
           DROP TABLE IF EXISTS {9};
           CREATE TABLE {9}
               AS SELECT   a.{2}, a.{3}, a.{4}, a.{5}, a.{6}, a.{7}, a.{8}
@@ -2255,16 +2231,7 @@ def manageSuperimposition(cursor,
                       V                                     , W,
                       REF_HEIGHT_FIELD                      , initializedWindFactorTable,
                       DataUtil.createIndex(tableName=tempoUpstreamAndDownstream, 
-                                            fieldName=ID_POINT,
-                                            isSpatial=False),
-                      DataUtil.createIndex(tableName=tempoUpstreamAndDownstream, 
-                                            fieldName=ID_POINT_Z,
-                                            isSpatial=False),
-                      DataUtil.createIndex(tableName=tempoPrioritiesWeightedAllPlusBack, 
-                                            fieldName=ID_POINT,
-                                            isSpatial=False),
-                      DataUtil.createIndex(tableName=tempoPrioritiesWeightedAllPlusBack, 
-                                            fieldName=ID_POINT_Z,
+                                            fieldName=[ID_POINT, ID_POINT_Z],
                                             isSpatial=False)))
 
     if not DEBUG:

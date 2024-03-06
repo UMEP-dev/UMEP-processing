@@ -184,9 +184,12 @@ def createIndex(tableName, fieldName, isSpatial):
     spatialKeyWord = ""
     if isSpatial:
         spatialKeyWord = " SPATIAL "
-    query = "CREATE {0} INDEX IF NOT EXISTS id_{1}_{2} ON {2}({1});".format(spatialKeyWord,
-                                                                           fieldName,
-                                                                           tableName)
+    if type(fieldName) == type([]):
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{"_".join(fieldName)}_{tableName} 
+                ON {tableName}({",".join(fieldName)});"""
+    else:
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{fieldName}_{tableName} 
+                ON {tableName}({fieldName});"""
     return query
 
 def radToDeg(data, origin = 90, direction = "CLOCKWISE"):
