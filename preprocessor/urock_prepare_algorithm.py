@@ -54,6 +54,7 @@ import processing
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
+from ..functions.URock.GlobalVariables import *
 
 class URockPrepareAlgorithm(QgsProcessingAlgorithm):
     """
@@ -158,7 +159,8 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorDestination(
                 self.OUTPUT_BUILDING_FILE,
-                self.tr('Output building vector file')))
+                self.tr('Output building vector file'),
+                defaultValue = os.path.join(TEMPO_DIRECTORY, f"build_vector{OUTPUT_VECTOR_EXTENSION}")))
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_BUILD_HEIGHT_FIELD,
@@ -168,7 +170,8 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorDestination(
                 self.OUTPUT_VEGETATION_FILE,
-                self.tr('Output vegetation vector file')))
+                self.tr('Output vegetation vector file'),
+                defaultValue = os.path.join(TEMPO_DIRECTORY, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")))
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_VEG_HEIGHT_FIELD,
@@ -207,10 +210,20 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         vegetHeightField = self.parameterAsString(parameters, self.OUTPUT_VEG_HEIGHT_FIELD, context)
         
         #  If output not set, create temporary files for building and vegetation
-        if outputVegFilepath.split(".")[-1] == 'file':
-            outputVegFilepath = os.path.join(tmp_dir, "veg_vector.geojson")
-        if outputBuildFilepath.split(".")[-1] == 'file':
-            outputBuildFilepath = os.path.join(tmp_dir, "build_vector.geojson")
+        veg_out_basepath = outputVegFilepath.split(".")[0]
+        veg_out_ext = outputVegFilepath.split(".")[-1].lower()
+        build_out_basepath = outputBuildFilepath.split(".")[0]
+        build_out_ext = outputBuildFilepath.split(".")[-1].lower()
+        if veg_out_ext == 'file':
+            outputVegFilepath = os.path.join(tmp_dir, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")
+        elif (veg_out_ext != "geojson") and (veg_out_ext != ".shp"):
+             outputVegFilepath = veg_out_basepath + OUTPUT_VECTOR_EXTENSION
+             feedback.pushWarning(f'.gpkg format is currently not available, output vegetation file extension has been changed to {OUTPUT_VECTOR_EXTENSION}')
+        if build_out_ext == 'file':
+            outputBuildFilepath = os.path.join(tmp_dir, f"build_vector{OUTPUT_VECTOR_EXTENSION}")
+        elif (build_out_ext != "geojson") and (build_out_ext != ".shp"):
+             outputBuildFilepath = build_out_basepath + OUTPUT_VECTOR_EXTENSION
+             feedback.pushWarning(f'.gpkg format is currently not available, output building file extension has been changed to {OUTPUT_VECTOR_EXTENSION}')
 
         # BUILDING LAYER CREATION
         # Create the building vector layer if at least building footprint and building dsm have been provided
