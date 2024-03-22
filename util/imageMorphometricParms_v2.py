@@ -97,8 +97,8 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
         if mid == 1: # from center point
             ny = a.shape[0]
             imidy = np.floor((ny/2.)) # the mid (NtoS) line of the grid
-            lineMid = a[0:imidy,imid]
-            walltemp = c[0:imidy,imid]
+            lineMid = a[0:int(imidy),int(imid)]
+            walltemp = c[0:int(imidy),int(imid)]
         else: #whole grid
             lineMid = a[:,int(imid)] # whole center line
             walltemp = c[:,int(imid)]

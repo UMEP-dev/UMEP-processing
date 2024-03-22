@@ -83,7 +83,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
     FILE_PREFIX = 'FILE_PREFIX'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_POLYGON = 'OUTPUT_POLYGON'
-    SAVE_POINT = 'SAVE_POINT'
+    #SAVE_POINT = 'SAVE_POINT'
     OUTPUT_POINT = 'OUTPUT_POINT'
     
     def initAlgorithm(self, config):
@@ -123,12 +123,14 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             options=[i[0] for i in self.rough], defaultValue=0))
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX,
             self.tr('File prefix')))
-        self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
-            self.tr("Save point of interest as new vector layer"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
+        #     self.tr("Save point of interest as new vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POINT,
-            self.tr("Output point layer (point of interest)")))
+            self.tr("Output point layer (point of interest)"), optional=True,
+                createByDefault=False))
         self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POLYGON,
-            self.tr("Output polygon layer (area of interest)")))
+            self.tr("Output polygon layer (area of interest)"), optional=True,
+                createByDefault=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
             self.tr('Output folder')))
 
@@ -151,7 +153,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputPolygon = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
-        savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
+        #savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
         outputPoint = None
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
@@ -312,12 +314,12 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         
         crs = str(dsmlayer.crs().authid())
         self.create_poly_layer(outputPolygon, x, y, r, crs)
-        if savePoint:
-            outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
-            self.create_point_layer(outputPoint, x, y, crs)
-            results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
-        else:
-            results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
+        #if savePoint:
+        outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
+        self.create_point_layer(outputPoint, x, y, crs)
+        results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
+        #else:
+        #    results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
 
         return results
 
