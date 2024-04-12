@@ -50,10 +50,10 @@ from functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
 from functions.SOLWEIGpython import WriteMetadataSOLWEIG
 from functions.SOLWEIGpython import PET_calculations as p
 from functions.SOLWEIGpython import UTCI_calculations as utci
-from functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('agg')
+from functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 from shutil import copyfile, rmtree
 import string
 import random

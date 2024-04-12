@@ -1,6 +1,6 @@
 from __future__ import division
 import numpy as np
-from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
+from util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 def Perez_v3(zen, azimuth, radD, radI, jday, patchchoice, patch_option):
     """
