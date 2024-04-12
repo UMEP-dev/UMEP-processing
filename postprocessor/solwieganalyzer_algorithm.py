@@ -31,24 +31,8 @@ import numpy as np
 import inspect
 from pathlib import Path
 import sys
-from ..util.misc import saverasternd
+from ..util.misc import saveraster
 
-# def saverasternd(gdal_data, filename, raster):
-#     rows = gdal_data.RasterYSize
-#     cols = gdal_data.RasterXSize
-
-#     outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
-#     outBand = outDs.GetRasterBand(1)
-
-#     # write the data
-#     outBand.WriteArray(raster, 0, 0)
-#     # flush data to disk, set the NoData value and calculate stats
-#     outBand.FlushCache()
-#     # outBand.SetNoDataValue(-9999)
-
-#     # georeference the image and set the projection
-#     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
-#     outDs.SetProjection(gdal_data.GetProjection())
 
 class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """
@@ -214,7 +198,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 gridall[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputStat, gridall)
+            saveraster(gdal_dsm, outputStat, gridall)
 
         # Daytime mean
         if statType == 1:
@@ -235,7 +219,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 daymean[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputStat, daymean)
+            saveraster(gdal_dsm, outputStat, daymean)
 
         # Nighttime mean
         if statType == 2:
@@ -256,7 +240,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 daymean[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputStat, daymean)
+            saveraster(gdal_dsm, outputStat, daymean)
 
         # Max
         if statType == 3:
@@ -275,7 +259,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 gridall[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputStat, gridall)
+            saveraster(gdal_dsm, outputStat, gridall)
 
         # Min
         if statType == 4:
@@ -294,7 +278,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 gridall[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputStat, gridall)
+            saveraster(gdal_dsm, outputStat, gridall)
 
         # # Specific time mean
         # if not self.dlg.comboBoxSpecificMean.currentText() == 'Not Specified':
@@ -314,7 +298,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     if self.dlg.checkboxExcludeBuildings.isChecked():
         #         daymean[self.build == 0] = -9999
 
-        #     self.saverasternd(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
+        #     self.saveraster(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
         #                     self.dlg.comboBoxSpecificMean.currentText() + '_mean.tif', daymean)
 
         #     if self.dlg.checkBoxIntoCanvas.isChecked():
@@ -336,7 +320,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     if self.dlg.checkboxExcludeBuildings.isChecked():
         #         daymean[self.build == 0] = -9999
 
-        #     self.saverasternd(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' + self.dlg.comboBoxSpecificMax.currentText() + '_max.tif', daymean)
+        #     self.saveraster(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' + self.dlg.comboBoxSpecificMax.currentText() + '_max.tif', daymean)
 
         #     if self.dlg.checkBoxIntoCanvas.isChecked():
         #         self.intoCanvas(self.folderPathSave[0] + '/' + self.var + '_' + self.dlg.comboBoxSpecificMax.currentText() + '_max.tif')
@@ -357,7 +341,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #     if self.dlg.checkboxExcludeBuildings.isChecked():
         #         daymean[self.build == 0] = -9999
 
-        #     self.saverasternd(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
+        #     self.saveraster(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
         #                     self.dlg.comboBoxSpecificMin.currentText() + '_min.tif', daymean)
 
         #     if self.dlg.checkBoxIntoCanvas.isChecked():
@@ -385,7 +369,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 daymean[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputTMRT, daymean) # response to issue #218
+            saveraster(gdal_dsm, outputTMRT, daymean) # response to issue #218
 
         # Tmrt threshold below
         if thresType == 2:
@@ -408,7 +392,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
             if buildings is not None:
                 daymean[self.build == 0] = -9999
 
-            saverasternd(gdal_dsm, outputTMRT, daymean)  # response to issue #218
+            saveraster(gdal_dsm, outputTMRT, daymean)  # response to issue #218
 
         del self.posAll[:]
 

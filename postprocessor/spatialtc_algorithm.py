@@ -237,10 +237,16 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # solweig_path = os.path.dirname(filepath_tmrt) # issue 31 
 
         # LOAD raster data
-        filepath_build = solweig_path + '/buildings.tif' # Load buildings raster (should be in SOLWEIG output folder)
-        gdal_buildings = gdal.Open(filepath_build)
-        build = gdal_buildings.ReadAsArray().astype(float)
-
+        try: #response to issue #51
+            # Load buildings raster (should be in SOLWEIG output folder)
+            filepath_build = solweig_path + '/buildings.tif' 
+            gdal_buildings = gdal.Open(filepath_build)
+            build = gdal_buildings.ReadAsArray().astype(float)
+        except:
+            raise QgsProcessingException("Error: No building raster found. It should be located in the same folder as the output"
+                                         " folder specified when SOLWEIG was executed. Make sure you ticked in 'Save necessary rasters for" 
+                                         " Tree planter and Spatial TC tools' when you ran SOLWEIG.")
+        
         # Get latlon from grid coordinate system
         lat, lon = get_latlon(tmrt, gdal_buildings)
 

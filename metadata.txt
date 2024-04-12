@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.0.23
+version=2.0.24
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.24: Response to issue #51
     2.0.23: Response to issue #67
     2.0.22: URock: Fix endless query (issue #63 in UMEP-Processing)
     2.0.21: URock: Fix .gpkg extension issue (issue #66 in UMEP-Processing)
