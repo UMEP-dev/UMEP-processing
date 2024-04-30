@@ -312,7 +312,10 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                                  {'INPUT':tempoBuildinglayer2,'FIELD':'height_median',
                                                   'NEW_NAME':buildingHeightField,
                                                   'OUTPUT':outputBuildFilepath})["OUTPUT"]
-            
+        
+        # In case user provide a DSM and a DEM but no building footprint
+        elif build_dsm:
+            feedback.pushWarning('You have provided a DSM but no building footprint. Please note that if you want to create a building layer for URock, you need to provide a building footprint in this preprocessing')
             
 
         # VEGETATION LAYER CREATION

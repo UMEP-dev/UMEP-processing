@@ -73,7 +73,7 @@ JAVA_PATH_FILENAME = "JavaPath.csv"
 # If debug is True, keep intermediate tables (within each process) and save
 # intermediate tables (such as Röckle zones) as GIS file
 DEBUG = True
-ONLY_INITIALIZATION = False
+ONLY_INITIALIZATION = True
 SAVE_ROCKLE_ZONES = False
 MAX_ITERATIONS = 500      # Based on QUIC-URB default values (2021)
 THRESHOLD_ITERATIONS = 1e-4 # Based on QUIC-URB default values (2021)

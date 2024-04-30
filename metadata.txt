@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.25: URock Prepare: add a warning (issue #77 in UMEP-Processing)
     2.0.24: Response to issue #51
     2.0.23: Response to issue #67
     2.0.22: URock: Fix endless query (issue #63 in UMEP-Processing)
