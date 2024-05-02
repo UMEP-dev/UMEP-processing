@@ -39,13 +39,8 @@ def spatialReferenceData(self, feedback):
     maxy = self.gt[3]
     miny = self.gt[3] + width1 * self.gt[4] + height1 * self.gt[5]
     maxx = minx + self.gt[1] * width1
-    
-    #print('minx = ' + str(minx))
-    #print('maxx = ' + str(maxx))
-    #print('miny = ' + str(miny))
-    #print('maxy = ' + str(maxy))
 
-    if 'AXIS' in dsm_ref:
+    if 'AXIS["Northing",NORTH],AXIS["Easting",EAST]' in dsm_ref:
         lonlat = transform.TransformPoint(miny, minx)
     else:
         lonlat = transform.TransformPoint(minx, miny)
@@ -62,9 +57,11 @@ def spatialReferenceData(self, feedback):
 
     # alt = np.median(self.dsm)
     # if alt < 0:
-    #     alt = 3
-    feedback.setProgressText('Latitude derived from DSM: ' + str(self.lat))
-    feedback.setProgressText('Longitude derived from DSM: ' + str(self.lon))
+    #     alt = 3    
+    lonPush = 'Longitude derived from DSM: ' + str(self.lon)
+    latPush = 'Latitude derived from DSM: ' + str(self.lat)
+    feedback.setProgressText(lonPush)
+    feedback.setProgressText(latPush)
 
     return minx, miny, maxx, maxy
 
