@@ -322,8 +322,6 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         tmrt_1d, azimuth, altitude, amaxvalue = tmrt_1d_fun(INPUT_MET,infolder,transVeg,tree_input.lon,tree_input.lat,tree_input.dsm,r_range,outputDir)
         tmrt_1d = np.around(tmrt_1d, decimals=1) # Round Tmrt to one decimal
 
-        print(tmrt_1d)
-
         # Create tree in empty matrix
         treey = math.ceil(tree_input.rows / 2)  # Y-position of tree in empty setting. Y-position is in the middle of Y.
         treex = math.ceil(tree_input.cols / 2)  # X-position of tree in empty setting. X-position is in the middle of X.

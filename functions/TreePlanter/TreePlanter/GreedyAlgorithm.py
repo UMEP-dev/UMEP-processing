@@ -98,7 +98,7 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
 
         for j in range(tmrt_1d.__len__()):
             temp_shadow = np.zeros((treeinput.rows,treeinput.cols))
-            temp_shadow[yslice2, xslice2] = treerasters.treeshade_bool[yslice1 , xslice1,j]
+            temp_shadow[yslice2, xslice2] = treerasters.treeshade_bool[yslice1 , xslice1, j]
             temp_shadow = 1 - temp_shadow
             shadows_copy[:,:,j] = shadows_copy[:,:,j] * temp_shadow
             tmrt_copy[:,:,j] = tmrt_copy[:,:,j] * temp_shadow
@@ -145,7 +145,7 @@ def greedyplanter(treeinput,treedata,treerasters,tmrt_1d,trees,feedback):
         recalc_positions = recalc_positions * bld_copy
         res_y, res_x = np.where(recalc_positions == 1)
             
-        if np.max(treerasters.d_tmrt) == 0:
+        if (np.max(recalc_positions) == 0) & (tree != trees-1):
             best_bool = (best_y > 0) & (best_x > 0)
             best_y = best_y[best_bool]
             best_x = best_x[best_bool]

@@ -2,12 +2,18 @@ from osgeo import gdal, osr
 import numpy as np
 from scipy.ndimage import label
 import os
+#from qgis.core import QgsRasterLayer
 
 def spatialReferenceData(self, feedback):
     # Find latlon etc for input data.
     old_cs = osr.SpatialReference()
-    dsm_ref = self.dataSet.GetProjection()
+    dsm_ref = self.dataSet.GetProjectionRef()
+
+    # dsm_ref = QgsRasterLayer(self.dataSet.GetDescription()).crs().toWkt() # This method requires lonlat = transform.TransformPoint(minx, miny)
+    
     old_cs.ImportFromWkt(dsm_ref)
+
+    old_cs = osr.SpatialReference(wkt=self.dataSet.GetProjection())
 
     wgs84_wkt = """
         GEOGCS["WGS 84",
@@ -34,7 +40,16 @@ def spatialReferenceData(self, feedback):
     miny = self.gt[3] + width1 * self.gt[4] + height1 * self.gt[5]
     maxx = minx + self.gt[1] * width1
     
-    lonlat = transform.TransformPoint(minx, miny)
+    #print('minx = ' + str(minx))
+    #print('maxx = ' + str(maxx))
+    #print('miny = ' + str(miny))
+    #print('maxy = ' + str(maxy))
+
+    if 'AXIS' in dsm_ref:
+        lonlat = transform.TransformPoint(miny, minx)
+    else:
+        lonlat = transform.TransformPoint(minx, miny)
+    
     geotransform = self.dataSet.GetGeoTransform()
     self.scale = 1 / self.gt[1]
     gdalver = float(gdal.__version__[0])
