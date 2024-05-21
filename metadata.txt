@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.27: URock: Update H2GIS version to 2.2.2-SNAPSHOT (fix issue #514 and #73 in UMEP-Processing)
     2.0.26: Bug fixing in TreePlanter
     2.0.25: URock Prepare: add a warning (issue #77 in UMEP-Processing)
     2.0.24: Response to issue #51
