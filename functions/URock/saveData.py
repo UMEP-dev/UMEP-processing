@@ -343,8 +343,10 @@ def saveTable(cursor, tableName, filedir, delete = False,
         h2_function = "GEOJSONWRITE"
     elif extension.upper() == ".SHP":
         h2_function = "SHPWRITE"
+    elif extension.upper() == ".FGB":
+        h2_function = "FGBWRITE"
     else:
-        print("The extension should be .geojson or .shp")
+        print("The extension should be .geojson, .shp or .fgb")
     # Delete files if exists and delete = True
     if delete and os.path.isfile(filedir):
         output_filedir = filedir

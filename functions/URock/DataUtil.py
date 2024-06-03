@@ -161,6 +161,8 @@ def readFunction(extension):
         return "GEOJSONREAD"
     elif extension.lower() == "csv":
         return "CSVREAD"
+    elif extension.lower() == "fgb":
+        return "FGBREAD"
     
 def createIndex(tableName, fieldName, isSpatial):
     """ Return the SQL query needed to create an index on a given field of a
