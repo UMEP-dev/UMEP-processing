@@ -239,6 +239,19 @@ def main(javaEnvironmentPath,
                                                  stackedBlockTable = rotatedStackedBlocks, 
                                                  vegetationTable = rotatedVegetation)
 
+    # Print some of the roughness properties for the zone
+    if feedback:
+        feedback.setProgressText(f"""Roughness zone properties are:\n
+                                     - z0: {z0}
+                                     - d: {d}
+                                     - Hr: {Hr}
+                                     - H_ob_max: {H_ob_max}
+                                     - lambda_f: {lambda_f}""")
+        if feedback.isCanceled():
+            cursor.close()
+            feedback.setProgressText("Calculation cancelled by user")
+            return {}
+
 
     # Save the rotated obstacles and facades as geojson
     if debug or saveRockleZones:
