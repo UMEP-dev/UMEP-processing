@@ -17,7 +17,7 @@ import scipy.ndimage.interpolation as sc
 # import matplotlib.pylab as plt
 
 
-def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point):
+def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, num_of_class):
 
     # Isotropic (this is the same as before. Works on irregular grids)
     lc_frac_all = np.zeros((1, 7))
@@ -55,7 +55,7 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point):
         if mid == 1: # from center point
             ny = d.shape[0]
             imidy = np.floor((ny/2.)) # the mid (NtoS) line of the grid
-            lineMid = d[0:imidy,imid]
+            lineMid = d[0:int(imidy),int(imid)]
         else: #whole grid
             lineMid = d[:,int(imid)] # whole center line
         bld = lineMid[np.where(lineMid > 0)] # line within grid only  

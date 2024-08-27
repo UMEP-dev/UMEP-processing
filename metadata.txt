@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.0.29
+version=2.0.30
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.30: Fixed issues for point calculation in LCfrac and Immorph
     2.0.29: URock: display roughness length characteristics
     2.0.28: URoc: Add the possibility to read and write .fgb files using H2GIS functions
     2.0.27: URock: Update H2GIS version to 2.2.2-SNAPSHOT (fix issue #514 and #73 in UMEP-Processing)
@@ -116,4 +117,3 @@ Category of the plugin: Raster, Vector, Database or Web
 
 # If the plugin can run on QGIS Server.
 server=False
-

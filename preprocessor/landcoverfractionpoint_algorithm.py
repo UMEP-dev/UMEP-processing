@@ -60,7 +60,7 @@ import inspect
 from pathlib import Path
 import sys
 from ..util import misc
-from ..util import landCoverFractions_v1 as land
+from ..util import landCoverFractions_v2 as land #changed to v2
 
 
 class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
@@ -77,7 +77,7 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
     FILE_PREFIX = 'FILE_PREFIX'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_POLYGON = 'OUTPUT_POLYGON'
-    SAVE_POINT = 'SAVE_POINT'
+    # SAVE_POINT = 'SAVE_POINT'
     OUTPUT_POINT = 'OUTPUT_POINT'
     
     def initAlgorithm(self, config):
@@ -100,12 +100,14 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
             self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
-        self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
-            self.tr("Save point of interest as new vector layer"), defaultValue=False))
+        # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
+            # self.tr("Save point of interest as new vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POINT,
-            self.tr("Output point layer (point of interest)")))
+            self.tr("Output point layer (point of interest)"), optional=True,
+                createByDefault=False))
         self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POLYGON,
-            self.tr("Output polygon layer (area of interest)")))
+            self.tr("Output polygon layer (area of interest)"), optional=True,
+                createByDefault=False))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
             self.tr('Output folder')))
 
@@ -120,11 +122,11 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
-        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        lclayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
         filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputPolygon = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
-        savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
+        # savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
         outputPoint = None
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
@@ -159,36 +161,39 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                     
         r = inputDistance
         
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
-        if dsmlayer is None:
+        # dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        if lclayer is None:
             raise QgsProcessingException("No valid building land cover raster layer is selected")
 
-        provider = dsmlayer.dataProvider()
-        filePath_dsm_build = str(provider.dataSourceUri())
-        bigraster = gdal.Open(filePath_dsm_build)
+        provider = lclayer.dataProvider()
+        filePath_lcgrid = str(provider.dataSourceUri())
+        bigraster = gdal.Open(filePath_lcgrid)
         bbox = (x - r, y + r, x + r, y - r)
         gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
         bigraster = None
         dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
-        dsm = dataset.ReadAsArray().astype(float)
-        sizex = dsm.shape[0]
-        sizey = dsm.shape[1]
+        lcgrid = dataset.ReadAsArray().astype(float)
+        # sizex = dsm.shape[0]
+        # sizey = dsm.shape[1]
+        # geotransform = dataset.GetGeoTransform()
+        # scale = 1 / geotransform[1]
+        
+        # Derive number of lc classes in lcgrid
+        print(lcgrid.max())
+        if lcgrid.max() == 9:
+            num_of_class = 9
+            return
 
-        geotransform = dataset.GetGeoTransform()
-        scale = 1 / geotransform[1]
+
         degree = float(inputInterval)
         nd = dataset.GetRasterBand(1).GetNoDataValue()
-        nodata_test = (dsm == nd)
+        nodata_test = (lcgrid == nd)
         
         if nodata_test.any():
             raise QgsProcessingException("NoData values present within the radius (" + str(int(r)) + 
                                 " m) from point of interest. Extend your raster(s) or more point.")
         else:
-            # immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
-            landcoverresult = land.landcover_v1(dsm, 1, degree, feedback, 1)
-
-        
-
+            landcoverresult = land.landcover_v2(lcgrid, 1, degree, feedback, 1, num_of_class)
 
         # save to file
         pre = filePrefix
@@ -205,18 +210,16 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                     fmt=numformat, delimiter=' ', header=header, comments='')
 
         dataset = None
-        dataset2 = None
-        dataset3 = None
         
-        crs = str(dsmlayer.crs().authid())
+        crs = str(lclayer.crs().authid())
         self.create_poly_layer(outputPolygon, x, y, r, crs)
         
-        if savePoint:
-            outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
-            self.create_point_layer(outputPoint, x, y, crs)
-            results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
-        else:
-            results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
+        # if savePoint:
+        outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
+        self.create_point_layer(outputPoint, x, y, crs)
+        results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
+        # else:
+            # results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
 
         return results
 
