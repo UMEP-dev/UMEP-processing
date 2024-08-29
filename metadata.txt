@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.31: URock: fix issues concerning result interpolation (#61 and #84 in UMEP-Processing)
     2.0.30: Fixed issues for point calculation in LCfrac and Immorph
     2.0.29: URock: display roughness length characteristics
     2.0.28: URoc: Add the possibility to read and write .fgb files using H2GIS functions

@@ -267,10 +267,11 @@ def main(javaEnvironmentPath,
                            filedir = outputDataAbs["downwind_facades"]   , delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)
-        saveData.saveTable(cursor = cursor                          , tableName = rotatedPropStackedBlocks,
-                           rotationCenterCoordinates = rotationCenterCoordinates,
-                           rotateAngle = - windDirection,
-                           filedir = outputDataAbs["stacked_blocks"], delete = True)
+    # Used later to save results
+    saveData.saveTable(cursor = cursor                          , tableName = rotatedPropStackedBlocks,
+                       rotationCenterCoordinates = rotationCenterCoordinates,
+                       rotateAngle = - windDirection,
+                       filedir = outputDataAbs["stacked_blocks"], delete = True)
     
     
     # -----------------------------------------------------------------------------------
@@ -814,7 +815,8 @@ def main(javaEnvironmentPath,
                                   outputFilePath = outputFilePath, outputFilename = outputFilename,
                                   meshSize = meshSize            , outputRaster = outputRaster,
                                   saveRaster = saveRaster        , saveVector = saveVector,
-                                  saveNetcdf = saveNetcdf        , prefix_name = prefix)
+                                  saveNetcdf = saveNetcdf        , prefix_name = prefix,
+                                  stacked_blocks = outputDataAbs["stacked_blocks"])
     
     # Save also the initialisation field if needed
     if debug:
@@ -826,7 +828,8 @@ def main(javaEnvironmentPath,
                                       outputFilePath = tempoDirectory, outputFilename = "wind_initiatlisation",
                                       meshSize = meshSize            , outputRaster = outputRaster,
                                       saveRaster = saveRaster        , saveVector = saveVector,
-                                      saveNetcdf = saveNetcdf        , prefix_name = prefix)  
+                                      saveNetcdf = saveNetcdf        , prefix_name = prefix,
+                                      stacked_blocks = outputDataAbs["stacked_blocks"])  
     else:
         dicVectorTables_ini = None
         netcdf_path_ini = None

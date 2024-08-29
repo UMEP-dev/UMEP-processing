@@ -15,14 +15,16 @@ from .GlobalVariables import HORIZ_WIND_DIRECTION, HORIZ_WIND_SPEED, WIND_SPEED,
     OUTPUT_DIRECTORY, MESH_SIZE, OUTPUT_FILENAME, DELETE_OUTPUT_IF_EXISTS,\
     OUTPUT_RASTER_EXTENSION, OUTPUT_VECTOR_EXTENSION, OUTPUT_NETCDF_EXTENSION,\
     WIND_GROUP, WINDSPEED_PROFILE, RLON, RLAT, LON, LAT, LEVELS, WINDSPEED_X,\
-    WINDSPEED_Y, WINDSPEED_Z, VERT_WIND, Z, OUTPUT_FILENAME, PREFIX_NAME
+    WINDSPEED_Y, WINDSPEED_Z, VERT_WIND, Z, OUTPUT_FILENAME, PREFIX_NAME,\
+    BASE_HEIGHT_FIELD, HEIGHT_FIELD
 from datetime import datetime
 import netCDF4 as nc4
 import os
+import processing
 
 def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                      verticalWindProfile, outputFilePath, meshSize,
-                     outputFilename = OUTPUT_FILENAME,
+                     stacked_blocks, outputFilename = OUTPUT_FILENAME,
                      outputRaster = None, saveRaster = True,
                      saveVector = True, saveNetcdf = True,
                      prefix_name = PREFIX_NAME):
@@ -156,7 +158,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                outputRaster = outputRaster, 
                                z_i = z_i, 
                                meshSize = meshSize,
-                               var2save = WIND_SPEED)                
+                               var2save = WIND_SPEED,
+                               stacked_blocks = stacked_blocks)                
                 
                 # Save the horizontal wind speed into a Raster
                 saveRasterFile(cursor = cursor, 
@@ -167,7 +170,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                outputRaster = outputRaster, 
                                z_i = z_i, 
                                meshSize = meshSize,
-                               var2save = HORIZ_WIND_SPEED)
+                               var2save = HORIZ_WIND_SPEED,
+                               stacked_blocks = stacked_blocks)
                 
                 # Save the vertical wind speed into a Raster
                 saveRasterFile(cursor = cursor, 
@@ -178,7 +182,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                outputRaster = outputRaster, 
                                z_i = z_i, 
                                meshSize = meshSize,
-                               var2save = VERT_WIND_SPEED)
+                               var2save = VERT_WIND_SPEED,
+                               stacked_blocks = stacked_blocks)
 
     return horizOutputUrock, final_netcdf_path
     
@@ -389,7 +394,8 @@ def renameFileIfExists(filedir, extension):
 
 
 def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase, 
-                   horizOutputUrock, outputRaster, z_i, meshSize, var2save):
+                   horizOutputUrock, outputRaster, z_i, meshSize, var2save,
+                   stacked_blocks):
     """ Save results in a raster file.
     
     Parameters
@@ -406,20 +412,38 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         and (not DELETE_OUTPUT_IF_EXISTS):
         outputFilePathAndNameBaseRaster = renameFileIfExists(filedir = outputFilePathAndNameBaseRaster,
                                                              extension = OUTPUT_RASTER_EXTENSION)
+    
     # Whether or not a raster output is given as input, the rasterization process is slightly different
     if outputRaster:
         outputRasterExtent = outputRaster.extent()
-        Grid(destName = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION,
-             srcDS = outputVectorFile,
-             options = GridOptions(format = OUTPUT_RASTER_EXTENSION.split(".")[-1],
-                                   zfield = var2save, 
-                                   width = outputRaster.width(), 
-                                   height = outputRaster.height(),
-                                   outputBounds = [outputRasterExtent.xMinimum(),
-                                                   outputRasterExtent.yMaximum(),
-                                                   outputRasterExtent.xMaximum(),
-                                                   outputRasterExtent.yMinimum()],
-                                   algorithm = "average:radius1={0}:radius2={0}".format(1.1*meshSize)))
+        resX = (outputRasterExtent.xMaximum() - outputRasterExtent.xMinimum()) / outputRaster.width()
+        resY = (outputRasterExtent.yMaximum() - outputRasterExtent.yMinimum()) / outputRaster.height()
+        xmin = outputRasterExtent.xMinimum()
+        ymax = outputRasterExtent.yMaximum()
+        xmax = outputRasterExtent.xMaximum()
+        ymin = outputRasterExtent.yMinimum()
+        # If a single output raster cell contains more than 4 points, average instead of interpolate
+        if resX * resY > 4 * meshSize**2:
+            Grid(destName = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION,
+                 srcDS = outputVectorFile,
+                 options = GridOptions(format = OUTPUT_RASTER_EXTENSION.split(".")[-1],
+                                       zfield = var2save, 
+                                       width = outputRaster.width(), 
+                                       height = outputRaster.height(),
+                                       outputBounds = [xmin,
+                                                       ymax,
+                                                       xmax,
+                                                       ymin],
+                                       algorithm = "average:radius1={0}:radius2={0}".format(1.1*meshSize)))
+        else:
+            # Interpolate with building constraints
+            interp_vec_to_rast(outputVectorFile = outputVectorFile, 
+                               stacked_blocks = stacked_blocks,
+                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
+                               extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:3007]',
+                               resX = resX, 
+                               resY = resY,
+                               z_i = z_i)
     else:
         cursor.execute(
             """
@@ -430,17 +454,94 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         vectorBounds = cursor.fetchall()[0]
         width = int((vectorBounds[1] - vectorBounds[0]) / meshSize) + 1
         height = int((vectorBounds[3] - vectorBounds[2]) / meshSize) + 1
-        Grid(destName = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION,
-             srcDS = outputVectorFile,
-             options = GridOptions(format = OUTPUT_RASTER_EXTENSION.split(".")[-1],
-                                   zfield = var2save, 
-                                   width = width, 
-                                   height = height,
-                                   outputBounds = [vectorBounds[0] - float(meshSize) / 2,
-                                                   vectorBounds[3] + float(meshSize) / 2,
-                                                   vectorBounds[0] + meshSize * (width - 0.5),
-                                                   vectorBounds[3] - meshSize * (height + 0.5)],
-                                   algorithm = "average:radius1={0}:radius2={0}".format(1.1*meshSize)))
+        xmin = vectorBounds[0] - float(meshSize) / 2
+        ymax = vectorBounds[3] + float(meshSize) / 2
+        xmax = vectorBounds[0] + meshSize * (width - 0.5)
+        ymin = vectorBounds[3] - meshSize * (height + 0.5)
+        
+        # Interpolate with building constraints
+        interp_vec_to_rast(outputVectorFile = outputVectorFile, 
+                           stacked_blocks = stacked_blocks,
+                           outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
+                           extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:3007]',
+                           resX = meshSize, 
+                           resY = meshSize,
+                           z_i = z_i)
+
+def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBaseRaster, 
+                       extent, resX, resY, z_i):
+    """ Interpolate and save wind data saved in a vector to a raster.
+       
+    Parameters
+   	_ _ _ _ _ _ _ _ _ _ 
+           outputVectorFile: String
+               Directory (including filename and extension) of the file containing the 
+               wind field to interpolate from vector to raster
+           stacked_blocks: String
+               Directory (including filename and extension) of the file containing stacked blocks 
+               (building footprint + where it starts and ends vertically)
+           outputFilePathAndNameBaseRaster: String
+               Directory (including filename and extension) of the file that will 
+               be used to save the results
+           extent: String
+               QGIS extent in the shape '{xmin},{xmax},{ymin},{ymax} [EPSG:epsgcode]'
+           resX: float
+               Resolution of the output raster along the X axis
+           resY: float
+               Resolution of the output raster along the Y axis
+           z_i: float
+               Height of the output wind field
+           
+       
+   Returns
+   	_ _ _ _ _ _ _ _ _ _ 	
+           output_file_path: String
+               Path and name of the file containing the resulting raster"""
+    # Interpolate the results without constraints
+    interp_out = processing.run("qgis:tininterpolation",
+                               {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::4::~::0',
+                                'METHOD':0,
+                                'EXTENT':extent,
+                                'PIXEL_SIZE':min(resX, resY),
+                                'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                      "interp_out.tif")})["OUTPUT"]
+    
+    # Rasterize the stacked blocks keeping the value of each stacked block base 
+    block_base = processing.run("gdal:rasterize",
+                                {'INPUT':stacked_blocks,
+                                 'FIELD':BASE_HEIGHT_FIELD,'BURN':0,'USE_Z':False,
+                                 'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
+                                 'EXTENT':extent,
+                                 'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
+                                 'INIT':-9999,'INVERT':False,'EXTRA':'',
+                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                       "block_base.tif")})["OUTPUT"]
+    
+    # Rasterize the stacked blocks keeping the value of each stacked block top 
+    block_top = processing.run("gdal:rasterize",
+                               {'INPUT':stacked_blocks,
+                                'FIELD':HEIGHT_FIELD,'BURN':0,'USE_Z':False,
+                                'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
+                                'EXTENT':extent,
+                                'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
+                                'INIT':-9999,'INVERT':False,'EXTRA':'',
+                                'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                      "block_top.tif")})["OUTPUT"]
+    
+    # Keep the values only when there is no building at this position
+    output_file_path = processing.run("gdal:rastercalculator",
+                                      {'INPUT_A':block_base,'BAND_A':1,
+                                       'INPUT_B':block_top,'BAND_B':1,
+                                       'INPUT_C':interp_out,'BAND_C':1,
+                                       'INPUT_D':None,'BAND_D':None,
+                                       'INPUT_E':None,'BAND_E':None,
+                                       'INPUT_F':None,'BAND_F':None,
+                                       'FORMULA':f'((A==-9999)+(A>{z_i}))*((B==-9999)+(B<{z_i}))*C',
+                                       'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
+                                       'RTYPE':5,'OPTIONS':'','EXTRA':'',
+                                       'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
+    
+    return output_file_path
         
 def saveRockleZones(cursor, outputDataAbs, dicOfBuildZoneGridPoint, dicOfVegZoneGridPoint,
                     gridPoint, rotationCenterCoordinates, windDirection):
