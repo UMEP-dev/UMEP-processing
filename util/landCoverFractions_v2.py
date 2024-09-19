@@ -7,28 +7,29 @@
 #%   Offerle, B.
 #%   Geovetarcentrum
 #%   Goteborg University, Sweden
-#%   Modified by Fredrik Lindberg 2010-01-09, fredrik.lindberg@kcl.ac.uk
+#%   Modified by Fredrik Lindberg 2010-01-09, fredrik.lindberg@kcl.ac.uk (fredrikl@gvc.gu.se)
 #%   Translated to Python 20150108
 #    Extended to be albe to calculate on irregular grids, Fredrik 20230207
+#    Added iter to caclulate ión either 7 or 9 lc-classes
 #%--------------------------------------------------------------------------
 
 import numpy as np
 import scipy.ndimage.interpolation as sc
-# import matplotlib.pylab as plt
 
 
-def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, num_of_class):
+def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
 
     # Isotropic (this is the same as before. Works on irregular grids)
-    lc_frac_all = np.zeros((1, 7))
-    for i in range(0, 7):
+    lc_frac_all = np.zeros((1, iter))
+    for i in range(0, iter):
         lc_gridvec = lc_grid[np.where(lc_grid == i + 1)]
         if lc_gridvec.size > 0:
             # lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size * 1.0), 3)
             lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size - (lc_grid == 0).sum()),3) # ignoring NoData (0) pixels
 
+
     # Anisotropic (Adjusted for irregular grids)
-    lc_frac = np.zeros((int(360./dtheta), 7))
+    lc_frac = np.zeros((int(360./dtheta), iter))
     deg = np.zeros((int(360./dtheta), 1))
 
     #n = lc_grid.shape[0]
@@ -65,7 +66,7 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, num_of_class):
         ly = bld.shape[0] #number of pixels to consider in NtoS
         lx = 1 #!TODO should this consider full length (EtoW) of grid and if so, how?
 
-        for i in range(0, 7):
+        for i in range(0, iter):
             bldtemp = bld[np.where(bld == i + 1)]  # lc vector
             lc_frac[j, i] = np.float32(bldtemp.shape[0]) / (lx*ly)
 

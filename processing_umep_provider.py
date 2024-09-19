@@ -44,14 +44,16 @@ from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorith
 #from .preprocessor.suewspreprocessor_algorithm import ProcessingSUEWSPreprocessorAlgorithm
 from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
 from .preprocessor.uwgprepare_algorithm import ProcessingUWGPrepareAlgorithm
+from .preprocessor.targetprepare_algorithm import ProcessingTARGETPrepareAlgorithm
 from .preprocessor.urock_prepare_algorithm import URockPrepareAlgorithm
 
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
 from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
 from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
 from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
-from .processor.uwg_algorithm import ProcessingUWGPreprocessorAlgorithm
+from .processor.uwg_algorithm import ProcessingUWGProcessorAlgorithm
 from .processor.urock_processing_algorithm import URockAlgorithm
+from .processor.target_algorithm import ProcessingTargetProcessorAlgorithm
 
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
 from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
@@ -100,6 +102,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         #self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
         self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
+        self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())
         
         
@@ -109,7 +112,8 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingSOLWEIGAlgorithm())
         self.addAlgorithm(ProcessingSuewsAlgorithm())
         self.addAlgorithm(ProcessingTreePlanterAlgorithm())
-        self.addAlgorithm(ProcessingUWGPreprocessorAlgorithm())
+        self.addAlgorithm(ProcessingUWGProcessorAlgorithm())
+        self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
         self.addAlgorithm(URockAlgorithm())
 
         #Postprocessor

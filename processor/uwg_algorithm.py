@@ -45,7 +45,7 @@ except:
     pass
 
 
-class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
+class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm make use of UWG for the processing toolbox
     """
@@ -320,10 +320,11 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         '\n'
         'For more detailed information during execution, open the QGIS Python console (Plugins>Python Console).'
         '\n'
-        '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: '
-        'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
+        '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the <b>pip</b> command can be found here: '
+        '<a href="https://umep-docs.readthedocs.io/en/latest/Getting_Started.html">https://umep-docs.readthedocs.io/en/latest/Getting_Started.html</a>'
         '\n'
-        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time but make the model more stable.'
+        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. '
+        'This will increase computation time but make the model more stable.'
         '\n'
         'You can also increase stability by ticking in the box to exclude grids with very low building fraction.'
         '\n'
@@ -343,4 +344,4 @@ class ProcessingUWGPreprocessorAlgorithm(QgsProcessingAlgorithm):
         return icon
 
     def createInstance(self):
-        return ProcessingUWGPreprocessorAlgorithm()
+        return ProcessingUWGProcessorAlgorithm()

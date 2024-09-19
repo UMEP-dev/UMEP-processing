@@ -1,8 +1,8 @@
 __author__ = 'xlinfr'
 
 import numpy as np
-from osgeo import gdal
-from osgeo.gdalconst import *
+from osgeo import gdal, osr
+from osgeo.gdalconst import GDT_Float32
 
 
 # Slope and aspect used in SEBE and Wall aspect
@@ -59,3 +59,36 @@ def saverasternd(gdal_data, filename, raster):
     # georeference the image and set the projection
     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
     outDs.SetProjection(gdal_data.GetProjection())
+
+def xy2latlon(crsWtkIn, x, y):
+    old_cs = osr.SpatialReference()
+    old_cs.ImportFromWkt(crsWtkIn)
+
+    wgs84_wkt = """
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.01745329251994328,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4326"]]"""
+
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromWkt(wgs84_wkt)
+
+    transform = osr.CoordinateTransformation(old_cs, new_cs)
+
+    lonlat = transform.TransformPoint(x, y)
+
+    gdalver = float(gdal.__version__[0])
+    if gdalver >= 3.:
+        lon = lonlat[1] #changed to gdal 3
+        lat = lonlat[0] #changed to gdal 3
+    else:
+        lon = lonlat[0] #changed to gdal 2
+        lat = lonlat[1] #changed to gdal 2
+
+    return lat, lon
