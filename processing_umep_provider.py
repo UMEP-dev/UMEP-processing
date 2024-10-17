@@ -102,7 +102,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         #self.addAlgorithm(ProcessingSUEWSPreprocessorAlgorithm())
         self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
-        self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
+        # self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())
         
         
@@ -113,7 +113,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingSuewsAlgorithm())
         self.addAlgorithm(ProcessingTreePlanterAlgorithm())
         self.addAlgorithm(ProcessingUWGProcessorAlgorithm())
-        self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
+        # self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
         self.addAlgorithm(URockAlgorithm())
 
         #Postprocessor

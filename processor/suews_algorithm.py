@@ -202,6 +202,8 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
             if 'data' in file:
                 filenamemetdata = file
 
+        print('filenamemetdata = ' + filenamemetdata)
+
         underscorePos = ([pos for pos, char in enumerate(filenamemetdata) if char == '_'])
         if (underscorePos[1] - underscorePos[0]) == 1:
             addunderscore = '_'
