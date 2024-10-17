@@ -1,0 +1,232 @@
+   
+{
+    "res":{
+        "value": 100,
+        "comment": "resolution"
+    },
+    "karman": {
+        "value": 0.4,
+        "comment": "von Karman constant"
+    },
+    "sb": {
+        "value": 5.67e-08,
+        "comment": "Stefan-Boltzman constant, W/m2/K4"
+    },
+    "alb": {
+        "value": {
+            "roof": 0.15,
+            "wall": 0.15,
+            "road": 0.08,
+            "watr": 0.10,
+            "conc": 0.20,
+            "Veg": 0.10,
+            "dry": 0.19,
+            "irr": 0.19
+        },
+        "comment": "albedos"
+    },
+    "emis": {
+        "value": {
+            "roof": 0.9,
+            "wall": 0.9,
+            "road": 0.95,
+            "watr": 0.97,
+            "conc": 0.94,
+            "Veg": 0.98,
+            "dry": 0.98,
+            "irr": 0.98
+        },
+        "comment": "emissivities"
+    },
+    "rs": {
+        "value": {
+            "roof": -999.0,
+            "wall": -999.0,
+            "road": -999.0,
+            "watr": 0.0,
+            "conc": -999.0,
+            "Veg": 40.0,
+            "dry": -999.0,
+            "irr": 40.0
+        },
+        "comment": "stomatal resistances"
+    },
+    "C": {
+        "value": {
+            "roof": 1250000.0,
+            "wall": 1250000.0,
+            "road": 1940000.0,
+            "watr": 4180000.0,
+            "conc": 2110000.0,
+            "dry": 1350000.0,
+            "irr": 2190000.0,
+            "soilW": 3030000.0
+        },
+        "comment": "heat capacity  (J m^-3 K^-1)"
+    },
+    "K": {
+        "value": {
+            "roof": 0.00000005,
+            "wall": 0.00000005,
+            "road": 0.00000038,
+            "watr": 0.00000014,
+            "conc": 0.00000072,
+            "dry": 0.00000021,
+            "irr": 0.00000042,
+            "soilW": 0.00000063
+        },
+        "comment": "thermal diffusivity (m^2 s^-1)"
+    },
+    "Tm": {
+        "value": {
+            "roof": 25.0,
+            "wall": 25.0,
+            "road": 26.0,
+            "watr": 24.5,
+            "conc": 26.0,
+            "dry": 22.4,
+            "irr": 21.5
+        },
+        "comment": "Tm intial conditions [SPIN2 - good]"
+    },
+    "Ts": {
+        "value": {
+            "roof": 20.0,
+            "wall": 20.0,
+            "road": 20.0,
+            "watr": 20.0,
+            "conc": 20.0,
+            "dry": 20.0,
+            "irr": 20.0
+        },
+        "comment": "Ts intial conditions [BASE]"
+    },
+    "dW": {
+        "value": "formula_math.sqrt(2*$K_soilW/(2*math.pi / 86400))",
+        "comment": ""
+    },
+    "ww": {
+        "value": "formula_(2*math.pi / 86400)",
+        "comment": ""
+    },
+    "Kw": {
+        "value": 6.18e-07,
+        "comment": "eddy diffusivity of water (m^2 s^-1) - [used for the water Ts part.]"
+    },
+    "cp": {
+        "value": 0.001013,
+        "comment": "specific heat of air (J / kg C)"
+    },
+    "e": {
+        "value": 0.622,
+        "comment": "Unitless - ratio of molecular weight of water to dry air"
+    },
+    "pa": {
+        "value": 1.2,
+        "comment": "density of dry air (1.2 kg m-3)"
+    },
+    "cpair": {
+        "value": 1004.67,
+        "comment": "heat cpacity of air"
+    },
+    "hv": {
+        "value": 0.0014,
+        "comment": "bulk transfer coefficient for water energy balance modelled"
+    },
+    "betaW": {
+        "value": 0.45,
+        "comment": "amount of radiation immediately absorbed by the first layer of water (set to 0.45) (martinez et al., 2006)."
+    },
+    "zW": {
+        "value": 0.3,
+        "comment": "depth of the water layer (m)"
+    },
+    "NW": {
+        "value": "formula_(1.1925*$zW**(-0.424))",
+        "comment": "extinction coefficient after Subin et al., (2012)"
+    },
+    "Lv": {
+        "value": 2430000.0,
+        "comment": "the latent heat of vaporisation (MJ Kg^-1)"
+    },
+    "z_TaRef": {
+        "value": 2.0,
+        "comment": "BOM reference height"
+    },
+    "z_URef": {
+        "value": 28.05,
+        "comment": "BOM reference height"
+    },
+    "z0m": {
+        "value": 1.0,
+        "comment": "roughness length, used in new Ta module."
+    },
+    "zavg": {
+        "value": 10.7296,
+        "comment": "average building height in domain"
+    },
+    "LUMPS1": {
+        "value": {
+            "roof": [
+                0.12,
+                0.24,
+                -4.5
+            ],
+            "wall": [
+                0.12,
+                0.24,
+                -4.5
+            ],
+            "road": [
+                0.50,
+                0.28,
+                -31.45
+            ],
+            "conc": [
+                0.61,
+                0.28,
+                -23.9
+            ],
+            "Veg": [
+                0.11,
+                0.11,
+                -12.3
+            ],
+            "dry": [
+                0.27,
+                0.33,
+                -21.75
+            ],
+            "irr": [
+                0.32,
+                0.54,
+                -27.4
+            ]
+        },
+        "comment": ""
+    },
+    "alphapm": {
+        "value": {
+            "roof": 0.0,
+            "wall": 0.0,
+            "road": 0.0,
+            "conc": 0.0,
+            "Veg": 1.2,
+            "dry": 0.2,
+            "irr": 1.2
+        },
+        "comment": ""
+    },
+    "beta": {
+        "value": {
+            "roof": 3.0,
+            "wall": 3.0,
+            "road": 3.0,
+            "conc": 3.0,
+            "Veg": 3.0,
+            "dry": 3.0,
+            "irr": 3.0
+        },
+        "comment": ""
+    }
+}

@@ -55,8 +55,6 @@ import numpy as np
 import inspect
 from pathlib import Path
 import sys
-# from ..util import misc
-# from ..util import landCoverFractions_v1 as land
 from ..util import landCoverFractions_v2 as land
 
 
@@ -71,6 +69,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
     INPUT_DISTANCE = 'INPUT_DISTANCE'
     INPUT_INTERVAL = 'INPUT_INTERVAL'
     INPUT_LCGRID = 'INPUT_LCGRID'
+    TARGET_LC = 'TARGET_LC'
     FILE_PREFIX = 'FILE_PREFIX'
     OUTPUT_DIR = 'OUTPUT_DIR'
     IGNORE_NODATA = 'IGNORE_NODATA'
@@ -100,6 +99,8 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
+        self.addParameter(QgsProcessingParameterBoolean(self.TARGET_LC,
+            self.tr("Calculate fractions for TARGET (9 classes instead of 7)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.IGNORE_NODATA,
             self.tr("Ignore NoData pixels"), defaultValue=True))
         self.addParameter(QgsProcessingParameterBoolean(self.ATTR_TABLE,
@@ -120,6 +121,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
         dsmlayer = None
+        useTarget = self. parameterAsBool(parameters, self.TARGET_LC, context)
         filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
         attrTable = self.parameterAsBool(parameters, self.ATTR_TABLE, context)
         ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
@@ -133,15 +135,24 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         
         degree = float(inputInterval)
         pre = filePrefix
-        ret = 0
         imp_point = 0 # set to 1 when user for LCF point
         imid = int(searchMethod)
-        arrmat = np.empty((1, 8))
+        # arrmat = np.empty((1, 8))
 
-        header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-        numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        header2 = 'ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-        numformat2 = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        if useTarget:
+            iter = 9
+            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
+            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+            header2 = 'ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
+            numformat2 = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        else:
+            iter = 7
+            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+            header2 = 'ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+            numformat2 = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+
+        arrmat = np.empty((1, int(iter + 1)))
 
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
@@ -226,12 +237,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
 
             dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
             lcgrid = dataset.ReadAsArray().astype(float)
-            #sizex = lcgrid.shape[0]
-            #sizey = lcgrid.shape[1]
 
-            # feedback.setProgressText(str(bbox))
-            #geotransform = dataset.GetGeoTransform()
-            #scale = 1 / geotransform[1]
             nd = dataset.GetRasterBand(1).GetNoDataValue()
             nodata_test = (lcgrid == nd)
             if ignoreNodata:
@@ -241,7 +247,6 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 else:
                     lcgrid[lcgrid == nd] = 0
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
-                    # feedback.setProgressText("Grid " + str(f.attributes()[idx]) + "includes NoData Pixels. Nodata set to paved.")
                     cal = 1
             else:
                 if nodata_test.any():
@@ -252,16 +257,22 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
 
             if cal == 1:
-                landcoverresult = land.landcover_v2(lcgrid, imid, degree, feedback, imp_point)
+                landcoverresult = land.landcover_v2(lcgrid, imid, degree, feedback, imp_point, iter)
                 landcoverresult = self.resultcheck(landcoverresult)
 
                 arr = np.concatenate((landcoverresult["deg"], landcoverresult["lc_frac"]), axis=1)
                 np.savetxt(outputDir + '/' + pre + '_' + 'LCFG_anisotropic_result_' + str(f.attributes()[idx]) + '.txt', arr,
                             fmt=numformat, delimiter=' ', header=header, comments='')
                 del arr
-                arr2 = np.array([f.attributes()[idx], landcoverresult["lc_frac_all"][0, 0], landcoverresult["lc_frac_all"][0, 1],
-                                    landcoverresult["lc_frac_all"][0, 2], landcoverresult["lc_frac_all"][0, 3], landcoverresult["lc_frac_all"][0, 4],
-                                    landcoverresult["lc_frac_all"][0, 5], landcoverresult["lc_frac_all"][0, 6]])
+                if useTarget:
+                    arr2 = np.array([f.attributes()[idx], landcoverresult["lc_frac_all"][0, 0], landcoverresult["lc_frac_all"][0, 1],
+                                        landcoverresult["lc_frac_all"][0, 2], landcoverresult["lc_frac_all"][0, 3], landcoverresult["lc_frac_all"][0, 4],
+                                        landcoverresult["lc_frac_all"][0, 5], landcoverresult["lc_frac_all"][0, 6], landcoverresult["lc_frac_all"][0, 7], 
+                                        landcoverresult["lc_frac_all"][0, 8]])
+                else:                    
+                    arr2 = np.array([f.attributes()[idx], landcoverresult["lc_frac_all"][0, 0], landcoverresult["lc_frac_all"][0, 1],
+                                        landcoverresult["lc_frac_all"][0, 2], landcoverresult["lc_frac_all"][0, 3], landcoverresult["lc_frac_all"][0, 4],
+                                        landcoverresult["lc_frac_all"][0, 5], landcoverresult["lc_frac_all"][0, 6]])
 
                 arrmat = np.vstack([arrmat, arr2])
 
@@ -338,13 +349,21 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('The Land Cover Fraction (Grid) plugin calculates land cover fractions required for UMEP (see Land Cover Reclassifier) '
+        return self.tr('The Land Cover Fraction (Grid) plugin calculates land cover fractions required for UMEP (see <i>Land Cover Reclassifier</i>) '
         'from a point location based on a land cover raster grid. A land cover grid suitable for the processor in UMEP can be derived using '
-        'the Land Cover Classifier. The fraction will vary depending on what angle (wind direction) you are interested in. Thus, this plugin '
-        'is able to derive the land cover fractions for different directions. It is the same as the Land Cover Fraction (Point) except that '
+        'the <i>Land Cover Classifier</i>. The fraction will vary depending on what angle (wind direction) you are interested in. Thus, this plugin '
+        'is able to derive the land cover fractions for different directions. It is the same as the <i>Land Cover Fraction (Point)</i> except that '
         'this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares but could '
-        'be any other regular shape. To create such a grid, built in functions in QGIS can be used (see Vector geometry -> Research Tools -> Create Grid in the '
+        'be any other regular shape. To create such a grid, built in functions in QGIS can be used (see <i>Vector geometry -> Research Tools -> Create Grid</i> in the '
         'Processing Toolbox).\n'
+        '\n'
+        'Standard land cover classes in UMEP: \n'
+        '1. Paved, 2. Buildings, 3. Evergreen trees, 4. Deciduous trees, 5. Grass, 6. Bare Soil, 7. Water.\n'
+        '\n'
+        'Two more land cover classes is added when the tickbox "Calculate fractions for TARGET" is ticked in: 8. Grass (irrigated), 9. Concrete.\n'
+        '\n'
+        '<b>NOTE</b>: It is possible to use the 7 standard LC-classes for the TARGET land cover fractions. See <i>Pre-Processor>Urban Heat Island>TARGET Prepare</i> for mor info.'
+        '\n'
         '--------------\n'
         'Full manual available via the <b>Help</b>-button.')
 

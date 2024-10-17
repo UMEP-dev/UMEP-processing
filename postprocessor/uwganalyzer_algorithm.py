@@ -112,7 +112,8 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterDestination(self.UWG_GRID_OUT,
                                                                   self.tr("Output raster from statistical analysis"),
                                                                   None,
-                                                                  optional=False))
+                                                                  optional=True,
+                                                                  createByDefault=False))
 
     def processAlgorithm(self, parameters, context, feedback):
         
@@ -200,28 +201,6 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         statvectemp = [0]
         statresult = [0]
         idvec = [0]
-        # starty = int(startDate.year())
-        # startm = int(startDate.month())
-        # startd = int(startDate.day())
-        # if (starty % 4) == 0:
-        #     if (starty % 100) == 0:
-        #         if (starty % 400) == 0:
-        #             leapyear = 1
-        #         else:
-        #             leapyear = 0
-        #     else:
-        #         leapyear = 1
-        # else:
-        #     leapyear = 0
-        # if leapyear == 1:
-        #     dayspermonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        # else:
-        #     dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        # startD = sum(dayspermonth[0:int(startm - 1)]) + startd
-        # endday = datetime.datetime(starty, startm, startd)
-        # endy = int(endDate.year())
-        # endm = int(endDate.month())
-        # endd = int(endDate.day())
 
         startD = int(startDate.strftime('%j'))
         endD = int(endDate.strftime('%j'))
@@ -332,7 +311,8 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         for i in range(0, statmat.shape[0]):
             gridout[idgrid_array == statmat[i, 0]] = statmat[i, 1]
 
-        saveraster(dataset, outputStat, gridout)
+        if outputStat:
+            saveraster(dataset, outputStat, gridout)
 
         feedback.setProgressText("Processing finished.")
 

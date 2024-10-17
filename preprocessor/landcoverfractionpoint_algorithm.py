@@ -38,12 +38,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterVectorDestination,
-                       QgsProcessingParameterExtent,
                        QgsProcessingException,
                        QgsVectorLayer,
                        QgsFeature,
@@ -52,14 +49,12 @@ from qgis.core import (QgsProcessing,
                        QgsVectorFileWriter)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr
+from osgeo import gdal
 from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
-from ..util import misc
 from ..util import landCoverFractions_v2 as land #changed to v2
 
 
@@ -74,18 +69,16 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
     INPUT_DISTANCE = 'INPUT_DISTANCE'
     INPUT_INTERVAL = 'INPUT_INTERVAL'
     INPUT_LCGRID = 'INPUT_LCGRID'
+    TARGET_LC = 'TARGET_LC'
     FILE_PREFIX = 'FILE_PREFIX'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_POLYGON = 'OUTPUT_POLYGON'
-    # SAVE_POINT = 'SAVE_POINT'
     OUTPUT_POINT = 'OUTPUT_POINT'
     
     def initAlgorithm(self, config):
         
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
             self.tr('Point of interest'), optional=True))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
-        #     self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
             self.tr('Point vector layer'), [QgsProcessing.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
@@ -100,8 +93,8 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
             self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
             self.tr('File prefix')))
-        # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
-            # self.tr("Save point of interest as new vector layer"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterBoolean(self.TARGET_LC,
+            self.tr("Calculate fractions for TARGET (9 classes instead of 7)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POINT,
             self.tr("Output point layer (point of interest)"), optional=True,
                 createByDefault=False))
@@ -117,16 +110,15 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        # usePointlayer = self. parameterAsBool(parameters, self.USE_POINTLAYER, context)
         inputPoint = None
         inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
         inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
         inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
         lclayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
         filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
+        useTarget = self. parameterAsBool(parameters, self.TARGET_LC, context)
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputPolygon = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
-        # savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
         outputPoint = None
         
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
@@ -140,7 +132,6 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
-            # inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
             feedback.setProgressText("Point location obtained from point in vector layer")
             if not inputPointLayer.selectedFeatures():
                 if inputPointLayer.featureCount() != 1:
@@ -161,7 +152,6 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                     
         r = inputDistance
         
-        # dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
         if lclayer is None:
             raise QgsProcessingException("No valid building land cover raster layer is selected")
 
@@ -173,17 +163,13 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         bigraster = None
         dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
         lcgrid = dataset.ReadAsArray().astype(float)
-        # sizex = dsm.shape[0]
-        # sizey = dsm.shape[1]
-        # geotransform = dataset.GetGeoTransform()
-        # scale = 1 / geotransform[1]
         
-        # Derive number of lc classes in lcgrid
-        print(lcgrid.max())
-        if lcgrid.max() == 9:
-            num_of_class = 9
-            return
-
+        if useTarget:
+            iter = 9
+            feedback.setProgressText("9 land cover classes is considered")
+        else:
+            iter = 7
+            feedback.setProgressText("7 land cover classes is considered")
 
         degree = float(inputInterval)
         nd = dataset.GetRasterBand(1).GetNoDataValue()
@@ -193,20 +179,31 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException("NoData values present within the radius (" + str(int(r)) + 
                                 " m) from point of interest. Extend your raster(s) or more point.")
         else:
-            landcoverresult = land.landcover_v2(lcgrid, 1, degree, feedback, 1, num_of_class)
+            landcoverresult = land.landcover_v2(lcgrid, 1, degree, feedback, 1, iter)
 
-        # save to file
-        pre = filePrefix
-        header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-        numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        ## save to file ##
+        #anisotropic
+        if useTarget:
+            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
+            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        else:
+            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+
         arr = np.concatenate((landcoverresult["deg"], landcoverresult["lc_frac"]), axis=1)
-        np.savetxt(outputDir + '/' + pre + '_' + 'LCFPoint_anisotropic.txt', arr,
+        np.savetxt(outputDir + '/' + filePrefix + '_' + 'LCFPoint_anisotropic.txt', arr,
                    fmt=numformat, delimiter=' ', header=header, comments='')
+        
+        #isotropic
+        if useTarget:
+            header = 'Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
+            numformat = '%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+        else:
+            header = 'Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
+            numformat = '%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
 
-        header = 'Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-        numformat = '%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
         arr2 = np.array(landcoverresult["lc_frac_all"])
-        np.savetxt(outputDir + '/' + pre + '_' + 'LCFPoint_isotropic.txt', arr2,
+        np.savetxt(outputDir + '/' + filePrefix + '_' + 'LCFPoint_isotropic.txt', arr2,
                     fmt=numformat, delimiter=' ', header=header, comments='')
 
         dataset = None
@@ -218,8 +215,6 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
         self.create_point_layer(outputPoint, x, y, crs)
         results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
-        # else:
-            # results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
 
         return results
 
@@ -289,9 +284,17 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return self.tr('The Land Cover Fraction (Point) plugin calculates land cover fractions required for UMEP (see Land Cover '
-        'Reclassifier) from a point location based on a land cover raster grid. A land cover grid suitable for the processor in '
-        'UMEP can be derived using the Land Cover Classifier. The fraction will vary depending on what angle (wind direction) '
+        'Reclassifier) from a point location based on a land cover raster grid. A land cover raster grid suitable for the processor in '
+        'UMEP can be derived using the <i>Land Cover Classifier</i>. The fraction will vary depending on what angle (wind direction) '
         'you are interested in. Thus, this plugin is able to derive the land cover fractions for different directions.\n'
+        '\n'
+        'Standard land cover classes in UMEP: \n'
+        '1. Paved, 2. Buildings, 3. Evergreen trees, 4. Deciduous trees, 5. Grass, 6. Bare Soil, 7. Water.\n'
+        '\n'
+        'Two more land cover classes is added when the tickbox "Calculate fractions for TARGET" is ticked in: 8. Grass (irrigated), 9. Concrete.\n'
+        '\n'
+        '<b>NOTE</b>: It is possible to use the 7 standard LC-classes for the TARGET land cover fractions. See <i>Pre-Processor>Urban Heat Island>TARGET Prepare</i> for mor info.'
+        '\n'
         '-------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
