@@ -42,12 +42,13 @@ import math
 import datetime
 from ..util.umep_target_export_component import write_config_file
 from ..util.misc import xy2latlon
-from target.ui.utils import read_config
+
 #from ..functions.target import Target
 # from target import Target
 # from .target.scripts.toolkit import Target
 try:
     from target import Target
+    from target.ui.utils import read_config
 except:
     pass
 
