@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.0.32
+version=2.0.33
 author=Fredrik Lindberg, Nils Wallenberg
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.0.33: Fixed issue in URockPrepare
     2.0.32: Response to issue #660
     2.0.31: URock: fix issues concerning result interpolation (#61 and #84 in UMEP-Processing)
     2.0.30: Fixed issues for point calculation in LCfrac and Immorph

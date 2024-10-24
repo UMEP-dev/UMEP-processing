@@ -170,8 +170,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorDestination(
                 self.OUTPUT_VEGETATION_FILE,
-                self.tr('Output vegetation vector file'),
-                defaultValue = os.path.join(TEMPO_DIRECTORY, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")))
+                self.tr('Output vegetation vector file'),optional=True,createByDefault=False)) #,defaultValue = os.path.join(TEMPO_DIRECTORY, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_VEG_HEIGHT_FIELD,
@@ -216,12 +215,12 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         build_out_ext = outputBuildFilepath.split(".")[-1].lower()
         if veg_out_ext == 'file':
             outputVegFilepath = os.path.join(tmp_dir, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")
-        elif (veg_out_ext != "geojson") and (veg_out_ext != ".shp"):
+        elif ((veg_out_ext != "geojson") and (veg_out_ext != "shp")):
              outputVegFilepath = veg_out_basepath + OUTPUT_VECTOR_EXTENSION
              feedback.pushWarning(f'.gpkg format is currently not available, output vegetation file extension has been changed to {OUTPUT_VECTOR_EXTENSION}')
         if build_out_ext == 'file':
             outputBuildFilepath = os.path.join(tmp_dir, f"build_vector{OUTPUT_VECTOR_EXTENSION}")
-        elif (build_out_ext != "geojson") and (build_out_ext != ".shp"):
+        elif ((build_out_ext != "geojson") and (build_out_ext != "shp")):
              outputBuildFilepath = build_out_basepath + OUTPUT_VECTOR_EXTENSION
              feedback.pushWarning(f'.gpkg format is currently not available, output building file extension has been changed to {OUTPUT_VECTOR_EXTENSION}')
 
@@ -426,8 +425,11 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 
             
         # Return the output file names
-        return {self.OUTPUT_BUILDING_FILE: outputBuildFilepath,
+        if veg_dsm:
+            return {self.OUTPUT_BUILDING_FILE: outputBuildFilepath,
                 self.OUTPUT_VEGETATION_FILE: outputVegFilepath}
+        else:
+            return {self.OUTPUT_BUILDING_FILE: outputBuildFilepath}
 
     def name(self):
         """
