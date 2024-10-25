@@ -102,7 +102,7 @@ def createGrid(cursor, dicOfInputTables,  srid,
                         ID AS {6},
                         ID_COL AS {7},
                         ID_ROW AS {8},
-                        ST_Y({1}) AS {10},
+                        ST_Y({1}) AS {10}
             FROM ST_MAKEGRIDPOINTS((SELECT ST_EXPAND(ST_EXTENT({1}),
                                                       {2},
                                                       {3}) FROM ({5})), 
