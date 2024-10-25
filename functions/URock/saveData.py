@@ -144,7 +144,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                                                 prefix(outputFilename, prefix_name)+\
                                                                 OUTPUT_VECTOR_EXTENSION),
                                          delete = DELETE_OUTPUT_IF_EXISTS)
-            
+                
             # -------------------------------------------------------------------
             # SAVE RASTER -------------------------------------------------------
             # -------------------------------------------------------------------     
