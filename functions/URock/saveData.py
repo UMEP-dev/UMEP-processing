@@ -159,7 +159,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                z_i = z_i, 
                                meshSize = meshSize,
                                var2save = WIND_SPEED,
-                               stacked_blocks = stacked_blocks)                
+                               stacked_blocks = stacked_blocks,
+                               srid = srid)                
                 
                 # Save the horizontal wind speed into a Raster
                 saveRasterFile(cursor = cursor, 
@@ -171,7 +172,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                z_i = z_i, 
                                meshSize = meshSize,
                                var2save = HORIZ_WIND_SPEED,
-                               stacked_blocks = stacked_blocks)
+                               stacked_blocks = stacked_blocks,
+                               srid = srid)
                 
                 # Save the vertical wind speed into a Raster
                 saveRasterFile(cursor = cursor, 
@@ -183,7 +185,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                z_i = z_i, 
                                meshSize = meshSize,
                                var2save = VERT_WIND_SPEED,
-                               stacked_blocks = stacked_blocks)
+                               stacked_blocks = stacked_blocks,
+                               srid = srid)
 
     return horizOutputUrock, final_netcdf_path
     
@@ -395,7 +398,7 @@ def renameFileIfExists(filedir, extension):
 
 def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase, 
                    horizOutputUrock, outputRaster, z_i, meshSize, var2save,
-                   stacked_blocks):
+                   stacked_blocks, srid):
     """ Save results in a raster file.
     
     Parameters
@@ -440,7 +443,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                                stacked_blocks = stacked_blocks,
                                outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
-                               extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:3007]',
+                               extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                                resX = resX, 
                                resY = resY,
                                z_i = z_i)
@@ -463,7 +466,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                            stacked_blocks = stacked_blocks,
                            outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
-                           extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:3007]',
+                           extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                            resX = meshSize, 
                            resY = meshSize,
                            z_i = z_i)
@@ -536,7 +539,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                        'INPUT_D':None,'BAND_D':None,
                                        'INPUT_E':None,'BAND_E':None,
                                        'INPUT_F':None,'BAND_F':None,
-                                       'FORMULA':f'((A==-9999)+(A>{z_i}))*((B==-9999)+(B<{z_i}))*C',
+                                       'FORMULA':f'((A == -9999) + (A > {z_i})) * ((B == -9999) + (B < {z_i})) * C',
                                        'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
                                        'RTYPE':5,'OPTIONS':'','EXTRA':'',
                                        'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
