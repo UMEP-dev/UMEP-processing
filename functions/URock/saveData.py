@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from .DataUtil import radToDeg, windDirectionFromXY, createIndex, prefix
 from .Obstacles import windRotation
-from osgeo.gdal import Grid, GridOptions
+from osgeo.gdal import Grid, GridOptions, FillNodata, Open, GA_Update
 from .GlobalVariables import HORIZ_WIND_DIRECTION, HORIZ_WIND_SPEED, WIND_SPEED,\
     ID_POINT, TEMPO_DIRECTORY, TEMPO_HORIZ_WIND_FILE, VERT_WIND_SPEED, GEOM_FIELD,\
     OUTPUT_DIRECTORY, MESH_SIZE, OUTPUT_FILENAME, DELETE_OUTPUT_IF_EXISTS,\
@@ -442,11 +442,18 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             # Interpolate with building constraints
             interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                                stacked_blocks = stacked_blocks,
-                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
+                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION, 
                                extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                                resX = resX, 
                                resY = resY,
                                z_i = z_i)
+        # Interpolate values to fill no data
+        ET = Open(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION, GA_Update) 
+        ETband = ET.GetRasterBand(1)
+ 
+        FillNodata(targetBand = ETband, maskBand = None, 
+                   maxSearchDist = 999, smoothingIterations = 0)
+        ET = None
     else:
         cursor.execute(
             """

@@ -83,10 +83,10 @@ def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, c
     ny = y.size
     nz = z.size
     
-    # Create empty matrix for the 3D wind speed calculation
-    u = np.zeros((nx, ny, nz))
-    v = np.zeros((nx, ny, nz))
-    w = np.zeros((nx, ny, nz))
+    # Initialize the wind speed in the final wind speed vectors
+    u = u0.copy()
+    v = v0.copy()
+    w = w0.copy()
 
     # Preallocating lambda and lambda + 1 and set values to 0 on sketch boundaries
     lambdaN = np.ones([nx, ny, nz])
