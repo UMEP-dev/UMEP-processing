@@ -43,7 +43,7 @@ from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractio
 from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
 from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
 from .preprocessor.uwgprepare_algorithm import ProcessingUWGPrepareAlgorithm
-#from .preprocessor.targetprepare_algorithm import ProcessingTARGETPrepareAlgorithm
+from .preprocessor.targetprepare_algorithm import ProcessingTARGETPrepareAlgorithm
 from .preprocessor.urock_prepare_algorithm import URockPrepareAlgorithm
 
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
@@ -52,7 +52,7 @@ from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
 from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
 from .processor.uwg_algorithm import ProcessingUWGProcessorAlgorithm
 from .processor.urock_processing_algorithm import URockAlgorithm
-#from .processor.target_algorithm import ProcessingTargetProcessorAlgorithm
+from .processor.target_algorithm import ProcessingTargetProcessorAlgorithm
 
 from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
 from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
@@ -60,6 +60,7 @@ from .postprocessor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
 from .postprocessor.uwganalyzer_algorithm import ProcessingUWGAnalyzerAlgorithm
 from .postprocessor.spatialtc_algorithm import ProcessingSpatialTCAlgorithm
 from .postprocessor.urock_analyser_algorithm import URockAnalyserAlgorithm
+from .postprocessor.targetanalyzer_algorithm import ProcessingTARGETAnalyzerAlgorithm
 
 import os.path
 from qgis.PyQt.QtGui import QIcon
@@ -100,7 +101,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingDSMGeneratorAlgorithm())
         self.addAlgorithm(ProcessingTreeGeneratorAlgorithm())
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
-        # self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
+        self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())
         
         
@@ -111,13 +112,14 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingSuewsAlgorithm())
         self.addAlgorithm(ProcessingTreePlanterAlgorithm())
         self.addAlgorithm(ProcessingUWGProcessorAlgorithm())
-        # self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
+        self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
         self.addAlgorithm(URockAlgorithm())
 
         #Postprocessor
         self.addAlgorithm(ProcessingSolweigAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingUWGAnalyzerAlgorithm())
+        self.addAlgorithm(ProcessingTARGETAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingSpatialTCAlgorithm())
         self.addAlgorithm(URockAnalyserAlgorithm())
 
@@ -143,7 +145,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         Should return a QIcon which is used for your provider inside
         the Processing toolbox.
         """
-        icon = QIcon(os.path.dirname(__file__) + "/icons/icon_umep.png")
+        icon = QIcon(os.path.dirname(__file__) + '/icons/icon_umep.png')
         return icon
 
     def longName(self):
@@ -153,4 +155,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 2.0.35'
+        return 'UMEP for Processing, Version 2.1'

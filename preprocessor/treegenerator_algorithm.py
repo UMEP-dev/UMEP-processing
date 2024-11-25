@@ -285,19 +285,18 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             cola = np.round((x - minx) * scale)
             rowa = np.round((miny + rows / scale - y) * scale)
 
-            # QMessageBox.information(None, "scale=", str(scale))
-            # QMessageBox.information(None, "x=", str(x))
-            # QMessageBox.information(None, "y=", str(y))
-            # QMessageBox.information(None, "minx=", str(minx))
-            # QMessageBox.information(None, "miny=", str(miny))
-            # QMessageBox.information(None, "cola=", str(cola))
-            # QMessageBox.information(None, "rowa=", str(rowa))
-            # QMessageBox.information(None, "rows=", str(rows))
+            # feedback.setProgressText("scale= " + str(scale))
+            # feedback.setProgressText("x= " + str(x))
+            # feedback.setProgressText("y= " + str(y))
+            # feedback.setProgressText("minx= " + str(minx))
+            # feedback.setProgressText("miny= " + str(miny))
+            # feedback.setProgressText("cola= " + str(cola))
+            # feedback.setProgressText("rowa= " + str(rowa))
+            # feedback.setProgressText("rows= " + str(rows))
 
             # Check if there are trees with a tree canopy diameter smaller than the pixel resolution of the input raster data
             if dia < geotransform[1]:
                 raise QgsProcessingException("Error! You have tree canopy diameters that are smaller than the pixel resolution.")
-                return
 
             cdsm_array, tdsm_array = makevegdems.vegunitsgeneration(build_array, cdsm_array, tdsm_array, ttype, height,
                                                                     trunk, dia, rowa, cola, sizex, sizey, scale)

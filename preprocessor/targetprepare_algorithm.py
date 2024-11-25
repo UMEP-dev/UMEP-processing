@@ -139,6 +139,34 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         header = 'FID,roof,road,watr,conc,Veg,dry,irr,H,W'
         numformat = '%3d, %5.3f, %5.3f, %5.3f, %5.3f, %5.3f, %5.3f, %5.3f, %5.3f, %5.3f'
 
+        # Test for metre units in vector CRS
+        grid_crs = osr.SpatialReference()
+        grid_crs.ImportFromWkt(vlayer.crs().toWkt())
+        grid_unit = grid_crs.GetAttrValue('UNIT')
+        feedback.setProgressText("Length unit of vector layer: " + str(grid_unit))
+        possible_units_metre = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm'] 
+        if not grid_unit in possible_units_metre:
+            raise QgsProcessingException('Error! Vector polygon projection is not in meters. Please reproject.')
+
+        #Get resolution of grid (res)
+        for feature in vlayer.getFeatures():
+            geom = feature.geometry()
+            bb = geom.boundingBox()
+            res = np.round(bb.xMaximum() - bb.xMinimum())   
+            break
+
+        #Saving parameters file
+        with open(self.plugin_dir + '/parametersfortarget.json', "r") as jsn:
+            param = json.load(jsn)
+
+        param['res']['value'] = res 
+
+        jsonout = json.dumps(param, indent=4)#'C:/temp/targettests/my_site/parameterstest.json'
+        with open(outputDir + '/' + siteName + '/parameters.json', "w") as jsn2:
+        # with open('C:/temp/targettests/my_site/parameterstest2.json'), "c" as jsn2:
+            jsn2.write(jsonout)
+
+
         #Start loop of polygon grids
         ##land cover and morphology
         index = 0
@@ -183,8 +211,14 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                         H = split[3]
                         wai = split[8]
                         pai = split[1]
-                        HW = (wai*pai)/(2*pai*(1-pai))
-                        W = H / HW
+                        if pai == 0:
+                            W = res
+                        else:
+                            HW = (wai*pai)/(2*pai*(1-pai))
+                            W = H / HW
+                            if W > res:
+                                W = res #W cannot be larger than grid resolution
+                        
                         break
             
             arr = [feat_id, roof, road, watr, conc, veg, dry, irr, H, W]
@@ -196,39 +230,13 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         #creating folders and saving
         if not os.path.exists(outputDir + '/' + siteName + '/' + 'input' + '/' + 'LC'):
             os.makedirs(outputDir + '/' + siteName + '/' + 'input' + '/' + 'LC')
+
+        if not os.path.exists(outputDir + '/' + siteName + '/' + 'input' + '/' + 'MET'):
             os.makedirs(outputDir + '/' + siteName + '/' + 'input' + '/' + 'MET')
 
         np.savetxt(outputDir + '/' + siteName + '/' + 'input' + '/' + 'LC' + '/lc_target.txt', arrmatsave,
                             fmt=numformat, header=header, comments='')
         
-        # Test for metre units in CRS
-        grid_crs = osr.SpatialReference()
-        grid_crs.ImportFromWkt(vlayer.crs().toWkt())
-        grid_unit = grid_crs.GetAttrValue('UNIT')
-
-        possible_units_metre = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm'] 
-        if not grid_unit in possible_units_metre:
-            raise QgsProcessingException('Error! Raster projection is not in meters or feet. Please reproject.')
-
-        
-        #Get resolution of grid
-        for feature in vlayer.getFeatures():
-            geom = feature.geometry()
-            bb = geom.boundingBox()
-            gridsize = np.round(bb.xMaximum() - bb.xMinimum())   
-            break
-
-        #Saving parameters file
-        with open(self.plugin_dir + '/parametersfortarget.json', "r") as jsn:
-            param = json.load(jsn)
-
-        param['res']['value'] = gridsize 
-
-        jsonout = json.dumps(param, indent=4)#'C:/temp/targettests/my_site/parameterstest.json'
-        with open(outputDir + '/' + siteName + '/parameters.json', "w") as jsn2:
-        # with open('C:/temp/targettests/my_site/parameterstest2.json'), "c" as jsn2:
-            jsn2.write(jsonout)
-
         feedback.setProgressText("Process finished")
 
         return {self.OUTPUT_DIR: outputDir}

@@ -43,10 +43,16 @@ from pathlib import Path
 import shutil
 import datetime
 from ..util.misc import saveraster
-from ..util.umep_uwg_export_component import read_uwg_file
+#from ..util.umep_uwg_export_component import read_uwg_file
+
+try:
+    from target_py import Target
+    from target_py.ui.utils import read_config
+except:
+    pass
 
 
-class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
+class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """
     This class is a processing version of UWGAnalyzer but only for generating aggregated grids
     """
@@ -60,6 +66,7 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
     PIXELSIZE = 'PIXELSIZE'
     STAT_TYPE = 'STAT_TYPE'
     ADD_ATTRIBUTES ='ADD_ATTRIBUTES'
+    TIME_OF_DAY ='TIME_OF_DAY'
  
     # Output
     UWG_GRID_OUT = 'UWG_GRID_OUT'
@@ -70,10 +77,7 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         self.plugin_dir = os.path.dirname(__file__)
 
         self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
-            self.tr('Path to folder where UWG input files are located'),
-            QgsProcessingParameterFile.Folder))
-        self.addParameter(QgsProcessingParameterFile(self.OUTPUT_FOLDER,
-            self.tr('Path to folder where UWG output files are located'),
+            self.tr('Path to TARGET Run name folder'),
             QgsProcessingParameterFile.Folder))
         self.addParameter(QgsProcessingParameterBoolean(self.SINGLE_DAY_BOOL,
             self.tr("Examine single night"), defaultValue=False, optional=True))
@@ -88,6 +92,13 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.STAT_TYPE,
                                                      self.tr('Statistic measure'),
                                                      options=[i[0] for i in self.statType],
+                                                     defaultValue=0))
+        self.dayType =  ((self.tr('Diurnal'), '0'),
+                    (self.tr('Daytime'), '1'),
+                    (self.tr('Nighttime'), '2'))
+        self.addParameter(QgsProcessingParameterEnum(self.TIME_OF_DAY,
+                                                     self.tr('Time of day'),
+                                                     options=[i[0] for i in self.dayType],
                                                      defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
                                                               self.tr('Vector polygon grid'), 
@@ -118,8 +129,8 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         
         # InputParameters
-        uwgIn = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
-        uwgOut = self.parameterAsString(parameters, self.OUTPUT_FOLDER, context)
+        targetIn = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
+        #uwgOut = self.parameterAsString(parameters, self.OUTPUT_FOLDER, context)
         # variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
         # startday = self.parameterAsString(parameters, self.DATEINISTART, context)
         singleNight = self.parameterAsBool(parameters, self.SINGLE_DAY_BOOL, context)
@@ -132,34 +143,46 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         pixelsize = self.parameterAsDouble(parameters, self.PIXELSIZE, context)
         addAttributes = self.parameterAsBool(parameters, self.ADD_ATTRIBUTES, context)
         outputStat = self.parameterAsOutputLayer(parameters, self.UWG_GRID_OUT, context)
+        dayTypeStr = self.parameterAsString(parameters, self.TIME_OF_DAY, context)
 
         feedback.setProgressText("Initializing...")
 
         # statType = int(statTypeStr)
 
-        feedback.setProgressText("Model input directory: " + uwgIn)
-        feedback.setProgressText("Model output directory: " + uwgOut)
+        feedback.setProgressText("Model input directory: " + targetIn + "/input")
+        feedback.setProgressText("Model output directory: " + targetIn + "/output")
 
-        fileList = os.listdir(uwgIn)
-        a = fileList[0].find("_")
-        prefix = fileList[0][0:a]
+        cfM = read_config(targetIn + '/config.ini')
 
-        feedback.setProgressText("Prefix: " + prefix)
+        runName = cfM['run_name']
+        feedback.setProgressText("Run name: " + runName)
 
-        uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
-        mm = uwgDict['Month']
-        dd = uwgDict['Day']
-        nDays = uwgDict['nDay']
+
+        #fileList = os.listdir(uwgIn)
+        # a = fileList[0].find("_")
+        # prefix = fileList[0][0:a]
+
+        # feedback.setProgressText("Prefix: " + prefix)
+
+        # uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
+        # mm = uwgDict['Month']
+        # dd = uwgDict['Day']
+        # nDays = uwgDict['nDay']
 
         # Load rural data
-        sitein = uwgOut + '/metdata_UMEP.txt'
+        #inputDir + "/output/" + runName + 'metdata_UMEP.txt'
+        sitein = targetIn + "/output/" + runName + '_metdata_UMEP.txt'
         dataref = np.genfromtxt(sitein, skip_header=1)
         yyyy = dataref[0,0]
 
-        start = datetime.date(int(yyyy), int(mm), int(dd))
-        end = start + datetime.timedelta(days=int(nDays))
+        # start = datetime.date(int(yyyy), int(mm), int(dd))
+        # end = start + datetime.timedelta(days=int(nDays))
+        start = datetime.datetime.strptime(cfM['date1'], "%Y,%m,%d,%H").strftime("%Y-%m-%d") #string
+        end = datetime.datetime.strptime(cfM['date2'], "%Y,%m,%d,%H").strftime("%Y-%m-%d") #string
+        startDate = datetime.datetime.strptime(cfM['date1'], "%Y,%m,%d,%H")
+        endDate = datetime.datetime.strptime(cfM['date2'], "%Y,%m,%d,%H")
 
-        feedback.setProgressText('Days indentified as modelled by UWG: ' + start.strftime('%d %b') + ' to ' + end.strftime('%d %b'))
+        feedback.setProgressText('Days indentified as modelled by TARGET: ' + start + ' to ' + end)
 
         if singleNight:
             singledate = self.parameterAsString(parameters, self.SINGLE_DAY, context)
@@ -174,12 +197,13 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
             else:
                 feedback.setProgressText('Single day and following night to examine: ' + startDate.strftime('%d %b'))
         else:
-            uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
-            mm = uwgDict['Month']
-            dd = uwgDict['Day']
-            nDays = uwgDict['nDay']
-            startDate = datetime.date(int(yyyy), int(mm), int(dd))
-            endDate = startDate + datetime.timedelta(days=int(nDays))
+            #uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
+            #mm = uwgDict['Month']
+            #dd = uwgDict['Day']
+            #nDays = uwgDict['nDay']
+            #startDate = datetime.date(int(cfM['date1'][0]), int(cfM['date1'][1]), int(cfM['date1'][2]))
+            #endDate = datetime.date(int(cfM['date2'][0]), int(cfM['date2'][1]), int(cfM['date2'][2]))
+            #endDate = startDate + datetime.timedelta(days=int(nDays))
             feedback.setProgressText('Dates to be analyzed: ' + startDate.strftime('%d %b') + ' to ' + endDate.strftime('%d %b'))
 
         # poly = inputPolygonlayer
@@ -204,8 +228,8 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         startD = int(startDate.strftime('%j'))
         endD = int(endDate.strftime('%j'))
-        
-        
+
+       
         # for i in range(0, self.idgrid.shape[0]): # loop over vector grid instead
         index = 1
         nGrids = vlayer.featureCount()
@@ -220,18 +244,30 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
             feedback.setProgressText("Processing grid: " + str(gid))
 
-            datawhole = np.genfromtxt(uwgOut + '/' + prefix + '_' + gid + '_UMEP_UWG.txt', skip_header=1)
+            datawhole = np.genfromtxt(targetIn + '/output/' + runName + '_' + gid + '_UMEP_TARGET.txt', skip_header=1)
 
-            # cut UWG data
+            # cut TARGET data
             start = np.min(np.where(datawhole[:, 1] == startD))
             if endD > np.max(datawhole[:, 1]):
                 ending = np.max(np.where(datawhole[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(datawhole[:, 1] == endD))
+
+
+
             data1 = datawhole[start:int(ending + 12), :] # + 12 to include whole final night 
 
-            data1 = data1[np.where(data1[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
-            data1 = data1[0][:]
+
+            # Select depending of time of day for modelled data
+            if dayTypeStr == '1':
+                data1 = data1[np.where(data1[:, 14] > 1.), :]
+                data1 = data1[0][:]
+            if dayTypeStr == '2':
+                data1 = data1[np.where(data1[:, 14] < 1.), :]
+                data1 = data1[0][:]
+            
+            #data1 = data1[np.where(data1[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
+            #data1 = data1[0][:]
 
             # cut ref data
             if endD > np.max(dataref[:, 1]):
@@ -240,15 +276,16 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 ending = np.min(np.where(dataref[:, 1] == endD))
             data2 = dataref[start:int(ending + 12), :] # + 12 to include whole final night 
 
-            data2 = data2[np.where(data2[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
-            data2 = data2[0][:]
-            
-            # if dayTypeStr == '1':
-            #     data1 = data1[np.where(data1[:, altpos] < 90.), :]
-            #     data1 = data1[0][:]
-            # if dayTypeStr == '2':
-            #     data1 = data1[np.where(data1[:, altpos] > 90.), :]
-            #     data1 = data1[0][:]
+            # Select depending of time of day for ref data
+            if dayTypeStr == '1':
+                data2 = data2[np.where(data2[:, 14] > 1.), :]
+                data2 = data2[0][:]
+            if dayTypeStr == '2':
+                data2 = data2[np.where(data2[:, 14] < 1.), :]
+                data2 = data2[0][:]
+
+            # data2 = data2[np.where(data2[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
+            # data2 = data2[0][:]
 
             vardatauwg = data1[:, 11] # 11 is temperature column
             vardataref = data2[:, 11] 
@@ -321,7 +358,6 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def rasterize(self, src, dst, attribute, resolution, crs, extent, all_touch=False, na=-9999):
 
         # Open shapefile, retrieve the layer
-        # print(src)
         src_data = ogr.Open(src)
         layer = src_data.GetLayer()
 
@@ -379,7 +415,7 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException("Vector Layer does not support adding attributes")
     
     def name(self):
-        return 'Urban Heat Island: UWG Analyzer'
+        return 'Urban Heat Island: TARGET Analyzer'
 
     def displayName(self):
         return self.tr(self.name())
@@ -391,13 +427,13 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         return 'Post-Processor'
 
     def shortHelpString(self):
-        return self.tr('The <b>UWG Analyzer</b> plugin can be used to make basic grid analysis of model results generated by the Urban Weather Generator.<br>'
+        return self.tr('The <b>TARGET Analyzer</b> plugin can be used to make basic grid analysis of model results generated by the TARGET model.<br>'
         '\n'
         '--------------\n'
         'Full manual available via the <b>Help</b>-button.')
 
     def helpUrl(self):
-        url = "https://umep-docs.readthedocs.io/en/latest/post_processor/Urban%20Heat%20Island%20UWG%20Analyser.html"
+        url = "https://umep-docs.readthedocs.io/en/latest/post_processor/Urban%20Heat%20Island%20TARGET%20Analyser.html"
         return url
 
     def tr(self, string):
@@ -409,7 +445,7 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         return icon
 
     def createInstance(self):
-        return ProcessingUWGAnalyzerAlgorithm()
+        return ProcessingTARGETAnalyzerAlgorithm()
 
 class DateWidgetStart(WidgetWrapper):
     def createWidget(self):

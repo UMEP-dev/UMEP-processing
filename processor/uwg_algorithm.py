@@ -95,7 +95,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_FORMAT,
-            self.tr('Save output in UMEP specific format. Leave ticked off to store in epw-format.')))
+            self.tr('Save output in UMEP specific format (required for the UWG Analyzer)')))
 
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -190,8 +190,8 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                         umep_uwg = self.epw2UMEP(epwdata_uwg)
                         np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
                         os.remove(epw_path)
-                    else:
-                        shutil.move(epw_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
+                    
+                    shutil.move(epw_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
                 else:
                     feedback.setProgressText("UWG calculating grid: " + str(attr))
                     try:
@@ -204,9 +204,9 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                             epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
                             umep_uwg = self.epw2UMEP(epwdata_uwg)
                             np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
-                            os.remove(uwg_path)
-                        else:
-                            shutil.move(uwg_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
+                            #os.remove(uwg_path)
+                        
+                        shutil.move(uwg_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
                         
                         os.remove(epw_path)
 
@@ -229,7 +229,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                         epwdata_uwg = np.genfromtxt(uwg_path, skip_header=8, delimiter=',', filling_values=99999)
                         umep_uwg = self.epw2UMEP(epwdata_uwg)
                         np.savetxt(outputDir + '/' + prefix + '_' + str(attr) +  '_UMEP_UWG.txt', umep_uwg, fmt=numformat, header=header, comments='')
-                        os.remove(uwg_path)
+                        #os.remove(uwg_path)
                     else:
                         shutil.move(uwg_path, Path(outputDir + '/' + prefix + '_' + str(attr)  + '_UWG.epw'))
                     
@@ -314,7 +314,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('<b>THIS PLUGIN IS EXPERIMENTAL</b>'
+        return self.tr('<b>THIS TOOL IS EXPERIMENTAL</b>'
         '\n'
         'The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>'
         '\n'

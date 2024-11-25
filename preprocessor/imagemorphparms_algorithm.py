@@ -478,7 +478,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self):
         return self.tr('The Morphometric Calculator (Grid) plugin calculates various morphometric parameters based on digital surface models for '
         'separate vector polygons. The polygons should preferable be squares or any other regular shape. To create such a grid, built in functions '
-        'in QGIS can be used (see Vector geometry -> Research Tools -> Create Grid in the Processing Toolbox). The morphometric parameters are used to describe the '
+        'in QGIS can be used (see Vector -> Research Tools -> Create Grid from the QGIS menu-bar). The morphometric parameters are used to describe the '
         'roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending '
         'on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. '
         'Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D '

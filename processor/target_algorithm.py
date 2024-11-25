@@ -47,8 +47,8 @@ from ..util.misc import xy2latlon
 # from target import Target
 # from .target.scripts.toolkit import Target
 try:
-    from target import Target
-    from target.ui.utils import read_config
+    from target_py import Target
+    from target_py.ui.utils import read_config
 except:
     pass
 
@@ -67,6 +67,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
     INPUT_MET = 'INPUT_MET'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_CSV = 'OUTPUT_CSV'
+    OUTPUT_UMEP = 'OUTPUT_UMEP'
     # DTSIM = 'DTSIM'
     MOD_LDOWN = 'MOD_LDOWN'
     RUN_NAME = 'RUN_NAME'
@@ -112,6 +113,8 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             # self.tr('Output folder')))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_CSV,
             self.tr('Save output as .csv text files')))
+        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_UMEP,
+            self.tr('Save output in UMEP-specific format (required for the TARGET Analyzer)')))
         
         self.plugin_dir = os.path.dirname(__file__)
 
@@ -130,7 +133,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         # dtSim = self.parameterAsDouble(parameters, self.DTSIM, context)
         mod_Ldown = self.parameterAsBoolean(parameters, self.MOD_LDOWN, context)
         runName = self.parameterAsString(parameters, self.RUN_NAME, context)
-
+        umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_UMEP,context)
         # getting extent, lat lon, and number of x and y grids
         vlayer = inputPolygonlayer
         ext = vlayer.extent()
@@ -157,7 +160,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
 
         # Converting UMEP met-file to target met-file
         try:
-            metfile= pd.read_csv(inputMet, delim_whitespace=True)
+            metfile= pd.read_csv(inputMet, sep='\s+')
         except:
             raise QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
                                                 "prepare your data by using 'Prepare Existing Data' in "
@@ -184,6 +187,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         cfM['inpt_lc_file'] = 'lc_target.txt'
         cfM['date_fmt'] = '%Y-%m-%d %H:%M:%S'
         cfM['timestep'] = str(tdiff) # timestep is set from input forcingfile
+        cfM['include roofs'] = 'Y'
 
         if mod_Ldown:
             cfM['mod_ldown'] = 'Y'
@@ -241,11 +245,41 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         # save parameters and config used for simulation
         tar.save_simulation_parameters()
         end = datetime.datetime.now() - start
-
-        feedback.setProgressText("Model calculation finished. Output is found in " + inputDir + "\output")
+        feedback.setProgressText("Model calculation finished. Output is found in " + inputDir + "/output")
         feedback.setProgressText("Model calculation time: " + str(end.total_seconds()) + " seconds")
 
+        #saving output as umep formatted metfile
+        if umepformat:
+            feedback.setProgressText('Saving data in UMEP formatted text-files.')
+            header = '%iy  id  it imin   Q*      QH      QE      Qs      Qf    Wind    RH     Td     press   rain ' \
+                        '   Kdn    snow    ldown   fcld    wuh     xsmd    lai_hr  Kdiff   Kdir    Wd'
+            numformat = '%d %d %d %d %.2f %.2f %.2f %.2f %.2f %.5f %.2f %.2f %.2f %.2f %.2f %.2f %.2f ' \
+                            '%.2f %.2f %.2f %.2f %.2f %.2f %.2f'
+
+            dataout = np.load(inputDir + "/output/" + runName + '.npy', allow_pickle=True)
+            dfin = pd.read_csv(inputMet, sep='\s+')
+            dfin['datetime'] = pd.to_datetime(dfin[['%iy', 'id', 'it', 'imin']].astype(str).agg('-'.join, axis=1), format='%Y-%j-%H-%M')
+            dfin.set_index('datetime', inplace=True)
+            np.savetxt(inputDir + "/output/" + runName + '_metdata_UMEP.txt', dfin, fmt=numformat, header=header, comments='')
+            index = 1
+
+            for f in range(0, dataout.shape[1]):  # looping through each grid saving data
+                feedback.setProgress(int((index * 100) / dataout.shape[1]))
+                if feedback.isCanceled():
+                    feedback.setProgressText("Calculation cancelled")
+                    break
+                gridID = dataout[:,f,0][0][0]
+                dfout001 = pd.DataFrame(dataout[:,f,0])
+                dfout001['date'] = pd.to_datetime(dfout001['date'])
+                dfout001.set_index('date', inplace=True)
+                dfoutmod = dfout001['Ta'].loc[date1:date2]
+                dfin.loc[date1:date2,['Td']] = dfoutmod
+                np.savetxt(inputDir + "/output/" + runName + '_' + str(int(gridID)) + '_UMEP_TARGET.txt', dfin, fmt=numformat, header=header, comments='')
+                
+        feedback.setProgressText("Process finished")
+
         return {self.INPUT_FOLDER: inputDir}
+    
 
     def name(self):
         return 'Urban Heat Island: TARGET'
@@ -260,7 +294,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('<b>THIS PLUGIN IS EXPERIMENTAL</b>'
+        return self.tr('<b>THIS TOOL IS EXPERIMENTAL</b>'
         '\n'
         '<b>TARGET</b> (The Air-temperature Response to Green blue-infrastructure Evaluaition Tool) is a simple modelling framework used to examine '
         'intra urban climate. It has specifically been developed as an efficient, easy-to-use model albe to investigate '
@@ -270,7 +304,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         '\n'
         'For more detailed information during execution, open the QGIS Python console (Plugins>Python Console).'
         '\n'
-        '<b>NOTE</b>: This plugin requires the <b>target-umep</b> python library. Instructions on how to install missing python libraries using the pip command can be found here: '
+        '<b>NOTE</b>: This plugin requires the <b>target-py</b> python library. If missing on your system, instructions on how to install missing python libraries using the pip command can be found here: '
         '<a href="https://umep-docs.readthedocs.io/en/latest/Getting_Started.html">https://umep-docs.readthedocs.io/en/latest/Getting_Started.html</a>'
         '\n'
         '----------------------\n'

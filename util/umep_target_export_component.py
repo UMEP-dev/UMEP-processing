@@ -34,6 +34,7 @@ def write_config_file(targetDict, refdir):
     f.write("# time step (minutes)\n")
     f.write("timestep={}\n".format(targetDict['timestep'])) 
     f.write("\n")
+    f.write("include roofs={}\n".format(targetDict['include roofs']))
     f.write("mod_ldwn={}\n".format(targetDict['mod_ldwn']))  
     f.write("domainDim={}\n".format(targetDict['domaindim']))     
     f.write("latEdge={}\n".format(targetDict['latedge']))       

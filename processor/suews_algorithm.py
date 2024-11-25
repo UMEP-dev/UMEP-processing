@@ -108,13 +108,13 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFile(self.INPUT_DIR,
                                                      'Input folder',
                                                      QgsProcessingParameterFile.Folder))
-        self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
-                                                     self.tr('Net radiation method'),
-                                                     options=[i[0] for i in self.anthro],
-                                                     defaultValue=2))
         self.addParameter(QgsProcessingParameterEnum(self.NET,
-                                                     self.tr('Anthropogenic heat flux method'),
+                                                     self.tr('Net radiation method'),
                                                      options=[i[0] for i in self.net],
+                                                     defaultValue=2))
+        self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
+                                                     self.tr('Anthropogenic heat flux method'),
+                                                     options=[i[0] for i in self.anthro],
                                                      defaultValue=3))
         self.addParameter(QgsProcessingParameterEnum(self.STORAGE,
                                                      self.tr('Storage heat flux method'),
