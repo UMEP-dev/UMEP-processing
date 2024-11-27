@@ -29,16 +29,17 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                      saveVector = True, saveNetcdf = True,
                      prefix_name = PREFIX_NAME):
 
+    # Get the srid of the input geometry
+    cursor.execute(""" SELECT ST_SRID({0}) AS srid FROM {1} LIMIT 1
+                   """.format( GEOM_FIELD,
+                               gridName))
+    srid = cursor.fetchall()[0][0]
+    
     # -------------------------------------------------------------------
     # SAVE NETCDF -------------------------------------------------------
     # ------------------------------------------------------------------- 
     final_netcdf_path = None
     if saveNetcdf:    
-        # Get the srid of the input geometry
-        cursor.execute(""" SELECT ST_SRID({0}) AS srid FROM {1} LIMIT 1
-                       """.format( GEOM_FIELD,
-                                   gridName))
-        srid = cursor.fetchall()[0][0]
         # Get the coordinate in lat/lon of each point 
         # WARNING : for now keep the data in local coordinates)
         cursor.execute(""" 
@@ -442,7 +443,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             # Interpolate with building constraints
             interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                                stacked_blocks = stacked_blocks,
-                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION, 
+                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
                                extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                                resX = resX, 
                                resY = resY,
