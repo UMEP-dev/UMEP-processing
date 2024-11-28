@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.1.1
+version=2.1.2
 author=Fredrik Lindberg, Nils Wallenberg, Jeremy Bernard
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.1.2 : URock: Explode building and vegetation multipolygons (discussion #675)
     2.1.1 : URock work even though netCDF not saved... (issue #92)
     2.1   : New tool, TARGET
     2.0.36: URock: Fill nan values in output raster when input raster is used (issue #671)
