@@ -1,12 +1,13 @@
 from builtins import str
 # This file prints out run information used for each specific run
 from time import strftime
-from osgeo import osr
-
+from osgeo import osr, gdal
+import sys
+import qgis.core
 
 def writeRunInfo(folderPath, filepath_dsm, gdal_dsm, usevegdem, filePath_cdsm, trunkfile, filePath_tdsm, lat, lon, UTC,
                  landcover, filePath_lc, metfileexist, filePath_metfile, metdata, plugin_dir, absK, absL, albedo_b,
-                 albedo_g, ewall, eground, onlyglobal, trunkratio, trans, rows, cols, pos, elvis, cyl, demforbuild, ani):
+                 albedo_g, ewall, eground, onlyglobal, trunkratio, trans, rows, cols, pos, elvis, cyl, demforbuild, ani, wallScheme, effusivity):
 
     # with open(folderPath + '/RunInfoSOLWEIG.txt', 'w') as file:           	#FO#
     #FO#
@@ -25,6 +26,12 @@ def writeRunInfo(folderPath, filepath_dsm, gdal_dsm, usevegdem, filePath_cdsm, t
         file.write('\n')
         file.write('Version: ' + 'SOLWEIG v2022a')
         file.write('\n')
+        file.write('Pyton version: ' + str(sys.version))
+        file.write('\n')
+        file.write('GDAL version: ' + str(gdal.__version__))
+        file.write('\n')
+        file.write('QGIS version: ' + str(qgis.core.Qgis.QGIS_VERSION))
+        file.write('\n')        
         file.write('\n')
         file.write('SURFACE DATA')
         file.write('\n')
@@ -144,5 +151,16 @@ def writeRunInfo(folderPath, filepath_dsm, gdal_dsm, usevegdem, filePath_cdsm, t
             file.write('Anisotropic sky diffuse shortwave (Perez et al. 1993) and longwave (Martin & Berdahl, 1984) radiation')
         else:
             file.write('Isotropic sky')
+        file.write('\n')
+        if wallScheme:
+            if effusivity.size == 1:
+                file.write('Wall surface parameterization scheme. Wall effusivity set to ' + str(effusivity) + ' J m-2 s-0.5 K-1.')
+            else:
+                for i in range(effusivity.size):
+                    if i == 0:
+                        file.write('There are ' + str(effusivity.size) + ' wall types:')
+                        file.write('\n')
+                    file.write('Wall surface parameterization scheme. Wall effusivity set to ' + str(effusivity[i]) + ' J m-2 s-0.5 K-1.')
+                    file.write('\n')
         file.write('\n')
         file.close()

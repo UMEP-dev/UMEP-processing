@@ -123,7 +123,8 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         
         feedback.setProgressText("Calculating wall height")
         total = 100. / (int(dsm.shape[0] * dsm.shape[1]))
-        walls = wa.findwalls(dsm, walllimit, feedback, total)
+        # walls = wa.findwalls(dsm, walllimit, feedback, total)
+        walls = wa.findwalls_sp(dsm, walllimit, False)
 
         wallssave = np.copy(walls)
         # feedback.setProgressText(outputFileHeight)

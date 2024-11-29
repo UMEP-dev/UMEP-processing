@@ -7,7 +7,7 @@ from . import patch_characteristics
     and the approach by Unsworth & Monteith or Martin & Berdahl (1984) or Bliss (1961) to calculate emissivities of the 
     different parts of the sky vault. '''
 
-def Lcyl_v2022a(esky, sky_patches, Ta, Tgwall, ewall, Lup, shmat, vegshmat, vbshvegshmat, solar_altitude, solar_azimuth, rows, cols, asvf):
+def Lcyl_v2022a(esky, sky_patches, Ta, Tgwall, ewall, Lup, shmat, vegshmat, vbshvegshmat, solar_altitude, solar_azimuth, rows, cols, asvf, current_step):
 
     # Stefan-Boltzmann's Constant
     SBC = 5.67051e-8
@@ -26,7 +26,7 @@ def Lcyl_v2022a(esky, sky_patches, Ta, Tgwall, ewall, Lup, shmat, vegshmat, vbsh
     patch_altitude = sky_patches[:, 0]
     # Azimuths of the Robinson & Stone patches, used for box
     patch_azimuth = sky_patches[:, 1]
-    
+
     emis_m = 2
 
     # Unsworth & Monteith (1975)
@@ -87,7 +87,13 @@ def Lcyl_v2022a(esky, sky_patches, Ta, Tgwall, ewall, Lup, shmat, vegshmat, vbsh
                                  shmat, vegshmat, vbshvegshmat,
                                  Lsky_down, Lsky_side, Lsky_normal, Lup,
                                  Ta, Tgwall, ewall,
-                                 rows, cols)
+                                 rows, cols, current_step)
+
+    # print('Lside_sky old = ' + str(Lside_sky.max()))
+    # print('Lside_veg old = ' + str(Lside_veg.max()))
+    # print('Lside_sh old = ' + str(Lside_sh.max()))
+    # print('Lside_sun old = ' + str(Lside_sun.max()))
+    # print('Lside_ref old = ' + str(Lside_ref.max()))
 
     return Ldown, Lside, Least_, Lwest_, Lnorth_, Lsouth_
     # return Ldown, Lside, Lside_sky, Lside_veg, Lside_sh, Lside_sun, Lside_ref, Lsky_normal, Lsky_down, Lsky_side, Least_, Lwest_, Lnorth_, Lsouth_

@@ -578,7 +578,8 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         '\n'
         'This tools requires Java. If Java is not installed on your system,'+ 
         'visit www.java.com and install the latest version. Make sure to install correct version '+
-        'based on your system architecture (32- or 64-bit).'
+        'based on your system architecture (32- or 64-bit). You can also download an open source java from '+
+        'https://adoptium.net/ (OpenJDK). Remember to set correct PATH and JAVA_HOME. The installation process will guide you (Windows).'
         '\n'
         '\n'
         '---------------\n'

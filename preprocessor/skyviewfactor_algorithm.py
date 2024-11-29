@@ -38,7 +38,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingException,
-                       QgsProcessingParameterRasterLayer)
+                       QgsProcessingParameterRasterLayer,
+                       QgsProcessingParameterDefinition)
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from qgis.PyQt.QtGui import QIcon
@@ -52,7 +53,9 @@ import zipfile
 import sys
 from ..util import misc
 from ..functions import svf_functions as svf
-
+from ..functions import svf_for_voxels as svfv
+import time
+import pandas as pd
 
 class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     """
@@ -67,6 +70,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     ANISO = 'ANISO'
+    KMEANS = 'KMEANS'
+    CLUSTERS = 'CLUSTERS'
+    WALL_SCHEME = 'WALL_SCHEME'
+    INPUT_DEM = 'INPUT_DEM'
+    INPUT_SVFHEIGHT = 'INPUT_SVFHEIGHT'
     OUTPUT_DIR = 'OUTPUT_DIR'
     OUTPUT_FILE = 'OUTPUT_FILE'
     
@@ -91,8 +99,44 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
-            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG)"),
+            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG v2022a) and wall surface temperature scheme (SOLWEIG v2024a)"),
             defaultValue=True))
+        
+        # Wall parameterization
+        wall_scheme = QgsProcessingParameterBoolean(self.WALL_SCHEME,
+            self.tr("Use parameterization scheme for wall surface temperatures (Wallenberg et al. 202x)"),
+            defaultValue=False)
+        wall_scheme.setFlags(wall_scheme.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(wall_scheme)        
+
+        wall_kmeans = QgsProcessingParameterBoolean(self.KMEANS,
+            self.tr("Use K-Means to calculate SVF for walls (SOLWEIG v2024a)"),
+            defaultValue=True)
+        wall_kmeans.setFlags(wall_kmeans.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(wall_kmeans)
+        
+        wall_clusters = QgsProcessingParameterNumber(self.CLUSTERS,
+            self.tr("Number of clusters used in K-Means (number of elevations)"),
+            QgsProcessingParameterNumber.Integer,
+            QVariant(5),
+            True, minValue=1, maxValue=100)
+        wall_clusters.setFlags(wall_clusters.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(wall_clusters)        
+        
+        wall_dem = QgsProcessingParameterRasterLayer(self.INPUT_DEM,
+                self.tr('Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2024a)'), '', True)
+        wall_dem.setFlags(wall_dem.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(wall_dem) 
+
+        wall_svfheight = QgsProcessingParameterNumber(self.INPUT_SVFHEIGHT,
+            self.tr("Elevation steps (m) used in SVF calculations for wall surface temperature parameterization scheme\nInterpolation will performed if steps are larger than horizontal pixel resolution"),
+            QgsProcessingParameterNumber.Double,
+            QVariant(1.0),
+            True, minValue=0.5, maxValue=10)
+        wall_svfheight.setFlags(wall_svfheight.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(wall_svfheight) 
+
+        # Output
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
         'Output folder for individual raster files'))
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
@@ -110,6 +154,14 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
+        
+        # Wall parameterization settings
+        demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
+        svf_height = self.parameterAsDouble(parameters, self.INPUT_SVFHEIGHT, context)
+
+        kmeans = self.parameterAsBool(parameters, self.KMEANS, context) # If K-means will be used or not (true or false)
+        clusters = self.parameterAsInt(parameters, self.CLUSTERS, context) + 1 # + 1 because ground areas will be one cluster when dsm - dem
+        wallScheme = self.parameterAsBool(parameters, self.WALL_SCHEME, context)
 
         feedback.setProgressText('Initiating algorithm')
 
@@ -132,8 +184,27 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         sizey = dsm.shape[1]
 
         geotransform = gdal_dsm.GetGeoTransform()
-        scale = 1 / geotransform[1]
-        
+        pixel_resolution = geotransform[1]
+        scale = 1 / pixel_resolution
+
+        if wallScheme:
+            # Load DEM layer if calculating exact SVFs for wall surface temperature scheme
+            if demlayer:
+                provider = demlayer.dataProvider()
+                filepath_dem = str(provider.dataSourceUri())
+                gdal_dem = gdal.Open(filepath_dem)
+                dem = gdal_dem.ReadAsArray().astype(float)            
+                
+                demsizex = dem.shape[0]
+                demsizey = dem.shape[1]
+
+                if not (demsizex == sizex) & (demsizey == sizey):  
+                    raise QgsProcessingException("Error in DEM: All rasters must be of same extent and resolution")
+            else:
+                raise QgsProcessingException("DEM layer required for wall surface scheme!")
+        else:
+            dem = None            
+
         trans = transVeg / 100.0
 
         if vegdsm:
@@ -185,10 +256,62 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         if aniso == 1:
             feedback.setProgressText('Calculating SVF using 153 iterations')
-            ret = svf.svfForProcessing153(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
+            ret = svf.svfForProcessing153(dsm, vegdsm, vegdsm2, scale, usevegdem, pixel_resolution, wallScheme, dem, feedback)
         else:
             feedback.setProgressText('Calculating SVF using 655 iterations')
             ret = svf.svfForProcessing655(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
+
+        # print('Time to finish first SVF calculation = ' + str(run_time))
+        if wallScheme == 1:
+            voxelTable = ret['voxelTable']
+            voxelTable = voxelTable[voxelTable[:, 2] != 0, :] # Remove where wall height is zero, i.e. there is no wall...
+            wallHeights = ret['walls']
+            svfbu = ret["svf"]
+            if usevegdem == 0:
+                svftotal = svfbu
+                svfveg = ret['svfveg']
+                svfaveg = ret['svfaveg']
+            else:
+                svfveg = ret["svfveg"]
+                svfaveg = ret["svfaveg"]
+                trans = transVeg / 100.0
+                svftotal = (svfbu - (1 - svfveg) * (1 - trans))                   
+            # Lägg till loop för att lägga till i tabellen
+            svf_array = np.zeros((voxelTable.shape[0]))
+            svf_height_array = np.zeros((voxelTable.shape[0]))
+            svfbu_array = np.zeros((voxelTable.shape[0]))
+            svfveg_array = np.zeros((voxelTable.shape[0]))
+            svfaveg_array = np.zeros((voxelTable.shape[0]))
+            voxel_y = np.where(voxelTable[:, 1] == svf_height)
+            for temp_y in voxel_y[0]:
+                svf_array[temp_y] = svftotal[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
+                svfbu_array[temp_y] = svfbu[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
+                svfveg_array[temp_y] = svfveg[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
+                svfaveg_array[temp_y] = svfaveg[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
+                svf_height_array[temp_y] = svf_height            
+
+            if kmeans:
+                voxelTable, cluster_heights = svfv.svf_kmeans(dsm, dem, vegdsm, vegdsm2, wallHeights, transVeg, scale, usevegdem, pixel_resolution, voxelTable, clusters,
+                                                svf_height, svf_array, svfbu_array, svfveg_array, svfaveg_array, svf_height_array, feedback)
+
+                # Interpolate for voxels where SVF has not been calculated
+                voxelTable = svfv.interpolate_svf(voxelTable, cluster_heights, kmeans)
+
+            # Loop for exact SVF at heights (increase DEM)
+            # if demlayer:
+            else:
+                feedback.setProgressText('Calculating SVF for wall surface temperature parameterization')
+                voxelTable = svfv.svf_for_voxels(dsm, dem, vegdsm, vegdsm2, transVeg, scale, usevegdem, pixel_resolution, voxelTable,
+                                                svf_height, svf_array, svfbu_array, svfveg_array, svfaveg_array, svf_height_array, feedback)
+
+                # Remove rows where svfbu, sfveg and svfaveg is zero
+                if usevegdem == 1:
+                    voxelTable = voxelTable[((voxelTable[:,-3] > 0.) & (voxelTable[:,-2] > 0.) & (voxelTable[:,-1] > 0.)), :]
+                else:
+                    voxelTable = voxelTable[((voxelTable[:,-3] > 0.)), :]
+            
+            # Store voxelTable, necessary?
+            ret['voxelTable'] = voxelTable
 
         filename = outputFile
 
@@ -296,6 +419,12 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 np.savez_compressed(outputDir + '/' + "shadowmats.npz", shadowmat=shmat, vegshadowmat=vegshmat, vbshmat=vbshvegshmat) #,
                                     # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
                                     # facesunmat=facesunmat, wallshvemat=wallshvemat)
+            
+            if wallScheme == 1:
+                voxelId = ret['voxelIds']
+                voxelTable = ret['voxelTable']
+
+                np.savez_compressed(outputDir + '/' + 'wallScheme.npz', voxelId=voxelId, voxelTable=voxelTable)
 
         feedback.setProgressText("Sky View Factor: SVF grid(s) successfully generated")
 
