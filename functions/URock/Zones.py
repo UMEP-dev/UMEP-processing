@@ -804,6 +804,20 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                for typeZone in dicTableNames.index]
     cursor.execute(";".join(queryCutRooftop))
     
+    
+    #TEMPORARY FIX
+    cursor.execute(f"""
+       DROP TABLE IF EXISTS {RoofCornerZonesTable};
+       CREATE TABLE {RoofCornerZonesTable}
+       ({ID_FIELD_STACKED_BLOCK} INTEGER,
+        {GEOM_FIELD} GEOMETRY,
+        {UPWIND_FACADE_FIELD} INTEGER,
+        {HEIGHT_FIELD} INTEGER,
+        {ROOFTOP_CORNER_LENGTH} DOUBLE,
+        {ROOFTOP_CORNER_FACADE_LENGTH} DOUBLE,
+        {UPWIND_FACADE_ANGLE_FIELD} DOUBLE,
+        {ROOFTOP_WIND_FACTOR} DOUBLE)""")
+    
     if not DEBUG:
         # Drop intermediate tables
         cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join(dicTableNames["temporary"].values)))
