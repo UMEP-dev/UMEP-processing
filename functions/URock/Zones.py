@@ -912,15 +912,17 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
         CREATE TABLE {7}({8} BIGINT AUTO_INCREMENT      , {1} GEOMETRY   , {3} DOUBLE,
                          {4} DOUBLE                     , {5} DOUBLE     , {6} INTEGER)
             AS SELECT   CAST((row_number() over()) as Integer) AS {8}, {1}, {3}, {4}, {5}, {6}
-            FROM ST_EXPLODE('(SELECT    COALESCE(ST_DIFFERENCE(a.{1}, b.{1}),
-                                                a.{1}) AS {1},
+            FROM ST_EXPLODE('(SELECT    ST_BUFFER(COALESCE(ST_DIFFERENCE(a.{1}, ST_UNION(ST_ACCUM(b.{1}))),
+                                                a.{1}),-0.001) AS {1},
                                         a.{3},
                                         a.{4},
                                         a.{5},
                                         a.{6}
                             FROM {0} AS a LEFT JOIN {2} AS b ON a.{6} = b.{6}
                             WHERE NOT ST_ISEMPTY(COALESCE(ST_DIFFERENCE(a.{1}, b.{1}),
-                                                          a.{1})))')
+                                                          a.{1})) AND NOT ST_ISEMPTY(b.{1})
+                            GROUP BY b.{6}, a.{1})')
+        WHERE NOT ST_ISEMPTY({1})
         """.format( vegetationTable                  , GEOM_FIELD,
                     temporary_built_vegetation       , VEGETATION_CROWN_BASE_HEIGHT,
                     VEGETATION_CROWN_TOP_HEIGHT      , VEGETATION_ATTENUATION_FACTOR,
