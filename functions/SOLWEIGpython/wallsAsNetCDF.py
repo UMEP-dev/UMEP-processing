@@ -2,8 +2,6 @@ import xarray as xr
 import rioxarray
 import numpy as np
 
-import gc
-
 def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, output_path):
     '''This function creates a 4D NetCDF with wall temperatures and corresponding emitted longwave radiation'''
     # rows = number of rows (latitudinal position)
@@ -21,7 +19,7 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
     wallTemperature = np.full((cols, rows, levels), np.nan, dtype=np.float32)
 
     # Add current time step wall temperature and longwave radiation to numpy array, which will be used to update the NetCDF.
-    for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature']):
+    for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
         wallTemperature[x, y, z-1] = wallTemp
 
     # NetCDF compression
@@ -46,7 +44,7 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
             lon=lon,
             lat=lat,
             height=height_levels,
-            time=timeSlots,
+            time=timeSlots
             ),
             attrs={"crs": raster_file.rio.crs.to_string()}
         )
@@ -62,6 +60,8 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
         data_xr.close()
     # If not first time step, load existing NetCDF as an xarray dataset
     else:
-        with xr.load_dataset(output_path, mode='r+') as data_xr:
-            # Update wall temperature and longwave radiation for current timestep (iteration)
+        with xr.open_dataset(output_path, mode='r+') as data_xr:
+            # Update wall temperature for current timestep (iteration)
             data_xr.wall_temperature[:, :, :, iteration] = wallTemperature
+            # Save changes
+            data_xr.to_netcdf(output_path, engine="netcdf4", mode="a")    

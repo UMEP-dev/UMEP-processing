@@ -1107,6 +1107,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         #  If metfile starts at night
         CI = 1.
 
+        # Save solweig_parameters in output folder
+        with open(outputDir + '/solweig_parameters.json', 'w') as f:
+            json.dump(solweig_parameters, f, indent=2)
+
         # Main function
         feedback.setProgressText("Executing main model")
     
@@ -1157,10 +1161,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             #     radI[i] = 0.
 
             # radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
-            
-            # Save solweig_parameters in output folder
-            with open(outputDir + '/solweig_parameters.json', 'w') as f:
-                json.dump(solweig_parameters, f, indent=2)
 
             Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
                     Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
