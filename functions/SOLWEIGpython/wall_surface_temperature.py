@@ -15,32 +15,15 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
     voxelTable = pd.DataFrame(voxelTable, columns = ['voxelId', 'voxelHeight', 'wallHeight', 'wallHeight_exact', 'wallId', 'ypos', 'xpos', 
                                                         'SVF_height', 'SVF', 'SVF_fix', 'svfbu', 'svfveg', 'svfaveg'])
     # Initiate/declare new columns used by SOLWEIG and parameterization scheme for wall surface temperatures
-    voxelTable['SVF_ground'] = 0
-    voxelTable['svfbu_at_ground'] = 0
-    voxelTable['svfaveg_at_ground'] = 0
-    voxelTable['wallAspect'] = 0
-    voxelTable['wallEmissivity'] = 0
-    voxelTable['wallAlbedo'] = 0
-    voxelTable['thermalEffusivity'] = 0
-    voxelTable['thermalDiffusivity'] = 0
-    voxelTable['groundAlbedo'] = 0
-    voxelTable['wallShade'] = 0
-    voxelTable['wallShadeHeight'] = 0
     voxelTable['wallTemperature'] = Ta # Initial wall temperature is set to air temperature
-    voxelTable['LongwaveRadiation'] = 0
-    voxelTable['K_in'] = 0
-    voxelTable['L_in'] = 0
-
-    voxelTable['Lwallsun'] = 0
-    voxelTable['Lwallsh'] = 0
-    voxelTable['Lrefl'] = 0
-    voxelTable['Lveg'] = 0
-    voxelTable['Lground'] = 0
-    voxelTable['Lsky'] = 0
-    voxelTable['esky'] = 0
-    
-    # if eqTime:
     voxelTable['timeStep'] = timeStep
+    
+    # Add columns filled later
+    columns_to_add = ['SVF_ground', 'svfbu_at_ground', 'svfaveg_at_ground', 'wallAspect', 'wallEmissivity', 'wallThickness', 
+                      'wallAlbedo', 'thermalEffusivity', 'thermalDiffusivity', 'groundAlbedo', 'wallShade', 'wallShadeHeight', 
+                      'LongwaveRadiation', 'K_in', 'L_in', 'Lwallsun', 'Lwallsh', 'Lrefl', 'Lveg', 'Lground', 'Lsky', 'esky']
+    for col in columns_to_add:
+        voxelTable[col] = 0
 
     # tmp = svf + svfveg - 1.
     # tmp[tmp < 0.] = 0.
