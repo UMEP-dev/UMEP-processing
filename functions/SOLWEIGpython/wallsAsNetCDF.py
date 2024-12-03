@@ -21,7 +21,7 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
     wallTemperature = np.full((cols, rows, levels), np.nan, dtype=np.float32)
 
     # Add current time step wall temperature and longwave radiation to numpy array, which will be used to update the NetCDF.
-    for y, x, z, wallTemp, wallRad in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature'], voxelTable['LongwaveRadiation']):
+    for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature']):
         wallTemperature[x, y, z-1] = wallTemp
 
     # NetCDF compression
