@@ -1147,14 +1147,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 else:
                     CI = 1.
 
-            if altitude[0][i] > 0:
+            # if altitude[0][i] > 0:
             #     # radI[i] = (radG[i] - radD[i])/np.sin(altitude[0][i] * np.pi/180)
             #     # onlyglobal = False
-                radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
-            else:
-                radG[i] = 0.
-                radD[i] = 0.
-                radI[i] = 0.
+            #     radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
+            # else:
+            #     radG[i] = 0.
+            #     radD[i] = 0.
+            #     radI[i] = 0.
 
             # radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
             

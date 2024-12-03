@@ -111,6 +111,14 @@
         },
         "Comment": "Density of the material in units kg m-3, used for wall surface temperatures according to Wallenberg et al. 2025."
     },    
+    "Wall_thickness": {
+        "Value": {
+            "Brick_wall": 0.1,
+            "Concrete_wall": 0.2,
+            "Wood_wall": 0.04
+        },
+        "Comment": "Wall thickness in units meters, used to calculate characteristic time for wall surface temperatures (Wallenberg et al., 2025)."
+    },
     "TmaxLST": {
         "Value": {
             "Cobble_stone_2014a": 15.0,

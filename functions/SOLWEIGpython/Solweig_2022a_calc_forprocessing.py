@@ -26,7 +26,6 @@ import time
 
 # Wall surface temperature scheme
 from .wall_surface_temperature import wall_surface_temperature
-from .ground_surface_temperature import ground_surface_temperature
 
 def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
                        svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, vegdem, vegdem2, albedo_b, absK, absL,

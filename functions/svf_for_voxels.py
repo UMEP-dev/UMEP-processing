@@ -8,7 +8,7 @@ from ..functions import wallalgorithms as wa
 
 def wallscheme_prepare(dsm, scale, pixel_resolution, feedback):
     total = 100. / (int(dsm.shape[0] * dsm.shape[1]))
-    walls = wa.findwalls(dsm, 2, 1, feedback, total)
+    walls = wa.findwalls_sp(dsm, 2, 1, feedback, total)
     walls_copy = np.copy(walls)
     aspect = wa.filter1Goodwin_as_aspect_v3(walls_copy, scale, dsm, feedback, 100)
 
