@@ -14,6 +14,7 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
     # Load data as Pandas DataFrame and add column names
     voxelTable = pd.DataFrame(voxelTable, columns = ['voxelId', 'voxelHeight', 'wallHeight', 'wallHeight_exact', 'wallId', 'ypos', 'xpos', 
                                                         'SVF_height', 'SVF', 'SVF_fix', 'svfbu', 'svfveg', 'svfaveg'])
+    
     # Initiate/declare new columns used by SOLWEIG and parameterization scheme for wall surface temperatures
     voxelTable['wallTemperature'] = Ta # Initial wall temperature is set to air temperature
     voxelTable['timeStep'] = timeStep
@@ -24,7 +25,7 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
                       'LongwaveRadiation', 'K_in', 'L_in', 'Lwallsun', 'Lwallsh', 'Lrefl', 'Lveg', 'Lground', 'Lsky', 'esky']
     for col in columns_to_add:
         voxelTable[col] = 0
-
+    
     # tmp = svf + svfveg - 1.
     # tmp[tmp < 0.] = 0.
     # %matlab crazyness around 0
@@ -94,6 +95,8 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
             voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]      
             # Set wall emissivity
             voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]                  
+            # Set thickness
+            voxelTable['wallThickness'] = solweig_parameters['Wall_thickness']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]
         else:
             landcover = 0
     
@@ -116,6 +119,12 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
         voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][wall_type]]
         # Get wall emissivity
         voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+        # Get wall thickness
+        voxelTable['wallThickness'] = solweig_parameters['Wall_thickness']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+
+    eqTime = True
+    if eqTime:
+        voxelTable['timeStep'] = voxelTable['wallThickness'].to_numpy()**2/(np.pi**2 * voxelTable['thermalDiffusivity'].to_numpy())
 
     return voxelTable
 
