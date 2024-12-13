@@ -115,7 +115,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
                                                      self.tr('Anthropogenic heat flux method'),
                                                      options=[i[0] for i in self.anthro],
-                                                     defaultValue=3))
+                                                     defaultValue=2))
         self.addParameter(QgsProcessingParameterEnum(self.STORAGE,
                                                      self.tr('Storage heat flux method'),
                                                      options=[i[0] for i in self.storage],
@@ -290,7 +290,6 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                         '\n'
                         'Järvi L, Grimmond CSB, Taka M, Nordbo A, Setälä H &Strachan IB (2014) Development of the Surface Urban Energy and Water balance Scheme (SUEWS) for cold climate cities, Geosci. Model Dev. 7, 1691-1711, doi:10.5194/gmd-7-1691-2014.<br>'
                         '\n'
-                        'Ward HC, L Järvi, S Onomura, F Lindberg, CSB Grimmond (2016a) SUEWS Manual: Version 2016a<br>'
                        '---------------\n'
                        'Full manual available via the <b>Help</b>-button.')
 
