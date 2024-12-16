@@ -726,7 +726,11 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                                                                              {6}*SIN({5}-PI()/2),
                                                                              {6}*COS({5}-PI()/2)),
                                                                 ST_STARTPOINT({3})))
-                                END AS {3}
+                                END AS {3},
+                        CASE    WHEN {5} < PI()/2
+                                THEN ST_ENDPOINT({3})
+                                ELSE ST_STARTPOINT({3})
+                                END AS GEOM_CORNER_POINT
             FROM {7}
             WHERE   {5} > RADIANS(90-{9}) AND {5} < RADIANS(90-{10})
                     OR {5} > RADIANS(90+{10}) AND {5} < RADIANS(90+{9});
@@ -766,7 +770,8 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
     # Queries to limit the rooftop zones to the rooftop of the stacked block...
     extraFieldToKeep = {"perp": "b.{0}, b.{1},".format(ROOFTOP_PERP_LENGTH,
                                                        ROOFTOP_PERP_HEIGHT), 
-                        "corner": "a.{0}, a.{1}, a.{2}, b.{3},".format(ROOFTOP_CORNER_LENGTH,
+                        "corner": """a.{0}, a.{1}, a.{2}, b.{3}, 
+                                    a.GEOM_CORNER_POINT,""".format(ROOFTOP_CORNER_LENGTH,
                                                                  ROOFTOP_CORNER_FACADE_LENGTH,
                                                                  UPWIND_FACADE_ANGLE_FIELD,
                                                                  ROOFTOP_WIND_FACTOR)}

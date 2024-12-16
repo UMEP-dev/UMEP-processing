@@ -166,7 +166,7 @@ def main(javaEnvironmentPath,
                                 inputBuildings = BUILDING_TABLE_NAME,
                                 prefix = prefix)
     
-    # Save the blocks, stacked blocks and vegetation as geojson
+    # Save the blocks, stacked blocks and vegetation as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor                          , tableName = blockTable,
                            filedir = outputDataAbs["blocks"]        , delete = True)
@@ -253,7 +253,7 @@ def main(javaEnvironmentPath,
             return {}
 
 
-    # Save the rotated obstacles and facades as geojson
+    # Save the rotated obstacles and facades as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor                                  , tableName = rotatedPropStackedBlocks,
                            filedir = outputDataAbs["rotated_stacked_blocks"], delete = True)
@@ -309,7 +309,7 @@ def main(javaEnvironmentPath,
     #                                   prefix = prefix)[0]
     
     
-    # Save the resulting displacement zones as geojson
+    # Save the resulting displacement zones as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor                      , tableName = displacementZonesTable,
                   filedir = outputDataAbs["displacement"]       , delete = True,
@@ -328,7 +328,7 @@ def main(javaEnvironmentPath,
                                 ellipseResolution = meshSize/3,
                                 prefix = prefix).values()
     
-    # Save the resulting displacement zones as geojson
+    # Save the resulting displacement zones as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor             , tableName = cavityZonesTable,
                   filedir = outputDataAbs["cavity"]    , delete = True,
@@ -350,7 +350,7 @@ def main(javaEnvironmentPath,
                                 srid = srid,
                                 prefix = prefix)
     
-    # Save the resulting street canyon zones as geojson
+    # Save the resulting street canyon zones as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor                    , tableName = streetCanyonTable,
                   filedir = outputDataAbs["street_canyon"]    , delete = True,
@@ -363,7 +363,7 @@ def main(javaEnvironmentPath,
                            upwindTable = upwindTable,
                            zonePropertiesTable = zonePropertiesTable,
                            prefix = prefix)
-    # Save the resulting rooftop zones as geojson
+    # Save the resulting rooftop zones as fgb
     if debug or saveRockleZones:
         saveData.saveTable(cursor = cursor                              , tableName = rooftopPerpendicularZoneTable,
                   filedir = outputDataAbs["rooftop_perpendicular"]      , delete = True,

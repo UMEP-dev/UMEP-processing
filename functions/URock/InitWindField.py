@@ -211,7 +211,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 ID_UPSTREAM_STACKED_BLOCK)
         elif t==ROOFTOP_CORN_NAME:
             columnsToKeepQuery = """b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7}, 
-                                   ST_STARTPOINT(ST_TOMULTILINE(a.{3})) AS GEOM_CORNER_POINT,
+                                   a.GEOM_CORNER_POINT,
                                    b.{8}
                                    """.format( ID_POINT, 
                                                idZone[t],
@@ -709,36 +709,23 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                   for t in listTabYvalues]))
 
     # Special treatment for rooftop corners which have not been calculated previously
-    cursor.execute("""DROP TABLE IF EXISTS {8};
-                   CREATE TABLE {8}
-                       AS SELECT {0},
-                                ST_DISTANCE({7}, GEOM_CORNER_POINT)/
-                                    COS(CASE WHEN   {6}<PI()/2
-                                        THEN        {6}-ST_AZIMUTH({7}, GEOM_CORNER_POINT)
-                                        ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {7})-{6}
+    cursor.execute(f"""DROP TABLE IF EXISTS {dicOfOutputTables[ROOFTOP_CORN_NAME]};
+                   CREATE TABLE {dicOfOutputTables[ROOFTOP_CORN_NAME]}
+                       AS SELECT {ID_POINT},
+                                ST_DISTANCE({GEOM_FIELD}, GEOM_CORNER_POINT)/
+                                    COS(CASE WHEN   {UPWIND_FACADE_ANGLE_FIELD}<PI()/2
+                                        THEN        {UPWIND_FACADE_ANGLE_FIELD}-ST_AZIMUTH({GEOM_FIELD}, GEOM_CORNER_POINT)
+                                        ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {GEOM_FIELD})-{UPWIND_FACADE_ANGLE_FIELD}
                                         END
                                         )/
-                                    {4}*{3} AS {5},
-                                {1},
-                                {2},
-                                {10},
-                                {11},
-                                CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {12},
-                                {13}
-                        FROM {9}""".format(ID_POINT,
-                                            idZone[ROOFTOP_PERP_NAME],
-                                            HEIGHT_FIELD,
-                                            ROOFTOP_CORNER_LENGTH,
-                                            ROOFTOP_CORNER_FACADE_LENGTH,
-                                            ROOFTOP_CORNER_VAR_HEIGHT,
-                                            UPWIND_FACADE_ANGLE_FIELD,
-                                            GEOM_FIELD,
-                                            dicOfOutputTables[ROOFTOP_CORN_NAME],
-                                            dicOfTempoOutput[ROOFTOP_CORN_NAME],
-                                            UPWIND_FACADE_ANGLE_FIELD,
-                                            ROOFTOP_WIND_FACTOR,
-                                            Y_WALL,
-                                            ID_POINT_X))
+                                    {ROOFTOP_CORNER_FACADE_LENGTH}*{ROOFTOP_CORNER_LENGTH} AS {ROOFTOP_CORNER_VAR_HEIGHT},
+                                {idZone[ROOFTOP_PERP_NAME]},
+                                {HEIGHT_FIELD},
+                                {UPWIND_FACADE_ANGLE_FIELD},
+                                {ROOFTOP_WIND_FACTOR},
+                                CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {Y_WALL},
+                                {ID_POINT_X}
+                        FROM {dicOfTempoOutput[ROOFTOP_CORN_NAME]}""")
                             
                             
     if not DEBUG:
