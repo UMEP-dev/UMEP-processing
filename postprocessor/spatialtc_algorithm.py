@@ -232,7 +232,8 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # Get SOLWEIG output folder path from Tmrt raster path
         provider = tmrt.dataProvider()
         filepath_tmrt = str(provider.dataSourceUri()) # Path for Tmrt raster
-        solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
+        solweig_path = os.path.dirname(os.path.abspath(filepath_tmrt)) #issue #702
+        #solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
         _, solweigfile = os.path.split(filepath_tmrt)
         # solweig_path = os.path.dirname(filepath_tmrt) # issue 31 
 
