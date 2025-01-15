@@ -259,13 +259,13 @@ def loadData(fromCad                        , prefix,
        CREATE TABLE {0}
            AS SELECT ST_COLLECTIONEXTRACT(ST_SETSRID({1}, {2}), 3) AS {1},
                      {3}, CAST(ROUND({4}, 0) AS INT) AS {4}
-           FROM     (SELECT  {1}, EXPLOD_ID AS {3}, CAST({4} AS DOUBLE) AS {4}
+           FROM     (SELECT  {1}, ROW_NUMBER() OVER (order by {3}) AS {3}, CAST({4} AS DOUBLE) AS {4}
                      FROM ST_EXPLODE('{5}'))
            WHERE {4} > 0.5;
        DROP TABLE IF EXISTS {6};
        CREATE TABLE {6}
            AS SELECT ST_COLLECTIONEXTRACT(ST_SETSRID({1}, {12}), 3) AS {1},
-                     EXPLOD_ID AS {7}, {8}, {9}, {10}
+                     ROW_NUMBER() OVER (ORDER by {7}) AS {7}, {8}, {9}, {10}
            FROM ST_EXPLODE('{11}')
            WHERE {9} > 0.5;
        """.format(BUILDING_TABLE_NAME           , GEOM_FIELD,

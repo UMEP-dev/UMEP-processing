@@ -359,7 +359,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             srid_build = inputBuildinglayer.crs().postgisSrid()
             if not heightBuild:
                 raise QgsProcessingException("A building height attribute should be defined")
-            # Save the file as geojson in case of .gpkg format
+            # Save the file as fgb in case of .gpkg format
             if build_file.split(".")[-1].lower() == "gpkg":
                 new_build_file = os.path.join(TEMPO_DIRECTORY, BUILDING_FILENAME + OUTPUT_VECTOR_EXTENSION)
                 processing.run("native:savefeatures", 
@@ -383,6 +383,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 feedback.pushWarning('Coordinate system of input building layer and vegetation layer differ!')
             if not topHeightVeg:
                 raise QgsProcessingException("A vegetation crown top height attribute should be defined")
+            # Save the file as fgb in case of .fgb format
             if veg_file.split(".")[-1].lower() == "gpkg":
                 new_veg_file = os.path.join(TEMPO_DIRECTORY, VEGETATION_FILENAME + OUTPUT_VECTOR_EXTENSION)
                 processing.run("native:savefeatures", 
