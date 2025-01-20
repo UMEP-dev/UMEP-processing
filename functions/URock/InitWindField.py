@@ -2075,7 +2075,7 @@ def manageSuperimposition(cursor,
           {0}{1}{2}{3}
           DROP TABLE IF EXISTS {4};
           CREATE TABLE {4}
-              AS SELECT   a.{5}, a.{6}, ABS(b.{7}) AS {8}, b.{13}
+              AS SELECT   a.{5}, a.{6}, ABS(b.{7}) AS {8}, b.{13}, a.{11}, a.{12}
               FROM     {9} AS a LEFT JOIN {10} AS b
                        ON a.{11} = b.{11} AND a.{12} = b.{12}
           """.format( DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
