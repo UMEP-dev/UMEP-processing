@@ -508,10 +508,42 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
    	_ _ _ _ _ _ _ _ _ _ 	
            output_file_path: String
                Path and name of the file containing the resulting raster"""
+    # gdf = gpd.read_file(outputVectorFile)
+    
+    # coordinates = np.array([point.coords[0] for point in gdf.geometry])  # [x, y]
+    # values = gdf['WS'].values  # The field 'V' to interpolate
+    
+    # # Define the raster grid (3m resolution)
+    # resolution = 3. / 2
+    # xmin, ymin, xmax, ymax = gdf.total_bounds
+    # xmin -= resolution / 2
+    # ymin -= resolution / 2
+    # xmax += resolution / 2
+    # ymax += resolution / 2
+    
+    # # Create a grid of coordinates for interpolation
+    # x_grid = np.arange(xmin, xmax, resolution)
+    # y_grid = np.arange(ymin, ymax, resolution)
+    # x_grid, y_grid = np.meshgrid(x_grid, y_grid)
+    
+    # # Perform bilinear interpolation on the grid
+    # grid_values = griddata(coordinates, values, (x_grid, y_grid), method='linear')
+    # grid_values = grid_values[::-1, :]
+    
+    # # Define raster metadata
+    # transform = from_origin(xmin, ymax, resolution, resolution)  # origin is top-left
+    
+    # # Save the interpolated grid to a raster file
+    # output_raster_path = '/tmp/output_raster.tif'
+    # with rasterio.open(output_raster_path, 'w', driver='GTiff', 
+    #                    height=grid_values.shape[0], width=grid_values.shape[1],
+    #                    count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
+    #     dst.write(grid_values, 1)
+   
     # Interpolate the results without constraints
-    interp_out = processing.run("qgis:tininterpolation",
+    interp_out = processing.run("qgis:idwinterpolation",
                                {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::4::~::0',
-                                'METHOD':0,
+                                'DISTANCE_COEFFICIENT':20,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
