@@ -927,7 +927,16 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                             WHERE NOT ST_ISEMPTY(COALESCE(ST_DIFFERENCE(a.{1}, b.{1}),
                                                           a.{1})) AND NOT ST_ISEMPTY(b.{1})
                             GROUP BY b.{6}, a.{1})')
-        WHERE NOT ST_ISEMPTY({1})
+            WHERE NOT ST_ISEMPTY({1})
+            UNION ALL 
+            SELECT  CAST((row_number() over()) as Integer) AS {8}, 
+                    a.{1},
+                    a.{3},
+                    a.{4},
+                    a.{5},
+                    a.{6}
+            FROM {0} AS a LEFT JOIN {2} AS b ON a.{6} = b.{6}
+            WHERE b.{6} IS NULL
         """.format( vegetationTable                  , GEOM_FIELD,
                     temporary_built_vegetation       , VEGETATION_CROWN_BASE_HEIGHT,
                     VEGETATION_CROWN_TOP_HEIGHT      , VEGETATION_ATTENUATION_FACTOR,
