@@ -77,26 +77,26 @@ def main(javaEnvironmentPath,
     outputDataRel = {}
 
     # Blocks and stacked blocks
-    outputDataRel["blocks"] = os.path.join(tempoDirectory, "blocks.geojson")
-    outputDataRel["stacked_blocks"] = os.path.join(tempoDirectory, "stackedBlocks.geojson")
-    outputDataRel["vegetation"] = os.path.join(tempoDirectory, "vegetation.geojson")
+    outputDataRel["blocks"] = os.path.join(tempoDirectory, f"blocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["stacked_blocks"] = os.path.join(tempoDirectory, f"stackedBlocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation"] = os.path.join(tempoDirectory, f"vegetation.{OUTPUT_VECTOR_EXTENSION}")
 
     # Rotated geometries
-    outputDataRel["rotated_stacked_blocks"] = os.path.join(tempoDirectory, "rotated_stacked_blocks.geojson")
-    outputDataRel["rotated_vegetation"] = os.path.join(tempoDirectory, "vegetationRotated.geojson")
-    outputDataRel["upwind_facades"] = os.path.join(tempoDirectory, "upwind_facades.geojson")
-    outputDataRel["downwind_facades"] = os.path.join(tempoDirectory, "downwind_facades.geojson")
+    outputDataRel["rotated_stacked_blocks"] = os.path.join(tempoDirectory, f"rotated_stacked_blocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rotated_vegetation"] = os.path.join(tempoDirectory, f"vegetationRotated.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["upwind_facades"] = os.path.join(tempoDirectory, f"upwind_facades.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["downwind_facades"] = os.path.join(tempoDirectory, f"downwind_facades.{OUTPUT_VECTOR_EXTENSION}")
     
     # Created zones
-    outputDataRel["displacement"] = os.path.join(tempoDirectory, "displacementZones.geojson")
-    outputDataRel["displacement_vortex"] = os.path.join(tempoDirectory, "displacementVortexZones.geojson")
-    outputDataRel["cavity"] = os.path.join(tempoDirectory, "cavity.geojson")
-    outputDataRel["wake"] = os.path.join(tempoDirectory, "wake.geojson")
-    outputDataRel["street_canyon"] = os.path.join(tempoDirectory, "streetCanyon.geojson")
-    outputDataRel["rooftop_perpendicular"] = os.path.join(tempoDirectory, "rooftopPerp.geojson")
-    outputDataRel["rooftop_corner"] = os.path.join(tempoDirectory, "rooftopCorner.geojson")
-    outputDataRel["vegetation_built"] = os.path.join(tempoDirectory, "vegetationBuilt.geojson")
-    outputDataRel["vegetation_open"] = os.path.join(tempoDirectory, "vegetationOpen.geojson")
+    outputDataRel["displacement"] = os.path.join(tempoDirectory, f"displacementZones.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["displacement_vortex"] = os.path.join(tempoDirectory, f"displacementVortexZones.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["cavity"] = os.path.join(tempoDirectory, f"cavity.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["wake"] = os.path.join(tempoDirectory, f"wake.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["street_canyon"] = os.path.join(tempoDirectory, f"streetCanyon.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rooftop_perpendicular"] = os.path.join(tempoDirectory, f"rooftopPerp.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rooftop_corner"] = os.path.join(tempoDirectory, f"rooftopCorner.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation_built"] = os.path.join(tempoDirectory, f"vegetationBuilt.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation_open"] = os.path.join(tempoDirectory, f"vegetationOpen.{OUTPUT_VECTOR_EXTENSION}")
     
     # Grid points
     outputDataRel["point3D_BuildZone"] = os.path.join(tempoDirectory, "point3D_BuildZone")
@@ -524,7 +524,7 @@ def main(javaEnvironmentPath,
                                                 isSpatial=False)))
             saveData.saveTable(cursor = cursor,
                                tableName = "point3D_Buildzone_"+t,
-                               filedir = outputDataAbs["point3D_BuildZone"]+t+".geojson",
+                               filedir = outputDataAbs["point3D_BuildZone"]+t+f".{OUTPUT_VECTOR_EXTENSION}",
                                delete = True,
                                rotationCenterCoordinates = rotationCenterCoordinates,
                                rotateAngle = - windDirection)
@@ -564,7 +564,7 @@ def main(javaEnvironmentPath,
                                             isSpatial=False)))
         saveData.saveTable(cursor = cursor,
                            tableName = "point3D_AllVegZone",
-                           filedir = outputDataAbs["point3D_VegZone"]+".geojson",
+                           filedir = outputDataAbs["point3D_VegZone"]+"." + OUTPUT_VECTOR_EXTENSION,
                            delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)
@@ -607,7 +607,7 @@ def main(javaEnvironmentPath,
                                              isSpatial=False)))
         saveData.saveTable(cursor = cursor,
                            tableName = "point3D_All",
-                           filedir = outputDataAbs["point3D_All"]+".geojson",
+                           filedir = outputDataAbs["point3D_All"]+"." + {OUTPUT_VECTOR_EXTENSION},
                            delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)    
