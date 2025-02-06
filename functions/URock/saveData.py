@@ -579,9 +579,9 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     colnb = gpd.read_file(outputVectorFile, rows = slice(0,)).columns.get_loc(colname)
     
     # Interpolate the results without constraints
-    interp_out = processing.run("qgis:tininterpolation",
+    interp_out = processing.run("qgis:idwinterpolation",
                                {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::{colnb}::~::0',
-                                'DISTANCE_COEFFICIENT':0,
+                                'DISTANCE_COEFFICIENT':20,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
