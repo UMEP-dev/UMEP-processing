@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.1.11 : URock: Temporary fix of the TIN interpolation (fix #704)
     2.1.10 : URock: Fix problem with only vegetation - no buildings (fix #707)
     2.1.9 : URock: Fix problem with missing data in raster (fix #704 - TIN interpolation issue)
     2.1.8 : URock: Fix problem with missing data in raster (fix #704)

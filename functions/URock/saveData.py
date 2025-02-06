@@ -567,21 +567,21 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     #                    count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
     #     dst.write(grid_values, 1)
     # Change the order of the points to make the TIN interpolation faster and working for all conditions
-    order_changed = processing.run("native:orderbyexpression", 
-                                   {'INPUT':outputVectorFile,
-                                    'EXPRESSION':'randf(0,1)',
-                                    'ASCENDING':False,
-                                    'NULLS_FIRST':False,
-                                    'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                          "order_changed.{OUTPUT_VECTOR_EXTENSION}")})["OUTPUT"]
+    # order_changed = processing.run("native:orderbyexpression", 
+    #                                {'INPUT':outputVectorFile,
+    #                                 'EXPRESSION':'randf(0,1)',
+    #                                 'ASCENDING':False,
+    #                                 'NULLS_FIRST':False,
+    #                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+    #                                                       "order_changed.{OUTPUT_VECTOR_EXTENSION}")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
     colnb = gpd.read_file(outputVectorFile, rows = slice(0,)).columns.get_loc(colname) + 1
     
     # Interpolate the results without constraints
-    interp_out = processing.run("qgis:tininterpolation",
-                               {'INTERPOLATION_DATA':f'{order_changed}::~::0::~::{colnb}::~::0',
-                                'METHOD':0,
+    interp_out = processing.run("qgis:idwinterpolation",
+                               {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::{colnb}::~::0',
+                                'DISTANCE_COEFFICIENT':20,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
