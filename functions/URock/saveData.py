@@ -576,16 +576,16 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     #                                                       "order_changed.{OUTPUT_VECTOR_EXTENSION}")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
-    colnb = gpd.read_file(outputVectorFile, rows = slice(0,)).columns.get_loc(colname) + 1
+    colnb = gpd.read_file(outputVectorFile, rows = slice(0,)).columns.get_loc(colname)
     
     # Interpolate the results without constraints
-    interp_out = processing.run("qgis:idwinterpolation",
+    interp_out = processing.run("qgis:tininterpolation",
                                {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::{colnb}::~::0',
-                                'DISTANCE_COEFFICIENT':20,
+                                'DISTANCE_COEFFICIENT':0,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                      "interp_out1.tif")})["OUTPUT"]
+                                                      "interp_out.tif")})["OUTPUT"]
     
     # If there are buildings in the study area, need to set wind speed = 0
     if os.stat(stacked_blocks).st_size > 0:
