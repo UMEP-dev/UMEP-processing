@@ -573,7 +573,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'ASCENDING':False,
                                     'NULLS_FIRST':False,
                                     'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                          "order_changed.{OUTPUT_VECTOR_EXTENSION}")})["OUTPUT"]
+                                                          "order_changed")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
     colnb = gpd.read_file(order_changed, rows = slice(0,)).columns.get_loc(colname) + 1
