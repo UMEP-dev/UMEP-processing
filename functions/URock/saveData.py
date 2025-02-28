@@ -570,6 +570,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     #                     height=grid_values.shape[0], width=grid_values.shape[1],
     #                     count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
     #     dst.write(grid_values, 1)
+    
     # Change the order of the points to make the TIN interpolation faster and working for all conditions
     # order_changed = processing.run("native:orderbyexpression", 
     #                                {'INPUT':outputVectorFile,
