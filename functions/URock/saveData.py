@@ -9,6 +9,10 @@ import pandas as pd
 import geopandas as gpd
 import shutil
 import numpy as np
+# from scipy.interpolate import griddata
+# from rasterio.transform import from_origin
+# import rasterio
+
 from .DataUtil import radToDeg, windDirectionFromXY, createIndex, prefix
 from .Obstacles import windRotation
 from osgeo.osr import SpatialReference
@@ -538,14 +542,14 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     # gdf = gpd.read_file(outputVectorFile)
     
     # coordinates = np.array([point.coords[0] for point in gdf.geometry])  # [x, y]
-    # values = gdf['WS'].values  # The field 'V' to interpolate
+    # values = gdf[colname].values  # The field 'V' to interpolate
     
     # # Define the raster grid (3m resolution)
-    # resolution = 3. / 2
+    # resolution = min([resX, resY])
     # xmin, ymin, xmax, ymax = gdf.total_bounds
     # xmin -= resolution / 2
     # ymin -= resolution / 2
-    # xmax += resolution / 2
+    # xmax -= resolution / 2
     # ymax += resolution / 2
     
     # # Create a grid of coordinates for interpolation
@@ -561,10 +565,10 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     # transform = from_origin(xmin, ymax, resolution, resolution)  # origin is top-left
     
     # # Save the interpolated grid to a raster file
-    # output_raster_path = '/tmp/output_raster.tif'
-    # with rasterio.open(output_raster_path, 'w', driver='GTiff', 
-    #                    height=grid_values.shape[0], width=grid_values.shape[1],
-    #                    count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
+    # interp_out = os.path.join(TEMPO_DIRECTORY,"interp_out.tif")
+    # with rasterio.open(interp_out, 'w', driver='GTiff', 
+    #                     height=grid_values.shape[0], width=grid_values.shape[1],
+    #                     count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
     #     dst.write(grid_values, 1)
     # Change the order of the points to make the TIN interpolation faster and working for all conditions
     # order_changed = processing.run("native:orderbyexpression", 
@@ -580,7 +584,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     
     # Interpolate the results without constraints
     interp_out = processing.run("qgis:idwinterpolation",
-                               {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::{colnb}::~::0',
+                                {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::{colnb}::~::0',
                                 'DISTANCE_COEFFICIENT':20,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
@@ -619,7 +623,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                            'INPUT_D':None,'BAND_D':None,
                                            'INPUT_E':None,'BAND_E':None,
                                            'INPUT_F':None,'BAND_F':None,
-                                           'FORMULA':f'((A == -9999) + (A > {z_i})) * ((B == -9999) + (B < {z_i})) * C',
+                                           'FORMULA':f'((A = -9999) + (A > {z_i})) * ((B = -9999) + (B < {z_i})) * C',
                                            'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
                                            'RTYPE':5,'OPTIONS':'','EXTRA':'',
                                            'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
