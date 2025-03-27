@@ -586,7 +586,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
     # Interpolate the results without constraints
     interp_out = processing.run("qgis:tininterpolation",
                                {'INTERPOLATION_DATA':f'{order_changed}::~::0::~::{colnb}::~::0',
-                                'METHODz':0,
+                                'METHOD':0,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
@@ -624,7 +624,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                            'INPUT_D':None,'BAND_D':None,
                                            'INPUT_E':None,'BAND_E':None,
                                            'INPUT_F':None,'BAND_F':None,
-                                           'FORMULA':f'((A = -9999) + (A > {z_i})) * ((B = -9999) + (B < {z_i})) * C',
+                                           'FORMULA':f'((A == -9999) + (A > {z_i})) * ((B == -9999) + (B < {z_i})) * C',
                                            'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
                                            'RTYPE':5,'OPTIONS':'','EXTRA':'',
                                            'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
