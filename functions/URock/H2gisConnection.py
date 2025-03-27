@@ -350,10 +350,16 @@ def getJavaHome(os_type):
 
         except FileNotFoundError:
             try:
-                java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\Java Development Kit")
+                java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\JRE")
             except FileNotFoundError:
-                print("Java not found")
-                exit()
+                try:
+                    java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\Java Development Kit")
+                except FileNotFoundError:
+                    try:
+                        java_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\JDK")
+                    except:
+                        print("Java not found")
+                        exit()
 
         current_version, _ = winreg.QueryValueEx(java_key, "CurrentVersion")
         java_version_key = winreg.OpenKey(java_key, current_version)
