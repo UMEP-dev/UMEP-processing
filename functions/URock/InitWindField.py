@@ -2654,22 +2654,20 @@ def identifyUpstreamer( cursor,
                         order                               , considerPrioritiesQuery))
                              
     # Recover the useful informations from the unique points kept
-    cursor.execute("""
-          {4};
-          {5};
-          DROP TABLE IF EXISTS {3};
-          CREATE TABLE {3}
+    cursor.execute(f"""
+          {DataUtil.createIndex(tableName=tempoAllPointsTable, 
+                                fieldName=[ID_3D_POINT, ID_POINT],
+                                isSpatial=False)};
+          {DataUtil.createIndex(tableName=tempoUniquePointsTable, 
+                                fieldName=[ID_3D_POINT, ID_POINT],
+                                isSpatial=False)};
+          DROP TABLE IF EXISTS {uniqueValuePerPointTable};
+          CREATE TABLE {uniqueValuePerPointTable}
               AS SELECT a.*
-              FROM     {0} AS a RIGHT JOIN {2} AS b
-                       ON a.{1} = b.{1}
-          """.format( tempoAllPointsTable              , ID_3D_POINT,
-                      tempoUniquePointsTable           , uniqueValuePerPointTable,
-                        DataUtil.createIndex(tableName=tempoAllPointsTable, 
-                                              fieldName=ID_3D_POINT,
-                                              isSpatial=False),
-                        DataUtil.createIndex(tableName=tempoUniquePointsTable, 
-                                              fieldName=ID_3D_POINT,
-                                              isSpatial=False)))
+              FROM     {tempoAllPointsTable} AS a RIGHT JOIN {tempoUniquePointsTable} AS b
+                       ON a.{ID_3D_POINT} = b.{ID_3D_POINT} AND 
+                       a.{ID_POINT} = b.{ID_POINT}
+          """)
 
     if not DEBUG:
         # Remove intermediate tables

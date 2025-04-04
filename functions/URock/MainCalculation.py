@@ -524,7 +524,7 @@ def main(javaEnvironmentPath,
                                                 isSpatial=False)))
             saveData.saveTable(cursor = cursor,
                                tableName = "point3D_Buildzone_"+t,
-                               filedir = outputDataAbs["point3D_BuildZone"]+t+f".{OUTPUT_VECTOR_EXTENSION}",
+                               filedir = outputDataAbs["point3D_BuildZone"] + t + OUTPUT_VECTOR_EXTENSION,
                                delete = True,
                                rotationCenterCoordinates = rotationCenterCoordinates,
                                rotateAngle = - windDirection)
@@ -564,7 +564,7 @@ def main(javaEnvironmentPath,
                                             isSpatial=False)))
         saveData.saveTable(cursor = cursor,
                            tableName = "point3D_AllVegZone",
-                           filedir = outputDataAbs["point3D_VegZone"]+"." + OUTPUT_VECTOR_EXTENSION,
+                           filedir = outputDataAbs["point3D_VegZone"] + OUTPUT_VECTOR_EXTENSION,
                            delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)
@@ -607,7 +607,7 @@ def main(javaEnvironmentPath,
                                              isSpatial=False)))
         saveData.saveTable(cursor = cursor,
                            tableName = "point3D_All",
-                           filedir = outputDataAbs["point3D_All"]+"." + {OUTPUT_VECTOR_EXTENSION},
+                           filedir = outputDataAbs["point3D_All"] + OUTPUT_VECTOR_EXTENSION,
                            delete = True,
                            rotationCenterCoordinates = rotationCenterCoordinates,
                            rotateAngle = - windDirection)    
