@@ -25,7 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
-    2.1.15 : URock: Fix java path issue (discussion #713)
+    2.1.15 : URock: Fix URock stuck in superimposition managmenet (issue #703)
     2.1.14 : URock: Fix java path issue (discussion #713)
     2.1.13 : URock: Fix TIN interpolation (definitely ?) (fix #704)
     2.1.12 : URock: Fix negative log value when several vegetation layers (fix part of #715)
