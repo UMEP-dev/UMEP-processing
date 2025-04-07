@@ -157,44 +157,19 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
             # SAVE RASTER -------------------------------------------------------
             # -------------------------------------------------------------------     
             if saveRaster:
-                # Save the all direction wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)                
-                
-                # Save the horizontal wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = HORIZ_WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)
-                
-                # Save the vertical wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = VERT_WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)
+                # Save the all direction, horizontal and vertical wind speeds into a a different raster
+                for var in [WIND_SPEED, HORIZ_WIND_SPEED, VERT_WIND_SPEED]:
+                    saveRasterFile(cursor = cursor, 
+                                   outputVectorFile = outputVectorFile,
+                                   outputFilePathAndNameBase = os.path.join(outputDir_zi,
+                                                                            prefix(outputFilename, prefix_name)),
+                                   horizOutputUrock = horizOutputUrock,
+                                   outputRaster = outputRaster, 
+                                   z_i = z_i, 
+                                   meshSize = meshSize,
+                                   var2save = var,
+                                   stacked_blocks = stacked_blocks,
+                                   srid = srid)   
 
     return horizOutputUrock, final_netcdf_path
     
