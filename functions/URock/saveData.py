@@ -97,7 +97,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
             vfin = v[:,:,n_lev]
             wfin = w[:,:,n_lev]
         else:
-            n_lev = int(z_i / dz) + 1
+            n_lev = int((z_i + dz /2) / dz)
             n_lev1 = n_lev + 1
             weight1 = (z_i - (n_lev - 0.5) * dz) / dz
             weight = 1 - weight1
@@ -603,7 +603,6 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                            'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
                                            'RTYPE':5,'OPTIONS':'','EXTRA':'',
                                            'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
-    
     # Else directly save the result of the interpolation
     else:
         output_file_path = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION

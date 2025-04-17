@@ -1541,17 +1541,28 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
     
     # Creates the table of z levels impacted by building obstacles (start at dz/2)
     if maxHeight:
-        listOfZ = [str(i) for i in np.arange(float(dz)/2,
-                                             float(dz)/2+math.trunc(maxHeight/dz)*dz,
-                                             dz)]
-        cursor.execute("""
-                   DROP TABLE IF EXISTS {0};
-                   CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
-                   INSERT INTO {0} VALUES (DEFAULT, {1})
-                   """.format(  zValueTable,
-                                "), (DEFAULT, ".join(listOfZ),
-                                ID_POINT_Z,
-                                Z))
+        if maxHeight > float(dz)/2:
+            listOfZ = [str(i) for i in np.arange(float(dz)/2,
+                                                 3*float(dz)/2+math.trunc(maxHeight/dz)*dz,
+                                                 dz)]
+        
+            cursor.execute("""
+                       DROP TABLE IF EXISTS {0};
+                       CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
+                       INSERT INTO {0} VALUES (DEFAULT, {1})
+                       """.format(  zValueTable,
+                                    "), (DEFAULT, ".join(listOfZ),
+                                    ID_POINT_Z,
+                                    Z))
+           
+        else:
+            cursor.execute("""
+                           DROP TABLE IF EXISTS {0};
+                           CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} DOUBLE);
+                           """.format( zValueTable,
+                                       ID_POINT_Z,
+                                       Z))
+           
     else:
         cursor.execute("""
                    DROP TABLE IF EXISTS {0};
