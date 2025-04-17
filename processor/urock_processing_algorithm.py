@@ -357,6 +357,8 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             if build_file.count("|layername") == 1:
                 build_file = build_file.split("|layername")[0]
             srid_build = inputBuildinglayer.crs().postgisSrid()
+            # Define the srid of the output files
+            srid_out = srid_build
             if not heightBuild:
                 raise QgsProcessingException("A building height attribute should be defined")
             # Save the file as fgb in case of .gpkg format
@@ -369,6 +371,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         else:
             build_file = None
             srid_build = None
+            srid_out = None
 
         # Get vegetation layer if exists, check that it has the same SRID as building layer
         # and then get the file directory of the layer
@@ -379,6 +382,9 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             if veg_file.count("|layername") == 1:
                 veg_file = veg_file.split("|layername")[0]
             srid_veg = inputVegetationlayer.crs().postgisSrid()
+            # Define the srid of the output files
+            if not srid_out:
+                srid_out = srid_veg
             if srid_build and (srid_build != srid_veg):
                 feedback.pushWarning('Coordinate system of input building layer and vegetation layer differ!')
             if not topHeightVeg:
@@ -423,7 +429,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
 
         # If there is an output raster, need to get some of its parameters
         if outputRaster:
-            if inputBuildinglayer.crs().postgisSrid() != outputRaster.crs().postgisSrid():
+            if srid_out != outputRaster.crs().postgisSrid():
                 feedback.pushWarning('Coordinate system of input building layer and output Raster layer differ!')
             xres = (outputRaster.extent().xMaximum() - outputRaster.extent().xMinimum()) / outputRaster.width()
             yres = (outputRaster.extent().yMaximum() - outputRaster.extent().yMinimum()) / outputRaster.height()               
