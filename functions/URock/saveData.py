@@ -426,7 +426,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             # Interpolate with building constraints
             interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                                stacked_blocks = stacked_blocks,
-                               outputFilePathAndNameBaseRaster = tmp_file.split(".")[0], 
+                               outputFilePathAndNameBaseRaster = ".".join(tmp_file.split(".")[0:-1]), 
                                extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                                resX = resX, 
                                resY = resY,
