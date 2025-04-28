@@ -25,7 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
-    2.1.18 : URock: Fix error due to geometry complexity and downwind facade densification (issue #XXX)
+    2.1.18 : URock: Fix error due to geometry complexity and downwind facade densification (issue #732)
     2.1.17 : URock: Fix error of srid when having an output_raster but no building file as input (issue #726)
     2.1.16 : URock: Fix very low building bug + error interpolation if z_out < dz/2
     2.1.15 : URock: Fix URock stuck in superimposition managmenet (issue #703)
