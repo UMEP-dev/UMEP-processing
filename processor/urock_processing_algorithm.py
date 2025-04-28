@@ -457,7 +457,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                                  outputFilename = outputFilename,
                                  buildingFilePath = build_file,
                                  vegetationFilePath = veg_file,
-                                 srid = srid_build,
+                                 srid = srid_out,
                                  z_ref = z_ref,
                                  v_ref = v_ref,
                                  windDirection = windDirection,
