@@ -6,10 +6,17 @@ Created on Mon Oct  4 13:59:31 2021
 @author: Jérémy Bernard, University of Gothenburg
 """
 import pandas as pd
+import geopandas as gpd
+import shutil
 import numpy as np
+# from scipy.interpolate import griddata
+# from rasterio.transform import from_origin
+# import rasterio
+
 from .DataUtil import radToDeg, windDirectionFromXY, createIndex, prefix
 from .Obstacles import windRotation
-from osgeo.gdal import Grid, GridOptions, FillNodata, Open, GA_Update
+from osgeo.osr import SpatialReference
+from osgeo.gdal import Grid, GridOptions, FillNodata, Open, GA_Update, GetDriverByName
 from .GlobalVariables import HORIZ_WIND_DIRECTION, HORIZ_WIND_SPEED, WIND_SPEED,\
     ID_POINT, TEMPO_DIRECTORY, TEMPO_HORIZ_WIND_FILE, VERT_WIND_SPEED, GEOM_FIELD,\
     OUTPUT_DIRECTORY, MESH_SIZE, OUTPUT_FILENAME, DELETE_OUTPUT_IF_EXISTS,\
@@ -90,7 +97,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
             vfin = v[:,:,n_lev]
             wfin = w[:,:,n_lev]
         else:
-            n_lev = int(z_i / dz) + 1
+            n_lev = int((z_i + dz /2) / dz)
             n_lev1 = n_lev + 1
             weight1 = (z_i - (n_lev - 0.5) * dz) / dz
             weight = 1 - weight1
@@ -150,44 +157,19 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
             # SAVE RASTER -------------------------------------------------------
             # -------------------------------------------------------------------     
             if saveRaster:
-                # Save the all direction wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)                
-                
-                # Save the horizontal wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = HORIZ_WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)
-                
-                # Save the vertical wind speed into a Raster
-                saveRasterFile(cursor = cursor, 
-                               outputVectorFile = outputVectorFile,
-                               outputFilePathAndNameBase = os.path.join(outputDir_zi,
-                                                                        prefix(outputFilename, prefix_name)),
-                               horizOutputUrock = horizOutputUrock,
-                               outputRaster = outputRaster, 
-                               z_i = z_i, 
-                               meshSize = meshSize,
-                               var2save = VERT_WIND_SPEED,
-                               stacked_blocks = stacked_blocks,
-                               srid = srid)
+                # Save the all direction, horizontal and vertical wind speeds into a a different raster
+                for var in [WIND_SPEED, HORIZ_WIND_SPEED, VERT_WIND_SPEED]:
+                    saveRasterFile(cursor = cursor, 
+                                   outputVectorFile = outputVectorFile,
+                                   outputFilePathAndNameBase = os.path.join(outputDir_zi,
+                                                                            prefix(outputFilename, prefix_name)),
+                                   horizOutputUrock = horizOutputUrock,
+                                   outputRaster = outputRaster, 
+                                   z_i = z_i, 
+                                   meshSize = meshSize,
+                                   var2save = var,
+                                   stacked_blocks = stacked_blocks,
+                                   srid = srid)   
 
     return horizOutputUrock, final_netcdf_path
     
@@ -426,9 +408,10 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         ymax = outputRasterExtent.yMaximum()
         xmax = outputRasterExtent.xMaximum()
         ymin = outputRasterExtent.yMinimum()
+        tmp_file = os.path.join(TEMPO_DIRECTORY, "interp_before_fillna.tif")
         # If a single output raster cell contains more than 4 points, average instead of interpolate
         if resX * resY > 4 * meshSize**2:
-            Grid(destName = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION,
+            Grid(destName = tmp_file,
                  srcDS = outputVectorFile,
                  options = GridOptions(format = OUTPUT_RASTER_EXTENSION.split(".")[-1],
                                        zfield = var2save, 
@@ -443,18 +426,38 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
             # Interpolate with building constraints
             interp_vec_to_rast(outputVectorFile = outputVectorFile, 
                                stacked_blocks = stacked_blocks,
-                               outputFilePathAndNameBaseRaster = outputFilePathAndNameBaseRaster, 
+                               outputFilePathAndNameBaseRaster = ".".join(tmp_file.split(".")[0:-1]), 
                                extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                                resX = resX, 
                                resY = resY,
-                               z_i = z_i)
+                               z_i = z_i,
+                               colname = var2save)
+            
         # Interpolate values to fill no data
-        ET = Open(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION, GA_Update) 
-        ETband = ET.GetRasterBand(1)
+        ds = Open(tmp_file) 
+        driver = GetDriverByName("GTiff")
+        output_ds = driver.CreateCopy(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION,
+                                      ds)
+        band = output_ds.GetRasterBand(1)
+        _ = FillNodata(targetBand = band, maskBand = None, 
+                       maxSearchDist = 9999, smoothingIterations = 0)
+        
+        # Set the srid
+        vec_srid = gpd.read_file(outputVectorFile, rows = slice(0,)).crs.to_epsg()
+        srs = SpatialReference()
+        srs.ImportFromEPSG(vec_srid)
+        output_ds.SetProjection(srs.ExportToWkt())
+        
+        # Release the datasets.
+        ds = ds.FlushCache()
+        output_ds = output_ds.FlushCache()
+        
+        # ET = Open(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION, GA_Update) 
+        # ETband = ET.GetRasterBand(1)
  
-        FillNodata(targetBand = ETband, maskBand = None, 
-                   maxSearchDist = 999, smoothingIterations = 0)
-        ET = None
+        # FillNodata(targetBand = ETband, maskBand = None, 
+        #            maxSearchDist = 999, smoothingIterations = 0)
+        # ET = None
     else:
         cursor.execute(
             """
@@ -477,10 +480,11 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
                            extent = f'{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]',
                            resX = meshSize, 
                            resY = meshSize,
-                           z_i = z_i)
+                           z_i = z_i,
+                           colname = var2save)
 
 def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBaseRaster, 
-                       extent, resX, resY, z_i):
+                       extent, resX, resY, z_i, colname):
     """ Interpolate and save wind data saved in a vector to a raster.
        
     Parameters
@@ -489,7 +493,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                Directory (including filename and extension) of the file containing the 
                wind field to interpolate from vector to raster
            stacked_blocks: String
-               Directory (including filename and extension) of the file containing stacked blocks 
+               Directory (including filename only - no extension) of the file containing stacked blocks 
                (building footprint + where it starts and ends vertically)
            outputFilePathAndNameBaseRaster: String
                Directory (including filename and extension) of the file that will 
@@ -502,55 +506,107 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                Resolution of the output raster along the Y axis
            z_i: float
                Height of the output wind field
+           colname: string
+               Name of the attribute column in teh vector table to convert to raster
            
        
    Returns
    	_ _ _ _ _ _ _ _ _ _ 	
            output_file_path: String
                Path and name of the file containing the resulting raster"""
+    # gdf = gpd.read_file(outputVectorFile)
+    
+    # coordinates = np.array([point.coords[0] for point in gdf.geometry])  # [x, y]
+    # values = gdf[colname].values  # The field 'V' to interpolate
+    
+    # # Define the raster grid (3m resolution)
+    # resolution = min([resX, resY])
+    # xmin, ymin, xmax, ymax = gdf.total_bounds
+    # xmin -= resolution / 2
+    # ymin -= resolution / 2
+    # xmax -= resolution / 2
+    # ymax += resolution / 2
+    
+    # # Create a grid of coordinates for interpolation
+    # x_grid = np.arange(xmin, xmax, resolution)
+    # y_grid = np.arange(ymin, ymax, resolution)
+    # x_grid, y_grid = np.meshgrid(x_grid, y_grid)
+    
+    # # Perform bilinear interpolation on the grid
+    # grid_values = griddata(coordinates, values, (x_grid, y_grid), method='linear')
+    # grid_values = grid_values[::-1, :]
+    
+    # # Define raster metadata
+    # transform = from_origin(xmin, ymax, resolution, resolution)  # origin is top-left
+    
+    # # Save the interpolated grid to a raster file
+    # interp_out = os.path.join(TEMPO_DIRECTORY,"interp_out.tif")
+    # with rasterio.open(interp_out, 'w', driver='GTiff', 
+    #                     height=grid_values.shape[0], width=grid_values.shape[1],
+    #                     count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
+    #     dst.write(grid_values, 1)
+    
+    # Change the order of the points to make the TIN interpolation faster and working for all conditions
+    order_changed = processing.run("native:orderbyexpression", 
+                                   {'INPUT':outputVectorFile,
+                                    'EXPRESSION':'randf(0,1)',
+                                    'ASCENDING':False,
+                                    'NULLS_FIRST':False,
+                                    'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                          "order_changed")})["OUTPUT"]
+    
+    # Get the column number corresponding to the column name
+    colnb = gpd.read_file(order_changed, rows = slice(0,)).columns.get_loc(colname) + 1
+    
     # Interpolate the results without constraints
     interp_out = processing.run("qgis:tininterpolation",
-                               {'INTERPOLATION_DATA':f'{outputVectorFile}::~::0::~::4::~::0',
+                               {'INTERPOLATION_DATA':f'{order_changed}::~::0::~::{colnb}::~::0',
                                 'METHOD':0,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
                                                       "interp_out.tif")})["OUTPUT"]
     
-    # Rasterize the stacked blocks keeping the value of each stacked block base 
-    block_base = processing.run("gdal:rasterize",
-                                {'INPUT':stacked_blocks,
-                                 'FIELD':BASE_HEIGHT_FIELD,'BURN':0,'USE_Z':False,
-                                 'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
-                                 'EXTENT':extent,
-                                 'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
-                                 'INIT':-9999,'INVERT':False,'EXTRA':'',
-                                 'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                       "block_base.tif")})["OUTPUT"]
-    
-    # Rasterize the stacked blocks keeping the value of each stacked block top 
-    block_top = processing.run("gdal:rasterize",
-                               {'INPUT':stacked_blocks,
-                                'FIELD':HEIGHT_FIELD,'BURN':0,'USE_Z':False,
-                                'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
-                                'EXTENT':extent,
-                                'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
-                                'INIT':-9999,'INVERT':False,'EXTRA':'',
-                                'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                      "block_top.tif")})["OUTPUT"]
-    
-    # Keep the values only when there is no building at this position
-    output_file_path = processing.run("gdal:rastercalculator",
-                                      {'INPUT_A':block_base,'BAND_A':1,
-                                       'INPUT_B':block_top,'BAND_B':1,
-                                       'INPUT_C':interp_out,'BAND_C':1,
-                                       'INPUT_D':None,'BAND_D':None,
-                                       'INPUT_E':None,'BAND_E':None,
-                                       'INPUT_F':None,'BAND_F':None,
-                                       'FORMULA':f'((A == -9999) + (A > {z_i})) * ((B == -9999) + (B < {z_i})) * C',
-                                       'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
-                                       'RTYPE':5,'OPTIONS':'','EXTRA':'',
-                                       'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
+    # If there are buildings in the study area, need to set wind speed = 0
+    if os.stat(stacked_blocks).st_size > 0:
+        # Rasterize the stacked blocks keeping the value of each stacked block base 
+        block_base = processing.run("gdal:rasterize",
+                                    {'INPUT':stacked_blocks,
+                                     'FIELD':BASE_HEIGHT_FIELD,'BURN':0,'USE_Z':False,
+                                     'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
+                                     'EXTENT':extent,
+                                     'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
+                                     'INIT':-9999,'INVERT':False,'EXTRA':'',
+                                     'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                           "block_base.tif")})["OUTPUT"]
+        
+        # Rasterize the stacked blocks keeping the value of each stacked block top 
+        block_top = processing.run("gdal:rasterize",
+                                   {'INPUT':stacked_blocks,
+                                    'FIELD':HEIGHT_FIELD,'BURN':0,'USE_Z':False,
+                                    'UNITS':1,'WIDTH':resX,'HEIGHT':resY,
+                                    'EXTENT':extent,
+                                    'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
+                                    'INIT':-9999,'INVERT':False,'EXTRA':'',
+                                    'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                                          "block_top.tif")})["OUTPUT"]
+        
+        # Keep the values only when there is no building at this position
+        output_file_path = processing.run("gdal:rastercalculator",
+                                          {'INPUT_A':block_base,'BAND_A':1,
+                                           'INPUT_B':block_top,'BAND_B':1,
+                                           'INPUT_C':interp_out,'BAND_C':1,
+                                           'INPUT_D':None,'BAND_D':None,
+                                           'INPUT_E':None,'BAND_E':None,
+                                           'INPUT_F':None,'BAND_F':None,
+                                           'FORMULA':f'((A == -9999) + (A > {z_i})) * ((B == -9999) + (B < {z_i})) * C',
+                                           'NO_DATA':None,'EXTENT_OPT':0,'PROJWIN':None,
+                                           'RTYPE':5,'OPTIONS':'','EXTRA':'',
+                                           'OUTPUT':outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION})["OUTPUT"]   
+    # Else directly save the result of the interpolation
+    else:
+        output_file_path = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+        shutil.copy2(src = interp_out, dst = output_file_path)
     
     return output_file_path
         

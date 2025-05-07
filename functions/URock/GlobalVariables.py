@@ -89,7 +89,7 @@ DZ = 2
 ALONG_WIND_ZONE_EXTEND = 60
 CROSS_WIND_ZONE_EXTEND = 40
 VERTICAL_EXTEND = 20
-CAV_N_WAKE_FACADE_NPOINTS = 10
+CAV_N_WAKE_FACADE_NPOINTS = 3
 
 # The "perpendicular vortex scheme" for rooftop and displacement zones is activated
 # if the wind angle if more or less 'PERPENDICULAR_THRESHOLD_ANGLE' ° higher

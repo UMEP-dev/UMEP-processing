@@ -33,13 +33,13 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 # from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFile,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterBoolean,
+                       QgsProcessingParameterDefinition,
                        QgsProcessingException)
 
 # try:
@@ -53,6 +53,11 @@ import sys, os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
+import numpy as np
+#import pandas as pd
+#import re
+#from datetime import datetime
+#import time
 
 class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     """
@@ -73,6 +78,8 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     SNOW = 'SNOW'
     SPINUP = 'SPINUP'
     TIMERESOUT = 'TIMERESOUT'
+    CHUNKBOOL = 'CHUNKBOOL'
+    CHUNK = 'CHUNK'
 
     def initAlgorithm(self, config):
 
@@ -115,7 +122,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
                                                      self.tr('Anthropogenic heat flux method'),
                                                      options=[i[0] for i in self.anthro],
-                                                     defaultValue=3))
+                                                     defaultValue=2))
         self.addParameter(QgsProcessingParameterEnum(self.STORAGE,
                                                      self.tr('Storage heat flux method'),
                                                      options=[i[0] for i in self.storage],
@@ -141,7 +148,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                                                      options=[i[0] for i in self.wu],
                                                      defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(self.AERO,
-                                                     self.tr('Aerodynamic properties:'),
+                                                     self.tr('Aerodynamic properties'),
                                                      options=[i[0] for i in self.aero],
                                                      defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(self.SNOW,
@@ -157,6 +164,19 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                                                        minValue=1))                                                                                       
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
+        
+        #Advanced parameters
+        chunkBool = QgsProcessingParameterBoolean(self.CHUNKBOOL,
+                                                    self.tr("Devide calculation in chunks to reduce issues with memory running low on your computer."),
+                                                    defaultValue=False)
+        chunkBool.setFlags(chunkBool.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(chunkBool)
+
+        chunk = QgsProcessingParameterNumber(self.CHUNK, self.tr('Number of chunks'),
+                QgsProcessingParameterNumber.Integer,
+                QVariant(2), optional=True, minValue=0, maxValue=1000)
+        chunk.setFlags(chunk.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(chunk)
 
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -191,6 +211,8 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         wu = self.parameterAsString(parameters, self.WU, context)
         outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
         # spinup = self.parameterAsBool(parameters, self.SPINUP, context)
+        chunkBool = self.parameterAsBool(parameters, self.CHUNKBOOL, context)
+        noOfChunks = self.parameterAsInt(parameters, self.CHUNK, context)
 
         feedback.setProgressText(self.supylib)
         
@@ -244,6 +266,13 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         grid = df_state_init.index[0]
         feedback.setProgressText("Loading forcing data")
         df_forcing = sp.load_forcing_grid(path_runcontrol, grid)
+        
+        if chunkBool:
+            noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
+            chunkDay = np.ceil(noOfDays / noOfChunks)
+            feedback.setProgressText("Model run divided into " + str(int(chunkDay)) + ' day period')
+        else:
+            chunkDay = 3660
 
         # SuPy simulation
         feedback.setProgressText("Running model (QGIS not responsive)")
@@ -251,11 +280,8 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                                                 df_state_init,
                                                 check_input=True,
                                                 serial_mode=True,
+                                                chunk_day=chunkDay
                                                 )
-
-        # resampling SuPy results for plotting
-        # df_output_suews = df_output.loc[grid, 'SUEWS']
-        # df_output_suews_rsmp = df_output_suews.resample('1h').mean()
 
         # use SuPy function to save results
         feedback.setProgressText("Saving to disk")
@@ -263,6 +289,61 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                                     df_state_final,
                                     path_runcontrol=path_runcontrol)
         #####################################################################################
+
+        # resampling SuPy results for plotting
+        # df_output_suews = df_output.loc[grid, 'SUEWS']
+        # df_output_suews_rsmp = df_output_suews.resample('1h').mean()
+
+        # code (adjusted) from Tsirantonakis Dimitris (dtsirantonakis@iacm.forth.gr) to deal with memory issues
+        # LOAD MODEL 
+        # path_runcontrol = Path(infolder) / 'RunControl.nml'
+        # df_state_init = sp.init_supy(path_runcontrol)
+        # grid_list = df_state_init.index.tolist()
+        # df_forcing = sp.load_forcing_grid(path_runcontrol, grid=None)
+        # path_dir_save = str(outfolder) + "/"
+
+        # # RUN MODEL FOR FULL YEAR
+        # for month in range(1, 13):
+        #     # print(f"Processing {datetime(2023, month, 1).strftime('%B')}...")
+        #     start_time = time.time()
+        #     # Subset forcing data for the current month
+        #     df_forcing_subset = df_forcing[df_forcing.index.month == month]
+        #     df_output, df_state_final = sp.run_supy(df_forcing_subset, df_state_init)
+        #     out_folder = path_dir_save + f"{month}/"
+        #     if not os.path.exists(out_folder):
+        #         os.makedirs(out_folder)
+        #     sp.save_supy(df_output, df_state_final, path_dir_save=out_folder)
+        #     end_time = time.time()
+        #     print("Total time: {:.2f} seconds".format(end_time - start_time))
+        #     # Prepare the initial state for the next month
+        #     if month < 12:
+        #         df_state_init = df_state_final.xs(f'2023-{month+1:02d}-01 00:00:00', level='datetime')
+        #         del df_state_final
+        #     del df_output
+
+        # # merge results across all grid polygons
+
+        # output_folder = path_dir_save
+        # subfolders = get_subfolders(output_folder)
+
+        # for i in grid_list:    
+        #     grid_paths = get_output_paths_of_grid_SUEWS(i, subfolders)
+        #     sorted_grid_paths = sorted(grid_paths, key=extract_month_from_path)
+        #     all_dfs = [read_and_parse_file(fp) for fp in sorted_grid_paths]
+        #     merged_df = pd.concat(all_dfs)
+        #     merged_df.set_index('datetime', inplace=True)
+        #     merged_df.to_csv(f"{output_folder}{i}_suews_txt_merged.csv")
+            
+        #     grid_paths = get_output_paths_of_grid_DailyState(i, subfolders)
+        #     sorted_grid_paths = sorted(grid_paths, key=extract_month_from_path)
+        #     all_dfs = [read_and_parse_file(fp) for fp in sorted_grid_paths]
+        #     merged_df_ds = pd.concat(all_dfs)
+        #     merged_df_ds.set_index('datetime', inplace=True)
+        #     merged_df_ds.to_csv(f"{output_folder}{i}_DailyState_txt_merged.csv")
+
+
+
+
 
         feedback.setProgressText('Model finished')
 
@@ -290,7 +371,6 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                         '\n'
                         'Järvi L, Grimmond CSB, Taka M, Nordbo A, Setälä H &Strachan IB (2014) Development of the Surface Urban Energy and Water balance Scheme (SUEWS) for cold climate cities, Geosci. Model Dev. 7, 1691-1711, doi:10.5194/gmd-7-1691-2014.<br>'
                         '\n'
-                        'Ward HC, L Järvi, S Onomura, F Lindberg, CSB Grimmond (2016a) SUEWS Manual: Version 2016a<br>'
                        '---------------\n'
                        'Full manual available via the <b>Help</b>-button.')
 
@@ -308,3 +388,54 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
 
     def createInstance(self):
         return ProcessingSuewsAlgorithm()
+    
+
+# code from Tsirantonakis Dimitris (dtsirantonakis@iacm.forth.gr) to deal with memory issues
+
+# # functions
+# def get_subfolders(directory):
+#     subfolders = []
+#     for dirpath, dirnames, filenames in os.walk(directory):
+#         for dirname in dirnames:
+#             subfolders.append(os.path.join(dirpath, dirname))
+#     return subfolders
+
+# def get_output_paths_of_grid_SUEWS(grid, subfolders):
+#     pattern = re.compile(str(grid) + r'_\d{4}_SUEWS_60\.txt')
+#     grid_output_paths = set()
+#     for subfolder in subfolders:
+#         for filename in os.listdir(subfolder):
+#             match = pattern.match(filename)
+#             if match:
+#                 grid_output_path = os.path.join(subfolder, filename)
+#                 grid_output_paths.add(grid_output_path)
+#     return grid_output_paths
+
+# def get_output_paths_of_grid_DailyState(grid, subfolders):
+#     pattern = re.compile(str(grid) + r'_\d{4}_DailyState\.txt')
+#     grid_output_paths = set()
+#     for subfolder in subfolders:
+#         for filename in os.listdir(subfolder):
+#             match = pattern.match(filename)
+#             if match:
+#                 grid_output_path = os.path.join(subfolder, filename)
+#                 grid_output_paths.add(grid_output_path)
+#     return grid_output_paths
+
+# def read_and_parse_file(file_path):
+#     df = pd.read_csv(file_path, delim_whitespace=True)
+#     df['datetime'] = pd.to_datetime(df['Year'].astype(str) + df['DOY'].astype(str), format='%Y%j') + \
+#                      pd.to_timedelta(df['Hour'], unit='h') + \
+#                      pd.to_timedelta(df['Min'], unit='m')
+#     return df
+
+# def extract_month_from_path(path):
+#     normalized_path = os.path.normpath(path)
+#     components = normalized_path.split(os.sep)
+#     month_str = components[-2]
+#     try:
+#         return int(month_str)
+#     except ValueError:
+#         return None
+
+

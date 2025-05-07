@@ -181,6 +181,7 @@ def createsBlocks(cursor, inputBuildings, snappingTolerance = GEOMETRY_MERGE_TOL
                                                          WHERE {HEIGHT_FIELD}={height_i}) AS b
                                 ON a.{ID_FIELD_BLOCK}=b.{ID_FIELD_BLOCK} WHERE a.{HEIGHT_FIELD}>={height_i}
                                 GROUP BY a.{ID_FIELD_BLOCK})')
+                 WHERE ST_ISEMPTY({GEOM_FIELD}) IS FALSE
                                 """ for height_i in df_listOfHeight]
         cursor.execute(f"""
             DROP TABLE IF EXISTS {stackedBlockTable};

@@ -211,7 +211,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 ID_UPSTREAM_STACKED_BLOCK)
         elif t==ROOFTOP_CORN_NAME:
             columnsToKeepQuery = """b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7}, 
-                                   ST_STARTPOINT(ST_TOMULTILINE(a.{3})) AS GEOM_CORNER_POINT,
+                                   a.GEOM_CORNER_POINT,
                                    b.{8}
                                    """.format( ID_POINT, 
                                                idZone[t],
@@ -709,36 +709,23 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                   for t in listTabYvalues]))
 
     # Special treatment for rooftop corners which have not been calculated previously
-    cursor.execute("""DROP TABLE IF EXISTS {8};
-                   CREATE TABLE {8}
-                       AS SELECT {0},
-                                ST_DISTANCE({7}, GEOM_CORNER_POINT)/
-                                    COS(CASE WHEN   {6}<PI()/2
-                                        THEN        {6}-ST_AZIMUTH({7}, GEOM_CORNER_POINT)
-                                        ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {7})-{6}
+    cursor.execute(f"""DROP TABLE IF EXISTS {dicOfOutputTables[ROOFTOP_CORN_NAME]};
+                   CREATE TABLE {dicOfOutputTables[ROOFTOP_CORN_NAME]}
+                       AS SELECT {ID_POINT},
+                                ST_DISTANCE({GEOM_FIELD}, GEOM_CORNER_POINT)/
+                                    COS(CASE WHEN   {UPWIND_FACADE_ANGLE_FIELD}<PI()/2
+                                        THEN        {UPWIND_FACADE_ANGLE_FIELD}-ST_AZIMUTH({GEOM_FIELD}, GEOM_CORNER_POINT)
+                                        ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {GEOM_FIELD})-{UPWIND_FACADE_ANGLE_FIELD}
                                         END
                                         )/
-                                    {4}*{3} AS {5},
-                                {1},
-                                {2},
-                                {10},
-                                {11},
-                                CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {12},
-                                {13}
-                        FROM {9}""".format(ID_POINT,
-                                            idZone[ROOFTOP_PERP_NAME],
-                                            HEIGHT_FIELD,
-                                            ROOFTOP_CORNER_LENGTH,
-                                            ROOFTOP_CORNER_FACADE_LENGTH,
-                                            ROOFTOP_CORNER_VAR_HEIGHT,
-                                            UPWIND_FACADE_ANGLE_FIELD,
-                                            GEOM_FIELD,
-                                            dicOfOutputTables[ROOFTOP_CORN_NAME],
-                                            dicOfTempoOutput[ROOFTOP_CORN_NAME],
-                                            UPWIND_FACADE_ANGLE_FIELD,
-                                            ROOFTOP_WIND_FACTOR,
-                                            Y_WALL,
-                                            ID_POINT_X))
+                                    {ROOFTOP_CORNER_FACADE_LENGTH}*{ROOFTOP_CORNER_LENGTH} AS {ROOFTOP_CORNER_VAR_HEIGHT},
+                                {idZone[ROOFTOP_PERP_NAME]},
+                                {HEIGHT_FIELD},
+                                {UPWIND_FACADE_ANGLE_FIELD},
+                                {ROOFTOP_WIND_FACTOR},
+                                CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {Y_WALL},
+                                {ID_POINT_X}
+                        FROM {dicOfTempoOutput[ROOFTOP_CORN_NAME]}""")
                             
                             
     if not DEBUG:
@@ -1554,17 +1541,28 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
     
     # Creates the table of z levels impacted by building obstacles (start at dz/2)
     if maxHeight:
-        listOfZ = [str(i) for i in np.arange(float(dz)/2,
-                                             float(dz)/2+math.trunc(maxHeight/dz)*dz,
-                                             dz)]
-        cursor.execute("""
-                   DROP TABLE IF EXISTS {0};
-                   CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
-                   INSERT INTO {0} VALUES (DEFAULT, {1})
-                   """.format(  zValueTable,
-                                "), (DEFAULT, ".join(listOfZ),
-                                ID_POINT_Z,
-                                Z))
+        if maxHeight > float(dz)/2:
+            listOfZ = [str(i) for i in np.arange(float(dz)/2,
+                                                 3*float(dz)/2+math.trunc(maxHeight/dz)*dz,
+                                                 dz)]
+        
+            cursor.execute("""
+                       DROP TABLE IF EXISTS {0};
+                       CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
+                       INSERT INTO {0} VALUES (DEFAULT, {1})
+                       """.format(  zValueTable,
+                                    "), (DEFAULT, ".join(listOfZ),
+                                    ID_POINT_Z,
+                                    Z))
+           
+        else:
+            cursor.execute("""
+                           DROP TABLE IF EXISTS {0};
+                           CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} DOUBLE);
+                           """.format( zValueTable,
+                                       ID_POINT_Z,
+                                       Z))
+           
     else:
         cursor.execute("""
                    DROP TABLE IF EXISTS {0};
@@ -1858,11 +1856,11 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
     # d is actually calculated by Equation 18a from Hanna and Britter (2002)
     calcQuery = {
         VEGETATION_OPEN_NAME:
-            """ CASE WHEN   a.{0}>b.{3}
+            """ CASE WHEN   a.{0}>b.{2}
                     THEN    LOG((a.{0} - 3 * 0.05 * {2}) / {1}) / LOG(a.{0} / {1})
                     ELSE    CASE WHEN   a.{0} > b.{3} OR a.{0} < b.{4}
-                            THEN        LOG((b.{2} - 3 * 0.05 * {2}) / {1}) / LOG(a.{0} / {1})
-                            ELSE        LOG((b.{3} - 3 * 0.05 * {2}) / {1}) / LOG(a.{0} / {1}) * EXP(b.{5} * (a.{0} / b.{2} - 1))
+                            THEN        LOG((b.{2} - 3 * 0.05 * {2}) / {1}) / LOG(a.{0} / {1}) * EXP(0)
+                            ELSE        LOG((b.{2} - 3 * 0.05 * {2}) / {1}) / LOG(a.{0} / {1}) * EXP(b.{5} * (a.{0} / b.{2} - 1))
                     END
                 END
             """.format( Z,
@@ -1873,7 +1871,7 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                         VEGETATION_ATTENUATION_FACTOR),
         VEGETATION_BUILT_NAME:
             """ CASE WHEN   a.{0} > b.{3} OR a.{0} < b.{4}
-                    THEN    LOG(b.{2} / {1}) / LOG(a.{0} / {1})
+                    THEN    LOG(b.{2} / {1}) / LOG(a.{0} / {1}) * EXP(0)
                     ELSE    LOG(b.{2} / {1}) / LOG(a.{0} / {1}) * EXP(b.{5} * (a.{0} / b.{2} - 1))
                 END
             """.format( Z,
@@ -2088,7 +2086,7 @@ def manageSuperimposition(cursor,
           {0}{1}{2}{3}
           DROP TABLE IF EXISTS {4};
           CREATE TABLE {4}
-              AS SELECT   a.{5}, a.{6}, ABS(b.{7}) AS {8}, b.{13}
+              AS SELECT   a.{5}, a.{6}, ABS(b.{7}) AS {8}, b.{13}, a.{11}, a.{12}
               FROM     {9} AS a LEFT JOIN {10} AS b
                        ON a.{11} = b.{11} AND a.{12} = b.{12}
           """.format( DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
@@ -2667,22 +2665,20 @@ def identifyUpstreamer( cursor,
                         order                               , considerPrioritiesQuery))
                              
     # Recover the useful informations from the unique points kept
-    cursor.execute("""
-          {4};
-          {5};
-          DROP TABLE IF EXISTS {3};
-          CREATE TABLE {3}
+    cursor.execute(f"""
+          {DataUtil.createIndex(tableName=tempoAllPointsTable, 
+                                fieldName=[ID_3D_POINT, ID_POINT],
+                                isSpatial=False)};
+          {DataUtil.createIndex(tableName=tempoUniquePointsTable, 
+                                fieldName=[ID_3D_POINT, ID_POINT],
+                                isSpatial=False)};
+          DROP TABLE IF EXISTS {uniqueValuePerPointTable};
+          CREATE TABLE {uniqueValuePerPointTable}
               AS SELECT a.*
-              FROM     {0} AS a RIGHT JOIN {2} AS b
-                       ON a.{1} = b.{1}
-          """.format( tempoAllPointsTable              , ID_3D_POINT,
-                      tempoUniquePointsTable           , uniqueValuePerPointTable,
-                        DataUtil.createIndex(tableName=tempoAllPointsTable, 
-                                              fieldName=ID_3D_POINT,
-                                              isSpatial=False),
-                        DataUtil.createIndex(tableName=tempoUniquePointsTable, 
-                                              fieldName=ID_3D_POINT,
-                                              isSpatial=False)))
+              FROM     {tempoAllPointsTable} AS a RIGHT JOIN {tempoUniquePointsTable} AS b
+                       ON a.{ID_3D_POINT} = b.{ID_3D_POINT} AND 
+                       a.{ID_POINT} = b.{ID_POINT}
+          """)
 
     if not DEBUG:
         # Remove intermediate tables
