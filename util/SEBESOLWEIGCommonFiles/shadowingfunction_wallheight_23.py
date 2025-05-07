@@ -1,7 +1,45 @@
 from __future__ import division
 import numpy as np
 # import matplotlib.pylab as plt
-def shadowingfunction_wallheight_23(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, walls, aspect):
+
+def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg):
+    # wall shadows wall parameterization
+    wallbol = (walls > 0).astype(float)
+    
+    # Removing walls in shadow due to selfshadowing
+    azilow = azimuth - np.pi/2
+    azihigh = azimuth + np.pi/2
+    if azilow >= 0 and azihigh < 2*np.pi:    # 90 to 270  (SHADOW)
+        facesh = np.logical_or(aspect < azilow, aspect >= azihigh).astype(float) - wallbol + 1    # TODO check
+    elif azilow < 0 and azihigh <= 2*np.pi:    # 0 to 90
+        azilow = azilow + 2*np.pi
+        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1    # (SHADOW)
+    elif azilow > 0 and azihigh >= 2*np.pi:    # 270 to 360
+        azihigh -= 2 * np.pi
+        facesh = np.logical_or(aspect > azilow, aspect <= azihigh)*-1 + 1    # (SHADOW)
+
+    shvo = f - dsm   # building shadow volume
+    facesun = np.logical_and(facesh + (walls > 0).astype(float) == 1, walls > 0).astype(float)
+    wallsun = np.copy(walls-shvo)
+    wallsun[wallsun < 0] = 0
+    wallsun[facesh == 1] = 0    # Removing walls in "self"-shadow
+    wallsh = np.copy(walls-wallsun)
+
+    wallshve = shvoveg * wallbol
+    wallshve = wallshve - wallsh
+    wallshve[wallshve < 0] = 0
+    id = np.where(wallshve > walls)
+    wallshve[id] = walls[id]
+    wallsun = wallsun-wallshve    # problem with wallshve only
+    id = np.where(wallsun < 0)
+    wallshve[id] = 0
+    wallsun[id] = 0
+    # if np.sum(wallshve <= 0) == wallshve.size:
+    #     wallshve[:, :] = 0    
+
+    return wallsh, wallsun, wallshve, facesh, facesun
+
+def shadowingfunction_wallheight_23(a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, walls, aspect, walls_scheme=False, aspect_scheme=False):
     """
     This function calculates shadows on a DSM and shadow height on building
     walls including both buildings and vegetion units.
@@ -120,6 +158,7 @@ def shadowingfunction_wallheight_23(a, vegdem, vegdem2, azimuth, altitude, scale
 
         f = np.fmax(f, temp) #Moving building shadow
         shvoveg = np.fmax(shvoveg, tempvegdem) # moving vegetation shadow volume
+        
         sh[f > a] = 1
         sh[f <= a] = 0   
         fabovea = (tempvegdem > a).astype(int)   #vegdem above DEM
@@ -136,74 +175,28 @@ def shadowingfunction_wallheight_23(a, vegdem, vegdem2, azimuth, altitude, scale
         # vegsh2[vegsh2 == 1] = 0. # This one is the ultimate question...
         vegsh2[vegsh2 > 0] = 1.
 
-        # vegsh2 = fabovea - gabovea #old without pergolas
-        # vegsh = np.max([vegsh, vegsh2], axis=0) #old without pergolas
-
         vegsh = np.fmax(vegsh, vegsh2)
         vegsh[vegsh*sh > 0] = 0    
         vbshvegsh = np.copy(vegsh) + vbshvegsh # removing shadows 'behind' buildings
-
-        # # vegsh at high sun altitudes # Not needed when pergolas are included
-        # if index == 0:
-        #     firstvegdem = np.copy(tempvegdem) - np.copy(temp)
-        #     firstvegdem[firstvegdem <= 0] = 1000
-        #     vegsh[firstvegdem < dz] = 1
-        #     vegsh *= (vegdem2 > a)
-        #     vbshvegsh = np.zeros((sizex, sizey))
-
-        # # Bush shadow on bush plant # Not needed when pergolas are included
-        # if np.max(bush) > 0 and np.max(fabovea*bush) > 0:
-        #     tempbush = np.zeros((sizex, sizey))
-        #     tempbush[int(xp1):int(xp2), int(yp1):int(yp2)] = bush[int(xc1):int(xc2), int(yc1):int(yc2)] - dz
-        #     g = np.max([g, tempbush], axis=0)
-        #     g = bushplant * g
     
         index += 1
-
-    # Removing walls in shadow due to selfshadowing
-    azilow = azimuth - np.pi/2
-    azihigh = azimuth + np.pi/2
-    if azilow >= 0 and azihigh < 2*np.pi:    # 90 to 270  (SHADOW)
-        facesh = np.logical_or(aspect < azilow, aspect >= azihigh).astype(float) - wallbol + 1    # TODO check
-    elif azilow < 0 and azihigh <= 2*np.pi:    # 0 to 90
-        azilow = azilow + 2*np.pi
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1    # (SHADOW)
-    elif azilow > 0 and azihigh >= 2*np.pi:    # 270 to 360
-        azihigh -= 2 * np.pi
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh)*-1 + 1    # (SHADOW)
 
     sh = 1-sh
     vbshvegsh[vbshvegsh > 0] = 1
     vbshvegsh = vbshvegsh-vegsh
-    
-    # if np.max(bush) > 0: # Not needed when pergolas are included
-    #     g = g-bush
-    #     g[g > 0] = 1
-    #     g[g < 0] = 0
-    #     vegsh = vegsh-bushplant+g
-    #     vegsh[vegsh < 0] = 0
 
     vegsh[vegsh > 0] = 1
     shvoveg = (shvoveg-a) * vegsh    #Vegetation shadow volume
     vegsh = 1-vegsh
     vbshvegsh = 1-vbshvegsh
-    
-    # wall shadows
-    shvo = f - a   # building shadow volume
-    facesun = np.logical_and(facesh + (walls > 0).astype(float) == 1, walls > 0).astype(float)
-    wallsun = np.copy(walls-shvo)
-    wallsun[wallsun < 0] = 0
-    wallsun[facesh == 1] = 0    # Removing walls in "self"-shadow
-    wallsh = np.copy(walls-wallsun)
+    #print(np.max(shvoveg))
+    wallsh, wallsun, wallshve, facesh, facesun = shade_on_walls(azimuth, aspect, walls, a, f, shvoveg)
+    #print(np.max(wallshve))
+    if walls_scheme is not False:
+        wallsh_, wallsun_, wallshve_, facesh_, facesun_ = shade_on_walls(azimuth, aspect_scheme, walls_scheme, a, f, shvoveg)
+        #print(np.max(wallshve_))
+        shade_on_wall = wallsh_.copy()
+        shade_on_wall[shade_on_wall < wallshve_] = wallshve_[shade_on_wall < wallshve_]
 
-    wallshve = shvoveg * wallbol
-    wallshve = wallshve - wallsh
-    wallshve[wallshve < 0] = 0
-    id = np.where(wallshve > walls)
-    wallshve[id] = walls[id]
-    wallsun = wallsun-wallshve    # problem with wallshve only
-    id = np.where(wallsun < 0)
-    wallshve[id] = 0
-    wallsun[id] = 0
-    
-    return vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun
+    #return vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun, shade_on_wall
+    return (vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun, shade_on_wall) if walls_scheme is not False else (vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun)

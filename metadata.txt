@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.1.4 : SOLWEIG update: Fixing minor bugs and updated shadow casting for wall surface temperature scheme
     2.1.3 : SOLWEIG update: new parameterization scheme for wall surface temperatures
     2.1.2 : URock: Explode building and vegetation multipolygons (discussion #675)
     2.1.1 : URock work even though netCDF not saved... (issue #92)

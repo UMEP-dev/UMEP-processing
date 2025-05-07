@@ -34,7 +34,7 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
                        amaxvalue, bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
                        TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, Tgmap1, 
                        Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, anisotropic_sky, asvf, patch_option,
-                       voxelMaps, voxelTable, ws, wallScheme, timeStep, steradians):
+                       voxelMaps, voxelTable, ws, wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme):
 
 #def Solweig_2021a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
 #                       svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, vegdem, vegdem2, albedo_b, absK, absL,
@@ -158,12 +158,12 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
 
         # Shadow  images
         if usevegdem == 1:
-            vegsh, sh, _, wallsh, wallsun, wallshve, _, facesun = shadowingfunction_wallheight_23(dsm, vegdem, vegdem2,
-                                        azimuth, altitude, scale, amaxvalue, bush, walls, dirwalls * np.pi / 180.)
+            vegsh, sh, _, wallsh, wallsun, wallshve, _, facesun, wallsh_ = shadowingfunction_wallheight_23(dsm, vegdem, vegdem2,
+                                        azimuth, altitude, scale, amaxvalue, bush, walls, dirwalls * np.pi / 180., walls_scheme, dirwalls_scheme * np.pi/180.)
             shadow = sh - (1 - vegsh) * (1 - psi)
         else:
-            sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(dsm, azimuth, altitude, scale,
-                                                                                   walls, dirwalls * np.pi / 180.)
+            sh, wallsh, wallsun, facesh, facesun, wallsh_ = shadowingfunction_wallheight_13(dsm, azimuth, altitude, scale,
+                                                                                   walls, dirwalls * np.pi / 180., walls_scheme, dirwalls_scheme * np.pi/180.)
             shadow = sh
 
         # # # Surface temperature parameterisation during daytime # # # #
@@ -294,8 +294,8 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
     if wallScheme == 1:
         # albedo_g = 0.15 #TODO Change to correct
         if altitude < 0:
-            wallsh = 0
-        voxelTable = wall_surface_temperature(voxelTable, wallsh, altitude, azimuth, timeStep, radI, radD, radG, Ldown, Lup, Ta, esky)
+            wallsh_ = 0
+        voxelTable = wall_surface_temperature(voxelTable, wallsh_, altitude, azimuth, timeStep, radI, radD, radG, Ldown, Lup, Ta, esky)
     # Anisotropic sky
     if (anisotropic_sky == 1):
         if 'lv' not in locals():

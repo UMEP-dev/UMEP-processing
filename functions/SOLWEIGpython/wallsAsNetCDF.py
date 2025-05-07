@@ -2,7 +2,7 @@ import xarray as xr
 import rioxarray
 import numpy as np
 
-def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, output_path):
+def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, dsm, raster_path, output_path):
     '''This function creates a 4D NetCDF with wall temperatures and corresponding emitted longwave radiation'''
     # rows = number of rows (latitudinal position)
     # cols = number of columns (longitudinal position)
@@ -10,7 +10,9 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
     # raster_path is used to load an existing .tif layer and create arrays with latitudes and longitudes to be used in xarray/NetCDF
 
     # Highest number of voxels used to determine z/height level of NetCDF
-    levels = voxelTable.loc[voxelTable['voxelHeight'] == voxelTable['voxelHeight'].max(), 'voxelHeight'].to_numpy()[0].astype(int)
+    # levels = voxelTable.loc[voxelTable['voxelHeight'] == voxelTable['voxelHeight'].max(), 'voxelHeight'].to_numpy()[0].astype(int)
+
+    levels = voxelTable.loc[voxelTable['voxelHeightMasl'] == voxelTable['voxelHeightMasl'].max(), 'voxelHeightMasl'].to_numpy()[0].astype(int)
 
     # Range of height levels
     height_levels = np.arange(1, levels+1)
@@ -19,7 +21,8 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, raster_path, o
     wallTemperature = np.full((cols, rows, levels), np.nan, dtype=np.float32)
 
     # Add current time step wall temperature and longwave radiation to numpy array, which will be used to update the NetCDF.
-    for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
+    #for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
+    for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeightMasl'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
         wallTemperature[x, y, z-1] = wallTemp
 
     # NetCDF compression

@@ -115,7 +115,7 @@
         "Value": {
             "Brick_wall": 0.1,
             "Concrete_wall": 0.2,
-            "Wood_wall": 0.04
+            "Wood_wall": 0.03
         },
         "Comment": "Wall thickness in units meters, used to calculate characteristic time for wall surface temperatures (Wallenberg et al., 2025)."
     },

@@ -8,7 +8,7 @@ from .Lvikt_veg import Lvikt_veg
 # Stefan Boltzmans Constant
 SBC = 5.67051e-8
 
-def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeStep, albedo_grid, landcover, lcgrid, dsm):
+def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeStep, albedo_b, emissivity_b, albedo_grid, landcover, lcgrid, dsm):
     '''This function loads the voxel data created in sky view factor calculator and turns it into a Pandas DataFrame.'''
     
     # Load data as Pandas DataFrame and add column names
@@ -22,7 +22,7 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
     # Add columns filled later
     columns_to_add = ['SVF_ground', 'svfbu_at_ground', 'svfaveg_at_ground', 'wallAspect', 'wallEmissivity', 'wallThickness', 
                       'wallAlbedo', 'thermalEffusivity', 'thermalDiffusivity', 'groundAlbedo', 'wallShade', 'wallShadeHeight', 
-                      'LongwaveRadiation', 'K_in', 'L_in', 'Lwallsun', 'Lwallsh', 'Lrefl', 'Lveg', 'Lground', 'Lsky', 'esky']
+                      'LongwaveRadiation', 'K_in', 'L_in', 'Lwallsun', 'Lwallsh', 'Lrefl', 'Lveg', 'Lground', 'Lsky', 'esky', 'voxelHeightMasl']
     for col in columns_to_add:
         voxelTable[col] = 0
     
@@ -45,16 +45,17 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
         temp_building = voxelTable.loc[((voxelTable['wallId'] == temp_table[i,0]) & (voxelTable['voxelHeight'] == voxelTable['voxelHeight'].min())), 'svfbu'].copy().to_numpy()[0]
         temp_veg = voxelTable.loc[((voxelTable['wallId'] == temp_table[i,0]) & (voxelTable['voxelHeight'] == voxelTable['voxelHeight'].min())), 'svfaveg'].copy().to_numpy()[0]
         temp_albedo = albedo_grid[temp_table[i,1].astype(int), temp_table[i,2].astype(int)]
+        temp_dsm = dsm[temp_table[i,1].astype(int), temp_table[i,2].astype(int)]
+        
         voxelTable.loc[voxelTable['wallId'] == temp_table[i,0], 'svfbu_at_ground'] = temp_building
         voxelTable.loc[voxelTable['wallId'] == temp_table[i,0], 'svfaveg_at_ground'] = temp_veg
         voxelTable.loc[voxelTable['wallId'] == temp_table[i,0], 'groundAlbedo'] = temp_albedo
+        voxelTable.loc[voxelTable['wallId'] == temp_table[i,0], 'voxelHeightMasl'] = voxelTable.loc[voxelTable['wallId'] == temp_table[i,0], 'voxelHeight'].to_numpy() + temp_dsm
     
     # Set voxelId to index
     voxelTable = voxelTable.set_index('voxelId')
 
     # Calculate fractions
-    # voxelTable.loc[voxelTable['svfbu'] > 0.5, 'svfbu'] = 0.5
-    # voxelTable.loc[voxelTable['svfaveg'] > 0.5, 'svfaveg'] = 0.5
     # Non-sky fraction = (1 - svf at ground level) - 0.5 (ground surface seen from wall)
     building_fraction = 1 - voxelTable['svfbu_at_ground'].to_numpy() - 0.5
     building_fraction[building_fraction < 0] = 0.
@@ -92,9 +93,11 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
             # Set thermal diffusivity
             voxelTable['thermalDiffusivity'] = wallTd
             # Set wall albedo
-            voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]      
+            # voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]   
+            voxelTable['wallAlbedo'] = albedo_b
             # Set wall emissivity
-            voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]                  
+            # voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]
+            voxelTable['wallEmissivity'] = emissivity_b
             # Set thickness
             voxelTable['wallThickness'] = solweig_parameters['Wall_thickness']['Value'][solweig_parameters['Names']['Value'][str(unique_walls[0])]]
         else:
@@ -116,17 +119,21 @@ def load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta, timeSt
         # Set thermal diffusivity
         voxelTable['thermalDiffusivity'] = wallTd
         # Get wall albedo
-        voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+        # voxelTable['wallAlbedo'] = solweig_parameters['Albedo']['Material']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+        voxelTable['wallAlbedo'] = albedo_b
         # Get wall emissivity
-        voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+        # voxelTable['wallEmissivity'] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][wall_type]]
+        voxelTable['wallEmissivity'] = emissivity_b
         # Get wall thickness
         voxelTable['wallThickness'] = solweig_parameters['Wall_thickness']['Value'][solweig_parameters['Names']['Value'][wall_type]]
 
     eqTime = True
+
+    ### REMEMEBER TO TURN OFF FOR KOLUMBUS ###
     if eqTime:
         voxelTable['timeStep'] = voxelTable['wallThickness'].to_numpy()**2/(np.pi**2 * voxelTable['thermalDiffusivity'].to_numpy())
 
-    return voxelTable
+    return voxelTable, wallaspect
 
 def step_heating(q, e, t):
     '''Function to calculate delta surface temperature based on heat flux (q), thermal effusivity (e) and time (t)'''
@@ -179,6 +186,7 @@ def wall_surface_temperature(voxelTable, wallsh, altitude, azimuth, timeStep, K_
         for unique_wall in unique_walls:
             # temp_sh is the shadow height of a wall
             temp_sh = wallsh[voxelTable.loc[voxelTable.wallId == unique_wall, 'ypos'].to_numpy().astype(int)[0], voxelTable.loc[voxelTable.wallId == unique_wall, 'xpos'].to_numpy().astype(int)[0]]
+            
             # Change to sunlit (1) for voxels that are above wall shade height
             voxelTable.loc[(voxelTable['wallId'] == unique_wall) & (voxelTable['voxelHeight'] >= temp_sh) & (voxelTable['wallHeight_exact'] > temp_sh), 'wallShade'] = 1
             # Add wall shade height to pandas dataframe
@@ -260,7 +268,6 @@ def wall_surface_temperature(voxelTable, wallsh, altitude, azimuth, timeStep, K_
     cf = sun_x + sun_y
     cf[cf <= 0] = 0.
 
-    #TODO Vilket SVF till K_diff, vilken SVF till K_down, vilket albedo till K_down? Vilka albedon ska det vara? bulk albedo??
     # If sun above horizon
     if altitude > 0:
         K_in = (1 - voxelTable['wallAlbedo'].to_numpy()) * (K_direct * cf * voxelTable['wallShade'].to_numpy() + 

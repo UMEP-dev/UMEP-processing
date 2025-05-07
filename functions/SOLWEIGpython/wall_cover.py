@@ -16,7 +16,9 @@ def get_wall_cover(voxelTable, lcgrid, dsm, lc_params):
     # Empty array to store albedo
     wallAlbedo = np.zeros((voxelTable.shape[0]))
     # Empty array to store emissivity
-    wallEmissivity = np.zeros((voxelTable.shape[0]))    
+    wallEmissivity = np.zeros((voxelTable.shape[0]))
+    # Empty array to store wall thickness
+    wallThickness = np.zeros((voxelTable.shape[0]))    
     # Search kernel used to find wall code
     domain = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
     # Loop through all wall pixels in voxel table
@@ -61,10 +63,15 @@ def get_wall_cover(voxelTable, lcgrid, dsm, lc_params):
         temp_e = lc_params['Emissivity']['Value'][lc_params['Names']['Value'][str(temp_code)]]
         # Save wall emissivity
         wallEmissivity[i] = temp_e
+        # Get wall thickness
+        temp_wt = lc_params['Wall_thickness']['Value'][lc_params['Names']['Value'][str(temp_code)]]
+        # Save wall thickness
+        wallThickness[i] = temp_wt
 
     voxelTable['thermalEffusivity'] = wallTu
     voxelTable['thermalDiffusivity'] = wallTd
     voxelTable['wallAlbedo'] = wallAlbedo
     voxelTable['wallEmissivity'] = wallEmissivity
+    voxelTable['wallThickness'] = wallThickness
 
     return voxelTable

@@ -70,7 +70,7 @@ from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
-
+from ..functions import wallalgorithms as wa
 from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
 from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
 
@@ -212,8 +212,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter(QgsProcessingParameterNumber(self.EFFUS_WALL,
         #     self.tr('Wall type (only with wall scheme)'), QgsProcessingParameterNumber.Integer,
         #     QVariant(1065), False, minValue=0, maxValue=20000))
-        self.wallType = ((self.tr('Concrete'), '0'),
-                   (self.tr('Brick'), '1'),
+        self.wallType = ((self.tr('Brick'), '0'),
+                   (self.tr('Concrete'), '1'),
                    (self.tr('Wood'), '2'))
         self.addParameter(QgsProcessingParameterEnum(self.WALL_TYPE,
                                                 self.tr('Wall type (only with wall scheme)'),
@@ -988,10 +988,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
                 raise QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
-            print('Max lcgrid before: ' + str(lcgrid.max()))
+            
             # Get land cover properties for Tg wave (land cover scheme based on Bogren et al. 2000, explained in Lindberg et al., 2008 and Lindberg, Onomura & Grimmond, 2016)
             [TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST, TmaxLST_wall] = Tgmaps_v1(lcgrid.copy(), solweig_parameters)
-            print('Max lcgrid after: ' + str(lcgrid.max()))
+            
         else:
             TgK = Knight + solweig_parameters['Ts_deg']['Value']['Cobble_stone_2014a']
             Tstart = Knight - solweig_parameters['Tstart']['Value']['Cobble_stone_2014a']
@@ -1011,6 +1011,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             # Get wall type set in GUI
             wall_type = str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context)))
 
+            # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
+            walls_scheme = wa.findwalls_sp(dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]]))
+            # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
+            dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(walls_scheme.copy(), scale, dsm, feedback, 100./180.)
+            
             # Used in wall temperature parameterization scheme
             first_timestep = (pd.to_datetime(YYYY[0][0], format='%Y') + pd.to_timedelta(DOY[0] - 1, unit='d') + 
                 pd.to_timedelta(hours[0], unit='h') + pd.to_timedelta(minu[0], unit='m'))
@@ -1020,7 +1025,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             timeStep = (second_timestep - first_timestep).seconds
 
             # Load voxelTable as Pandas DataFrame
-            voxelTable = load_walls(voxelTable, solweig_parameters, wall_type, wallaspect, Ta[0], timeStep, alb_grid, landcover, lcgrid, dsm)
+            voxelTable, dirwalls_scheme = load_walls(voxelTable, solweig_parameters, wall_type, dirwalls_scheme, Ta[0], timeStep, albedo_b, ewall, alb_grid, landcover, lcgrid, dsm)
             # Unique wall types
             thermal_effusivity = voxelTable['thermalEffusivity'].unique()
 
@@ -1032,7 +1037,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if woilyr is not None:
                 (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform()
 
-                woi_field = self.parameterAsFields(parameters, self.WOI_FIELD, context)
+                woi_field = self.parameterAsStrings(parameters, self.WOI_FIELD, context)
                 woisxy, woiname = wallOfInterest(woilyr, woi_field, minx, miny, scale, rows, outputDir, dsm_minx, dsm_x_size, dsm_miny, dsm_y_size)
 
             # Create pandas datetime object to be used when createing an xarray DataSet where wall temperatures/radiation is stored and eventually saved as a NetCDf
@@ -1046,6 +1051,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             voxelTable = 0
             timeStep = 0
             thermal_effusivity = 0
+            walls_scheme = np.ones((rows, cols)) * 10.
+            dirwalls_scheme = np.ones((rows, cols)) * 10.
 
         # Initialisation of time related variables
         if Ta.__len__() == 1:
@@ -1126,6 +1133,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             first_unique_day = DOY.copy()
             I0_array = np.zeros((DOY.shape[0]))
 
+        # Rotate canyon
+        rotate_deg = 0
+
         for i in np.arange(0, Ta.__len__()):
             feedback.setProgress(int(i * (100. / Ta.__len__()))) # move progressbar forward
             if feedback.isCanceled():
@@ -1152,8 +1162,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     CI = 1.
 
             # if altitude[0][i] > 0:
-            #     # radI[i] = (radG[i] - radD[i])/np.sin(altitude[0][i] * np.pi/180)
-            #     # onlyglobal = False
+            # #     # radI[i] = (radG[i] - radD[i])/np.sin(altitude[0][i] * np.pi/180)
+            # #     # onlyglobal = False
             #     radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
             # else:
             #     radG[i] = 0.
@@ -1170,13 +1180,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                         i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
                         svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, \
                         vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-                        azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+                        azimuth[0][i] + rotate_deg, zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
                         psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
                         wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
                         bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
                         TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
                         Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, 
-                        anisotropic_sky, asvf, patch_option, voxelMaps, voxelTable, Ws[i], wallScheme, timeStep, steradians)
+                        anisotropic_sky, asvf, patch_option, voxelMaps, voxelTable, Ws[i], wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme)
 
             # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
             #         Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
@@ -1346,20 +1356,23 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 if not woisxy is None:
                     for k in range(0, woisxy.shape[0]):
                         temp_wall = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallTemperature'].to_numpy()
-
-                        # temp_all = np.concatenate([temp_wall, K_in, L_in, Ts_Erik, Ts_SolweigOld])
-                        temp_all = np.concatenate([temp_wall])
+                        K_in = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'K_in'].to_numpy()
+                        L_in = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'L_in'].to_numpy()
+                        wallShade = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallShade'].to_numpy()
+                        temp_all = np.concatenate([temp_wall, K_in, L_in, wallShade])
+                        # temp_all = np.concatenate([temp_wall])
                         # wall_data = np.zeros((1, 7 + temp_wall.shape[0]))
                         wall_data = np.zeros((1, 7 + temp_all.shape[0]))
                         # Part of file name (wallid), i.e. WOI_wallid.txt
                         data_out = outputDir + '/WOI_' + str(woiname[k]) + '.txt'                    
                         if i == 0:
                             # Output file header
-                            header = 'yyyy id   it imin dectime Ta  SVF Ts'
+                            #header = 'yyyy id   it imin dectime Ta  SVF Ts'
+                            header = 'yyyy id   it imin dectime Ta  SVF' + ' Ts' * temp_wall.shape[0] + ' Kin' * K_in.shape[0] + ' Lin' * L_in.shape[0] + ' shade' * wallShade.shape[0]
                             # Part of file name (wallid), i.e. WOI_wallid.txt
                             # woiname = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallId'].to_numpy()[0]
                             woi_save = []  # 
-                            np.savetxt(data_out, woi_save,  delimiter=' ', header=header, comments='')                        
+                            np.savetxt(data_out, woi_save,  delimiter=' ', header=header, comments='')
                         # Fill wall_data with variables
                         wall_data[0, 0] = YYYY[0][i] 
                         wall_data[0, 1] = jday[0][i]
@@ -1380,7 +1393,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 # Save wall temperature/radiation as NetCDF
                 if wallNetCDF:
                     netcdf_output = outputDir + '/walls.nc'
-                    walls_as_netcdf(voxelTable, rows, cols, met_for_xarray, i, filepath_dsm, netcdf_output)
+                    walls_as_netcdf(voxelTable, rows, cols, met_for_xarray, i, dsm, filepath_dsm, netcdf_output)
 
             if hours[i] < 10:
                 XH = '0'
