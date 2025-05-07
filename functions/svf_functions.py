@@ -1,6 +1,15 @@
 import numpy as np
 from ..util import shadowingfunctions as shadow
 from ..util.SEBESOLWEIGCommonFiles.create_patches import create_patches
+# from ..functions.wallalgorithms import findwalls
+from ..functions import wallalgorithms as wa
+from ..functions import svf_for_voxels as svfv
+from ..util.SEBESOLWEIGCommonFiles import shadowingfunction_wallheight_13 as shb
+from ..util.SEBESOLWEIGCommonFiles import shadowingfunction_wallheight_23 as shbv
+# remove
+from ..util.misc import saveraster
+from osgeo import gdal, osr
+from osgeo.gdalconst import *
 
 def annulus_weight(altitude, aziinterval):
     n = 90.
@@ -41,7 +50,7 @@ def svf_angles_100121():
     return angleresult
 
 
-def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
+def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, pixel_resolution, wallScheme, demlayer, feedback):
     rows = dsm.shape[0]
     cols = dsm.shape[1]
     svf = np.zeros([rows, cols])
@@ -73,7 +82,7 @@ def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     # % Bush separation
     bush = np.logical_not((vegdem2 * vegdem)) * vegdem
 
-    index = int(0)
+    #index = int(0)
 
     # patch_option = 1 # 145 patches
     patch_option = 2 # 153 patches
@@ -87,9 +96,28 @@ def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     iazimuth = np.hstack(np.zeros((1, np.sum(aziinterval)))) # Nils
 
     shmat = np.zeros((rows, cols, np.sum(aziinterval)))
+    # shmat = np.ones((rows, cols, np.sum(aziinterval)))
     vegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
+    # vegshmat = np.ones((rows, cols, np.sum(aziinterval)))
     vbshvegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
+    # vbshvegshmat = np.ones((rows, cols, np.sum(aziinterval)))
 
+    # Preparations for wall temperature scheme
+    if wallScheme:
+        voxelTable, voxelId_list, wall_dict, walls, aspect, uniqueWallIDs, wall2d_id, voxel_height = svfv.wallscheme_prepare(dsm, scale, pixel_resolution, feedback)
+
+        # Rasters to fill with values in loop
+        all_buildIDSeen = np.zeros((rows, cols, skyvaultalt.shape[0]))
+        all_voxelHeight = np.zeros((rows, cols, skyvaultalt.shape[0]))
+        all_voxelId = np.zeros((rows, cols, skyvaultalt.shape[0]))
+    else:
+        voxelTable = 0
+        allbuildIDSeen = 0
+        allvoxelHeight = 0
+        all_voxelId = 0
+        walls = 0
+
+    index = 0
     for j in range(0, skyvaultaltint.shape[0]):
         for k in range(0, int(360 / skyvaultaziint[j])):
             iazimuth[index] = k * skyvaultaziint[j] + azistart[j]
@@ -107,18 +135,34 @@ def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
             azimuth = iazimuth[int(index)]
 
             # Casting shadow
-            if usevegdem == 1:
-                shadowresult = shadow.shadowingfunction_20(dsm, vegdem, vegdem2, azimuth, altitude,
-                                                           scale, amaxvalue, bush, feedback, 1)
-                vegsh = shadowresult["vegsh"]
-                vbshvegsh = shadowresult["vbshvegsh"]
-                sh = shadowresult["sh"]
-                vegshmat[:, :, index] = vegsh
-                vbshvegshmat[:, :, index] = vbshvegsh
+            if wallScheme:
+                if usevegdem == 1:
+                    vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun = shbv.shadowingfunction_wallheight_23(dsm, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, walls, aspect * np.pi / 180)
+                    vegshmat[:, :, index] = vegsh
+                    vbshvegshmat[:, :, index] = vbshvegsh
+                else:
+                    sh, wallsh, wallsun, facesh, facesun = shb.shadowingfunction_wallheight_13(dsm, azimuth, altitude, scale, walls, aspect * np.pi / 180.)
+                    vegsh = np.ones((sh.shape[0], sh.shape[1])).astype(float)
+                    vbshvegsh = np.ones((sh.shape[0], sh.shape[1])).astype(float)
+                    vegshmat[:, :, index] = vegsh
+                    vbshvegshmat[:, :, index] = vbshvegsh
             else:
-                sh = shadow.shadowingfunctionglobalradiation(dsm, azimuth, altitude, scale, feedback, 1)
+                if usevegdem == 1:
+                    shadowresult = shadow.shadowingfunction_20(dsm, vegdem, vegdem2, azimuth, altitude,
+                                                            scale, amaxvalue, bush, feedback, 1)
+                    vegsh = shadowresult["vegsh"]
+                    vbshvegsh = shadowresult["vbshvegsh"]
+                    vegshmat[:, :, index] = vegsh
+                    vbshvegshmat[:, :, index] = vbshvegsh
+                    sh = shadowresult["sh"]
+                else:
+                    sh = shadow.shadowingfunctionglobalradiation(dsm, azimuth, altitude, scale, feedback, 1)
 
             shmat[:, :, index] = sh
+            
+            # Wall temperature scheme, i.e. finding out which voxel is seen from each pixel, where direction is patch azimuth and altitude
+            if wallScheme:
+                all_buildIDSeen[:,:, index], all_voxelHeight[:,:, index], all_voxelId[:,:, index] = shadow.shadowingfunction_findwallID(dsm, azimuth, altitude, scale, walls, uniqueWallIDs, demlayer, wall2d_id, voxel_height, voxelId_list, facesh, wall_dict, sh)
 
             # Calculate svfs
             for k in np.arange(annulino[int(i)]+1, (annulino[int(i+1.)])+1):
@@ -189,7 +233,8 @@ def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, feedback):
     svfresult = {'svf': svf, 'svfE': svfE, 'svfS': svfS, 'svfW': svfW, 'svfN': svfN,
                     'svfveg': svfveg, 'svfEveg': svfEveg, 'svfSveg': svfSveg, 'svfWveg': svfWveg,
                     'svfNveg': svfNveg, 'svfaveg': svfaveg, 'svfEaveg': svfEaveg, 'svfSaveg': svfSaveg,
-                    'svfWaveg': svfWaveg, 'svfNaveg': svfNaveg, 'shmat': shmat, 'vegshmat': vegshmat, 'vbshvegshmat': vbshvegshmat}
+                    'svfWaveg': svfWaveg, 'svfNaveg': svfNaveg, 'shmat': shmat, 'vegshmat': vegshmat, 'vbshvegshmat': vbshvegshmat,
+                    'voxelIds': all_voxelId, 'voxelTable': voxelTable, 'walls': walls}
                     # ,
                     # 'vbshvegshmat': vbshvegshmat, 'wallshmat': wallshmat, 'wallsunmat': wallsunmat,
                     # 'wallshvemat': wallshvemat, 'facesunmat': facesunmat}

@@ -5,8 +5,44 @@ __author__ = 'xlinfr'
 import math
 import numpy as np
 # import scipy.misc as sc
-import scipy.ndimage.interpolation as sc
+import scipy.ndimage as sc
+from scipy.ndimage import maximum_filter
 
+def findwalls_sp(arr_dsm, walllimit, footprint = False):
+    # This function identifies walls based on a DSM and a wall height limit. 
+    # arr_dsm = DSM
+    # walllimit = wall height limit
+    # footprint = footprint for maximum filter, default = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+
+    # Get the shape of the input array
+    col, row = arr_dsm.shape
+    walls = np.zeros((col, row))
+   
+    # Create a padded version of the array
+    padded_a = np.pad(arr_dsm, pad_width=1, mode='edge')
+ 
+    # Default footprint for cardinal points
+    if footprint is False:
+        footprint = np.array([[0, 1, 0],
+                              [1, 0, 1],
+                              [0, 1, 0]])
+ 
+    # Use maximum_filter with the custom footprint
+    max_neighbors = maximum_filter(padded_a, footprint=footprint, mode='constant', cval=0)
+   
+    # Identify wall pixels: walls are where the max neighbors are greater than the original DSM
+    walls = max_neighbors[1:-1, 1:-1] - arr_dsm
+   
+    # Apply wall height limit
+    walls[walls < walllimit] = 0
+ 
+    # Set the edges to zero
+    walls[0:walls.shape[0], 0] = 0
+    walls[0:walls.shape[0], walls.shape[1] - 1] = 0
+    walls[0, 0:walls.shape[1]] = 0
+    walls[walls.shape[0] - 1, 0:walls.shape[1]] = 0
+   
+    return walls
 
 def findwalls(a, walllimit, feedback, total):
     # This function identifies walls based on a DSM and a wall-height limit
@@ -34,15 +70,15 @@ def findwalls(a, walllimit, feedback, total):
     walls = np.copy(walls - a)  # new 20171006
     walls[(walls < walllimit)] = 0
 
-    walls[0:walls .shape[0], 0] = 0
-    walls[0:walls .shape[0], walls .shape[1] - 1] = 0
-    walls[0, 0:walls .shape[0]] = 0
-    walls[walls .shape[0] - 1, 0:walls .shape[1]] = 0
+    walls[0:walls.shape[0], 0] = 0
+    walls[0:walls.shape[0], walls.shape[1] - 1] = 0
+    walls[0, 0:walls.shape[0]] = 0
+    walls[walls.shape[0] - 1, 0:walls.shape[1]] = 0
 
     return walls
 
 
-def filter1Goodwin_as_aspect_v3(walls, scale, a, feedback, total):
+def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
     """
     tThis function applies the filter processing presented in Goodwin et al (2010) but instead for removing
     linear fetures it calculates wall aspect based on a wall pixels grid, a dsm (a) and a scale factor
@@ -57,6 +93,8 @@ def filter1Goodwin_as_aspect_v3(walls, scale, a, feedback, total):
     :param a:
     :return: dirwalls
     """
+
+    walls = walls_for_dir.copy()
 
     row = a.shape[0]
     col = a.shape[1]

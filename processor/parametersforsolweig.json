@@ -1,0 +1,186 @@
+{
+    "Names": {
+        "Value": {
+            "0": "Cobble_stone_2014a",
+            "1": "Dark_asphalt",
+            "2": "Roofs(buildings)",
+            "5": "Grass_unmanaged",
+            "6": "Bare_soil",
+            "7": "Water",
+            "99": "Walls",
+            "100": "Brick_wall",
+            "101": "Concrete_wall",
+            "102": "Wood_wall"
+        },
+        "Comment": "Name of each respective land cover class in land cover data."
+        },
+    "Code": {
+        "Value": {
+            "Cobble_stone_2014a": 0,
+            "Dark_asphalt": 1,
+            "Roofs(buildings)": 2,
+            "Grass_unmanaged": 5,
+            "Bare_soil": 6,
+            "Water": 7,
+            "Walls": 99,
+            "Brick_wall": 100,
+            "Concrete_wall": 101,
+            "Wood_wall": 102
+        },
+        "Comment": "Code for each land cover class name."
+        },    
+    "Albedo": {
+        "Effective": {
+            "Value": {
+                "Cobble_stone_2014a": 0.2,
+                "Dark_asphalt": 0.18,
+                "Roofs(buildings)": 0.18,
+                "Grass_unmanaged": 0.16,
+                "Bare_soil": 0.25,
+                "Water": 0.05,
+                "Walls": 0.2
+            },
+            "Comment": "Effective albedos according to Lindberg et al., 2008; 2016."
+        },
+        "Material": {
+            "Value": {
+                "Brick_wall": 0.2,
+                "Concrete_wall": 0.2,
+                "Wood_wall": 0.2
+            },
+            "Comment": "Material albedos according to Wallenberg et al., 2025."
+        }
+    },
+    "Emissivity": {
+        "Value": {
+            "Cobble_stone_2014a": 0.95,
+            "Dark_asphalt": 0.95,
+            "Roofs(buildings)": 0.95,
+            "Grass_unmanaged": 0.94,
+            "Bare_soil": 0.94,
+            "Water": 0.98,
+            "Walls": 0.9,
+            "Brick_wall": 0.9,
+            "Concrete_wall": 0.9,
+            "Wood_wall": 0.9
+        },
+        "Comment": "Emissivity of each land cover class."
+        },
+    "Specific_heat": {
+        "Value": {
+            "Cobble_stone_2014a": -9999.0,
+            "Dark_asphalt": -9999.0,
+            "Roofs(buildings)": -9999.0,
+            "Grass_unmanaged": -9999.0,
+            "Bare_soil": -9999.0,
+            "Water": -9999.0,
+            "Walls": -9999.0,
+            "Brick_wall": 800,
+            "Concrete_wall": 840,
+            "Wood_wall": 1880
+        },
+        "Comment": "Specific heat capacity, in units J kg-1 K-1, used for wall surface temperatures according to Wallenberg et al. 2025."
+        },
+    "Thermal_conductivity": {
+        "Value": {
+            "Cobble_stone_2014a": -9999.0,
+            "Dark_asphalt": -9999.0,
+            "Roofs(buildings)": -9999.0,
+            "Grass_unmanaged": -9999.0,
+            "Bare_soil": -9999.0,
+            "Water": -9999.0,
+            "Walls": -9999.0,
+            "Brick_wall": 0.84,
+            "Concrete_wall": 1.7,
+            "Wood_wall": 0.17
+        },
+        "Comment": "Thermal conductivity of each land cover class, in units W m-1 K-1, used for wall surface temperatures according to Wallenberg et al. 2025."
+        },
+    "Density": {
+        "Value": {
+            "Cobble_stone_2014a": -9999.0,
+            "Dark_asphalt": -9999.0,
+            "Roofs(buildings)": -9999.0,
+            "Grass_unmanaged": -9999.0,
+            "Bare_soil": -9999.0,
+            "Water": -9999.0,
+            "Walls": -9999.0,
+            "Brick_wall": 1700,
+            "Concrete_wall": 2200,
+            "Wood_wall": 700
+        },
+        "Comment": "Density of the material in units kg m-3, used for wall surface temperatures according to Wallenberg et al. 2025."
+    },    
+    "Wall_thickness": {
+        "Value": {
+            "Brick_wall": 0.1,
+            "Concrete_wall": 0.2,
+            "Wood_wall": 0.03
+        },
+        "Comment": "Wall thickness in units meters, used to calculate characteristic time for wall surface temperatures (Wallenberg et al., 2025)."
+    },
+    "TmaxLST": {
+        "Value": {
+            "Cobble_stone_2014a": 15.0,
+            "Dark_asphalt": 15.0,
+            "Roofs(buildings)": 15.0,
+            "Grass_unmanaged": 14.0,
+            "Bare_soil": 14.0,
+            "Water": 12.0,
+            "Walls": 15.0,
+            "Brick_wall": -999.0,
+            "Concrete_wall": -999.0,
+            "Wood_wall": -999.0
+        },
+        "Comment": "TmaxLST used for ground surface temperatures and wall surface temperatures according to Lindberg et al. 2008; 2016."
+        },
+    "Ts_deg": {
+        "Value": {
+            "Cobble_stone_2014a": 0.37,
+            "Dark_asphalt": 0.58,
+            "Roofs(buildings)": 0.58,
+            "Grass_unmanaged": 0.21,
+            "Bare_soil": 0.33,
+            "Water": 0.0,
+            "Walls": 0.37,
+            "Brick_wall": -999.0,
+            "Concrete_wall": -999.0,
+            "Wood_wall": -999.0
+        },
+        "Comment": "Ts_deg used for ground surface temperatures and wall surface temperatures according to Lindberg et al. 2008; 2016."
+        },
+    "Tstart": {
+        "Value": {
+            "Cobble_stone_2014a": -3.41,
+            "Dark_asphalt": -9.78,
+            "Roofs(buildings)": -9.78,
+            "Grass_unmanaged": -3.38,
+            "Bare_soil": -3.01,
+            "Water": 0.0,
+            "Walls": -3.41,
+            "Brick_wall": -999.0,
+            "Concrete_wall": -999.0,
+            "Wood_wall": -999.0
+        },
+        "Comment": "Tstart used for ground surface temperatures and wall surface temperatures according to Lindberg et al. 2008; 2016."
+        },
+    "Tmrt_params": {
+        "Value": {
+            "absK": 0.70,
+            "absL": 0.95,
+            "posture": "Standing"
+        },
+        "Comment": "Absorption coefficients for mean radiant temperature (Tmrt) and posture. Posture is either standing or sitting." 
+    },
+    "PET_settings": {
+        "Value": {
+            "Age": 35,
+            "Weight": 75.0,
+            "Height": 180,
+            "Sex": "Male",
+            "Activity": 80.0,
+            "clo": 0.90
+        },
+        "Comment": "Settings to calculate Physiological Equivalent Temperature (PET). Sex is either Male or Female."
+    }        
+}

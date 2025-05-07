@@ -4,8 +4,36 @@ import numpy as np
 from math import radians
 # from scipy.ndimage.filters import median_filter
 
+def shade_on_walls(azimuth, aspect, walls, dsm, f):
+    # wall shadows wall parameterization
+    wallbol = (walls > 0).astype(float)    
 
-def shadowingfunction_wallheight_13(a, azimuth, altitude, scale, walls, aspect):
+    # Removing walls in shadow due to selfshadowing
+    azilow = azimuth-np.pi/2
+    azihigh = azimuth+np.pi/2
+
+    if azilow >= 0 and azihigh < 2*np.pi:    # 90 to 270  (SHADOW)
+        facesh = (np.logical_or(aspect < azilow, aspect >= azihigh).astype(float)-wallbol+1)
+    elif azilow < 0 and azihigh <= 2*np.pi:    # 0 to 90
+        azilow = azilow + 2*np.pi
+        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1    # (SHADOW)    # check for the -1
+    elif azilow > 0 and azihigh >= 2*np.pi:    # 270 to 360
+        azihigh = azihigh-2*np.pi
+        facesh = np.logical_or(aspect > azilow, aspect <= azihigh)*-1 + 1    # (SHADOW)
+
+    sh = np.copy(f-dsm)    # shadow volume
+    facesun = np.logical_and(facesh + (walls > 0).astype(float) == 1, walls > 0).astype(float)
+    wallsun = np.copy(walls-sh)
+    wallsun[wallsun < 0] = 0
+    wallsun[facesh == 1] = 0    # Removing walls in "self"-shadow
+    wallsh = np.copy(walls-wallsun)
+
+    sh = np.logical_not(np.logical_not(sh)).astype(float)
+    sh = sh * -1 + 1    
+
+    return sh, wallsh, wallsun, facesh, facesun
+
+def shadowingfunction_wallheight_13(a, azimuth, altitude, scale, walls, aspect, walls_scheme=False, aspect_scheme=False):
     """
     This m.file calculates shadows on a DSM and shadow height on building
     walls.
@@ -116,27 +144,32 @@ def shadowingfunction_wallheight_13(a, azimuth, altitude, scale, walls, aspect):
 
         index = index + 1
 
-    # Removing walls in shadow due to selfshadowing
-    azilow = azimuth-np.pi/2
-    azihigh = azimuth+np.pi/2
+    # # Removing walls in shadow due to selfshadowing
+    # azilow = azimuth-np.pi/2
+    # azihigh = azimuth+np.pi/2
 
-    if azilow >= 0 and azihigh < 2*np.pi:    # 90 to 270  (SHADOW)
-        facesh = (np.logical_or(aspect < azilow, aspect >= azihigh).astype(float)-wallbol+1)
-    elif azilow < 0 and azihigh <= 2*np.pi:    # 0 to 90
-        azilow = azilow + 2*np.pi
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1    # (SHADOW)    # check for the -1
-    elif azilow > 0 and azihigh >= 2*np.pi:    # 270 to 360
-        azihigh = azihigh-2*np.pi
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh)*-1 + 1    # (SHADOW)
+    # if azilow >= 0 and azihigh < 2*np.pi:    # 90 to 270  (SHADOW)
+    #     facesh = (np.logical_or(aspect < azilow, aspect >= azihigh).astype(float)-wallbol+1)
+    # elif azilow < 0 and azihigh <= 2*np.pi:    # 0 to 90
+    #     azilow = azilow + 2*np.pi
+    #     facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1    # (SHADOW)    # check for the -1
+    # elif azilow > 0 and azihigh >= 2*np.pi:    # 270 to 360
+    #     azihigh = azihigh-2*np.pi
+    #     facesh = np.logical_or(aspect > azilow, aspect <= azihigh)*-1 + 1    # (SHADOW)
 
-    sh = np.copy(f-a)    # shadow volume
-    facesun = np.logical_and(facesh + (walls > 0).astype(float) == 1, walls > 0).astype(float)
-    wallsun = np.copy(walls-sh)
-    wallsun[wallsun < 0] = 0
-    wallsun[facesh == 1] = 0    # Removing walls in "self"-shadow
-    wallsh = np.copy(walls-wallsun)
+    # sh = np.copy(f-a)    # shadow volume
+    # facesun = np.logical_and(facesh + (walls > 0).astype(float) == 1, walls > 0).astype(float)
+    # wallsun = np.copy(walls-sh)
+    # wallsun[wallsun < 0] = 0
+    # wallsun[facesh == 1] = 0    # Removing walls in "self"-shadow
+    # wallsh = np.copy(walls-wallsun)
 
-    sh = np.logical_not(np.logical_not(sh)).astype(float)
-    sh = sh * -1 + 1
+    # sh = np.logical_not(np.logical_not(sh)).astype(float)
+    # sh = sh * -1 + 1
 
-    return sh, wallsh, wallsun, facesh, facesun
+    sh, wallsh, wallsun, facesh, facesun = shade_on_walls(azimuth, aspect, walls, a, f)
+    if walls_scheme is not False:
+        sh_, wallsh_, wallsun_, facesh_, facesun_ = shade_on_walls(azimuth, aspect_scheme, walls_scheme, a, f)
+        shade_on_wall = wallsh_.copy()
+
+    return (sh, wallsh, wallsun, facesh, facesun, shade_on_wall) if walls_scheme is not False else (sh, wallsh, wallsun, facesh, facesun)
