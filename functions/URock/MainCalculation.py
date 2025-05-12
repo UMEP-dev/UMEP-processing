@@ -251,7 +251,12 @@ def main(javaEnvironmentPath,
             cursor.close()
             feedback.setProgressText("Calculation cancelled by user")
             return {}
-
+    print(f"""Roughness zone properties are:\n
+                                 - z0: {z0}
+                                 - d: {d}
+                                 - Hr: {Hr}
+                                 - H_ob_max: {H_ob_max}
+                                 - lambda_f: {lambda_f}""")
 
     # Save the rotated obstacles and facades as fgb
     if debug or saveRockleZones:
