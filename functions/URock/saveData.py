@@ -109,8 +109,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                            HORIZ_WIND_DIRECTION: radToDeg(windDirectionFromXY(ufin, vfin)).flatten("F"), 
                            VERT_WIND_SPEED: wfin.flatten("F")}).rename_axis(ID_POINT)
         
-        # Save horizontal wind speed, wind direction and
-        # vertical wind speed in a vector file
+        # Load horizontal wind speed, wind direction and
+        # vertical wind speed in a file containing a geometry field
         df.to_csv(os.path.join(TEMPO_DIRECTORY, TEMPO_HORIZ_WIND_FILE))
         cursor.execute(
             """
@@ -553,7 +553,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'ASCENDING':False,
                                     'NULLS_FIRST':False,
                                     'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                          "order_changed")})["OUTPUT"]
+                                                          f"order_changed_{datetime.now().isoformat().replace('.','_').replace(':','_')}")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
     colnb = gpd.read_file(order_changed, rows = slice(0,)).columns.get_loc(colname) + 1

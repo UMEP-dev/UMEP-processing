@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.1.24 : URock: Solve issue with existing file issue (fix discussion #745)
     2.1.23 : URock: Solve major vegetation issue (fix issue #735)
     2.1.22 : SOLWEIG update: Fixing minor bugs and updated shadow casting for wall surface temperature scheme
     2.1.21 : SOLWEIG update: new parameterization scheme for wall surface temperatures
