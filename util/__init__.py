@@ -20,6 +20,7 @@ try:
     QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
     import numba
     import jaydebeapi
+    import rioxarray
 except:
     if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
               "Do you automatically want install missing python modules? \r\n"

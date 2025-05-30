@@ -1474,7 +1474,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2022a')
+        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2025a')
 
     def group(self):
         """
@@ -1494,7 +1494,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG (v2022a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
+        return self.tr('SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
                        'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same '
                        'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
                        'six directions being individually calculated to derive Tmrt. The model requires a limited number '

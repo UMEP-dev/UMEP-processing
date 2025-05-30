@@ -198,9 +198,11 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. If observed data are not available for a particular location, hourly data can be retrieved from the global the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be extracted for a specific location and period of interest (1979-2020), and transformed into formatted forcing files suitable for models within UMEP.'
+        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. If observed data are not available for a particular location, hourly data can be retrieved from the global the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be extracted for a specific location and period of interest (1940-today), and transformed into formatted forcing files suitable for models within UMEP.'
         '\n'
-        'TIP: Open cdsapi can occasionally be very busy. Open the Python Console in QGIS to get more detailed pregress information about the status of your request.'
+        'TIP: Open cdsapi can occasionally be very busy. Open the Python Console in QGIS to get more detailed progress information about the status of your request.'
+        '\n'
+        'Another tip is to visit https://www.shinyweatherdata.com/ where ERA5 data also can be downloaded.'
         '\n'
         '---------------\n'
         'Full manual available via the <b>Help</b>-button.')

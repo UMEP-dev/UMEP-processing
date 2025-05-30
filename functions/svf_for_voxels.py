@@ -1,6 +1,9 @@
 import numpy as np
 
-from sklearn.cluster import KMeans
+try:
+    from sklearn.cluster import KMeans
+except:
+    pass
 
 import time
 from ..functions import svf_functions as svf

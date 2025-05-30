@@ -343,7 +343,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         mbody = self.parameterAsDouble(parameters, self.WEIGHT, context) # Body weight in kg
         clo = self.parameterAsDouble(parameters, self.CLO, context) # Clothing in clo
         age = self.parameterAsDouble(parameters, self.AGE, context) # Age in years
-        activity = self.parameterAsDouble(parameters, self.WEIGHT, context) # Activity in watt
+        activity = self.parameterAsDouble(parameters, self.ACTIVITY, context) # Activity in watt
         sex = self.parameterAsInt(parameters, self.SEX, context) + 1 # Sex, #TODO CHECK SO SAME FOR PET AND COMFA
 
         if tcType == 0:
