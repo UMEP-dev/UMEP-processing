@@ -25,6 +25,7 @@ except ImportError:
 #import copy as cp
 from pathlib import Path
 from qgis.core import QgsProcessingException
+from shutil import rmtree
 
 import os
 
@@ -73,35 +74,41 @@ def main(javaEnvironmentPath,
         feedback.setProgressText('Initiating algorithm')
     
     ################################ INIT OUTPUT VARIABLES ############################
+    # Create the temporary directory if not exists
+    tmp_dir_unique = os.path.join(TEMPO_DIRECTORY, "URock_" + datetime.now().isoformat().replace('.','_').replace(':','_'))
+    if os.path.exists(tmp_dir_unique):
+        os.remove(tmp_dir_unique)
+    os.mkdir(tmp_dir_unique)    
+    
     # Define dictionaries of input and output relative directories
     outputDataRel = {}
 
     # Blocks and stacked blocks
-    outputDataRel["blocks"] = os.path.join(tempoDirectory, f"blocks.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["stacked_blocks"] = os.path.join(tempoDirectory, f"stackedBlocks.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["vegetation"] = os.path.join(tempoDirectory, f"vegetation.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["blocks"] = os.path.join(tmp_dir_unique, f"blocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["stacked_blocks"] = os.path.join(tmp_dir_unique, f"stackedBlocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation"] = os.path.join(tmp_dir_unique, f"vegetation.{OUTPUT_VECTOR_EXTENSION}")
 
     # Rotated geometries
-    outputDataRel["rotated_stacked_blocks"] = os.path.join(tempoDirectory, f"rotated_stacked_blocks.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["rotated_vegetation"] = os.path.join(tempoDirectory, f"vegetationRotated.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["upwind_facades"] = os.path.join(tempoDirectory, f"upwind_facades.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["downwind_facades"] = os.path.join(tempoDirectory, f"downwind_facades.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rotated_stacked_blocks"] = os.path.join(tmp_dir_unique, f"rotated_stacked_blocks.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rotated_vegetation"] = os.path.join(tmp_dir_unique, f"vegetationRotated.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["upwind_facades"] = os.path.join(tmp_dir_unique, f"upwind_facades.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["downwind_facades"] = os.path.join(tmp_dir_unique, f"downwind_facades.{OUTPUT_VECTOR_EXTENSION}")
     
     # Created zones
-    outputDataRel["displacement"] = os.path.join(tempoDirectory, f"displacementZones.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["displacement_vortex"] = os.path.join(tempoDirectory, f"displacementVortexZones.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["cavity"] = os.path.join(tempoDirectory, f"cavity.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["wake"] = os.path.join(tempoDirectory, f"wake.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["street_canyon"] = os.path.join(tempoDirectory, f"streetCanyon.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["rooftop_perpendicular"] = os.path.join(tempoDirectory, f"rooftopPerp.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["rooftop_corner"] = os.path.join(tempoDirectory, f"rooftopCorner.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["vegetation_built"] = os.path.join(tempoDirectory, f"vegetationBuilt.{OUTPUT_VECTOR_EXTENSION}")
-    outputDataRel["vegetation_open"] = os.path.join(tempoDirectory, f"vegetationOpen.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["displacement"] = os.path.join(tmp_dir_unique, f"displacementZones.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["displacement_vortex"] = os.path.join(tmp_dir_unique, f"displacementVortexZones.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["cavity"] = os.path.join(tmp_dir_unique, f"cavity.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["wake"] = os.path.join(tmp_dir_unique, f"wake.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["street_canyon"] = os.path.join(tmp_dir_unique, f"streetCanyon.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rooftop_perpendicular"] = os.path.join(tmp_dir_unique, f"rooftopPerp.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["rooftop_corner"] = os.path.join(tmp_dir_unique, f"rooftopCorner.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation_built"] = os.path.join(tmp_dir_unique, f"vegetationBuilt.{OUTPUT_VECTOR_EXTENSION}")
+    outputDataRel["vegetation_open"] = os.path.join(tmp_dir_unique, f"vegetationOpen.{OUTPUT_VECTOR_EXTENSION}")
     
     # Grid points
-    outputDataRel["point3D_BuildZone"] = os.path.join(tempoDirectory, "point3D_BuildZone")
-    outputDataRel["point3D_VegZone"] = os.path.join(tempoDirectory, "point3D_VegZone")
-    outputDataRel["point3D_All"] = os.path.join(tempoDirectory, "point3D_All")
+    outputDataRel["point3D_BuildZone"] = os.path.join(tmp_dir_unique, "point3D_BuildZone")
+    outputDataRel["point3D_VegZone"] = os.path.join(tmp_dir_unique, "point3D_VegZone")
+    outputDataRel["point3D_All"] = os.path.join(tmp_dir_unique, "point3D_All")
     
     # Put 2D grid points in the output directory
     outputDataRel["point_2DRockleZone"] = os.path.join(outputFilePath, "Rockle_zones")
@@ -132,7 +139,7 @@ def main(javaEnvironmentPath,
         db_suffix = str(time.time()).replace(".", "_")
     cursor, conn, localH2InstanceDir = \
         H2gisConnection.startH2gisInstance(dbDirectory = dBDir,
-                                           dbInstanceDir = tempoDirectory,
+                                           dbInstanceDir = tmp_dir_unique,
                                            suffix = db_suffix)
         
     # Load data
@@ -633,7 +640,7 @@ def main(javaEnvironmentPath,
                                           gridPoint = gridPoint,
                                           stackedBlocksWithBaseHeight = rotatedPropStackedBlocks,
                                           dz = dz,
-                                          tempoDirectory = tempoDirectory)
+                                          tempoDirectory = tmp_dir_unique)
     
     # Set the initial 3D wind speed field
     df_wind0, nPoints, verticalWindProfile = \
@@ -648,7 +655,7 @@ def main(javaEnvironmentPath,
                                           dz = dz, 
                                           z_ref = z_ref,
                                           V_ref = v_ref, 
-                                          tempoDirectory = tempoDirectory,
+                                          tempoDirectory = tmp_dir_unique,
                                           d = d,
                                           H = Hr,
                                           lambda_f = lambda_f,
@@ -821,20 +828,24 @@ def main(javaEnvironmentPath,
                                   meshSize = meshSize            , outputRaster = outputRaster,
                                   saveRaster = saveRaster        , saveVector = saveVector,
                                   saveNetcdf = saveNetcdf        , prefix_name = prefix,
-                                  stacked_blocks = outputDataAbs["stacked_blocks"])
+                                  stacked_blocks = outputDataAbs["stacked_blocks"],
+                                  tmp_dir = tmp_dir_unique)
     
     # Save also the initialisation field if needed
     if debug:
+        init_tmp_dir = os.path.join(tmp_dir_unique, "wind_initialisation")
+        os.mkdir(init_tmp_dir)
         dicVectorTables_ini, netcdf_path_ini =\
             saveData.saveBasicOutputs(cursor = cursor                , z_out = z_out,
                                       dz = dz                        , u = u0_rot,
                                       v = v0_rot                     , w = w0, 
                                       gridName = rotated_grid        , verticalWindProfile = verticalWindProfile,
-                                      outputFilePath = tempoDirectory, outputFilename = "wind_initiatlisation",
+                                      outputFilePath = init_tmp_dir  , outputFilename = outputFilename,
                                       meshSize = meshSize            , outputRaster = outputRaster,
                                       saveRaster = saveRaster        , saveVector = saveVector,
                                       saveNetcdf = saveNetcdf        , prefix_name = prefix,
-                                      stacked_blocks = outputDataAbs["stacked_blocks"])  
+                                      stacked_blocks = outputDataAbs["stacked_blocks"],
+                                      tmp_dir = tmp_dir_unique)  
     else:
         dicVectorTables_ini = None
         netcdf_path_ini = None
@@ -848,11 +859,12 @@ def main(javaEnvironmentPath,
                              rotationCenterCoordinates = rotationCenterCoordinates, 
                              windDirection = windDirection)
     
-    # Close the Database connection and remove the file
+    # Close the Database connection and remove temporary files
     if not debug:
         H2gisConnection.closeAndRemoveH2gisInstance(localH2InstanceDir = localH2InstanceDir, 
                                                     conn = conn,
                                                     cur = cursor)
+        rmtree(tmp_dir_unique)
 
     return  u_rot, v_rot, w, u0_rot, v0_rot, w0, x_rot, y_rot, z,\
             buildingCoordinates, cursor, rotated_grid, rotationCenterCoordinates,\

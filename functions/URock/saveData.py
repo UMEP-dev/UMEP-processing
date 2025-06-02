@@ -34,7 +34,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                      stacked_blocks, outputFilename = OUTPUT_FILENAME,
                      outputRaster = None, saveRaster = True,
                      saveVector = True, saveNetcdf = True,
-                     prefix_name = PREFIX_NAME):
+                     prefix_name = PREFIX_NAME, tmp_dir = TEMPO_DIRECTORY):
 
     # Get the srid of the input geometry
     cursor.execute(""" SELECT ST_SRID({0}) AS srid FROM {1} LIMIT 1
@@ -111,7 +111,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
         
         # Load horizontal wind speed, wind direction and
         # vertical wind speed in a file containing a geometry field
-        df.to_csv(os.path.join(TEMPO_DIRECTORY, TEMPO_HORIZ_WIND_FILE))
+        csv_tmp_file = os.path.join(tmp_dir, TEMPO_HORIZ_WIND_FILE)
+        df.to_csv(csv_tmp_file)
         cursor.execute(
             """
             DROP TABLE IF EXISTS {9};
@@ -135,7 +136,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                         GEOM_FIELD                  , HORIZ_WIND_SPEED,
                         HORIZ_WIND_DIRECTION        , VERT_WIND_SPEED,
                         gridName                    , tempoTable,
-                        TEMPO_DIRECTORY + os.sep + TEMPO_HORIZ_WIND_FILE,
+                        csv_tmp_file,
                         WIND_SPEED))
         
         # -------------------------------------------------------------------
@@ -169,7 +170,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                                    meshSize = meshSize,
                                    var2save = var,
                                    stacked_blocks = stacked_blocks,
-                                   srid = srid)   
+                                   srid = srid,
+                                   tmp_dir = tmp_dir)   
 
     return horizOutputUrock, final_netcdf_path
     
@@ -381,7 +383,7 @@ def renameFileIfExists(filedir, extension):
 
 def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase, 
                    horizOutputUrock, outputRaster, z_i, meshSize, var2save,
-                   stacked_blocks, srid):
+                   stacked_blocks, srid, tmp_dir):
     """ Save results in a raster file.
     
     Parameters
@@ -392,6 +394,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
     Returns
 	_ _ _ _ _ _ _ _ _ _ 	
 		None"""
+    # Define output path name
     outputFilePathAndNameBaseRaster = outputFilePathAndNameBase + var2save
     # If delete = False, add a suffix to the filename
     if (os.path.isfile(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION)) \
@@ -408,7 +411,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         ymax = outputRasterExtent.yMaximum()
         xmax = outputRasterExtent.xMaximum()
         ymin = outputRasterExtent.yMinimum()
-        tmp_file = os.path.join(TEMPO_DIRECTORY, "interp_before_fillna.tif")
+        tmp_file = os.path.join(tmp_dir, "interp_before_fillna.tif")
         # If a single output raster cell contains more than 4 points, average instead of interpolate
         if resX * resY > 4 * meshSize**2:
             Grid(destName = tmp_file,
@@ -431,7 +434,8 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
                                resX = resX, 
                                resY = resY,
                                z_i = z_i,
-                               colname = var2save)
+                               colname = var2save,
+                               tmp_dir = tmp_dir)
             
         # Interpolate values to fill no data
         ds = Open(tmp_file) 
@@ -481,10 +485,11 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
                            resX = meshSize, 
                            resY = meshSize,
                            z_i = z_i,
-                           colname = var2save)
+                           colname = var2save,
+                           tmp_dir = tmp_dir)
 
 def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBaseRaster, 
-                       extent, resX, resY, z_i, colname):
+                       extent, resX, resY, z_i, colname, tmp_dir):
     """ Interpolate and save wind data saved in a vector to a raster.
        
     Parameters
@@ -508,6 +513,8 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                Height of the output wind field
            colname: string
                Name of the attribute column in teh vector table to convert to raster
+           tmp_dir: String
+               Path of the directory used for saving temporary results (should be unique)
            
        
    Returns
@@ -552,8 +559,8 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'EXPRESSION':'randf(0,1)',
                                     'ASCENDING':False,
                                     'NULLS_FIRST':False,
-                                    'OUTPUT':os.path.join(TEMPO_DIRECTORY,
-                                                          f"order_changed_{datetime.now().isoformat().replace('.','_').replace(':','_')}")})["OUTPUT"]
+                                    'OUTPUT':os.path.join(tmp_dir,
+                                                          f"order_changed")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
     colnb = gpd.read_file(order_changed, rows = slice(0,)).columns.get_loc(colname) + 1
@@ -564,7 +571,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                 'METHOD':0,
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
-                                'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                'OUTPUT':os.path.join(tmp_dir,
                                                       "interp_out.tif")})["OUTPUT"]
     
     # If there are buildings in the study area, need to set wind speed = 0
@@ -577,7 +584,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                      'EXTENT':extent,
                                      'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
                                      'INIT':-9999,'INVERT':False,'EXTRA':'',
-                                     'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                     'OUTPUT':os.path.join(tmp_dir,
                                                            "block_base.tif")})["OUTPUT"]
         
         # Rasterize the stacked blocks keeping the value of each stacked block top 
@@ -588,7 +595,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'EXTENT':extent,
                                     'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
                                     'INIT':-9999,'INVERT':False,'EXTRA':'',
-                                    'OUTPUT':os.path.join(TEMPO_DIRECTORY,
+                                    'OUTPUT':os.path.join(tmp_dir,
                                                           "block_top.tif")})["OUTPUT"]
         
         # Keep the values only when there is no building at this position
