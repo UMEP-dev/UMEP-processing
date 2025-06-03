@@ -26,6 +26,7 @@ except ImportError:
 from pathlib import Path
 from qgis.core import QgsProcessingException
 from shutil import rmtree
+import uuid
 
 import os
 
@@ -75,7 +76,11 @@ def main(javaEnvironmentPath,
     
     ################################ INIT OUTPUT VARIABLES ############################
     # Create the temporary directory if not exists
-    tmp_dir_unique = os.path.join(TEMPO_DIRECTORY, "URock_" + datetime.now().isoformat().replace('.','_').replace(':','_'))
+    tmp_dir_unique = os.path.join(TEMPO_DIRECTORY, 
+                                  "URock_" \
+                                      + datetime.now().isoformat().split(".")[0].replace(':','')\
+                                          + str(uuid.uuid4()))
+                                        
     if os.path.exists(tmp_dir_unique):
         os.remove(tmp_dir_unique)
     os.mkdir(tmp_dir_unique)    
