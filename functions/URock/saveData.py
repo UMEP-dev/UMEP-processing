@@ -411,7 +411,7 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         ymax = outputRasterExtent.yMaximum()
         xmax = outputRasterExtent.xMaximum()
         ymin = outputRasterExtent.yMinimum()
-        tmp_file = os.path.join(tmp_dir, "interp_before_fillna.tif")
+        tmp_file = os.path.join(tmp_dir, f"interp_before_fillna_{var2save}.tif")
         # If a single output raster cell contains more than 4 points, average instead of interpolate
         if resX * resY > 4 * meshSize**2:
             Grid(destName = tmp_file,
@@ -560,7 +560,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'ASCENDING':False,
                                     'NULLS_FIRST':False,
                                     'OUTPUT':os.path.join(tmp_dir,
-                                                          f"order_changed")})["OUTPUT"]
+                                                          f"order_changed_{colname}")})["OUTPUT"]
     
     # Get the column number corresponding to the column name
     colnb = gpd.read_file(order_changed, rows = slice(0,)).columns.get_loc(colname) + 1
@@ -572,7 +572,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                 'EXTENT':extent,
                                 'PIXEL_SIZE':min(resX, resY),
                                 'OUTPUT':os.path.join(tmp_dir,
-                                                      "interp_out.tif")})["OUTPUT"]
+                                                      f"interp_out_{colname}.tif")})["OUTPUT"]
     
     # If there are buildings in the study area, need to set wind speed = 0
     if os.stat(stacked_blocks).st_size > 0:
@@ -585,7 +585,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                      'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
                                      'INIT':-9999,'INVERT':False,'EXTRA':'',
                                      'OUTPUT':os.path.join(tmp_dir,
-                                                           "block_base.tif")})["OUTPUT"]
+                                                           f"block_base_{colname}.tif")})["OUTPUT"]
         
         # Rasterize the stacked blocks keeping the value of each stacked block top 
         block_top = processing.run("gdal:rasterize",
@@ -596,7 +596,7 @@ def interp_vec_to_rast(outputVectorFile, stacked_blocks, outputFilePathAndNameBa
                                     'NODATA':None,'OPTIONS':'','DATA_TYPE':5,
                                     'INIT':-9999,'INVERT':False,'EXTRA':'',
                                     'OUTPUT':os.path.join(tmp_dir,
-                                                          "block_top.tif")})["OUTPUT"]
+                                                          f"block_top_{colname}.tif")})["OUTPUT"]
         
         # Keep the values only when there is no building at this position
         output_file_path = processing.run("gdal:rastercalculator",

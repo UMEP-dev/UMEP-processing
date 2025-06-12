@@ -869,7 +869,7 @@ def main(javaEnvironmentPath,
         H2gisConnection.closeAndRemoveH2gisInstance(localH2InstanceDir = localH2InstanceDir, 
                                                     conn = conn,
                                                     cur = cursor)
-        rmtree(tmp_dir_unique)
+        #rmtree(tmp_dir_unique, ignore_errors=True)
 
     return  u_rot, v_rot, w, u0_rot, v0_rot, w0, x_rot, y_rot, z,\
             buildingCoordinates, cursor, rotated_grid, rotationCenterCoordinates,\
