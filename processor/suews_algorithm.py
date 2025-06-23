@@ -259,17 +259,12 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
 
         #print(yaml_dict['model']['physics'])
         # SuPy initialisation
-        # path_runcontrol = Path(infolder) / 'RunControl.nml'
         feedback.setProgressText("Initiating model")
-        config = sp.data_model.init_config_from_yaml(infile)
-        df_state_init = config.to_df_state()
+        df_state_init = sp.init_supy(infile)
         
         feedback.setProgressText("Loading forcing data")
-        
-        met_path = str(config.model.control.forcing_file)
-        #print(met_path)
-        
-        df_forcing = sp._load.load_SUEWS_Forcing_met_df_yaml(met_path)
+        grid = df_state_init.index[0]
+        df_forcing = sp.load_forcing_grid(infile, grid=grid, df_state_init=df_state_init)
 
         if chunkBool:
             noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
