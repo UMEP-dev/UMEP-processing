@@ -53,11 +53,9 @@ import sys, os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
+import yaml
 import numpy as np
-#import pandas as pd
-#import re
-#from datetime import datetime
-#import time
+
 
 class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     """
@@ -65,7 +63,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     """
 
     OUTPUT_DIR = 'OUTPUT_DIR'
-    INPUT_DIR = 'INPUT_DIR'
+    INPUT_FILE = 'INPUT_FILE'
     ANTHRO = 'ANTHRO'
     NET = 'NET'
     STORAGE = 'STORAGE'
@@ -77,44 +75,58 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     AERO = 'AERO'
     SNOW = 'SNOW'
     SPINUP = 'SPINUP'
-    TIMERESOUT = 'TIMERESOUT'
+    # TIMERESOUT = 'TIMERESOUT'
     CHUNKBOOL = 'CHUNKBOOL'
     CHUNK = 'CHUNK'
 
     def initAlgorithm(self, config):
 
-        self.anthro = ((self.tr('Observed data'), '0'),
-                      (self.tr('Loridan et al. 2011 (NOT RECOMMENDED)'), '1'),
-                      (self.tr('Järvi et al. 2011 (Default)'), '2'))
-        self.net = ((self.tr('Observed data'), '0'),
-                   (self.tr('Modelled but Ldown observed'), '1'),
-                   (self.tr('Modelled, Ldown from cloud cover'), '2'),
-                   (self.tr('Modelled, Ldown from Ta and RH (Default)'), '3'))
-        self.storage = ((self.tr('OHM - Objective hysteresis model (Default)'), '1'),
-                       (self.tr('Observed data'), '2'),
-                       (self.tr('Analytical Objective hysterisis model (AnOHM)'), '3'),
-                       (self.tr('Element Surface Temperature Model'), '4'))
-        self.ohm = ((self.tr('From Q* (Default)'), '0'),
-                   (self.tr('[1] From Q* + Qf'), '1'))
-        self.z0 = ((self.tr('as 0.1 * roughness length for momentum'), '1'),
-                  (self.tr('Kawai et al. 2009 (Default)'), '2'),
-                  (self.tr('Voogt and Grimmond 2000'), '3'),
-                  (self.tr('Kanda et al. 2007'), '4'))
-        self.smd = ((self.tr('Modelled (Default)'), '0'),
-                   (self.tr('Measured, volumetric data'), '1'),
-                   (self.tr('Measured, gravimetric data'), '2'))
-        self.stab = ((self.tr('Dyer 1974 etc.'), '2'),
-                      (self.tr('Campbell & Norman 1998 etc. (Default)'), '3'),
-                      (self.tr('Businger et al. 1971'), '4'))
-        self.wu = ((self.tr('Modelled data (Default)'), '0'),
-                      (self.tr('Observed data'), '1'))
-        self.aero = ((self.tr('Observed data (Default)'), '1'),
-                      (self.tr('Rule of Thumb, Grimmond and Oke 1999'), '2'),
-                      (self.tr('Macdonald et al. 1998'), '3'))
-
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_DIR,
-                                                     'Input folder',
-                                                     QgsProcessingParameterFile.Folder))
+        self.anthro = ((self.tr('0. Observed data'), '0'),
+                      (self.tr('1. Loridan et al. 2011 (NOT RECOMMENDED)'), '1'),
+                      (self.tr('2. Järvi et al. 2011 (Default)'), '2'),
+                      (self.tr('3. Updated Loridan et al. 2011'), '3'),
+                      (self.tr('4. Järvi et al. 2019 no CO2 Emission calculated'), '4'),
+                      (self.tr('46. Järvi et al. 2019 CO2 Emission calculated'), '45'))
+        self.net = ((self.tr('0. Observed data'), '0'),
+                   (self.tr('1. Modelled but Ldown observed'), '1'),
+                   (self.tr('2. Modelled, Ldown from cloud cover'), '2'),
+                   (self.tr('3. Modelled, Ldown from Ta and RH (Default)'), '3'),
+                   (self.tr('11. Same as 1 but with Lup modelled using surface temperature (Not recommended in this version)'), '11'),
+                   (self.tr('12. Same as 2 but with Lup modelled using surface temperature (Not recommended in this version)'), '12'),
+                   (self.tr('13. Same as 3 but with Lup modelled using surface temperature (Not recommended in this version)'), '13'),
+                   (self.tr('100. Same as 1 but SSss_YYYY_NARPOut.txt file produced. (Not recommended in this version)'), '100'),
+                   (self.tr('200. Same as 2 but SSss_YYYY_NARPOut.txt file produced. (Not recommended in this version)'), '200'),
+                   (self.tr('300. Same as 3 but SSss_YYYY_NARPOut.txt file produced. (Not recommended in this version)'), '300'),
+                   (self.tr('1001. Modelled with SPARTACUS-Surface (SS) but with Ldown modelled as in 1 (Experimental in this version)'), '1001'),
+                   (self.tr('1002. Modelled with SPARTACUS-Surface (SS) but with Ldown modelled as in 1 (Experimental in this version)'), '1002'),
+                   (self.tr('1003. Modelled with SPARTACUS-Surface (SS) but with Ldown modelled as in 1 (Experimental in this version)'), '1003'),)
+        self.storage = ((self.tr('0. Observed data provided in meteorological  file'), '0'),
+                        (self.tr('1. OHM - Objective hysteresis model (Default)'), '1'),
+                       (self.tr('3. Analytical Objective hysterisis model (AnOHM) (Not recommended in this version)'), '3'),
+                       (self.tr('4. Element Surface Temperature Model (Not recommended in this version)'), '4'),
+                       (self.tr('6. OHM as of Liu et al, (2026) (experimental in this version)'), '6'))
+        self.ohm = ((self.tr('0. From Q* (Default)'), '0'),
+                   (self.tr('1. From Q* + Qf'), '1'))
+        self.z0 = ((self.tr('1. as 0.1 * roughness length for momentum'), '1'),
+                  (self.tr('2. Kawai et al. 2009'), '2'),
+                  (self.tr('3. Voogt and Grimmond 2000'), '3'),
+                  (self.tr('4. Kanda et al. 2007'), '4'),
+                  (self.tr('5. Adaptively using z0m based on pervious coverage: if fully pervious, use method 1; otherwise, use method 2. (Recommended in this version)'), '5'))
+        self.smd = ((self.tr('0. Modelled (Default)'), '0'),
+                   (self.tr('1. Measured, volumetric data'), '1'),
+                   (self.tr('2. Measured, gravimetric data'), '2'))
+        self.stab = ((self.tr('2. Dyer 1974 etc.'), '2'),
+                      (self.tr('3. Campbell & Norman 1998 etc. (Recommended in this version)'), '3'),
+                      (self.tr('4. Businger et al. 1971'), '4'))
+        self.wu = ((self.tr('0. Modelled data (Default)'), '0'),
+                      (self.tr('1. Observed data'), '1'))
+        self.aero = ((self.tr('1. Observed data (Default)'), '1'),
+                      (self.tr('2. Rule of Thumb, Grimmond and Oke 1999'), '2'),
+                      (self.tr('3. Macdonald et al. 1998'), '3'))
+        
+        self.addParameter(QgsProcessingParameterFile(self.INPUT_FILE,
+            self.tr('Input yaml file(.yml)'), extension='yml'))
+    
         self.addParameter(QgsProcessingParameterEnum(self.NET,
                                                      self.tr('Net radiation method'),
                                                      options=[i[0] for i in self.net],
@@ -157,11 +169,11 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter(QgsProcessingParameterBoolean(self.SPINUP,
         #                                                 self.tr("Apply spin-up using existing meteorological data (only possible if one full year of data is used)"),
         #                                                 defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
-                                                       self.tr("Output time resolution (minutes)"),
-                                                       QgsProcessingParameterNumber.Integer,
-                                                       QVariant(60),
-                                                       minValue=1))                                                                                       
+        # self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
+        #                                                self.tr("Output time resolution (minutes)"),
+        #                                                QgsProcessingParameterNumber.Integer,
+        #                                                QVariant(60),
+        #                                                minValue=1))                                                                                       
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
         
@@ -194,7 +206,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText('SuPy version: ' + ver_supy)
         self.supylib = sys.modules["supy"].__path__[0]
         feedback.setProgressText(self.supylib)
-        infolder = self.parameterAsString(parameters, self.INPUT_DIR, context)
+        infile = self.parameterAsString(parameters, self.INPUT_FILE, context)
         outfolder = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         if self.parameterAsBool(parameters, self.SNOW, context):
             usesnow = 1
@@ -209,151 +221,86 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         z0 = self.parameterAsString(parameters, self.Z0, context)
         smd = self.parameterAsString(parameters, self.SMD, context)
         wu = self.parameterAsString(parameters, self.WU, context)
-        outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
+        #outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
         # spinup = self.parameterAsBool(parameters, self.SPINUP, context)
         chunkBool = self.parameterAsBool(parameters, self.CHUNKBOOL, context)
         noOfChunks = self.parameterAsInt(parameters, self.CHUNK, context)
 
         feedback.setProgressText(self.supylib)
         
-        feedback.setProgressText("Creating RunControl.nml")
+        feedback.setProgressText("Reading and updating Yaml-file")
 
-        # Create modified RunControl.nml
-        filenamemetdata = None
-        for file in os.listdir(infolder):
-            if 'data' in file:
-                filenamemetdata = file
-
-        print('filenamemetdata = ' + filenamemetdata)
-
-        underscorePos = ([pos for pos, char in enumerate(filenamemetdata) if char == '_'])
-        if (underscorePos[1] - underscorePos[0]) == 1:
-            addunderscore = '_'
-        else:
-            addunderscore = ''
-        numunderscores = underscorePos.__len__()
-        inputRes = filenamemetdata[underscorePos[numunderscores - 1] + 1:filenamemetdata.find('.')]
-        filecode = filenamemetdata[0:underscorePos[0]] + addunderscore
+        with open(infile, 'r') as f:
+            yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
         
-        # nml = f90nml.read(self.model_dir + '/BaseFiles/RunControl.nml')
-        nml = f90nml.read(self.supylib + '/sample_run/RunControl.nml')
         # nml['runcontrol']['CBLuse'] = int(usecbl)
-        nml['runcontrol']['SnowUse'] = int(usesnow)
-        nml['runcontrol']['NetRadiationMethod'] = int(net)
-        nml['runcontrol']['EmissionsMethod'] = int(qf)
-        nml['runcontrol']['OHMIncQF'] = int(ohm)
-        nml['runcontrol']['StabilityMethod'] = int(stab) + 2
-        nml['runcontrol']['StorageHeatMethod'] = int(qs) + 1
-        nml['runcontrol']['RoughLenMomMethod'] = int(aeroD) + 1
-        nml['runcontrol']['RoughLenHeatMethod'] = int(z0) + 1
-        nml['runcontrol']['SMDMethod'] = int(smd)
-        nml['runcontrol']['WaterUseMethod'] = int(wu)
-        nml['runcontrol']['fileinputpath'] = str(infolder) + "/"
-        nml['runcontrol']['fileoutputpath'] = str(outfolder) + "/"
-        nml['runcontrol']['fileCode'] = str(filecode)
-        nml['runcontrol']['ResolutionFilesOut'] = int(int(outputRes) * 60.)
-        nml['runcontrol']['ResolutionFilesIn'] = int(int(inputRes) * 60.)
+        yaml_dict['model']['physics']['snowuse']['value'] = int(usesnow)
+        yaml_dict['model']['physics']['netradiationmethod']['value'] = int(net)
+        yaml_dict['model']['physics']['emissionsmethod']['value'] = int(qf)
+        yaml_dict['model']['physics']['ohmincqf']['value'] = int(ohm)
+        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(stab) + 2
+        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(qs) + 1
+        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(aeroD) + 1
+        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(z0) + 1
+        yaml_dict['model']['physics']['smdmethod']['value'] = int(smd)
+        yaml_dict['model']['physics']['waterusemethod']['value'] = int(wu)
+        # yaml_dict['model']['physics']['roughlenheatmethod'] = str(infolder) + "/"
+        yaml_dict['model']['control']['output_file'] = str(outfolder) + "/"
+        # yaml_dict['model']['control']['forcing_file'] = str(filecode)
+        #yaml_dict['model']['physics']['tstep'] = int(int(outputRes) * 60.)
+        # yaml_dict['model']['physics']['tstep'] = int(int(inputRes) * 60.)
         
-        nml.write(Path(str(infolder) + '/RunControl.nml'), force=True)
+        # nml.write(Path(str(infolder) + '/RunControl.nml'), force=True)
         
         #####################################################################################
         # SuPy
+        with open(infile, 'w') as file:
+            yaml.dump(yaml_dict, file, sort_keys = False)
 
+        #print(yaml_dict['model']['physics'])
         # SuPy initialisation
-        path_runcontrol = Path(infolder) / 'RunControl.nml'
+        # path_runcontrol = Path(infolder) / 'RunControl.nml'
         feedback.setProgressText("Initiating model")
-        df_state_init = sp.init_supy(path_runcontrol)
-        grid = df_state_init.index[0]
-        feedback.setProgressText("Loading forcing data")
-        df_forcing = sp.load_forcing_grid(path_runcontrol, grid)
+        config = sp.data_model.init_config_from_yaml(infile)
+        df_state_init = config.to_df_state()
         
+        feedback.setProgressText("Loading forcing data")
+        
+        met_path = str(config.model.control.forcing_file)
+        #print(met_path)
+        
+        df_forcing = sp._load.load_SUEWS_Forcing_met_df_yaml(met_path)
+
         if chunkBool:
             noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
             chunkDay = np.ceil(noOfDays / noOfChunks)
             feedback.setProgressText("Model run divided into " + str(int(chunkDay)) + ' day period')
         else:
             chunkDay = 3660
-
+       
         # SuPy simulation
         feedback.setProgressText("Running model (QGIS not responsive)")
         df_output, df_state_final = sp.run_supy(df_forcing,
                                                 df_state_init,
-                                                check_input=True,
-                                                serial_mode=True,
                                                 chunk_day=chunkDay
                                                 )
 
         # use SuPy function to save results
         feedback.setProgressText("Saving to disk")
-        list_path_save = sp.save_supy(df_output,
-                                    df_state_final,
-                                    path_runcontrol=path_runcontrol)
+        sp.save_supy(
+            df_output,
+            df_state_final,
+            path_dir_save = yaml_dict['model']['control']['output_file'] )
         #####################################################################################
-
-        # resampling SuPy results for plotting
-        # df_output_suews = df_output.loc[grid, 'SUEWS']
-        # df_output_suews_rsmp = df_output_suews.resample('1h').mean()
-
-        # code (adjusted) from Tsirantonakis Dimitris (dtsirantonakis@iacm.forth.gr) to deal with memory issues
-        # LOAD MODEL 
-        # path_runcontrol = Path(infolder) / 'RunControl.nml'
-        # df_state_init = sp.init_supy(path_runcontrol)
-        # grid_list = df_state_init.index.tolist()
-        # df_forcing = sp.load_forcing_grid(path_runcontrol, grid=None)
-        # path_dir_save = str(outfolder) + "/"
-
-        # # RUN MODEL FOR FULL YEAR
-        # for month in range(1, 13):
-        #     # print(f"Processing {datetime(2023, month, 1).strftime('%B')}...")
-        #     start_time = time.time()
-        #     # Subset forcing data for the current month
-        #     df_forcing_subset = df_forcing[df_forcing.index.month == month]
-        #     df_output, df_state_final = sp.run_supy(df_forcing_subset, df_state_init)
-        #     out_folder = path_dir_save + f"{month}/"
-        #     if not os.path.exists(out_folder):
-        #         os.makedirs(out_folder)
-        #     sp.save_supy(df_output, df_state_final, path_dir_save=out_folder)
-        #     end_time = time.time()
-        #     print("Total time: {:.2f} seconds".format(end_time - start_time))
-        #     # Prepare the initial state for the next month
-        #     if month < 12:
-        #         df_state_init = df_state_final.xs(f'2023-{month+1:02d}-01 00:00:00', level='datetime')
-        #         del df_state_final
-        #     del df_output
-
-        # # merge results across all grid polygons
-
-        # output_folder = path_dir_save
-        # subfolders = get_subfolders(output_folder)
-
-        # for i in grid_list:    
-        #     grid_paths = get_output_paths_of_grid_SUEWS(i, subfolders)
-        #     sorted_grid_paths = sorted(grid_paths, key=extract_month_from_path)
-        #     all_dfs = [read_and_parse_file(fp) for fp in sorted_grid_paths]
-        #     merged_df = pd.concat(all_dfs)
-        #     merged_df.set_index('datetime', inplace=True)
-        #     merged_df.to_csv(f"{output_folder}{i}_suews_txt_merged.csv")
-            
-        #     grid_paths = get_output_paths_of_grid_DailyState(i, subfolders)
-        #     sorted_grid_paths = sorted(grid_paths, key=extract_month_from_path)
-        #     all_dfs = [read_and_parse_file(fp) for fp in sorted_grid_paths]
-        #     merged_df_ds = pd.concat(all_dfs)
-        #     merged_df_ds.set_index('datetime', inplace=True)
-        #     merged_df_ds.to_csv(f"{output_folder}{i}_DailyState_txt_merged.csv")
-
-
-
-
 
         feedback.setProgressText('Model finished')
 
         return {self.OUTPUT_DIR: outfolder}
-
     def name(self):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2020a')
+        return self.tr('Urban Energy Balance: SUEWS v2025.6.2.dev0')
 
     def group(self):
         return self.tr(self.groupId())
@@ -371,6 +318,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                         '\n'
                         'Järvi L, Grimmond CSB, Taka M, Nordbo A, Setälä H &Strachan IB (2014) Development of the Surface Urban Energy and Water balance Scheme (SUEWS) for cold climate cities, Geosci. Model Dev. 7, 1691-1711, doi:10.5194/gmd-7-1691-2014.<br>'
                         '\n'
+                        'Ward HC, L Järvi, S Onomura, F Lindberg, CSB Grimmond (2016a) SUEWS Manual: Version 2016a<br>'
                        '---------------\n'
                        'Full manual available via the <b>Help</b>-button.')
 
@@ -388,54 +336,3 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
 
     def createInstance(self):
         return ProcessingSuewsAlgorithm()
-    
-
-# code from Tsirantonakis Dimitris (dtsirantonakis@iacm.forth.gr) to deal with memory issues
-
-# # functions
-# def get_subfolders(directory):
-#     subfolders = []
-#     for dirpath, dirnames, filenames in os.walk(directory):
-#         for dirname in dirnames:
-#             subfolders.append(os.path.join(dirpath, dirname))
-#     return subfolders
-
-# def get_output_paths_of_grid_SUEWS(grid, subfolders):
-#     pattern = re.compile(str(grid) + r'_\d{4}_SUEWS_60\.txt')
-#     grid_output_paths = set()
-#     for subfolder in subfolders:
-#         for filename in os.listdir(subfolder):
-#             match = pattern.match(filename)
-#             if match:
-#                 grid_output_path = os.path.join(subfolder, filename)
-#                 grid_output_paths.add(grid_output_path)
-#     return grid_output_paths
-
-# def get_output_paths_of_grid_DailyState(grid, subfolders):
-#     pattern = re.compile(str(grid) + r'_\d{4}_DailyState\.txt')
-#     grid_output_paths = set()
-#     for subfolder in subfolders:
-#         for filename in os.listdir(subfolder):
-#             match = pattern.match(filename)
-#             if match:
-#                 grid_output_path = os.path.join(subfolder, filename)
-#                 grid_output_paths.add(grid_output_path)
-#     return grid_output_paths
-
-# def read_and_parse_file(file_path):
-#     df = pd.read_csv(file_path, delim_whitespace=True)
-#     df['datetime'] = pd.to_datetime(df['Year'].astype(str) + df['DOY'].astype(str), format='%Y%j') + \
-#                      pd.to_timedelta(df['Hour'], unit='h') + \
-#                      pd.to_timedelta(df['Min'], unit='m')
-#     return df
-
-# def extract_month_from_path(path):
-#     normalized_path = os.path.normpath(path)
-#     components = normalized_path.split(os.sep)
-#     month_str = components[-2]
-#     try:
-#         return int(month_str)
-#     except ValueError:
-#         return None
-
-
