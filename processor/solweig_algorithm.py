@@ -1217,9 +1217,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             #         timeaddW, timeaddN, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
 
             # Save I0 for I0 vs. Kdown output plot to check if UTC is off
-            if i < first_unique_day.shape[0]:
+            if i < (first_unique_day.shape[0] - 1):
                 I0_array[i] = I0
-            elif i == first_unique_day.shape[0]:
+            elif i == (first_unique_day.shape[0] - 1):
                 # Output I0 vs. Kglobal plot
                 radG_for_plot = radG[DOY == first_unique_day[0]]
                 # hours_for_plot = hours[DOY == first_unique_day[0]]
