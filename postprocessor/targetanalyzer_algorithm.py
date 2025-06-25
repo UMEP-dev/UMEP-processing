@@ -313,7 +313,7 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         statvector = statvectemp[1:, :]
         # fix_print_with_import
         statmat = np.hstack((idvec[1:, :], statvector))
-        statmat[statmat == -999] = -9999 #Response to #107
+        statmat[statmat < -500] = -9999 #Response to #107
 
         if addAttributes:
             self.addattributes(vlayer, statmat, header)
