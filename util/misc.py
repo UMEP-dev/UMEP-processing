@@ -92,3 +92,45 @@ def xy2latlon(crsWtkIn, x, y):
         lat = lonlat[1] #changed to gdal 2
 
     return lat, lon
+
+
+
+def createTSlist():
+    import pytz
+    from datetime import datetime
+
+    # Get the current time in naive UTC
+    now = datetime.utcnow()
+
+    # Dictionary to store timezones grouped by UTC offset
+    timezones_by_offset = {}
+
+    # Iterate through all timezones
+    for tz in pytz.all_timezones:
+        timezone = pytz.timezone(tz)
+        localized_time = timezone.localize(now, is_dst=None)
+        offset = localized_time.utcoffset()
+        if offset is not None:
+            offset_hours = offset.total_seconds() / 3600
+            offset_str = f"UTC{offset_hours:+03.0f}:00"
+
+            if offset_str not in timezones_by_offset:
+                timezones_by_offset[offset_str] = {
+                    "utc_offset": offset_hours,
+                    "timezones": []
+                }
+            # Add up to 3 example timezones per offset
+            if len(timezones_by_offset[offset_str]["timezones"]) < 3:
+                timezones_by_offset[offset_str]["timezones"].append(tz)
+
+    # Convert the dictionary to a list of dictionaries
+    timezones_list = [
+        {
+            "utc_offset_str": offset,
+            "utc_offset": data["utc_offset"],
+            "timezones": data["timezones"]
+        }
+        for offset, data in timezones_by_offset.items()
+    ]
+
+    return timezones_list, timezones_by_offset
