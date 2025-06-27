@@ -33,12 +33,12 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QDate, QTime, Qt, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
+                       QgsProcessingParameterEnum,
                        QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterFileDestination,
                        QgsProcessingException,
                        QgsProcessingParameterDateTime,               
                        QgsProcessingParameterRasterLayer)
@@ -54,7 +54,7 @@ from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
 import datetime
-# import matplotlib.pyplot as plt
+from ..util.misc import createTSlist
 
 
 class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
@@ -71,10 +71,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    # CALC_FACADE = 'CALC_FACADE'
-    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     ONE_SHADOW = 'ONE_SHADOW'
     ITERTIME = 'ITERTIME'
@@ -130,31 +127,32 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Wall aspect raster (required if facade shadow should be claculated)'),
                 '', 
                 True))
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.UTC,
-                self.tr('Coordinated Universal Time (UTC) '),
-                QgsProcessingParameterNumber.Integer,
-                QVariant(0),
-                True, 
-                minValue=-12, 
-                maxValue=12)) 
+        self.sorted_utclist, _ = createTSlist() #Inculde all UTC times
+        lista = []
+        for i in self.sorted_utclist:
+            lista.append((str(i['utc_offset_str']), str(i['utc_offset'])))
+        self.addParameter(QgsProcessingParameterEnum(self.UTC,
+                                                self.tr('Coordinated Universal Time (UTC) '),
+                                                options=[i[0] for i in lista],
+                                                defaultValue=15))        
+        
+        # self.addParameter(
+        #     QgsProcessingParameterNumber(
+        #         self.UTC,
+        #         self.tr('Coordinated Universal Time (UTC) '),
+        #         QgsProcessingParameterNumber.Integer,
+        #         QVariant(0),
+        #         True, 
+        #         minValue=-12, 
+        #         maxValue=12)) 
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.DST,
                 self.tr("Add Daylight savings time"), 
                 defaultValue=False))       
-        
-        # param = QgsProcessingParameterString(
-        #     self.DATEINI, 
-        #     'Date')
-        # param.setMetadata({'widget_wrapper': {'class': DateWidget}})
-        # self.addParameter(param)
-
         self.addParameter(QgsProcessingParameterDateTime(self.DATEINI,
             self.tr('Date'),
             QgsProcessingParameterDateTime.Date))
-        
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ITERTIME,
@@ -169,17 +167,9 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 self.ONE_SHADOW,
                 self.tr("Cast only one shadow"), 
                 defaultValue=False))
-
-        # paramT = QgsProcessingParameterString(
-        #     self.TIMEINI, 
-        #     'Time for single shadow')
-        # paramT.setMetadata({'widget_wrapper': {'class': TimeWidget}})
-        # self.addParameter(paramT)
-
         self.addParameter(QgsProcessingParameterDateTime(self.TIMEINI,
             self.tr('Time for single shadow'),
             QgsProcessingParameterDateTime.Time))
-
         self.addParameter(
             QgsProcessingParameterFolderDestination(
                 self.OUTPUT_DIR,
@@ -196,19 +186,14 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        # outputFile = self.parameterAsFileOutput(parameters, self.OUTPUT_FILE, context)
-        # outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
-        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
         vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
         vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
-        # facade = self.parameterAsBool(parameters, self.CALC_FACADE, context)
-        utc = self.parameterAsDouble(parameters, self.UTC, context) 
+        utcpos = self.parameterAsString(parameters, self.UTC, context) 
         dst = self.parameterAsBool(parameters, self.DST, context)
         myDate = self.parameterAsString(parameters, self.DATEINI, context)
         oneShadow = self.parameterAsDouble(parameters, self.ONE_SHADOW, context) 
@@ -219,7 +204,6 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             if not os.path.isdir(outputDir):
                 os.mkdir(outputDir)
 
-        # Code from old plugin
         if dst:
             dst = 1
         else:
@@ -230,18 +214,14 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         gdal_dsm = gdal.Open(filepath_dsm)
         dsm = gdal_dsm.ReadAsArray().astype(float)
 
-        # code to save as image
-        # fig, ax = plt.subplots( nrows=1, ncols=1 )  # create figure & 1 axis
-        # ax.imshow(dsm)
-        # # ax.plot([0,1,2], [10,20,3])
-        # fig.savefig(outputFile)   # save the figure to file
-        # plt.close(fig)
-
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
         dsm[dsm == nd] = 0.
         if dsm.min() < 0:
             dsm = dsm + np.abs(dsm.min())
+
+        self.sorted_utclist
+        utc = self.sorted_utclist[int(utcpos)]['utc_offset']
 
         sizex = dsm.shape[0]
         sizey = dsm.shape[1]
@@ -358,20 +338,13 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             year = startDate.year
             month = startDate.month
             day = startDate.day
-            # year = int(myDate[0:4]) #date.year()
-            # month = int(myDate[5:7]) #date.month()
-            # day = int(myDate[8:10]) #date.day()
-            UTC = utc #self.dlg.spinBoxUTC.value()
+            # UTC = utc #self.dlg.spinBoxUTC.value()
             if oneShadow: #self.dlg.shadowCheckBox.isChecked():
                 onetime = 1
                 onetimetime = datetime.datetime.strptime(myTime, '%H:%M:%S.%f')
-                # time = myTime # self.dlg.timeEdit.time()
                 hour = onetimetime.hour
                 minu = onetimetime.minute
                 sec = onetimetime.second
-                # hour = int(myTime[11:13]) #time.hour()
-                # minu = int(myTime[14:16]) #time.minute()
-                # sec = int(myTime[17:19]) #time.second()
             else:
                 onetime = 0
                 hour = 0
@@ -381,21 +354,12 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             tv = [year, month, day, hour, minu, sec]
 
             timeInterval = iterShadow # self.dlg.intervalTimeEdit.time()
-            # feedback.setProgressText('Test:' + str(tv))
-            shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, UTC, usevegdem,
+            shadowresult = dsh.dailyshading(dsm, vegdsm, vegdsm2, scale, lon, lat, sizex, sizey, tv, utc, usevegdem,
                                             timeInterval, onetime, feedback, outputDir, gdal_dsm, trans,
                                             dst, wallsh, wheight, waspect)
             
             shfinal = shadowresult["shfinal"]
-        #     time_vector = shadowresult["time_vector"]
-        #     if onetime == 0:
-        #         timestr = time_vector.strftime("%Y%m%d")
-        #         savestr = '/shadow_fraction_on_'
-        #     else:
-        #         timestr = time_vector.strftime("%Y%m%d_%H%M")
-        #         savestr = '/Shadow_at_'
 
-        # filename = outputDir + savestr + timestr + '_LST.tif'
         if outputFile:
             dsh.saveraster(gdal_dsm, outputFile, shfinal)
 

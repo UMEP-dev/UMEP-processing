@@ -64,8 +64,6 @@ from .postprocessor.targetanalyzer_algorithm import ProcessingTARGETAnalyzerAlgo
 
 import os.path
 from qgis.PyQt.QtGui import QIcon
-import inspect
-# from PyQt5.QtGui import QIcon
 
 class ProcessingUMEPProvider(QgsProcessingProvider):
 
@@ -103,7 +101,6 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
         self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())
-        
         
         #Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
@@ -155,4 +152,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 2.1.29'
+        return 'UMEP for Processing, Version 2.1.30'

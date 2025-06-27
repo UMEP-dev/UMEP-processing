@@ -238,10 +238,10 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         yaml_dict['model']['physics']['netradiationmethod']['value'] = int(net)
         yaml_dict['model']['physics']['emissionsmethod']['value'] = int(qf)
         yaml_dict['model']['physics']['ohmincqf']['value'] = int(ohm)
-        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(stab) + 2
-        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(qs) + 1
-        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(aeroD) + 1
-        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(z0) + 1
+        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(stab)
+        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(qs)
+        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(aeroD)
+        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(z0)
         yaml_dict['model']['physics']['smdmethod']['value'] = int(smd)
         yaml_dict['model']['physics']['waterusemethod']['value'] = int(wu)
         # yaml_dict['model']['physics']['roughlenheatmethod'] = str(infolder) + "/"

@@ -93,8 +93,6 @@ def xy2latlon(crsWtkIn, x, y):
 
     return lat, lon
 
-
-
 def createTSlist():
     import pytz
     from datetime import datetime
@@ -111,8 +109,11 @@ def createTSlist():
         localized_time = timezone.localize(now, is_dst=None)
         offset = localized_time.utcoffset()
         if offset is not None:
-            offset_hours = offset.total_seconds() / 3600
-            offset_str = f"UTC{offset_hours:+03.0f}:00"
+            total_minutes = int(offset.total_seconds() / 60)
+            hours, minutes = divmod(abs(total_minutes), 60)
+            sign = '+' if total_minutes >= 0 else '-'
+            offset_str = f"UTC{sign}{hours:02d}:{minutes:02d}"
+            offset_hours = total_minutes / 60
 
             if offset_str not in timezones_by_offset:
                 timezones_by_offset[offset_str] = {
@@ -133,4 +134,8 @@ def createTSlist():
         for offset, data in timezones_by_offset.items()
     ]
 
-    return timezones_list, timezones_by_offset
+    # Sort the list by UTC offset
+    sorted_timezones = sorted(timezones_list, key=lambda x: x['utc_offset'])
+
+    return sorted_timezones, timezones_by_offset
+

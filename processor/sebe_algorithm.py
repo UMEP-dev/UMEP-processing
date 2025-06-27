@@ -35,6 +35,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
+                       QgsProcessingParameterEnum,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterFileDestination,
@@ -54,7 +55,7 @@ from ..functions.SEBEfiles import SEBE_2015a_calc_forprocessing as sebe
 from ..functions.SEBEfiles.sunmapcreator_2015a import sunmapcreator_2015a
 from ..functions.SEBEfiles import WriteMetaDataSEBE
 from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
-from ..util.misc import get_ders, saveraster
+from ..util.misc import get_ders, saveraster, createTSlist
 
 
 class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
@@ -71,9 +72,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     INPUT_TDSM = 'INPUT_TDSM'
     INPUT_HEIGHT = 'INPUT_HEIGHT'
     INPUT_ASPECT = 'INPUT_ASPECT'
-    # USE_VEG = 'USE_VEG'
     TRANS_VEG = 'TRANS_VEG'
-    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = 'INPUT_THEIGHT'
     UTC = 'UTC'
     ALBEDO = 'ALBEDO'
@@ -82,23 +81,18 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     SAVESKYIRR = 'SAVESKYIRR'
     IRR_FILE = 'IRR_FILE'
     OUTPUT_DIR = 'OUTPUT_DIR'
-    # OUTPUT_SKY = 'OUTPUT_SKY'
     OUTPUT_ROOF = 'OUTPUT_ROOF'
     
 
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
             self.tr('Input building and ground DSM'), None, False))
-        # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
-        #     self.tr("Use vegetation DSMs"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
             self.tr('Vegetation Canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
             self.tr('Transmissivity of light through vegetation (%):'), 
             QgsProcessingParameterNumber.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
-        # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
-        #     self.tr("Trunk zone DSM exist"), defaultValue=False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
@@ -116,10 +110,14 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             self.tr('Input meteorological file'), extension = 'txt'))
         self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
             self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.UTC,
-            self.tr('Coordinated Universal Time (UTC) '), 
-            QgsProcessingParameterNumber.Integer,
-            QVariant(0),  False, minValue=-12, maxValue=12)) 
+        self.sorted_utclist, _ = createTSlist() #response to #104
+        lista = []
+        for i in self.sorted_utclist:
+            lista.append((str(i['utc_offset_str']), str(i['utc_offset'])))
+        self.addParameter(QgsProcessingParameterEnum(self.UTC,
+                                                self.tr('Coordinated Universal Time (UTC) '),
+                                                options=[i[0] for i in lista],
+                                                defaultValue=14))
         self.addParameter(QgsProcessingParameterBoolean(self.SAVESKYIRR,
             self.tr("Save sky irradiance distribution"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFileDestination(self.IRR_FILE,
@@ -130,21 +128,18 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             self.tr("Roof irradiance raster (kWh)"), optional=True,
             createByDefault=False))
 
-
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-        # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) 
         vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context) 
         vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context) 
         whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context) 
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context) 
-        # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context) 
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
-        utc = self.parameterAsDouble(parameters, self.UTC, context) 
+        utcpos = self.parameterAsString(parameters, self.UTC, context)
         albedo = self.parameterAsDouble(parameters, self.ALBEDO, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
@@ -167,6 +162,10 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         self.dsm[self.dsm == nd] = 0.
         if self.dsm.min() < 0:
             self.dsm = self.dsm + np.abs(self.dsm.min())
+
+        # response to issue #104
+        self.sorted_utclist
+        utc = self.sorted_utclist[int(utcpos)]['utc_offset']
 
         # Get latlon from grid coordinate system
         old_cs = osr.SpatialReference()
