@@ -169,11 +169,11 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter(QgsProcessingParameterBoolean(self.SPINUP,
         #                                                 self.tr("Apply spin-up using existing meteorological data (only possible if one full year of data is used)"),
         #                                                 defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
-                                                       self.tr("Output time resolution (minutes)"),
-                                                       QgsProcessingParameterNumber.Integer,
-                                                       QVariant(60),
-                                                       minValue=1))                                                                                       
+        # self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
+        #                                                self.tr("Output time resolution (minutes)"),
+        #                                                QgsProcessingParameterNumber.Integer,
+        #                                                QVariant(60),
+        #                                                minValue=1))                                                                                       
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
         
@@ -247,7 +247,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         # yaml_dict['model']['physics']['roughlenheatmethod'] = str(infolder) + "/"
         yaml_dict['model']['control']['output_file'] = str(outfolder) + "/"
         # yaml_dict['model']['control']['forcing_file'] = str(filecode)
-        yaml_dict['model']['physics']['tstep'] = int(int(outputRes) * 60.)
+        #yaml_dict['model']['physics']['tstep'] = int(int(outputRes) * 60.)
         # yaml_dict['model']['physics']['tstep'] = int(int(inputRes) * 60.)
         
         # nml.write(Path(str(infolder) + '/RunControl.nml'), force=True)
@@ -298,7 +298,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2025.6.2.dev0')
+        return self.tr('Urban Energy Balance: SUEWS v2025.6.30')
 
     def group(self):
         return self.tr(self.groupId())
