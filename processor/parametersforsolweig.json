@@ -182,5 +182,40 @@
             "clo": 0.90
         },
         "Comment": "Settings to calculate Physiological Equivalent Temperature (PET). Sex is either Male or Female."
+    },        
+    "Wind_Height": {
+        "Value": {
+            "magl": 10.0
+        },
+        "Comment": "Height of wind sensor for PET and UTCI calcualtions."
+    },
+    "Tree_settings":{
+        "Value":{
+            "Transmissivity": 0.03,
+            "Trunk_ratio": 0.25,
+            "First_day_leaf": 97,
+            "Last_day_leaf": 300
+        },
+        "Comment": "Settings for trees. Shortwave trasmissivity in %. Trunkratio as a fraction of total height"
+    },
+    "Posture": {
+        "Standing" : {
+            "Value": {
+                "Fside" : 0.22,
+                "Fup" : 0.06,
+                "height" : 1.1,
+                "Fcyl" : 0.28
+            },
+            "Comment": "Standing posture of human body. Used in Tmrt calulations"
+        },
+        "Sitting" : {
+            "Value":{
+                "Fside" : 0.166666,
+                "Fup" : 0.166666,
+                "height" : 0.75,
+                "Fcyl" : 0.2
+            },
+            "Comment": "Sitting posture of human body. Used in Tmrt calulations"
+        }
     }        
 }
