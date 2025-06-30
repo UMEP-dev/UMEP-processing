@@ -117,7 +117,7 @@ class Inputdata():
         rasterize_options = gdal.RasterizeOptions(options=[
             '-burn', '1',
             '-te', str(minx), str(miny), str(maxx), str(maxy),
-            '-tr', str(self.gt[1]), str(self.gt[5])
+            '-tr', str(np.abs(self.gt[1])), str(np.abs(self.gt[5]))
         ])
 
         gdal.Rasterize(infolder + '/selected_area.tif', inputPolygonlayer, options=rasterize_options)

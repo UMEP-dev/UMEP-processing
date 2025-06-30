@@ -39,27 +39,12 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
 from ..util import f90nml
 import shutil
-from ..util.misc import saverasternd, saveraster
-
-# def saverasternd(gdal_data, filename, raster):
-#     rows = gdal_data.RasterYSize
-#     cols = gdal_data.RasterXSize
-
-#     outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
-#     outBand = outDs.GetRasterBand(1)
-
-#     # write the data
-#     outBand.WriteArray(raster, 0, 0)
-#     # flush data to disk, set the NoData value and calculate stats
-#     outBand.FlushCache()
-#     # outBand.SetNoDataValue(-9999)
-
-#     # georeference the image and set the projection
-#     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
-#     outDs.SetProjection(gdal_data.GetProjection())
+from ..util.misc import saveraster, get_resolution_from_file, SUEWS_txt_to_df, extract_suews_years
+from .params_dict import *
+import yaml
+import datetime
 
 class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """
@@ -85,26 +70,26 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
 
         self.plugin_dir = os.path.dirname(__file__)
-        writeoutoption = 2 # hardcoded to simple output
-        dataunit = self.plugin_dir + '/SUEWS_OutputFormatOption' + str(int(writeoutoption)) + '.txt'  # File moved to plugin directory
-        f = open(dataunit)
-        lin = f.readlines()
-        self.lineunit = lin[3].split(";")
-        self.linevar = lin[1].split(";")
-        self.linevarlong = lin[2].split(";")
-        f.close()
 
-        listA = [tuple([a, str(i)]) for i, a in enumerate(self.linevarlong)]
-        self.varType = tuple(listA)
+    
+        var_list = []
+        idx = 0
+        for item in list(sorted(list(params_dict.keys()))):
+            item_desc = item + f' ({params_dict[item]['description']})'
+            item = tuple([item_desc, str(idx)])
+            var_list.append(item)
+            idx = idx+1
+
+        self.varType = tuple(var_list)
 
         self.addParameter(QgsProcessingParameterFile(self.SUEWS_NL,
-                                                     self.tr('SUEWS RunControl namelist'),
-                                                     extension='nml',
+                                                     self.tr('Yaml-file'),
+                                                     extension='yml',
                                                      optional=False))
         self.addParameter(QgsProcessingParameterEnum(self.VARIA_IN,
                                                      self.tr('Variable to post-process'),
                                                      options=[i[0] for i in self.varType],
-                                                     defaultValue=13))
+                                                     defaultValue=26))
         self.dayType =  ((self.tr('Diurnal'), '0'),
                          (self.tr('Daytime'), '1'),
                          (self.tr('Nighttime'), '2'))
@@ -113,8 +98,8 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                                                      options=[i[0] for i in self.dayType],
                                                      defaultValue=0))
         self.statType = ((self.tr('Mean'), '0'),
-                         (self.tr('Minimun'), '1'),
-                         (self.tr('Maximun'), '2'),
+                         (self.tr('Minimum'), '1'),
+                         (self.tr('Maximum'), '2'),
                          (self.tr('Median'), '3'),
                          (self.tr('IQR'), '4'))
         self.addParameter(QgsProcessingParameterEnum(self.STAT_TYPE,
@@ -170,170 +155,34 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Initializing...")
 
-        statType = int(statTypeStr)
+        with open(suewsNL, 'r') as f:
+                yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
-        # read nml
-        # self.fileDialognml.open()
-        # result = self.fileDialognml.exec_()
-        # if result == 1:
-        # self.nmlPath = self.fileDialognml.selectedFiles()
-        # self.dlg.textModelFolder.setText(self.nmlPath[0])
-        nml = f90nml.read(suewsNL)
-
-        self.fileinputpath = nml['runcontrol']['fileinputpath']
-        if self.fileinputpath.startswith("."):
-            nmlfolder = self.nmlPath[0][:-15]
-            self.fileinputpath = nmlfolder + self.fileinputpath[1:]
-
-        self.fileoutputpath = nml['runcontrol']['fileoutputpath']
+        self.fileoutputpath = yaml_dict['model']['control']['output_file']
+        
         if self.fileoutputpath.startswith("."):
-            nmlfolder = self.nmlPath[0][:-15]
-            self.fileoutputpath = nmlfolder + self.fileoutputpath[1:]
+            yamlfolder = self.yamlPath[0][:-15]
+            self.fileoutputpath = yamlfolder + self.fileoutputpath[1:]
 
-        resolutionFilesOut = nml['runcontrol']['resolutionfilesout']
+        resolutionFilesOut = get_resolution_from_file(yaml_dict['model']['control']['output_file'])
         self.resout = int(float(resolutionFilesOut) / 60)
-        self.fileCode = nml['runcontrol']['filecode']
-        self.multiplemetfiles = nml['runcontrol']['multiplemetfiles']
-        resolutionFilesIn = nml['runcontrol']['resolutionFilesIn']
-        self.resin = int(resolutionFilesIn / 60)
 
-        tstep = nml['runcontrol']['tstep']
-        self.tstep = int(float(tstep) / 60)
-        writeoutoption = nml['runcontrol']['writeoutoption']
-        if writeoutoption != 2:
-            raise QgsProcessingException('WriteOutOption=2 must have been specified in RunControl.nml to use the current version of SUEWS Analyzer.')
+        years = extract_suews_years(self.fileoutputpath)
+        self.YYYY = str(startday).split('-')[0]
 
-        feedback.setProgressText("Model input directory: " + self.fileinputpath)
-        feedback.setProgressText("Model output directory: " + self.fileoutputpath)
+        if self.YYYY not in years:
+            raise QgsProcessingException(f"Selected year '{self.YYYY}' is not present in the data.\n Availible years are {str(years)}")
 
-        # mm = 0 #This doesn't work when hourly file starts with e.g.15
-        # while mm < 60:
-        #     self.dlg.comboBox_mm.addItem(str(mm))
-        #     mm += self.resout
 
-        sitein = self.fileinputpath + 'SUEWS_SiteSelect.txt'
-        f = open(sitein)
-        lin = f.readlines()
-        self.YYYY = -99
-        self.gridcodemetID = -99
-        index = 2
-        loop_out = ''
-        gridcodemetmat = [0]
-        yeartest = []
-        while loop_out != '-9':
-            lines = lin[index].split()
-            if not int(lines[1]) == self.YYYY:
-                self.YYYY = int(lines[1])
-                feedback.setProgressText("Year identified for possible analysis: " + str(self.YYYY))
-                yeartest.append(self.YYYY)
-                # self.dlg.comboBox_POIYYYY.addItem(str(self.YYYY))
-                # self.dlg.comboBox_SpatialYYYY.addItem(str(self.YYYY))
-
-            # if not np.any(int(lines[0]) == gridcodemetmat):
-            #     self.gridcodemetID = int(lines[0])
-                # self.dlg.comboBox_POIField.addItem(str(self.gridcodemetID))
-                # self.dlg.comboBox_POIField_2.addItem(str(self.gridcodemetID))
-                # gridtemp = [self.gridcodemetID]
-                # gridcodemetmat = np.vstack((gridcodemetmat, gridtemp))
-
-            if index == 2:
-                if self.multiplemetfiles == 0:
-                    self.gridcodemet = ''
-                else:
-                    self.gridcodemet = lines[0]
-                data_in = self.fileinputpath + self.fileCode + self.gridcodemet + '_' + str(self.YYYY) + '_data_' + str(self.resin) + '.txt'
-                self.met_data = np.genfromtxt(data_in, skip_header=1, missing_values='**********', filling_values=-9999)  # , skip_footer=2
-
-            lines = lin[index + 1].split()
-            loop_out = lines[0]
-            index += 1
-
-        f.close()
-        # self.idgrid = gridcodemetmat[1:, :]
-
-        # dataunit = self.plugin_dir + '/SUEWS_OutputFormatOption' + str(int(writeoutoption)) + '.txt'  # File moved to plugin directory
-        # f = open(dataunit)
-        # lin = f.readlines()
-        # self.lineunit = lin[3].split(";")
-        # self.linevar = lin[1].split(";")
-        # self.linevarlong = lin[2].split(";")
-        # f.close()
-
-        # for i in range(0, self.linevarlong.__len__()):
-        #     self.dlg.comboBox_POIVariable.addItem(self.linevarlong[i])
-        #     self.dlg.comboBox_POIVariable_2.addItem(self.linevarlong[i])
-        #     self.dlg.comboBox_SpatialVariable.addItem(self.linevarlong[i])
-
-        # self.dlg.runButtonPlot.setEnabled(1)
-        # self.dlg.runButtonSpatial.setEnabled(1)
-        
-        
-        # if self.dlg.comboBox_SpatialVariable.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No analyzing variable is selected")
-        #     return
-        # else:
         self.id = int(variaIn) #self.dlg.comboBox_SpatialVariable.currentIndex() - 1
 
-        # if self.dlg.comboBox_SpatialYYYY.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No Year is selected")
-        #     return
-
-        # if self.dlg.comboBox_SpatialDOYMin.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No Minimum DOY is selected")
-        #     return
-
-        # if self.dlg.comboBox_SpatialDOYMax.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No Maximum DOY is selected")
-        #     return
-
-        poly = inputPolygonlayer
-        # if poly is None:
-        #     QMessageBox.critical(self.dlg, "Error", "No valid Polygon layer is selected")
-        #     return
-        # if not poly.geometryType() == 2:
-        #     QMessageBox.critical(self.dlg, "Error", "No valid Polygon layer is selected")
-        #     return
-
         poly_field = idField
-        # if poly_field is None:
-        #     QMessageBox.critical(self.dlg, "Error", "An attribute with unique fields/records must be selected (same as used in the model run to analyze)")
-        #     return
 
-        # if not (self.dlg.addResultToGrid.isChecked() or self.dlg.addResultToGeotiff.isChecked()):
-        #     QMessageBox.critical(self.dlg, "Error", "No output method has been selected (Add results to polygon grid OR Save as GeoTIFF)")
-        #     return
-
-        # if self.dlg.comboBox_SpatialDOYMin.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No Minimum DOY is selected")
-        #     return
-        # else:
-        # startday = int(self.dlg.comboBox_SpatialDOYMin.currentText())
-
-        # if self.dlg.comboBox_SpatialDOYMax.currentText() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No Maximum DOY is selected")
-        #     return
-        # else:
-        # endday = int(self.dlg.comboBox_SpatialDOYMax.currentText())
 
         if startday >= endday:
             raise QgsProcessingException('Start date is greater or equal than end date')
 
-        # if startday > endday:
-        #     QMessageBox.critical(self.dlg, "Error", "Start day happens after end day")
-        #     return
-
-        # if startday == endday:
-        #     QMessageBox.critical(self.dlg, "Error", "End day must be higher than start day")
-        #     return
-
-        # if self.dlg.checkBox_TOD.isChecked():
-        #     if self.dlg.comboBox_HH.currentText() == ' ':
-        #         QMessageBox.critical(self.dlg, "Error", "No Hour specified")
-        #         return
-        #     if self.dlg.comboBox_mm.currentText() == ' ':
-        #         QMessageBox.critical(self.dlg, "Error", "No Minute specified")
-        #         return
-
+ 
         # load, cut data and calculate statistics
         statvectemp = [0]
         statresult = [0]
@@ -346,128 +195,48 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
             polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
         else:
             polygonpath = path
-        # polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
 
-        # idx = vlayer.fieldNameIndex(poly_field)
-        idx = vlayer.fields().indexFromName(poly_field[0])
-        typetest = fields.at(idx).type()
-        # if typetest == 10:
-        #     raise QgsProcessingException("ID field must be either integer or float")
-        starty = int(startday[0:4]) #date.year()
-        startm = int(startday[5:7]) #date.month()
-        startd = int(startday[8:10]) #date.day()
-        if (starty % 4) == 0:
-            if (starty % 100) == 0:
-                if (starty % 400) == 0:
-                    leapyear = 1
-                else:
-                    leapyear = 0
-            else:
-                leapyear = 1
-        else:
-            leapyear = 0
-        if leapyear == 1:
-            dayspermonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        else:
-            dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        startD = sum(dayspermonth[0:int(startm - 1)]) + startd
-        endy = int(endday[0:4]) #date.year()
-        endm = int(endday[5:7]) #date.month()
-        endd = int(endday[8:10]) #date.day()
-        if (endy % 4) == 0:
-            if (endy % 100) == 0:
-                if (endy % 400) == 0:
-                    leapyear = 1
-                else:
-                    leapyear = 0
-            else:
-                leapyear = 1
-        else:
-            leapyear = 0
-        if leapyear == 1:
-            dayspermonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        else:
-            dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        endD = sum(dayspermonth[0:int(endm - 1)]) + endd
+        grid_list = [feature[poly_field[0]] for feature in vlayer.getFeatures()]
+        
+        for grid in grid_list:
 
-        if not starty == endy:
-            raise QgsProcessingException('Startdate and enddate must happen within the same year. Multiple years will be possible in future versions')
-
-        if not starty in yeartest:
-            raise QgsProcessingException('Selected timeperiod not present in output data. Choose a period within the year(s): ' + str(yeartest[:]))
-
-        # for i in range(0, self.idgrid.shape[0]): # loop over vector grid instead
-        index = 1
-        nGrids = vlayer.featureCount()
-        for f in vlayer.getFeatures():
-            feedback.setProgress(int((index * 100) / nGrids))
-            if feedback.isCanceled():
-                feedback.setProgressText("Calculation cancelled")
-                break
-            index += 1
-
-            gid = str(int(f.attributes()[idx]))
-            datawhole = np.genfromtxt(self.fileoutputpath + '/' + self.fileCode + gid + '_'
-                                     + str(self.YYYY) + '_SUEWS_' + str(self.resout) + '.txt', skip_header=1,
-                                     missing_values='**********', filling_values=-9999)
-
-            writeoption = datawhole.shape[1]
-            if writeoption > 38:
-                altpos = 52
-            else:
-                altpos = 25
-            feedback.setProgressText("Processing grid: " + str(gid))
+            datawhole = SUEWS_txt_to_df(self.fileoutputpath + '/' + str(grid) + '_' +
+                                      str(self.YYYY) + '_SUEWS_' + str(self.resout) + '.txt')
             
-            start = np.min(np.where(datawhole[:, 1] == startD))
-            if endD > np.max(datawhole[:, 1]):
-                ending = np.max(np.where(datawhole[:, 1] == endD - 1))
-            else:
-                ending = np.min(np.where(datawhole[:, 1] == endD))
-            data1 = datawhole[start:ending, :]
-
-            # if self.dlg.checkBox_TOD.isChecked():
-            #     hh = self.dlg.comboBox_HH.currentText()
-            #     hhdata = np.where(data1[:, 2] == int(hh))
-            #     data1 = data1[hhdata, :]
-            #     minute = self.dlg.comboBox_mm.currentText()
-            #     mmdata = np.where(data1[0][:, 3] == int(minute))
-            #     data1 = data1[0][mmdata, :]
-            #     data1 = data1[0][:]
-            # else:
+            data1 = datawhole.loc[startday:endday]
             
-            if dayTypeStr == '1':
-                data1 = data1[np.where(data1[:, altpos] < 90.), :]
-                data1 = data1[0][:]
-            if dayTypeStr == '2':
-                data1 = data1[np.where(data1[:, altpos] > 90.), :]
-                data1 = data1[0][:]
+            if dayTypeStr == '0': # Diurnal
+                pass
+            elif dayTypeStr == '1': # Daytime:
+                    data1 = data1[data1.loc[:, 'Zenith'] < 90]
 
-            vardata = data1[:, self.id]
+            elif dayTypeStr == '2': # Nighttime:
+                    data1 = data1[data1.loc[:, 'Zenith'] > 90.]
+            var = self.varType[self.id][0].split(' ')[0] # get position and slice variable
+            vardata = data1.loc[:, var]
 
             if statTypeStr == '0':
                 statresult = np.nanmean(vardata)
+                suffix = '_mean'
             if statTypeStr == '1':
                 statresult = np.nanmin(vardata)
+                suffix = '_min'
             if statTypeStr == '2':
                 statresult = np.nanmax(vardata)
+                suffix = '_max'
             if statTypeStr == '3':
                 statresult = np.nanmedian(vardata)
+                suffix = '_median'
             if statTypeStr == '4':
                 statresult = np.nanpercentile(vardata, 75) - np.percentile(vardata, 25)
-
+                suffix = '_IQR'
             statvectemp = np.vstack((statvectemp, statresult))
-            idvec = np.vstack((idvec, int(gid)))
+            idvec = np.vstack((idvec, int(grid)))
 
         statvector = statvectemp[1:, :]
-        # fix_print_with_import
         statmat = np.hstack((idvec[1:, :], statvector))
-        
-        # numformat2 = '%8d %5.3f'
-        # header2 = 'id value'
-        # np.savetxt(self.plugin_dir + 'test.txt', statmat,
-        #            fmt=numformat2, delimiter=' ', header=header2, comments='')
-
-        header = self.linevar[self.id]
+ 
+        header = var + suffix
         if addAttributes:
             self.addattributes(vlayer, statmat, header)
 
@@ -492,14 +261,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Polygons not squared in current CRS")
                 return
 
-        # polyname = self.dlg.comboBox_Polygrid.currentText()
-        # polyname = self.layerComboManagerPolygrid.currentText()
-        # if self.dlg.textOutput.text() == 'Not Specified':
-        #     QMessageBox.critical(self.dlg, "Error", "No output filename for GeoTIFF is added")
-        #     return
-        # else:
-        #     filename = self.dlg.textOutput.text()
-
+       
         if os.path.isfile(self.plugin_dir + '/tempgrid.tif'): # response to issue 103
             try:
                 shutil.rmtree(self.plugin_dir + '/tempgrid.tif')
@@ -565,24 +327,6 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         del trgt
         del src_data 
 
-    # def saveraster(self, gdal_data, filename, raster):
-    #     rows = gdal_data.RasterYSize
-    #     cols = gdal_data.RasterXSize
-
-    #     outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
-    #     outBand = outDs.GetRasterBand(1)
-
-    #     # write the data
-    #     outBand.WriteArray(raster, 0, 0)
-    #     # flush data to disk, set the NoData value and calculate stats
-    #     outBand.FlushCache()
-    #     outBand.SetNoDataValue(-9999)
-
-    #     # georeference the image and set the projection
-    #     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
-    #     outDs.SetProjection(gdal_data.GetProjection())
-
-    #     del outDs, outBand  
     
     def addattributes(self, vlayer, matdata, header):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
@@ -599,7 +343,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
             vlayer.updateFields()
         else:
-            QMessageBox.critical(None, "Error", "Vector Layer does not support adding attributes")
+            raise QgsProcessingException("Error", "Vector Layer does not support adding attributes")
     
     def name(self):
         return 'Urban Energy Balance: SUEWS Analyzer'

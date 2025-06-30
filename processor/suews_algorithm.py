@@ -86,7 +86,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                       (self.tr('2. Järvi et al. 2011 (Default)'), '2'),
                       (self.tr('3. Updated Loridan et al. 2011'), '3'),
                       (self.tr('4. Järvi et al. 2019 no CO2 Emission calculated'), '4'),
-                      (self.tr('46. Järvi et al. 2019 CO2 Emission calculated'), '45'))
+                      (self.tr('46. Järvi et al. 2019 CO2 Emission calculated'), '46'))
         self.net = ((self.tr('0. Observed data'), '0'),
                    (self.tr('1. Modelled but Ldown observed'), '1'),
                    (self.tr('2. Modelled, Ldown from cloud cover'), '2'),
@@ -130,7 +130,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.NET,
                                                      self.tr('Net radiation method'),
                                                      options=[i[0] for i in self.net],
-                                                     defaultValue=2))
+                                                     defaultValue=3))
         self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
                                                      self.tr('Anthropogenic heat flux method'),
                                                      options=[i[0] for i in self.anthro],
@@ -138,7 +138,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.STORAGE,
                                                      self.tr('Storage heat flux method'),
                                                      options=[i[0] for i in self.storage],
-                                                     defaultValue=0))
+                                                     defaultValue=1))
         self.addParameter(QgsProcessingParameterEnum(self.OHM,
                                                      self.tr('OHM option'),
                                                      options=[i[0] for i in self.ohm],
@@ -162,7 +162,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(self.AERO,
                                                      self.tr('Aerodynamic properties'),
                                                      options=[i[0] for i in self.aero],
-                                                     defaultValue=0))
+                                                     defaultValue=1))
         self.addParameter(QgsProcessingParameterBoolean(self.SNOW,
                                                         self.tr("Use snow module"),
                                                         defaultValue=False))
@@ -221,7 +221,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         z0 = self.parameterAsString(parameters, self.Z0, context)
         smd = self.parameterAsString(parameters, self.SMD, context)
         wu = self.parameterAsString(parameters, self.WU, context)
-        #outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
+        outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
         # spinup = self.parameterAsBool(parameters, self.SPINUP, context)
         chunkBool = self.parameterAsBool(parameters, self.CHUNKBOOL, context)
         noOfChunks = self.parameterAsInt(parameters, self.CHUNK, context)
@@ -233,17 +233,17 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         with open(infile, 'r') as f:
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
         
-        # nml['runcontrol']['CBLuse'] = int(usecbl)
+         # nml['runcontrol']['CBLuse'] = int(usecbl)
         yaml_dict['model']['physics']['snowuse']['value'] = int(usesnow)
-        yaml_dict['model']['physics']['netradiationmethod']['value'] = int(net)
-        yaml_dict['model']['physics']['emissionsmethod']['value'] = int(qf)
-        yaml_dict['model']['physics']['ohmincqf']['value'] = int(ohm)
-        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(stab)
-        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(qs)
-        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(aeroD)
-        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(z0)
-        yaml_dict['model']['physics']['smdmethod']['value'] = int(smd)
-        yaml_dict['model']['physics']['waterusemethod']['value'] = int(wu)
+        yaml_dict['model']['physics']['netradiationmethod']['value'] = int(self.net[int(net)][1])
+        yaml_dict['model']['physics']['emissionsmethod']['value'] = int(self.anthro[int(qf)][1])
+        yaml_dict['model']['physics']['ohmincqf']['value'] = int(self.ohm[int(ohm)][1])
+        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(self.stab[int(stab)][1])
+        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(self.storage[int(qs)][1])
+        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(self.aero[int(aeroD)][1])
+        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(self.z0[int(z0)][1])
+        yaml_dict['model']['physics']['smdmethod']['value'] = int(self.smd[int(smd)][1])
+        yaml_dict['model']['physics']['waterusemethod']['value'] = int(self.wu[int(wu)][1])
         # yaml_dict['model']['physics']['roughlenheatmethod'] = str(infolder) + "/"
         yaml_dict['model']['control']['output_file'] = str(outfolder) + "/"
         # yaml_dict['model']['control']['forcing_file'] = str(filecode)
@@ -257,14 +257,17 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         with open(infile, 'w') as file:
             yaml.dump(yaml_dict, file, sort_keys = False)
 
-        #print(yaml_dict['model']['physics'])
+        print(yaml_dict['model']['physics'])
         # SuPy initialisation
+        # path_runcontrol = Path(infolder) / 'RunControl.nml'
         feedback.setProgressText("Initiating model")
-        df_state_init = sp.init_supy(infile)
+        config = sp.data_model.init_config_from_yaml(infile)
+        df_state_init = config.to_df_state()
         
         feedback.setProgressText("Loading forcing data")
+        
         grid = df_state_init.index[0]
-        df_forcing = sp.load_forcing_grid(infile, grid=grid, df_state_init=df_state_init)
+        df_forcing = sp.load_forcing_grid(infile, grid, df_state_init=df_state_init)
 
         if chunkBool:
             noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
@@ -295,7 +298,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2025.6.2.dev0')
+        return self.tr('Urban Energy Balance: SUEWS v2025.6.30')
 
     def group(self):
         return self.tr(self.groupId())
