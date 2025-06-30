@@ -57,11 +57,11 @@ import os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path, PurePath
-from ..util.misc import get_ders, saveraster
+from ..util.misc import saveraster, xy2latlon_fromraster
 import zipfile
-from osgeo.gdalconst import *
 from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
 from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+from ..util.umep_solweig_export_component import read_solweig_config, write_solweig_config
 from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
 from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
 from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
@@ -70,9 +70,11 @@ from ..functions.SOLWEIGpython import PET_calculations as p
 from ..functions.SOLWEIGpython import UTCI_calculations as utci
 from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
-from ..functions import wallalgorithms as wa
-from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
-from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
+
+# from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
+# from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
+
+from ..functions.SOLWEIGpython import Solweig_run as sr
 
 import matplotlib.pyplot as plt
 import json
@@ -385,10 +387,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         absL = self.parameterAsDouble(parameters, self.ABS_L, context)
         pos = self.parameterAsInt(parameters, self.POSTURE, context)
         
-        if self.parameterAsBool(parameters, self.CYL, context):
-            cyl = 1
-        else:
-            cyl = 0
+        cyl = self.parameterAsBool(parameters, self.CYL, context)
+        #     cyl = 1
+        # else:
+        #     cyl = 0
 
         if pos == 0:
             Fside = 0.22
@@ -405,9 +407,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         albedo_g = self.parameterAsDouble(parameters, self.ALBEDO_GROUND, context)
         ewall = self.parameterAsDouble(parameters, self.EMIS_WALLS, context)
         eground = self.parameterAsDouble(parameters, self.EMIS_GROUND, context)
-        elvis = 0 # option removed 20200907 in processing UMEP
+        elvis = 0 # option removed 20200907 in processing UMEP. Should be removed completely
         # thermal_effusivity = self.parameterAsDouble(parameters, self.EFFUS_WALL, context)
-        wall_type = None
+        wall_type = str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context)))
 
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         outputTmrt = self.parameterAsBool(parameters, self.OUTPUT_TMRT, context)
@@ -436,10 +438,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        # Load parameters for SOLWEIG for surface temperatures, etc
-        data_path = self.plugin_dir + '/parametersforsolweig.json'
-        with open(data_path, "r") as jsn:
+        # Load parameters and config settings for SOLWEIG
+        with open(self.plugin_dir + '/parametersforsolweig.json', "r") as jsn:
             solweig_parameters = json.load(jsn)
+        configDict = read_solweig_config(self.plugin_dir + '/configsolweig.ini')
 
         # Add GUI Tmrt settings to SOLWEIG parameter file
         solweig_parameters['Tmrt_params']['Value']['absK'] = absK
@@ -454,75 +456,33 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         solweig_parameters['Emissivity']['Value']['Cobble_stone_2014a'] = eground
         solweig_parameters['Emissivity']['Value']['Walls'] = ewall
 
-        # Code from old plugin
+        # Load dsm layer
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
         dsm = gdal_dsm.ReadAsArray().astype(float)
-        sizex = dsm.shape[0]
-        sizey = dsm.shape[1]
-        rows = dsm.shape[0]
-        cols = dsm.shape[1]
-
+        rows = dsmlayer.height() # new way to get x and y pixels
+        cols = dsmlayer.width()
+        # rows = dsm.shape[0]
+        # cols = dsm.shape[1]
+        
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
-        dsm[dsm == nd] = 0.
-        # dsmcopy = np.copy(dsm)
+        # dsm[dsm == nd] = 0.
         if dsm.min() < 0:
             dsmraise = np.abs(dsm.min())
-            dsm = dsm + dsmraise
+            # dsm = dsm + dsmraise
             feedback.setProgressText('Digital Surface Model (DSM) included negative values. DSM raised with ' + str(dsmraise) + 'm.')
         else:
             dsmraise = 0
 
         # Get latlon from grid coordinate system
-        old_cs = osr.SpatialReference()
-        dsm_ref = dsmlayer.crs().toWkt()
-        old_cs.ImportFromWkt(dsm_ref)
-
-        wgs84_wkt = """
-        GEOGCS["WGS 84",
-            DATUM["WGS_1984",
-                SPHEROID["WGS 84",6378137,298.257223563,
-                    AUTHORITY["EPSG","7030"]],
-                AUTHORITY["EPSG","6326"]],
-            PRIMEM["Greenwich",0,
-                AUTHORITY["EPSG","8901"]],
-            UNIT["degree",0.01745329251994328,
-                AUTHORITY["EPSG","9122"]],
-            AUTHORITY["EPSG","4326"]]"""
-
-        new_cs = osr.SpatialReference()
-        new_cs.ImportFromWkt(wgs84_wkt)
-
-        transform = osr.CoordinateTransformation(old_cs, new_cs)
-        widthx = gdal_dsm.RasterXSize
-        heightx = gdal_dsm.RasterYSize
-        geotransform = gdal_dsm.GetGeoTransform()
-        minx = geotransform[0]
-        miny = geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
-
-        lonlat = transform.TransformPoint(minx, miny)
-        gdalver = float(gdal.__version__[0])
-        if gdalver == 3.:
-            lon = lonlat[1] #changed to gdal 3
-            lat = lonlat[0] #changed to gdal 3
-        else:
-            lon = lonlat[0] #changed to gdal 2
-            lat = lonlat[1] #changed to gdal 2
-        scale = 1 / geotransform[1]
-
-        pixel_resolution = geotransform[1]
-
-        alt = np.median(dsm)
-        if alt < 0:
-            alt = 3
+        # old_cs = osr.SpatialReference()
+        dsm_wkt = dsmlayer.crs().toWkt()
+        lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm) # new funciton in misc
+     
         feedback.setProgressText('Longitude derived from DSM: ' + str(lon))
         feedback.setProgressText('Latitude derived from DSM: ' + str(lat))
-
-        trunkfile = 0
-        trunkratio = 0
-        # psi = transVeg / 100.0
 
         # if useVegdem:
         if vegdsm is not None:
@@ -530,41 +490,52 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText('Vegetation scheme activated')
 
             # load raster
-            gdal.AllRegister()
-            provider = vegdsm.dataProvider()
-            filePathOld = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePathOld)
-            vegdsm = dataSet.ReadAsArray().astype(float)
-            filePath_cdsm = filePathOld
-            vegsizex = vegdsm.shape[0]
-            vegsizey = vegdsm.shape[1]
+            # gdal.AllRegister()
+            # provider = vegdsm.dataProvider()
+            filePath_cdsm = str(vegdsm.dataProvider().dataSourceUri())
+            # dataSet = gdal.Open(filePathOld)
+            # vegdsm = dataSet.ReadAsArray().astype(float)
+            # filePath_cdsm = filePathOld
+            # vegrows = vegdsm.shape[0]
+            # vegcols = vegdsm.shape[1]
+            vegrows = vegdsm.height()
+            vegcols = vegdsm.width()
 
-            if not (vegsizex == sizex) & (vegsizey == sizey):
+            solweig_parameters["Tree_settings"]["Value"]["Transmissivity"] = transVeg 
+            solweig_parameters["Tree_settings"]["Value"]["First_day_leaf"] = firstdayleaf 
+            solweig_parameters["Tree_settings"]["Value"]["Last_day_leaf"]  = lastdayleaf 
+
+            if not (vegrows == rows) & (vegcols == cols):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
             if vegdsm2 is not None:
-                gdal.AllRegister()
-                provider = vegdsm2.dataProvider()
-                filePathOld = str(provider.dataSourceUri())
-                filePath_tdsm = filePathOld
-                dataSet = gdal.Open(filePathOld)
-                vegdsm2 = dataSet.ReadAsArray().astype(float)
+            #     gdal.AllRegister()
+            #     provider = vegdsm2.dataProvider()
+                filePath_tdsm = str(vegdsm2.dataProvider().dataSourceUri())
+            #     filePath_tdsm = filePathOld
+            #     dataSet = gdal.Open(filePathOld)
+            #     vegdsm2 = dataSet.ReadAsArray().astype(float)
+            # else:
+            #     trunkratio = trunkr / 100.0
+            #     vegdsm2 = vegdsm * trunkratio
+            #     filePath_tdsm = None
+
+            # vegrows = vegdsm2.shape[0]
+            # vegcols = vegdsm2.shape[1]
+                vegrows = vegdsm2.height()
+                vegcols = vegdsm2.width()
+
+                if not (vegrows == rows) & (vegcols == cols):  # &
+                    raise QgsProcessingException("Error in Trunk Zone DSM: All rasters must be of same extent and resolution")
             else:
-                trunkratio = trunkr / 100.0
-                vegdsm2 = vegdsm * trunkratio
-                filePath_tdsm = None
-
-            vegsizex = vegdsm2.shape[0]
-            vegsizey = vegdsm2.shape[1]
-
-            if not (vegsizex == sizex) & (vegsizey == sizey):  # &
-                raise QgsProcessingException("Error in Trunk Zone DSM: All rasters must be of same extent and resolution")
+                solweig_parameters["Tree_settings"]["Value"]["Trunk_ratio"] = trunkr / 100.
+                filePath_tdsm = ''
         else:
-            vegdsm = np.zeros([rows, cols])
-            vegdsm2 = np.zeros([rows, cols])
+            # vegdsm = np.zeros([rows, cols])
+            # vegdsm2 = np.zeros([rows, cols])
             usevegdem = 0
-            filePath_cdsm = None
-            filePath_tdsm = None
+            filePath_cdsm = ''
+            filePath_tdsm = ''
 
         # Land cover
         if lcgrid is not None:
@@ -574,14 +545,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             # load raster
             gdal.AllRegister()
             provider = lcgrid.dataProvider()
-            filePath_lc = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePath_lc)
+            filepath_lc = str(provider.dataSourceUri())
+            dataSet = gdal.Open(filepath_lc)
             lcgrid = dataSet.ReadAsArray().astype(float)
 
-            lcsizex = lcgrid.shape[0]
-            lcsizey = lcgrid.shape[1]
+            lcrows = lcgrid.shape[0]
+            lccols = lcgrid.shape[1]
 
-            if not (lcsizex == sizex) & (lcsizey == sizey):
+            if not (lcrows == rows) & (lccols == cols):
                 raise QgsProcessingException("Error in land cover grid: All grids must be of same extent and resolution")
 
             baddataConifer = (lcgrid == 3)
@@ -593,7 +564,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if np.isnan(lcgrid).any():
                 raise QgsProcessingException("Error in land cover grid: Land cover grid includes NaN values. Use the QGIS Fill NoData cells tool to remove NaN values.")
         else:
-            filePath_lc = None
+            filepath_lc = ''
             landcover = 0
             lcgrid = 0
 
@@ -608,14 +579,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             # load raster
             gdal.AllRegister()
             provider = dem.dataProvider()
-            filePathOld = str(provider.dataSourceUri())
-            dataSet = gdal.Open(filePathOld)
+            filepath_dem = str(provider.dataSourceUri())
+            dataSet = gdal.Open(filepath_dem)
             dem = dataSet.ReadAsArray().astype(float)
 
-            demsizex = dem.shape[0]
-            demsizey = dem.shape[1]
+            demrows = dem.shape[0]
+            demcols = dem.shape[1]
 
-            if not (demsizex == sizex) & (demsizey == sizey):
+            if not (demrows == rows) & (demcols == cols):
                 raise QgsProcessingException( "Error in DEM: All grids must be of same extent and resolution")
 
             # response to issue and #230
@@ -628,101 +599,61 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             else:
                 demraise = 0
 
-            alt = np.median(dem)
-            if alt > 0:
-                alt = 3.
-
             if (dsmraise != demraise) and (dsmraise - demraise > 0.5):
                 feedback.setProgressText('WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!')
+        else:
+            demforbuild = 0
+            filepath_dem = ''
+
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')
-        zip.extractall(self.temp_dir)
+        # zip.extractall(self.temp_dir)
+        # zip.close()
+        zip.extract('svf.tif',self.temp_dir)
         zip.close()
 
         try:
             dataSet = gdal.Open(self.temp_dir + "/svf.tif")
             svf = dataSet.ReadAsArray().astype(float)
-            dataSet = gdal.Open(self.temp_dir + "/svfN.tif")
-            svfN = dataSet.ReadAsArray().astype(float)
-            dataSet = gdal.Open(self.temp_dir + "/svfS.tif")
-            svfS = dataSet.ReadAsArray().astype(float)
-            dataSet = gdal.Open(self.temp_dir + "/svfE.tif")
-            svfE = dataSet.ReadAsArray().astype(float)
-            dataSet = gdal.Open(self.temp_dir + "/svfW.tif")
-            svfW = dataSet.ReadAsArray().astype(float)
-
-            if usevegdem == 1:
-                dataSet = gdal.Open(self.temp_dir + "/svfveg.tif")
-                svfveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfNveg.tif")
-                svfNveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfSveg.tif")
-                svfSveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfEveg.tif")
-                svfEveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfWveg.tif")
-                svfWveg = dataSet.ReadAsArray().astype(float)
-
-                dataSet = gdal.Open(self.temp_dir + "/svfaveg.tif")
-                svfaveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfNaveg.tif")
-                svfNaveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfSaveg.tif")
-                svfSaveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfEaveg.tif")
-                svfEaveg = dataSet.ReadAsArray().astype(float)
-                dataSet = gdal.Open(self.temp_dir + "/svfWaveg.tif")
-                svfWaveg = dataSet.ReadAsArray().astype(float)
-            else:
-                svfveg = np.ones((rows, cols))
-                svfNveg = np.ones((rows, cols))
-                svfSveg = np.ones((rows, cols))
-                svfEveg = np.ones((rows, cols))
-                svfWveg = np.ones((rows, cols))
-                svfaveg = np.ones((rows, cols))
-                svfNaveg = np.ones((rows, cols))
-                svfSaveg = np.ones((rows, cols))
-                svfEaveg = np.ones((rows, cols))
-                svfWaveg = np.ones((rows, cols))
         except:
             raise QgsProcessingException("SVF import error: The zipfile including the SVFs seems corrupt. Retry calcualting the SVFs in the Pre-processor or choose another file.")
 
-        svfsizex = svf.shape[0]
-        svfsizey = svf.shape[1]
+        # svfrows = svf.shape[0]
+        # svfsizey = svf.shape[1]
 
-        if not (svfsizex == sizex) & (svfsizey == sizey):  # &
+        if not (svf.shape[0] == rows) & (svf.shape[1] == cols):  # &
             raise QgsProcessingException("Error in svf rasters: All grids must be of same extent and resolution")
 
-        tmp = svf + svfveg - 1.
-        tmp[tmp < 0.] = 0.
-        # %matlab crazyness around 0
-        svfalfa = np.arcsin(np.exp((np.log((1. - tmp)) / 2.)))
+        # tmp = svf + svfveg - 1.
+        # tmp[tmp < 0.] = 0.
+        # # %matlab crazyness around 0
+        # svfalfa = np.arcsin(np.exp((np.log((1. - tmp)) / 2.)))
 
-        feedback.setProgressText('Sky View Factor rasters loaded')
+        feedback.setProgressText('Loading Sky View Factor rasters')
 
         # wall height layer
         if whlayer is None:
             raise QgsProcessingException("Error: No valid wall height raster layer is selected")
-        provider = whlayer.dataProvider()
-        filepath_wh = str(provider.dataSourceUri())
-        self.gdal_wh = gdal.Open(filepath_wh)
-        wallheight = self.gdal_wh.ReadAsArray().astype(float)
-        vhsizex = wallheight.shape[0]
-        vhsizey = wallheight.shape[1]
-        if not (vhsizex == sizex) & (vhsizey == sizey):
+        # provider = whlayer.dataProvider()
+        filepath_wh = str(whlayer.dataProvider().dataSourceUri())
+        # self.gdal_wh = gdal.Open(filepath_wh)
+        # wallheight = self.gdal_wh.ReadAsArray().astype(float)
+        # vhrows = wallheight.shape[0]
+        # vhcols = wallheight.shape[1]
+        if not (whlayer.height() == rows) & (whlayer.width() == cols):
             raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
         # wall aspectlayer
         if walayer is None:
             raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
-        provider = walayer.dataProvider()
-        filepath_wa = str(provider.dataSourceUri())
-        self.gdal_wa = gdal.Open(filepath_wa)
-        wallaspect = self.gdal_wa.ReadAsArray().astype(float)
-        vasizex = wallaspect.shape[0]
-        vasizey = wallaspect.shape[1]
-        if not (vasizex == sizex) & (vasizey == sizey):
+        # provider = walayer.dataProvider()
+        filepath_wa = str(walayer.dataProvider().dataSourceUri())
+        # self.gdal_wa = gdal.Open(filepath_wa)
+        # wallaspect = self.gdal_wa.ReadAsArray().astype(float)
+        # varows = wallaspect.shape[0]
+        # vasizey = wallaspect.shape[1]
+        if not (walayer.height() == rows) & (walayer.width() == cols):
             raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
 
         # Metdata
@@ -732,7 +663,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         try:
             self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
-            metfileexist = 1
+            # metfileexist = 1
         except:
             raise QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
                                                         "prepare your data by using 'Prepare Existing Data' in "
@@ -750,229 +681,56 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                                         "the Pre-processor")
 
         feedback.setProgressText("Calculating sun positions for each time step")
-        location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
-        YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
-            Solweig_2015a_metdata_noload(self.metdata,location, utc)
+        # location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
+        # YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
+            # Solweig_2015a_metdata_noload(self.metdata,location, utc)
 
-        # Creating vectors from meteorological input
-        DOY = self.metdata[:, 1]
-        hours = self.metdata[:, 2]
-        minu = self.metdata[:, 3]
-        Ta = self.metdata[:, 11]
-        RH = self.metdata[:, 10]
-        radG = self.metdata[:, 14]
-        radD = self.metdata[:, 21]
-        radI = self.metdata[:, 22]
-        P = self.metdata[:, 12]
-        Ws = self.metdata[:, 9]
+        # # Creating vectors from meteorological input
+        # radD = self.metdata[:, 21]
+        # radI = self.metdata[:, 22]
         
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
-            if np.min(radD) == -999:
+            if np.min(self.metdata[:, 21]) == -999:
                 raise QgsProcessingException("Diffuse radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
-            if np.min(radI) == -999:
+            if np.min(self.metdata[:, 22]) == -999:
                 raise QgsProcessingException("Direct radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
 
         # POIs check
         if poilyr is not None: # usePOI:
-            #header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
-            #            'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
-            #            'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI'
-
-            header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
-                        'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
-                        'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI  CI_Tg   CI_TgG  KsideD  Lside   diffDown    Kside'                            
-
-            # poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context) 
-            # if poilyr is None:
-                # raise QgsProcessingException("No valid point layer is selected")
-
-            poi_field = self.parameterAsFields(parameters, self.POI_FIELD, context)
-            # if poi_field[0] is None:
-            #     raise QgsProcessingException("An attribute field with unique values must be selected when using a POI vector file")
-            vlayer = poilyr
-            prov = vlayer.dataProvider()
-            fields = prov.fields()
-            idx = vlayer.fields().indexFromName(poi_field[0])
-            numfeat = vlayer.featureCount()
-            poiname = []
-            poisxy = np.zeros((numfeat, 3)) - 999
-            ind = 0
-            for f in vlayer.getFeatures():  # looping through each POI
-                y = f.geometry().centroid().asPoint().y()
-                x = f.geometry().centroid().asPoint().x()
-
-                poiname.append(f.attributes()[idx])
-                poisxy[ind, 0] = ind
-                poisxy[ind, 1] = np.round((x - minx) * scale)
-                if miny >= 0:
-                    poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-                else:
-                    poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-
-                ind += 1
-
-            for k in range(0, poisxy.shape[0]):
-                poi_save = []  # np.zeros((1, 33))
-                data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
-                np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')
-            
-            # Num format for POI output
-            numformat = '%d %d %d %d %.5f ' + '%.2f ' * 36
+                           
+            poi_file = str(poilyr.dataProvider().dataSourceUri())
+            poi_field = self.parameterAsString(parameters, self.POI_FIELD, context)
 
             # Other PET variables
-            mbody = self.parameterAsDouble(parameters, self.WEIGHT, context)
-            ht = self.parameterAsDouble(parameters, self.HEIGHT, context) / 100.
-            clo = self.parameterAsDouble(parameters, self.CLO, context)
-            age = self.parameterAsDouble(parameters, self.AGE, context)
-            activity = self.parameterAsDouble(parameters, self.WEIGHT, context)
-            sex = self.parameterAsInt(parameters, self.SEX, context) + 1
-            sensorheight = self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
-            
-            solweig_parameters['PET_settings']['Value']['Age'] = age
-            solweig_parameters['PET_settings']['Value']['Weight'] = mbody
-            solweig_parameters['PET_settings']['Value']['Height'] = ht
-            solweig_parameters['PET_settings']['Value']['clo'] = clo
-            solweig_parameters['PET_settings']['Value']['Activity'] = activity
-            if sex == 1:
+            solweig_parameters['PET_settings']['Value']['Age'] = self.parameterAsDouble(parameters, self.AGE, context)
+            solweig_parameters['PET_settings']['Value']['Weight'] = self.parameterAsDouble(parameters, self.WEIGHT, context)
+            solweig_parameters['PET_settings']['Value']['Height'] = self.parameterAsDouble(parameters, self.HEIGHT, context) / 100.
+            solweig_parameters['PET_settings']['Value']['clo'] = self.parameterAsDouble(parameters, self.CLO, context)
+            solweig_parameters['PET_settings']['Value']['Activity'] = self.parameterAsDouble(parameters, self.WEIGHT, context)
+            if (self.parameterAsInt(parameters, self.SEX, context) + 1) == 1:
                 solweig_parameters['PET_settings']['Value']['Sex'] = 'Male'
             else:
                 solweig_parameters['PET_settings']['Value']['Sex'] = 'Female'
 
-            feedback.setProgressText("Point of interest (POI) vector data successfully loaded")
+            solweig_parameters['Wind_Height']['Value']['magl'] = self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
 
-        # %Parameterisarion for Lup
-        if not height:
-            height = 1.1
-
-        # %Radiative surface influence, Rule of thumb by Schmid et al. (1990).
-        first = np.round(height)
-        if first == 0.:
-            first = 1.
-        second = np.round((height * 20.))
-
-        if usevegdem == 1:
-            # Conifer or deciduous
-            if conifer_bool:
-                leafon = np.ones((1, DOY.shape[0]))
-            else:
-                leafon = np.zeros((1, DOY.shape[0]))
-                if firstdayleaf > lastdayleaf:
-                    leaf_bool = ((DOY > firstdayleaf) | (DOY < lastdayleaf))
-                else:
-                    leaf_bool = ((DOY > firstdayleaf) & (DOY < lastdayleaf))
-                leafon[0, leaf_bool] = 1
-
-            # % Vegetation transmittivity of shortwave radiation
-            psi = leafon * transVeg
-            psi[leafon == 0] = 0.5
-            # amaxvalue
-            vegmax = vegdsm.max()
-            amaxvalue = dsm.max() - dsm.min()
-            amaxvalue = np.maximum(amaxvalue, vegmax)
-
-            # Elevation vegdsms if buildingDEM includes ground heights
-            vegdsm = vegdsm + dsm
-            vegdsm[vegdsm == dsm] = 0
-            vegdsm2 = vegdsm2 + dsm
-            vegdsm2[vegdsm2 == dsm] = 0
-
-            # % Bush separation
-            bush = np.logical_not((vegdsm2 * vegdsm)) * vegdsm
-
-            svfbuveg = (svf - (1. - svfveg) * (1. - transVeg))  # % major bug fixed 20141203
+            feedback.setProgressText("Point of interest (POI) vector data identified")
         else:
-            psi = leafon * 0. + 1.
-            svfbuveg = svf
-            bush = np.zeros([rows, cols])
-            amaxvalue = 0
-
-        # %Initialization of maps
-        Knight = np.zeros((rows, cols))
-        Tgmap1 = np.zeros((rows, cols))
-        Tgmap1E = np.zeros((rows, cols))
-        Tgmap1S = np.zeros((rows, cols))
-        Tgmap1W = np.zeros((rows, cols))
-        Tgmap1N = np.zeros((rows, cols))
-        
-        # building grid and land cover preparation
-        # sitein = self.plugin_dir + "/landcoverclasses_2016a.txt"
-        # f = open(sitein)
-        # lin = f.readlines()
-        # lc_class = np.zeros((lin.__len__() - 1, 6))
-        # for i in range(1, lin.__len__()):
-        #     lines = lin[i].split()
-        #     for j in np.arange(1, 7):
-        #         lc_class[i - 1, j - 1] = float(lines[j])
-
-        # lc_df = pd.read_csv(self.plugin_dir + '/landcoverclasses_2023a.txt')
-        # lc_class = lc_df[['Code', 'Albedo', 'Emissivity', 'Ts_deg', 'Tstart', 'TmaxLST']].to_numpy()
-
-        if demforbuild == 0:
-            buildings = np.copy(lcgrid)
-            buildings[buildings == 7] = 1
-            buildings[buildings == 6] = 1
-            buildings[buildings == 5] = 1
-            buildings[buildings == 4] = 1
-            buildings[buildings == 3] = 1
-            buildings[buildings == 2] = 0
-        else:
-            buildings = dsm - dem
-            buildings[buildings < 2.] = 1.
-            buildings[buildings >= 2.] = 0.
-
-        if saveBuild:
-            saveraster(gdal_dsm, outputDir + '/buildings.tif', buildings)
+            poi_file = ''
+            poi_field = '' 
 
         # Import shadow matrices (Anisotropic sky)
         if folderPathPerez:  #UseAniso
             anisotropic_sky = 1
-            data = np.load(folderPathPerez)
-            shmat = data['shadowmat']
-            vegshmat = data['vegshadowmat']
-            vbshvegshmat = data['vbshmat']
-            if usevegdem == 1:
-                diffsh = np.zeros((rows, cols, shmat.shape[2]))
-                for i in range(0, shmat.shape[2]):
-                    diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (1 - transVeg) # changes in psi not implemented yet
-            else:
-                diffsh = shmat
-                #vegshmat += 1
-                #vbshvegshmat += 1
-
-            # Estimate number of patches based on shadow matrices
-            if shmat.shape[2] == 145:
-                patch_option = 1 # patch_option = 1 # 145 patches
-            elif shmat.shape[2] == 153:
-                patch_option = 2 # patch_option = 2 # 153 patches
-            elif shmat.shape[2] == 306:
-                patch_option = 3 # patch_option = 3 # 306 patches
-            elif shmat.shape[2] == 612:
-                patch_option = 4 # patch_option = 4 # 612 patches
-
-            # asvf to calculate sunlit and shaded patches
-            asvf = np.arccos(np.sqrt(svf))
-
-            # Empty array for steradians
-            steradians = np.zeros((shmat.shape[2]))
-
-            anisotropic_feedback = "Sky divided into " + str(int(shmat.shape[2])) + " patches\n \
-                                    Anisotropic sky for diffuse shortwave radiation (Perez et al., 1993) and longwave radiation (Martin & Berdahl, 1984)"
-            feedback.setProgressText(anisotropic_feedback)
+            feedback.setProgressText("Anisotropic sky for diffuse shortwave radiation (Perez et al., 1993) and longwave radiation (Martin & Berdahl, 1984)")
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
-            diffsh = None
-            shmat = None
-            vegshmat = None
-            vbshvegshmat = None
-            asvf = None
-            patch_option = 0
-            steradians = 0
 
         # % Ts parameterisation maps
         if landcover == 1.:
@@ -988,131 +746,78 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
                 raise QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
-            
-            # Get land cover properties for Tg wave (land cover scheme based on Bogren et al. 2000, explained in Lindberg et al., 2008 and Lindberg, Onomura & Grimmond, 2016)
-            [TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST, TmaxLST_wall] = Tgmaps_v1(lcgrid.copy(), solweig_parameters)
-            
-        else:
-            TgK = Knight + solweig_parameters['Ts_deg']['Value']['Cobble_stone_2014a']
-            Tstart = Knight - solweig_parameters['Tstart']['Value']['Cobble_stone_2014a']
-            TmaxLST = solweig_parameters['TmaxLST']['Value']['Cobble_stone_2014a']
-            alb_grid = Knight + solweig_parameters['Albedo']['Effective']['Value']['Cobble_stone_2014a']
-            emis_grid = Knight + solweig_parameters['Emissivity']['Value']['Cobble_stone_2014a']
-            TgK_wall = solweig_parameters['Ts_deg']['Value']['Walls']
-            Tstart_wall = solweig_parameters['Tstart']['Value']['Walls']
-            TmaxLST_wall = solweig_parameters['TmaxLST']['Value']['Walls']
 
         # Import data for wall temperature parameterization
         if folderWallScheme:
             wallScheme = 1
-            wallData = np.load(folderWallScheme)
-            voxelMaps = wallData['voxelId']
-            voxelTable = wallData['voxelTable']
-            # Get wall type set in GUI
-            wall_type = str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context)))
-
-            # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
-            walls_scheme = wa.findwalls_sp(dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]]))
-            # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
-            dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(walls_scheme.copy(), scale, dsm, feedback, 100./180.)
-            
-            # Used in wall temperature parameterization scheme
-            first_timestep = (pd.to_datetime(YYYY[0][0], format='%Y') + pd.to_timedelta(DOY[0] - 1, unit='d') + 
-                pd.to_timedelta(hours[0], unit='h') + pd.to_timedelta(minu[0], unit='m'))
-            second_timestep = (pd.to_datetime(YYYY[0][1], format='%Y') + pd.to_timedelta(DOY[1] - 1, unit='d') + 
-                pd.to_timedelta(hours[1], unit='h') + pd.to_timedelta(minu[1], unit='m'))
-            
-            timeStep = (second_timestep - first_timestep).seconds
-
-            # Load voxelTable as Pandas DataFrame
-            voxelTable, dirwalls_scheme = load_walls(voxelTable, solweig_parameters, wall_type, dirwalls_scheme, Ta[0], timeStep, albedo_b, ewall, alb_grid, landcover, lcgrid, dsm)
-            # Unique wall types
-            thermal_effusivity = voxelTable['thermalEffusivity'].unique()
-
-            # Empty wall temperature matrix for parameterization scheme
-            wallScheme_feedback = "Running with wall parameterization scheme. Walls divided into " + str(int(voxelTable.shape[0])) + " unique voxels."
-            feedback.setProgressText(wallScheme_feedback)
+            feedback.setProgressText("Wall surface temperature scheme activated")
 
             # Use wall of interest
             if woilyr is not None:
-                (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform()
-
-                woi_field = self.parameterAsStrings(parameters, self.WOI_FIELD, context)
-                woisxy, woiname = wallOfInterest(woilyr, woi_field, minx, miny, scale, rows, outputDir, dsm_minx, dsm_x_size, dsm_miny, dsm_y_size)
-
-            # Create pandas datetime object to be used when createing an xarray DataSet where wall temperatures/radiation is stored and eventually saved as a NetCDf
-            if wallNetCDF:
-                met_for_xarray = (pd.to_datetime(YYYY[0][:], format='%Y') + pd.to_timedelta(DOY - 1, unit='d') + 
-                                pd.to_timedelta(hours, unit='h') + pd.to_timedelta(minu, unit='m'))
-
+                woi_file = str(woilyr.dataProvider().dataSourceUri())
+                woi_field = self.parameterAsString(parameters, self.WOI_FIELD, context)
+            else:
+                woi_file = ''
+                woi_field = ''
         else:
             wallScheme = 0
-            voxelMaps = 0
-            voxelTable = 0
-            timeStep = 0
-            thermal_effusivity = 0
-            walls_scheme = np.ones((rows, cols)) * 10.
-            dirwalls_scheme = np.ones((rows, cols)) * 10.
+            woi_file = ''
+            woi_field = ''
 
-        # Initialisation of time related variables
-        if Ta.__len__() == 1:
-            timestepdec = 0
-        else:
-            timestepdec = dectime[1] - dectime[0]
-        timeadd = 0.
-        timeaddE = 0.
-        timeaddS = 0.
-        timeaddW = 0.
-        timeaddN = 0.
-        firstdaytime = 1.
 
-        WriteMetadataSOLWEIG.writeRunInfo(outputDir, filepath_dsm, gdal_dsm, usevegdem,
-                                              filePath_cdsm, trunkfile, filePath_tdsm, lat, lon, utc, landcover,
-                                              filePath_lc, metfileexist, inputMet, self.metdata, self.plugin_dir,
-                                              absK, absL, albedo_b, albedo_g, ewall, eground, onlyglobal, trunkratio,
-                                              transVeg, rows, cols, pos, elvis, cyl, demforbuild, anisotropic_sky, wallScheme, thermal_effusivity)
+        #TODO: write code to dump setting into configfile
 
-        feedback.setProgressText("Writing settings for this model run to specified output folder (Filename: RunInfoSOLWEIG_YYYY_DOY_HHMM.txt)")
-
-        # Save svf
-        if anisotropic_sky:
-            if not poisxy is None:
-                patch_characteristics = np.zeros((shmat.shape[2], poisxy.shape[0]))
-                for idx in range(poisxy.shape[0]):
-                    for idy in range(shmat.shape[2]):
-                        # Calculations for patches on sky, shmat = 1 = sky is visible
-                        temp_sky = ((shmat[:,:,idy] == 1) & (vegshmat[:,:,idy] == 1))
-                        # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
-                        temp_vegsh = ((vegshmat[:,:,idy] == 0) | (vbshvegshmat[:,:,idy] == 0))
-                        # Calculations for patches that are buildings, shmat = 0 = shade from buildings
-                        temp_vbsh = (1 - shmat[:,:,idy]) * vbshvegshmat[:,:,idy]
-                        temp_sh = (temp_vbsh == 1)
-                        if wallScheme:
-                            temp_sh_w = temp_sh * voxelMaps[:, :, idy]
-                            temp_sh_roof = temp_sh * (voxelMaps[:, :, idy] == 0)
-                        else:
-                            temp_sh_w = 0
-                            temp_sh_roof = 0
-                        # Sky patch
-                        if temp_sky[int(poisxy[idx, 2]), int(poisxy[idx, 1])]:
-                            patch_characteristics[idy,idx] = 1.8
-                        # Vegetation patch
-                        elif (temp_vegsh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                            patch_characteristics[idy,idx] = 2.5
-                        # Building patch
-                        elif (temp_sh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                            if wallScheme:
-                                if (temp_sh_w[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                                    patch_characteristics[idy, idx] = 4.5
-                                elif (temp_sh_roof[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                                    patch_characteristics[idy, idx] = 6.0
-                            else:
-                                patch_characteristics[idy,idx] = 4.5
-                        # Roof patch
-                        #elif
-
-        #  If metfile starts at night
-        CI = 1.
+        configDict = {
+        'output_dir': outputDir, 
+        'working_dir': self.temp_dir, 
+        'para_json_path': outputDir + '/solweig_parameters.json', 
+        'filepath_dsm': filepath_dsm, 
+        'filepath_cdsm': filePath_cdsm, #vegdsm.dataProvider().dataSourceUri() if vegdsm.dataProvider().dataSourceUri() is not None else '', # if vegdsm is None: str(vegdsm.dataProvider().dataSourceUri()), 
+        'filepath_tdsm': filePath_tdsm, #str(vegdsm.dataProvider().dataSourceUri()) if vegdsm is None else '', #str(vegdsm2.dataProvider().dataSourceUri()), 
+        'filepath_dem': filepath_dem, 
+        'filepath_lc': filepath_lc, # 'C:/Users/xlinfr/Documents/PythonScripts/SOLWEIG/SOLWEIGdata/landcover.tif', 
+        'filepath_wh': filepath_wh, #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallheight.tif', 
+        'filepath_wa': filepath_wa, #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallaspect.tif', 
+        'input_svf': inputSVF, 
+        'input_aniso': folderPathPerez, # 'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\shadowmats.npz', 
+        'poi_file': poi_file, 
+        'poi_field': poi_field, 
+        'input_wall': folderWallScheme, 
+        'woi_file': woi_file,
+        'woi_field': woi_field, 
+        'input_met': inputMet, 
+        'standalone': '0', # used in standalone
+        'onlyglobal': int(onlyglobal), 
+        'usevegdem': int(usevegdem), 
+        'conifer_bool': int(conifer_bool), 
+        'cyl': int(cyl), 
+        'posture': solweig_parameters['Tmrt_params']['Value']['posture'], 
+        'lat': lat,
+        'lon': lon,
+        'utc': int(utc),
+        'scale': scale, 
+        'useepwfile': '0', # used in standalone
+        'landcover': int(landcover), 
+        'demforbuild': int(demforbuild), 
+        'aniso': int(anisotropic_sky), 
+        'wallscheme': wallScheme, 
+        'walltype': wall_type, #'Brick_wall', #:TODO 
+        'outputtmrt': int(outputTmrt), 
+        'outputkup': int(outputKup), 
+        'outputkdown': int(outputKdown), 
+        'outputlup': int(outputLup), 
+        'outputldown': int(outputLdown), 
+        'outputsh': int(outputSh), 
+        'savebuild': int(saveBuild), 
+        'outputkdiff': int(outputKdiff), 
+        'outputtreeplanter': int(outputTreeplanter), 
+        'wallnetcdf': int(wallNetCDF), 
+        'date1': '2018,5,1,0', # used in standalone
+        'date2': '2018,8,1,18' # used in standalone
+         }
+        # print(configDict)
+        # Save configfile
+        write_solweig_config(configDict, outputDir + '/configsolweig.ini')
 
         # Save solweig_parameters in output folder
         with open(outputDir + '/solweig_parameters.json', 'w') as f:
@@ -1120,341 +825,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # Main function
         feedback.setProgressText("Executing main model")
-    
-        tmrtplot = np.zeros((rows, cols))
-        TgOut1 = np.zeros((rows, cols))
 
-        # Initiate array for I0 values
-        if np.unique(DOY).shape[0] > 1:
-            unique_days = np.unique(DOY)
-            first_unique_day = DOY[DOY == unique_days[0]]
-            I0_array = np.zeros((first_unique_day.shape[0]))
-        else:
-            first_unique_day = DOY.copy()
-            I0_array = np.zeros((DOY.shape[0]))
+        sr.solweig_run(outputDir + '/configsolweig.ini', feedback)
 
-        # Rotate canyon
-        rotate_deg = 0
-
-        for i in np.arange(0, Ta.__len__()):
-            feedback.setProgress(int(i * (100. / Ta.__len__()))) # move progressbar forward
-            if feedback.isCanceled():
-                feedback.setProgressText("Calculation cancelled")
-                break
-            # Daily water body temperature
-            if landcover == 1:
-                if ((dectime[i] - np.floor(dectime[i]))) == 0 or (i == 0):
-                    Twater = np.mean(Ta[jday[0] == np.floor(dectime[i])])
-            # Nocturnal cloudfraction from Offerle et al. 2003
-            if (dectime[i] - np.floor(dectime[i])) == 0:
-                daylines = np.where(np.floor(dectime) == dectime[i])
-                if daylines.__len__() > 1:
-                    alt = altitude[0][daylines]
-                    alt2 = np.where(alt > 1)
-                    rise = alt2[0][0]
-                    [_, CI, _, _, _] = clearnessindex_2013b(zen[0, i + rise + 1], jday[0, i + rise + 1],
-                                                            Ta[i + rise + 1],
-                                                            RH[i + rise + 1] / 100., radG[i + rise + 1], location,
-                                                            P[i + rise + 1])  # i+rise+1 to match matlab code. correct?
-                    if (CI > 1.) or (CI == np.inf):
-                        CI = 1.
-                else:
-                    CI = 1.
-
-            # if altitude[0][i] > 0:
-            # #     # radI[i] = (radG[i] - radD[i])/np.sin(altitude[0][i] * np.pi/180)
-            # #     # onlyglobal = False
-            #     radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
-            # else:
-            #     radG[i] = 0.
-            #     radD[i] = 0.
-            #     radI[i] = 0.
-
-            # radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
-
-            Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
-                    Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
-                    Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout, \
-                    Lside, Lsky_patch_characteristics, CI_Tg, CI_TgG, KsideD, \
-                        dRad, Kside, steradians, voxelTable = so.Solweig_2022a_calc(
-                        i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
-                        svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, \
-                        vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-                        azimuth[0][i] + rotate_deg, zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
-                        psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
-                        wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
-                        bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
-                        TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
-                        Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, 
-                        anisotropic_sky, asvf, patch_option, voxelMaps, voxelTable, Ws[i], wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme)
-
-            # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
-            #         Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
-            #         Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout = so.Solweig_2021a_calc(
-            #             i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
-            #             svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
-            #             vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-            #             azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
-            #             psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
-            #             wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
-            #             bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
-            #             TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
-            #             Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
-
-
-
-            # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
-            # Tgmap1, timeaddE, Tgmap1E, timeaddS, Tgmap1S, timeaddW, Tgmap1W, timeaddN, Tgmap1N, \
-            # Keast, Ksouth, Kwest, Knorth, Least, Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout \
-            #     = so.Solweig_2019a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
-            #         svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg,
-            #         vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-            #         azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
-            #         psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], waspect,
-            #         wheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
-            #         bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
-            #         TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timeaddE, timeaddS,
-            #         timeaddW, timeaddN, timestepdec, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani)
-
-            # Save I0 for I0 vs. Kdown output plot to check if UTC is off
-            if i < (first_unique_day.shape[0] - 1):
-                I0_array[i] = I0
-            elif i == (first_unique_day.shape[0] - 1):
-                # Output I0 vs. Kglobal plot
-                radG_for_plot = radG[DOY == first_unique_day[0]]
-                # hours_for_plot = hours[DOY == first_unique_day[0]]
-                dectime_for_plot = dectime[DOY == first_unique_day[0]]
-                fig, ax = plt.subplots()
-                ax.plot(dectime_for_plot, I0_array, label='I0')
-                ax.plot(dectime_for_plot, radG_for_plot, label='Kglobal')
-                ax.set_ylabel('Shortwave radiation [$Wm^{-2}$]')
-                ax.set_xlabel('Decimal time')
-                ax.set_title('UTC' + str(int(utc)))
-                ax.legend()
-                fig.savefig(outputDir + '/metCheck.png', dpi=150)                
-
-            tmrtplot = tmrtplot + Tmrt
-
-            if altitude[0][i] > 0:
-                w = 'D'
-            else:
-                w = 'N'
-
-            # # Write to POIs
-            # if not poisxy is None:
-            #     for k in range(0, poisxy.shape[0]):
-            #         poi_save = np.zeros((1, 35))
-            #         poi_save[0, 0] = YYYY[0][i]
-            #         poi_save[0, 1] = jday[0][i]
-            #         poi_save[0, 2] = hours[i]
-            #         poi_save[0, 3] = minu[i]
-            #         poi_save[0, 4] = dectime[i]
-            #         poi_save[0, 5] = altitude[0][i]
-            #         poi_save[0, 6] = azimuth[0][i]
-            #         poi_save[0, 7] = radIout
-            #         poi_save[0, 8] = radDout
-            #         poi_save[0, 9] = radG[i]
-            #         poi_save[0, 10] = Kdown[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 11] = Kup[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 12] = Keast[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 13] = Ksouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 14] = Kwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 15] = Knorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 16] = Ldown[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 17] = Lup[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 18] = Least[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 19] = Lsouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 20] = Lwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 21] = Lnorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 22] = Ta[i]
-            #         poi_save[0, 23] = TgOut[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 24] = RH[i]
-            #         poi_save[0, 25] = esky
-            #         poi_save[0, 26] = Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 27] = I0
-            #         poi_save[0, 28] = CI
-            #         poi_save[0, 29] = shadow[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 30] = svf[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 31] = svfbuveg[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         poi_save[0, 32] = KsideI[int(poisxy[k, 2]), int(poisxy[k, 1])]
-            #         # Recalculating wind speed based on powerlaw
-            #         WsPET = (1.1 / sensorheight) ** 0.2 * Ws[i]
-            #         WsUTCI = (10. / sensorheight) ** 0.2 * Ws[i]
-            #         resultPET = p._PET(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])], WsPET,
-            #                             mbody, age, ht, activity, clo, sex)
-            #         poi_save[0, 33] = resultPET
-            #         resultUTCI = utci.utci_calculator(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])],
-            #                                             WsUTCI)
-            #         poi_save[0, 34] = resultUTCI
-            #         data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
-            #         # f_handle = file(data_out, 'a')
-            #         f_handle = open(data_out, 'ab')
-            #         np.savetxt(f_handle, poi_save, fmt=numformat)
-            #         f_handle.close()
-
-            # Write to POIs
-            if not poisxy is None:              
-                for k in range(0, poisxy.shape[0]):
-                    poi_save = np.zeros((1, 41))
-                    poi_save[0, 0] = YYYY[0][i]
-                    poi_save[0, 1] = jday[0][i]
-                    poi_save[0, 2] = hours[i]
-                    poi_save[0, 3] = minu[i]
-                    poi_save[0, 4] = dectime[i]
-                    poi_save[0, 5] = altitude[0][i]
-                    poi_save[0, 6] = azimuth[0][i]
-                    poi_save[0, 7] = radIout
-                    poi_save[0, 8] = radDout
-                    poi_save[0, 9] = radG[i]
-                    poi_save[0, 10] = Kdown[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 11] = Kup[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 12] = Keast[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 13] = Ksouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 14] = Kwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 15] = Knorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 16] = Ldown[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 17] = Lup[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 18] = Least[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 19] = Lsouth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 20] = Lwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 21] = Lnorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 22] = Ta[i]
-                    poi_save[0, 23] = TgOut[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 24] = RH[i]
-                    poi_save[0, 25] = esky
-                    poi_save[0, 26] = Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 27] = I0
-                    poi_save[0, 28] = CI
-                    poi_save[0, 29] = shadow[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 30] = svf[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 31] = svfbuveg[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 32] = KsideI[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    # Recalculating wind speed based on powerlaw
-                    WsPET = (1.1 / sensorheight) ** 0.2 * Ws[i]
-                    WsUTCI = (10. / sensorheight) ** 0.2 * Ws[i]
-                    resultPET = p._PET(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])], WsPET,
-                                        mbody, age, ht, activity, clo, sex)
-                    poi_save[0, 33] = resultPET
-                    resultUTCI = utci.utci_calculator(Ta[i], RH[i], Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])],
-                                                        WsUTCI)
-                    poi_save[0, 34] = resultUTCI
-                    poi_save[0, 35] = CI_Tg
-                    poi_save[0, 36] = CI_TgG
-                    poi_save[0, 37] = KsideD[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 38] = Lside[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 39] = dRad[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    poi_save[0, 40] = Kside[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                    data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
-                    # f_handle = file(data_out, 'a')
-                    f_handle = open(data_out, 'ab')
-                    np.savetxt(f_handle, poi_save, fmt=numformat)
-                    f_handle.close()
-
-            # If wall temperature parameterization scheme is in use
-            if folderWallScheme:
-                # Store wall data for output
-                if not woisxy is None:
-                    for k in range(0, woisxy.shape[0]):
-                        temp_wall = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallTemperature'].to_numpy()
-                        K_in = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'K_in'].to_numpy()
-                        L_in = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'L_in'].to_numpy()
-                        wallShade = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallShade'].to_numpy()
-                        temp_all = np.concatenate([temp_wall, K_in, L_in, wallShade])
-                        # temp_all = np.concatenate([temp_wall])
-                        # wall_data = np.zeros((1, 7 + temp_wall.shape[0]))
-                        wall_data = np.zeros((1, 7 + temp_all.shape[0]))
-                        # Part of file name (wallid), i.e. WOI_wallid.txt
-                        data_out = outputDir + '/WOI_' + str(woiname[k]) + '.txt'                    
-                        if i == 0:
-                            # Output file header
-                            #header = 'yyyy id   it imin dectime Ta  SVF Ts'
-                            header = 'yyyy id   it imin dectime Ta  SVF' + ' Ts' * temp_wall.shape[0] + ' Kin' * K_in.shape[0] + ' Lin' * L_in.shape[0] + ' shade' * wallShade.shape[0]
-                            # Part of file name (wallid), i.e. WOI_wallid.txt
-                            # woiname = voxelTable.loc[((voxelTable['ypos'] == woisxy[k, 2]) & (voxelTable['xpos'] == woisxy[k, 1])), 'wallId'].to_numpy()[0]
-                            woi_save = []  # 
-                            np.savetxt(data_out, woi_save,  delimiter=' ', header=header, comments='')
-                        # Fill wall_data with variables
-                        wall_data[0, 0] = YYYY[0][i] 
-                        wall_data[0, 1] = jday[0][i]
-                        wall_data[0, 2] = hours[i]
-                        wall_data[0, 3] = minu[i]
-                        wall_data[0, 4] = dectime[i]
-                        wall_data[0, 5] = Ta[i]
-                        wall_data[0, 6] = svf[int(woisxy[k, 2]), int(woisxy[k, 1])]
-                        wall_data[0, 7:] = temp_all
-
-                        # Num format for output file data
-                        woi_numformat = '%d %d %d %d %.5f %.2f %.2f' + ' %.2f' * temp_all.shape[0]
-                        # Open file, add data, save
-                        f_handle = open(data_out, 'ab')
-                        np.savetxt(f_handle, wall_data, fmt=woi_numformat)
-                        f_handle.close()                
-
-                # Save wall temperature/radiation as NetCDF
-                if wallNetCDF:
-                    netcdf_output = outputDir + '/walls.nc'
-                    walls_as_netcdf(voxelTable, rows, cols, met_for_xarray, i, dsm, filepath_dsm, netcdf_output)
-
-            if hours[i] < 10:
-                XH = '0'
-            else:
-                XH = ''
-            if minu[i] < 10:
-                XM = '0'
-            else:
-                XM = ''
-
-            if outputTmrt:
-                saveraster(gdal_dsm, outputDir + '/Tmrt_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Tmrt)
-            if outputKup:
-                saveraster(gdal_dsm, outputDir + '/Kup_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Kup)
-            if outputKdown:
-                saveraster(gdal_dsm, outputDir + '/Kdown_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Kdown)
-            if outputLup:
-                saveraster(gdal_dsm, outputDir + '/Lup_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Lup)
-            if outputLdown:
-                saveraster(gdal_dsm, outputDir + '/Ldown_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', Ldown)
-            if outputSh:
-                saveraster(gdal_dsm, outputDir + '/Shadow_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', shadow)
-                
-            if outputKdiff:
-                saveraster(gdal_dsm, outputDir + '/Kdiff_' + str(int(YYYY[0, i])) + '_' + str(int(DOY[i]))
-                                + '_' + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w + '.tif', dRad)           
-
-            # Sky view image of patches
-            if ((anisotropic_sky == 1) & (i == 0) & (not poisxy is None)):
-                    for k in range(poisxy.shape[0]):
-                        Lsky_patch_characteristics[:,2] = patch_characteristics[:,k]
-                        skyviewimage_out = outputDir + '/POI_' + str(poiname[k]) + '.png'
-                        PolarBarPlot(Lsky_patch_characteristics, altitude[0][i], azimuth[0][i], 'Hemisphere partitioning', skyviewimage_out, 0, 5, 0)
-
-        # Save files for Tree Planter
-        if outputTreeplanter:
-            feedback.setProgressText("Saving files for Tree Planter tool")
-            # Save DSM
-            copyfile(filepath_dsm, outputDir + '/DSM.tif')
-
-            # Save CDSM
-            if usevegdem == 1:
-                copyfile(filePath_cdsm, outputDir + '/CDSM.tif')
-
-            # Saving settings from SOLWEIG for SOLWEIG1D in TreePlanter
-            settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation, patch_option'
-            settingsFmt = '%i', '%i', '%i', '%i', '%i', '%i', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%1.2f', '%i'
-            settingsData = np.array([[utc, pos, onlyglobal, landcover, anisotropic_sky, cyl, albedo_b, albedo_g, ewall, eground, absK, absL, alt, patch_option]])
-            np.savetxt(outputDir + '/treeplantersettings.txt', settingsData, fmt=settingsFmt, header=settingsHeader, delimiter=' ')
-
-        # Copying met file for SpatialTC
-        copyfile(inputMet, outputDir + '/metforcing.txt')
-        
-        tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
-        saveraster(gdal_dsm, outputDir + '/Tmrt_average.tif', tmrtplot)
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
 
         return {self.OUTPUT_DIR: outputDir}

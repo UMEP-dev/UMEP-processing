@@ -37,7 +37,8 @@ def PolarBarPlot(lv, solar_altitude, solar_azimuth, fig_title, filename_out, min
         cNorm = colors.Normalize(vmin=minrad, vmax=maxrad) # Watts per square meter Steradian
         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
     else:
-        patch_category = {1.8:'deepskyblue', 2.5:'forestgreen', 3.3:'yellow', 4.5:'peru', 6.0:'grey'}
+        # patch_category = {1.8:'deepskyblue', 2.5:'forestgreen', 3.3:'yellow', 4.5:'peru', 6.0:'grey'}
+        patch_category = {1.8:'deepskyblue', 2.5:'forestgreen', 3.3:'yellow', 4.5:'peru'}
 
     if lv.shape[0] < 160:
         azistart = np.array([0, 4, 2, 5, 8, 0, 10, 0]) # Fredrik/Nils
@@ -109,7 +110,8 @@ def PolarBarPlot(lv, solar_altitude, solar_azimuth, fig_title, filename_out, min
         cb.ax.set_title(r'$W/m^2$ $sr^{-1}$', fontsize=12, fontweight='bold') # Watts per square meter Steradian
     else:
         # legend_colors = {'Shaded building wall':'peru', 'Sunlit building wall':'yellow', 'Sky':'deepskyblue', 'Trees':'forestgreen', 'Roof':'black'}
-        legend_colors = {'Building wall':'peru', 'Building roof':'grey', 'Trees':'forestgreen', 'Sky':'deepskyblue'}
+        # legend_colors = {'Building wall':'peru', 'Building roof':'grey', 'Trees':'forestgreen', 'Sky':'deepskyblue'}
+        legend_colors = {'Building wall':'peru', 'Trees':'forestgreen', 'Sky':'deepskyblue'}
         legend_labels = list(legend_colors.keys())
         legend_handles = [plt.Rectangle((0,0),1,1, color=legend_colors[legend_label]) for legend_label in legend_labels]
         if solar_altitude > 0:

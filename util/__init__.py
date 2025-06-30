@@ -21,7 +21,9 @@ try:
     import numba
     import jaydebeapi
     import rioxarray
+    import yaml
     import pydantic
+
 except:
     if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
               "Do you automatically want install missing python modules? \r\n"
