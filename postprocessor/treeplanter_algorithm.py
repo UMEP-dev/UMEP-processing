@@ -260,6 +260,10 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
 
+        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+            if not (os.path.isdir(outputDir)):
+                os.mkdir(outputDir)
+
         outputCDSM = self.parameterAsBool(parameters, self.OUTPUT_CDSM, context)
         outputPoint = self.parameterAsBool(parameters, self.OUTPUT_POINTFILE, context)
         outputOccurrence = self.parameterAsBool(parameters, self.OUTPUT_OCCURRENCE, context)
