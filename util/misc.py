@@ -194,3 +194,43 @@ def extract_suews_years(folder_path):
             years.add(match.group(1))
 
     return sorted(years)
+    
+def xy2latlon_fromraster(crsWtkIn, gdal_dsm):
+    # Get latlon from grid coordinate system
+    old_cs = osr.SpatialReference()
+    # dsm_ref = dsmlayer.crs().toWkt()
+    old_cs.ImportFromWkt(crsWtkIn)
+ 
+    wgs84_wkt = """
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.01745329251994328,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4326"]]"""
+ 
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromWkt(wgs84_wkt)
+ 
+    transform = osr.CoordinateTransformation(old_cs, new_cs)
+    widthx = gdal_dsm.RasterXSize
+    heightx = gdal_dsm.RasterYSize
+    geotransform = gdal_dsm.GetGeoTransform()
+    minx = geotransform[0]
+    miny = geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
+ 
+    lonlat = transform.TransformPoint(minx, miny)
+    gdalver = float(gdal.__version__[0])
+    if gdalver == 3.:
+        lon = lonlat[1] #changed to gdal 3
+        lat = lonlat[0] #changed to gdal 3
+    else:
+        lon = lonlat[0] #changed to gdal 2
+        lat = lonlat[1] #changed to gdal 2
+    scale = 1 / geotransform[1]
+ 
+    return lat, lon, scale, minx, miny
