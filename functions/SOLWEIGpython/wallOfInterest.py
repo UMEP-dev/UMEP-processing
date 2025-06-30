@@ -1,18 +1,20 @@
 import numpy as np
-# import pandas as pd
+from qgis.core import QgsVectorLayer
 from osgeo import gdal, osr
 from osgeo.gdalconst import *
 
-def wallOfInterest(woilyr, woi_field, minx, miny, scale, rows, outputDir, dsm_minx, x_size, dsm_miny, y_size):
+def pointOfInterest(poilyr, poi_field, scale, gdal_dsm):
+
+    (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform() #TODO: fix for standalone
 
     # header = 'yyyy id   it imin dectime altitude azimuth    Ta' 
-
-    idx = woilyr.fields().indexFromName(woi_field[0])
-    numfeat = woilyr.featureCount()
+    poilyr = QgsVectorLayer(poilyr, 'point', 'ogr')
+    idx = poilyr.fields().indexFromName(poi_field)
+    numfeat = poilyr.featureCount()
     poiname = []
     poisxy = np.zeros((numfeat, 3)) - 999
     ind = 0
-    for f in woilyr.getFeatures():  # looping through each POI
+    for f in poilyr.getFeatures():  # looping through each POI
         y = f.geometry().centroid().asPoint().y()
         x = f.geometry().centroid().asPoint().x()
 
@@ -39,11 +41,9 @@ def wallOfInterest(woilyr, woi_field, minx, miny, scale, rows, outputDir, dsm_mi
     #     data_out = outputDir + '/POI_' + str(poiname[k]) + '.txt'
     #     np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')
 
-    return poisxy, poiname
+    return poisxy, poiname 
 
-# def woiHeader():
-
-def fillWallOfInterest(voxelTable, voxelHeight, woisxy, woiname, outputDir, i):
+def fillWallOfInterest(voxelTable, voxelHeight, woisxy, woiname, outputDir, i, YYYY, jday, hours, minu, dectime, Ta, svf):
 
     if not woisxy is None:
         for k in range(0, woisxy.shape[0]):
@@ -60,29 +60,6 @@ def fillWallOfInterest(voxelTable, voxelHeight, woisxy, woiname, outputDir, i):
                     temp_all = temp_out.copy()
                 else:
                     temp_all = np.concatenate([temp_all, temp_out])
-
-            # temp_wall = tempTable['wallTemperature'].to_numpy()
-            # K_in = tempTable['K_in'].to_numpy()
-            # L_in = tempTable['L_in'].to_numpy()
-            # Ts_SolweigOld = tempTable['wallTemperatureSolweigOld'].to_numpy()
-
-            # Lwallsun = tempTable['Lwallsun'].to_numpy()
-            # Lwallsh = tempTable['Lwallsh'].to_numpy()
-            # Lrefl = tempTable['Lrefl'].to_numpy()
-            # Lveg = tempTable['Lveg'].to_numpy()
-            # Lground = tempTable['Lground'].to_numpy()
-            # Lsky = tempTable['Lsky'].to_numpy()
-            # esky_wall = tempTable['esky'].to_numpy()
-            # F_sh_wall = tempTable['F_sh'].to_numpy()
-            # wallSun_wall = tempTable['wallSun'].to_numpy()
-
-            # svfbu_wall = tempTable['svfbu'].to_numpy()
-            # svfveg_wall = tempTable['svfveg'].to_numpy()
-            # svfaveg_wall = tempTable['svfaveg'].to_numpy()
-
-            # # temp_all = np.concatenate([temp_wall, K_in, L_in, Ts_Erik, Ts_SolweigOld])
-            # temp_all = np.concatenate([temp_wall, K_in, L_in, Ts_SolweigOld, Lwallsun, Lwallsh, Lrefl, Lveg, Lground, Lsky, esky_wall, F_sh_wall, wallSun_wall,
-            #                             svfbu_wall, svfveg_wall, svfaveg_wall])
                     
             wall_data = np.zeros((1, 7 + temp_all.shape[0]))
             # Part of file name (wallid), i.e. WOI_wallid.txt

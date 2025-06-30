@@ -16,9 +16,11 @@ from ...functions.SOLWEIGpython import PET_calculations as p
 from ...functions.SOLWEIGpython import UTCI_calculations as utci
 from ...functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
 from ...functions.SOLWEIGpython.wall_surface_temperature import load_walls
-from ...functions.SOLWEIGpython.wallOfInterest import wallOfInterest
+from ...functions.SOLWEIGpython.wallOfInterest import pointOfInterest
+from ...functions.SOLWEIGpython.patch_characteristics import hemispheric_image
 from ...functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
 from ...functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
+from ...functions import wallalgorithms as wa
 
 import numpy as np
 import json
@@ -27,21 +29,22 @@ import pandas as pd
 import matplotlib.pylab as plt
 from shutil import copyfile
 
-# imports for osgeo/qgis dependency
+# imports from osgeo/qgis dependency
 try:
     from osgeo import gdal
     from osgeo.gdalconst import *
-    from ...util.misc import saveraster
-    from qgis.core import QgsVectorLayer
+    from ...util.misc import saveraster, xy2latlon_fromraster
+    from qgis.core import QgsVectorLayer, QgsRasterLayer
 except:
     pass
 
 # imports for standalone
 try:
     from umep import common
-    from rasterio.transform import xy
+    from rasterio.transform import xy, rowcol
     import pyproj
     from tqdm import tqdm
+    import geopandas as gpd
 except:
     pass
 
@@ -79,8 +82,17 @@ def solweig_run(configPath, feedback):
 
     standAlone = int(configDict['standalone'])
 
+    # reading variables from config and parameters that is not yet presented
+    cyl = int(configDict["cyl"])
+    albedo_b = param['Albedo']['Effective']['Value']['Walls']
+    ewall = param['Emissivity']['Value']['Walls']
+    onlyglobal = int(configDict['onlyglobal'])
+    elvis = 0.0
+    absK = param['Tmrt_params']['Value']['absK'] 
+    absL = param['Tmrt_params']['Value']['absL']
+
     #Load DSM
-    if standAlone == 1: #TODO How to do this?
+    if standAlone == 1: 
         dsm, dsm_transf, dsm_crs = common.load_raster(configDict['filepath_dsm'], bbox=None) 
         scale = 1 / dsm_transf.a
         # dsm_height, dsm_width = dsm.shape  # y rows by x cols
@@ -95,11 +107,11 @@ def solweig_run(configPath, feedback):
         lon, lat = transformer.transform(minx, miny) 
         nd = -9999 #TODO: extract nodatavalue from rasterio
     else:
+        #dsmlayer = QgsRasterLayer(configDict['filepath_dsm'])
+        dsm_wkt = QgsRasterLayer(configDict['filepath_dsm']).crs().toWkt()
         gdal_dsm = gdal.Open(configDict['filepath_dsm'])
-        dsm = gdal_dsm.ReadAsArray().astype(float)
-        lat = float(configDict['lat'])
-        lon = float(configDict['lon']) 
-        scale = float(configDict['scale'])
+        lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm)
+        dsm = gdal_dsm.ReadAsArray().astype(float)       
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
 
     rows = dsm.shape[0]
@@ -126,13 +138,16 @@ def solweig_run(configPath, feedback):
             vegdsm = gdal.Open(configDict['filepath_cdsm']).ReadAsArray().astype(float)
         else:
             vegdsm, _ , _ = common.load_raster(configDict['filepath_cdsm'], bbox=None)
-        if configDict['filepath_tdsm'] is None:
-            if standAlone == 1:
+        if configDict['filepath_tdsm'] is not '':
+            if standAlone == 0:
                 vegdsm2 = gdal.Open(configDict['filepath_tdsm']).ReadAsArray().astype(float)
             else:
                 vegdsm2, _ , _ = common.load_raster(configDict['filepath_tdsm'], bbox=None)
         else:
             vegdsm2 = vegdsm * trunkratio
+    else:
+        vegdsm = 0
+        vegdsm2 = 0
 
     #Land cover
     landcover = int(configDict['landcover'])
@@ -148,7 +163,7 @@ def solweig_run(configPath, feedback):
     demforbuild = int(configDict['demforbuild'])
     if demforbuild == 1:
         if standAlone == 0:
-            gdal_dem = gdal.Open(configDict['filepath_dem']).ReadAsArray().astype(float)
+            gdal_dem = gdal.Open(configDict['filepath_dem'])# .ReadAsArray().astype(float)
             dem = gdal_dem.ReadAsArray().astype(float)
             nd = gdal_dem.GetRasterBand(1).GetNoDataValue()
         else:
@@ -251,38 +266,50 @@ def solweig_run(configPath, feedback):
     P = metdata[:, 12]
     Ws = metdata[:, 9]
 
-    # POIs check TODO: fix for standalone
+    # POIs check
     if configDict['poi_file'] is not '': # usePOI:
         header = 'yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth ' \
                     'kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    ' \
                     'I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI  CI_Tg   CI_TgG  KsideD  Lside   diffDown    Kside'
+        # poiname = []
         poi_field = configDict['poi_field'] #self.parameterAsString(parameters, self.POI_FIELD, context)
+        if standAlone == 0:
+            # vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
+            # idx = vlayer.fields().indexFromName(poi_field)
+            # numfeat = vlayer.featureCount()
+            # poisxy = np.zeros((numfeat, 3)) - 999
+            # ind = 0
+            # for f in vlayer.getFeatures():  # looping through each POI
+            #     y = f.geometry().centroid().asPoint().y()
+            #     x = f.geometry().centroid().asPoint().x()
+            #     poiname.append(f.attributes()[idx])
+            #     poisxy[ind, 0] = ind
+            #     poisxy[ind, 1] = np.round((x - minx) * scale)
+            #     if miny >= 0:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     else:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     ind += 1
 
-        vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
-        idx = vlayer.fields().indexFromName(poi_field)
-        numfeat = vlayer.featureCount()
-        poiname = []
-        poisxy = np.zeros((numfeat, 3)) - 999
-        ind = 0
-        for f in vlayer.getFeatures():  # looping through each POI
-            y = f.geometry().centroid().asPoint().y()
-            x = f.geometry().centroid().asPoint().x()
+            poi_field = configDict['woi_field'] #self.parameterAsStrings(parameters, self.WOI_FIELD, context)
+            poisxy, poiname = pointOfInterest(configDict['poi_file'], poi_field, scale, gdal_dsm)
 
-            poiname.append(f.attributes()[idx])
-            poisxy[ind, 0] = ind
-            poisxy[ind, 1] = np.round((x - minx) * scale)
-            if miny >= 0:
-                poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-            else:
-                poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-
-            ind += 1
+        else:
+            pois_gdf = gpd.read_file(configDict['poi_file'])
+            numfeat = pois_gdf.shape[0]
+            poisxy = np.zeros((numfeat, 3)) - 999
+            for idx, row in pois_gdf.iterrows():
+                y, x = rowcol(dsm_transf, row["geometry"].centroid.x, row["geometry"].centroid.y) #TODO: This produce different result since no standalone round coordinates
+                poiname.append(row[configDict['poi_field']])
+                poisxy[idx, 0] = idx
+                poisxy[idx, 1] = x
+                poisxy[idx, 2] = y
 
         for k in range(0, poisxy.shape[0]):
             poi_save = []  # np.zeros((1, 33))
             data_out = configDict['output_dir'] + '/POI_' + str(poiname[k]) + '.txt'
             np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')
-        
+        # print(poisxy)
         # Num format for POI output
         numformat = '%d %d %d %d %.5f ' + '%.2f ' * 36
 
@@ -440,13 +467,18 @@ def solweig_run(configPath, feedback):
         wallData = np.load(configDict['input_wall'])
         voxelMaps = wallData['voxelId']
         voxelTable = wallData['voxelTable']
-        # Get wall type set in GUI
-        wall_type = configDict['walltype'] # str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context))) #TODO
+        # Get wall type from standalone
+        if standAlone == 1:
+            wall_type_standalone = {'Brick_wall': '100', 'Concrete_wall': '101', 'Wood_wall': '102'}
+            wall_type = wall_type_standalone[configDict['walltype']]
+        else:
+            # Get wall type set in GUI
+            wall_type = configDict['walltype'] # str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context))) #TODO
 
-        from ...functions import wallalgorithms as wa
+        # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
         walls_scheme = wa.findwalls_sp(dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]]))
-
-        dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(walls_scheme.copy(), scale, dsm, None, 100./180.)
+        # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
+        dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(walls_scheme.copy(), scale, dsm, feedback, 100./180.)
         
         # Used in wall temperature parameterization scheme
         first_timestep = (pd.to_datetime(YYYY[0][0], format='%Y') + pd.to_timedelta(DOY[0] - 1, unit='d') + 
@@ -457,20 +489,25 @@ def solweig_run(configPath, feedback):
         timeStep = (second_timestep - first_timestep).seconds
 
         # Load voxelTable as Pandas DataFrame
-        voxelTable, dirwalls_scheme = load_walls(voxelTable, param, wall_type, dirwalls_scheme, Ta[0], timeStep, alb_grid, landcover, lcgrid, dsm)
-        # Unique wall types
-        #thermal_effusivity = voxelTable['thermalEffusivity'].unique()
-
-        # Empty wall temperature matrix for parameterization scheme
-        # wallScheme_feedback = "Running with wall parameterization scheme. Walls divided into " + str(int(voxelTable.shape[0])) + " unique voxels."
-        # feedback.setProgressText(wallScheme_feedback)
+        voxelTable, dirwalls_scheme = load_walls(voxelTable, param, wall_type, dirwalls_scheme, Ta[0], timeStep, albedo_b, ewall, alb_grid, landcover, lcgrid, dsm)
 
         # Use wall of interest
-        if configDict['woi_file'] is not None:
-            (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform() #TODO: fix for standalone
-
-            woi_field = configDict['woi_field'] #self.parameterAsStrings(parameters, self.WOI_FIELD, context)
-            woisxy, woiname = wallOfInterest(configDict['woi_file'], woi_field, minx, miny, scale, rows, configDict['output_dir'], dsm_minx, dsm_x_size, dsm_miny, dsm_y_size)
+        woi_file = configDict['woi_file']
+        if woi_file:
+            # (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform() #TODO: fix for standalone
+            if standAlone == 0:
+                woi_field = configDict['woi_field'] #self.parameterAsStrings(parameters, self.WOI_FIELD, context)
+                woisxy, woiname = pointOfInterest(configDict['woi_file'], woi_field, scale, gdal_dsm)
+            else:
+                pois_gdf = gpd.read_file(configDict['poi_file'])
+                numfeat = pois_gdf.shape[0]
+                poisxy = np.zeros((numfeat, 3)) - 999
+                for idx, row in pois_gdf.iterrows():
+                    y, x = rowcol(dsm_transf, row["geometry"].centroid.x, row["geometry"].centroid.y) #TODO: This produce different result since no standalone round coordinates
+                    poiname.append(row[configDict['poi_field']])
+                    poisxy[idx, 0] = idx
+                    poisxy[idx, 1] = x
+                    poisxy[idx, 2] = y
 
         # Create pandas datetime object to be used when createing an xarray DataSet where wall temperatures/radiation is stored and eventually saved as a NetCDf
         if configDict["wallnetcdf"] == 1:
@@ -497,55 +534,13 @@ def solweig_run(configPath, feedback):
     # timeaddN = 0.
     firstdaytime = 1.
 
-
-    # Save svf #TODO is this for the patch images?
-    if anisotropic_sky == 1:
+    # Save hemispheric image
+    if anisotropic_sky == 1: 
         if not poisxy is None:
-            patch_characteristics = np.zeros((shmat.shape[2], poisxy.shape[0]))
-            for idx in range(poisxy.shape[0]):
-                for idy in range(shmat.shape[2]):
-                    # Calculations for patches on sky, shmat = 1 = sky is visible
-                    temp_sky = ((shmat[:,:,idy] == 1) & (vegshmat[:,:,idy] == 1))
-                    # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
-                    temp_vegsh = ((vegshmat[:,:,idy] == 0) | (vbshvegshmat[:,:,idy] == 0))
-                    # Calculations for patches that are buildings, shmat = 0 = shade from buildings
-                    temp_vbsh = (1 - shmat[:,:,idy]) * vbshvegshmat[:,:,idy]
-                    temp_sh = (temp_vbsh == 1)
-                    if wallScheme:
-                        temp_sh_w = temp_sh * voxelMaps[:, :, idy]
-                        temp_sh_roof = temp_sh * (voxelMaps[:, :, idy] == 0)
-                    else:
-                        temp_sh_w = 0
-                        temp_sh_roof = 0
-                    # Sky patch
-                    if temp_sky[int(poisxy[idx, 2]), int(poisxy[idx, 1])]:
-                        patch_characteristics[idy,idx] = 1.8
-                    # Vegetation patch
-                    elif (temp_vegsh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                        patch_characteristics[idy,idx] = 2.5
-                    # Building patch
-                    elif (temp_sh[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                        if wallScheme:
-                            if (temp_sh_w[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                                patch_characteristics[idy, idx] = 4.5
-                            elif (temp_sh_roof[int(poisxy[idx, 2]), int(poisxy[idx, 1])]):
-                                patch_characteristics[idy, idx] = 6.0
-                        else:
-                            patch_characteristics[idy,idx] = 4.5
-                    # Roof patch
-                    #elif
+            patch_characteristics = hemispheric_image(poisxy, shmat, vegshmat, vbshvegshmat, voxelMaps, wallScheme)
 
     # If metfile starts at night
     CI = 1.
-
-    # reading variables from config and parameters that is not yet presented
-    cyl = int(configDict["cyl"])
-    albedo_b = param['Albedo']['Effective']['Value']['Walls']
-    ewall = param['Emissivity']['Value']['Walls']
-    onlyglobal = int(configDict['onlyglobal'])
-    elvis = 0.0
-    absK = param['Tmrt_params']['Value']['absK'] 
-    absL = param['Tmrt_params']['Value']['absL'] 
     
     # Main loop
     tmrtplot = np.zeros((rows, cols))
@@ -592,12 +587,13 @@ def solweig_run(configPath, feedback):
             else:
                 CI = 1.
 
-        if altitude[0][i] > 0:
-            radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
-        else:
-            radG[i] = 0.
-            radD[i] = 0.
-            radI[i] = 0.
+        # Only if Kdir is derived from horizontal global shortwave and horizontal diffuse shortwave
+        # if altitude[0][i] > 0:
+        #     radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
+        # else:
+        #     radG[i] = 0.
+        #     radD[i] = 0.
+        #     radI[i] = 0.
 
 
         Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
