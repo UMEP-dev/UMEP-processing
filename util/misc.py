@@ -3,7 +3,9 @@ __author__ = 'xlinfr'
 import numpy as np
 from osgeo import gdal, osr
 from osgeo.gdalconst import GDT_Float32
-
+from pandas import read_csv, to_datetime
+import os 
+import re
 
 # Slope and aspect used in SEBE and Wall aspect
 def get_ders(dsm, scale):
@@ -139,3 +141,56 @@ def createTSlist():
 
     return sorted_timezones, timezones_by_offset
 
+def get_resolution_from_file(folder_path):
+
+    suews_pattern = re.compile(r'.*_(\d{4})_SUEWS')
+
+    # Step 1: Find the first matching SUEWS file
+    suews_file = None
+    for filename in os.listdir(folder_path):
+        if suews_pattern.match(filename):
+            suews_file = os.path.join(folder_path, filename)
+            break
+
+    # Step 2: Load the file and compute time resolution
+    df_suews = read_csv(suews_file, delim_whitespace=True)
+
+    # Combine Year, DOY, Hour, Min into a datetime index
+    df_suews['Datetime'] = to_datetime(
+        df_suews[['Year', 'DOY', 'Hour', 'Min']].astype(str).agg('-'.join, axis=1),
+        format='%Y-%j-%H-%M'
+    )
+    df_suews.set_index('Datetime', inplace=True)
+
+    # Step 3: Compute resolution (in seconds)
+    time1 = df_suews.index[1]
+    time2 = df_suews.index[2]
+    input_resolution = int((time2 - time1).total_seconds())
+
+    return input_resolution
+
+def SUEWS_txt_to_df( suews_output_path):
+    df_output_suews = read_csv(suews_output_path, delim_whitespace = True)
+    df_output_suews['Datetime'] = to_datetime(df_output_suews[['Year', 'DOY', 'Hour', 'Min']].astype(str).agg('-'.join, axis=1), format='%Y-%j-%H-%M')
+    df_output_suews.set_index('Datetime', inplace=True)
+
+    return df_output_suews
+
+def SUEWS_met_txt_to_df(suews_met_path):
+    df_met_forcing = read_csv(suews_met_path, delim_whitespace = True)
+    df_met_forcing['Datetime'] = to_datetime(df_met_forcing[['iy', 'id', 'it', 'imin']].astype(str).agg('-'.join, axis=1), format='%Y-%j-%H-%M')
+    df_met_forcing.set_index('Datetime', inplace=True)
+    
+    return df_met_forcing
+
+def extract_suews_years(folder_path):
+    # Match: anything + underscore + 4-digit year + _SUEWS
+    suews_pattern = re.compile(r'.*_(\d{4})_SUEWS')
+
+    years = set()
+    for filename in os.listdir(folder_path):
+        match = suews_pattern.match(filename)
+        if match:
+            years.add(match.group(1))
+
+    return sorted(years)
