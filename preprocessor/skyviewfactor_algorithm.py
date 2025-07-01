@@ -99,18 +99,18 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
-            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG v2022a) and wall surface temperature scheme (SOLWEIG v2024a)"),
+            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG v2022a)\nand wall surface temperature scheme (SOLWEIG v2025a)"),
             defaultValue=True))
         
         # Wall parameterization
         wall_scheme = QgsProcessingParameterBoolean(self.WALL_SCHEME,
-            self.tr("Use parameterization scheme for wall surface temperatures (Wallenberg et al. 202x)"),
+            self.tr("Use parameterization scheme for wall surface temperatures (Wallenberg et al. 2025)"),
             defaultValue=False)
         wall_scheme.setFlags(wall_scheme.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(wall_scheme)        
 
         wall_kmeans = QgsProcessingParameterBoolean(self.KMEANS,
-            self.tr("Use K-Means to calculate SVF for walls (SOLWEIG v2024a)"),
+            self.tr("Use K-Means to calculate SVF for walls (SOLWEIG v2025a)"),
             defaultValue=True)
         wall_kmeans.setFlags(wall_kmeans.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(wall_kmeans)
@@ -124,7 +124,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(wall_clusters)        
         
         wall_dem = QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-                self.tr('Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2024a)'), '', True)
+                self.tr('Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2025a)'), '', True)
         wall_dem.setFlags(wall_dem.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(wall_dem) 
 

@@ -30,62 +30,60 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication, QDate, QTime, Qt, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterFileDestination,
                        QgsProcessingParameterFile,
                        QgsProcessingException,
                        QgsProcessingParameterDefinition,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                       QgsProcessingParameterRasterLayer,
-                       QgsVectorLayer)
-from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
+                       QgsProcessingParameterRasterLayer)
+
+#from processing.gui.wrappers import WidgetWrapper
+#from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
-import pandas as pd
-from osgeo import gdal, osr
+#import pandas as pd
+from osgeo import gdal
 from osgeo.gdalconst import *
 import os
 from qgis.PyQt.QtGui import QIcon
 import inspect
-from pathlib import Path, PurePath
-from ..util.misc import saveraster, xy2latlon_fromraster
+from pathlib import Path
+from ..util.misc import xy2latlon_fromraster
 import zipfile
-from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
-from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+#from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
+#from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.umep_solweig_export_component import read_solweig_config, write_solweig_config
-from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
-from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
-from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
-from ..functions.SOLWEIGpython import PET_calculations as p
-from ..functions.SOLWEIGpython import UTCI_calculations as utci
-from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
-from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
+#from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+#from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
+#from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
+#from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
+#from ..functions.SOLWEIGpython import PET_calculations as p
+#from ..functions.SOLWEIGpython import UTCI_calculations as utci
+#from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
+#from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
 
 # from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
 # from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
 
 from ..functions.SOLWEIGpython import Solweig_run as sr
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import json
 
 # For "Save necessary rasters for TreePlanter tool"
-from shutil import copyfile
+#from shutil import copyfile
 
-import time
+#import time
 
 #
-import datetime
+#import datetime
 
 class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     """
@@ -477,7 +475,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             dsmraise = 0
 
         # Get latlon from grid coordinate system
-        # old_cs = osr.SpatialReference()
         dsm_wkt = dsmlayer.crs().toWkt()
         lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm) # new funciton in misc
      
@@ -489,15 +486,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             usevegdem = 1
             feedback.setProgressText('Vegetation scheme activated')
 
-            # load raster
-            # gdal.AllRegister()
-            # provider = vegdsm.dataProvider()
+            # check cdsm raster
             filePath_cdsm = str(vegdsm.dataProvider().dataSourceUri())
-            # dataSet = gdal.Open(filePathOld)
-            # vegdsm = dataSet.ReadAsArray().astype(float)
-            # filePath_cdsm = filePathOld
-            # vegrows = vegdsm.shape[0]
-            # vegcols = vegdsm.shape[1]
             vegrows = vegdsm.height()
             vegcols = vegdsm.width()
 
@@ -509,19 +499,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
 
             if vegdsm2 is not None:
-            #     gdal.AllRegister()
-            #     provider = vegdsm2.dataProvider()
                 filePath_tdsm = str(vegdsm2.dataProvider().dataSourceUri())
-            #     filePath_tdsm = filePathOld
-            #     dataSet = gdal.Open(filePathOld)
-            #     vegdsm2 = dataSet.ReadAsArray().astype(float)
-            # else:
-            #     trunkratio = trunkr / 100.0
-            #     vegdsm2 = vegdsm * trunkratio
-            #     filePath_tdsm = None
-
-            # vegrows = vegdsm2.shape[0]
-            # vegcols = vegdsm2.shape[1]
                 vegrows = vegdsm2.height()
                 vegcols = vegdsm2.width()
 
@@ -531,8 +509,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 solweig_parameters["Tree_settings"]["Value"]["Trunk_ratio"] = trunkr / 100.
                 filePath_tdsm = ''
         else:
-            # vegdsm = np.zeros([rows, cols])
-            # vegdsm2 = np.zeros([rows, cols])
             usevegdem = 0
             filePath_cdsm = ''
             filePath_tdsm = ''
@@ -608,8 +584,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')
-        # zip.extractall(self.temp_dir)
-        # zip.close()
         zip.extract('svf.tif',self.temp_dir)
         zip.close()
 
@@ -619,51 +593,34 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         except:
             raise QgsProcessingException("SVF import error: The zipfile including the SVFs seems corrupt. Retry calcualting the SVFs in the Pre-processor or choose another file.")
 
-        # svfrows = svf.shape[0]
-        # svfsizey = svf.shape[1]
-
         if not (svf.shape[0] == rows) & (svf.shape[1] == cols):  # &
             raise QgsProcessingException("Error in svf rasters: All grids must be of same extent and resolution")
-
-        # tmp = svf + svfveg - 1.
-        # tmp[tmp < 0.] = 0.
-        # # %matlab crazyness around 0
-        # svfalfa = np.arcsin(np.exp((np.log((1. - tmp)) / 2.)))
 
         feedback.setProgressText('Loading Sky View Factor rasters')
 
         # wall height layer
         if whlayer is None:
             raise QgsProcessingException("Error: No valid wall height raster layer is selected")
-        # provider = whlayer.dataProvider()
+
         filepath_wh = str(whlayer.dataProvider().dataSourceUri())
-        # self.gdal_wh = gdal.Open(filepath_wh)
-        # wallheight = self.gdal_wh.ReadAsArray().astype(float)
-        # vhrows = wallheight.shape[0]
-        # vhcols = wallheight.shape[1]
+
         if not (whlayer.height() == rows) & (whlayer.width() == cols):
             raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
 
         # wall aspectlayer
         if walayer is None:
             raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
-        # provider = walayer.dataProvider()
         filepath_wa = str(walayer.dataProvider().dataSourceUri())
-        # self.gdal_wa = gdal.Open(filepath_wa)
-        # wallaspect = self.gdal_wa.ReadAsArray().astype(float)
-        # varows = wallaspect.shape[0]
-        # vasizey = wallaspect.shape[1]
+
         if not (walayer.height() == rows) & (walayer.width() == cols):
             raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
 
         # Metdata
         headernum = 1
         delim = ' '
-        Twater = []
 
         try:
             self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
-            # metfileexist = 1
         except:
             raise QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
                                                         "prepare your data by using 'Prepare Existing Data' in "
@@ -680,15 +637,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                                         "prepare your data by using 'Prepare Existing Data' in "
                                                         "the Pre-processor")
 
-        feedback.setProgressText("Calculating sun positions for each time step")
-        # location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
-        # YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = \
-            # Solweig_2015a_metdata_noload(self.metdata,location, utc)
-
-        # # Creating vectors from meteorological input
-        # radD = self.metdata[:, 21]
-        # radI = self.metdata[:, 22]
-        
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
             if np.min(self.metdata[:, 21]) == -999:
@@ -764,9 +712,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             woi_file = ''
             woi_field = ''
 
-
-        #TODO: write code to dump setting into configfile
-
+        feedback.setProgressText("Writing settings to solweigconfig.ini")
+        # Code to dump setting into configfile
         configDict = {
         'output_dir': outputDir, 
         'working_dir': self.temp_dir, 
@@ -815,7 +762,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         'date1': '2018,5,1,0', # used in standalone
         'date2': '2018,8,1,18' # used in standalone
          }
-        # print(configDict)
+
         # Save configfile
         write_solweig_config(configDict, outputDir + '/configsolweig.ini')
 
