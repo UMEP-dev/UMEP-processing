@@ -183,7 +183,6 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                 next(file)
                 for line in file:
                     split = [float(x) for x in line.split()]
-                    # split = line.split()
                     if feat_id == int(split[0]):
                         if umepLC:
                             conc = split[1] * fracConc
@@ -206,11 +205,15 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                 next(file)
                 for line in file:
                     split = [float(x) for x in line.split()]
-                    # split = line.split()
                     if feat_id == int(split[0]):
                         H = split[3]
                         wai = split[8]
                         pai = split[1]
+                        if pai == 1: #response to #109
+                            feedback.pushWarning('Building fraction = 1 in grid: ' + str(feat_id) + '. This is unlikely. Check your DSM and DEM. Land cover roof fraction will be used.')
+                            pai = roof
+                            if pai == 1:
+                                pai == 0.99
                         if pai == 0:
                             W = res
                         else:
