@@ -213,6 +213,7 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                             feedback.pushWarning('Building fraction = 1 in grid: ' + str(feat_id) + '. This is unlikely. Check your DSM and DEM. Land cover roof fraction will be used.')
                             pai = roof
                             if pai == 1:
+                                feedback.pushWarning('Building fraction form land cover = 1 in grid: ' + str(feat_id) + '. This is unlikely. Check your data.')
                                 pai == 0.99
                         if pai == 0:
                             W = res
