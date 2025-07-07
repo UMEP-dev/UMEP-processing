@@ -75,7 +75,7 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         var_list = []
         idx = 0
         for item in list(sorted(list(params_dict.keys()))):
-            item_desc = item + f' ({params_dict[item]['description']})'
+            item_desc = item + f" ({params_dict[item]['description']})"
             item = tuple([item_desc, str(idx)])
             var_list.append(item)
             idx = idx+1
