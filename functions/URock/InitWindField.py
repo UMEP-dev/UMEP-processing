@@ -1856,8 +1856,10 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
     # d is actually calculated by Equation 18a from Hanna and Britter (2002)
     calcQuery = {
         VEGETATION_OPEN_NAME:
-            """ CASE WHEN b.{2} - 3 * 0.05 * b.{2} <= {1} OR b.{2} <= {1}
-                    THEN 0
+            """ CASE WHEN (b.{2} - 3 * 0.05 * b.{2} <= {1} OR b.{2} <= {1}) AND a.{0} < b.{4}
+                    THEN EXP(0)
+                    WHEN (b.{2} - 3 * 0.05 * b.{2} <= {1} OR b.{2} <= {1}) AND a.{0} > b.{4} AND a.{0} < b.{3}
+                    THEN EXP(b.{5} * (a.{0} / b.{2} - 1))
                     WHEN   a.{0}>b.{2}
                     THEN    LOG((a.{0} - 3 * 0.05 * b.{2}) / {1}) / LOG(a.{0} / {1})
                     ELSE    CASE WHEN   a.{0} > b.{3} OR a.{0} < b.{4}
@@ -1872,8 +1874,10 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                         VEGETATION_CROWN_BASE_HEIGHT,
                         VEGETATION_ATTENUATION_FACTOR),
         VEGETATION_BUILT_NAME:
-            """ CASE WHEN b.{2} <= {1} OR a.{0} <= {1}
-                    THEN 0
+            """ CASE WHEN (b.{2} <= {1} OR a.{0} <= {1}) AND a.{0} < b.{4}
+                    THEN EXP(0)
+                    WHEN (b.{2} <= {1} OR a.{0} <= {1}) AND a.{0} > b.{4} AND a.{0} < b.{3}
+                    THEN EXP(b.{5} * (a.{0} / b.{2} - 1))
                     WHEN   a.{0} > b.{3} OR a.{0} < b.{4}
                     THEN    LOG(b.{2} / {1}) / LOG(a.{0} / {1}) * EXP(0)
                     ELSE    LOG(b.{2} / {1}) / LOG(a.{0} / {1}) * EXP(b.{5} * (a.{0} / b.{2} - 1))
