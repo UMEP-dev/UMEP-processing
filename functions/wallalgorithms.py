@@ -124,10 +124,11 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
     walls[walls > 0] = 1
 
     for h in range(0, 180):  # =0:1:180 #%increased resolution to 1 deg 20140911
-        feedback.setProgress(int(h * total))
-        if feedback.isCanceled():
-            feedback.setProgressText("Calculation cancelled")
-            break
+        if feedback is not None:
+            feedback.setProgress(int(h * total))
+            if feedback.isCanceled():
+                feedback.setProgressText("Calculation cancelled")
+                break
         filtmatrix1temp = sc.rotate(filtmatrix, h, order=1, reshape=False, mode='nearest')  # bilinear
         filtmatrix1 = np.round(filtmatrix1temp)
         # filtmatrix1temp = sc.imrotate(filtmatrix, h, 'bilinear')

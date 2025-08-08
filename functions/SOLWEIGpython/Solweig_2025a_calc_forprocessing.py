@@ -19,15 +19,22 @@ from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 # Anisotropic longwave
 from .Lcyl_v2022a import Lcyl_v2022a
 from .Lside_veg_v2022a import Lside_veg_v2022a
+from .anisotropic_sky import anisotropic_sky as ani_sky
+from .patch_radiation import patch_steradians
 from copy import deepcopy
+import time
 
-def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
+# Wall surface temperature scheme
+from .wall_surface_temperature import wall_surface_temperature
+
+def Solweig_2025a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
                        svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, vegdem, vegdem2, albedo_b, absK, absL,
                        ewall, Fside, Fup, Fcyl, altitude, azimuth, zen, jday, usevegdem, onlyglobal, buildings, location, psi,
                        landcover, lc_grid, dectime, altmax, dirwalls, walls, cyl, elvis, Ta, RH, radG, radD, radI, P,
                        amaxvalue, bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
                        TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, Tgmap1, 
-                       Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, anisotropic_sky, asvf, patch_option):
+                       Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, anisotropic_sky, asvf, patch_option,
+                       voxelMaps, voxelTable, ws, wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme):
 
 #def Solweig_2021a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
 #                       svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, vegdem, vegdem2, albedo_b, absK, absL,
@@ -103,6 +110,9 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
     # Stefan Bolzmans Constant
     SBC = 5.67051e-8
 
+    # Degrees to radians
+    deg2rad = np.pi/180
+
     # Find sunrise decimal hour - new from 2014a
     _, _, _, SNUP = daylen(jday, location['latitude'])
 
@@ -144,18 +154,16 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         else:
             dRad = radD * svfbuveg
             patchchoice = 1
-            # zenDeg = zen*(180/np.pi)
             lv = None
-            # lv, pc_, pb_ = Perez_v3(zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option)   # Relative luminance
 
         # Shadow  images
         if usevegdem == 1:
-            vegsh, sh, _, wallsh, wallsun, wallshve, _, facesun = shadowingfunction_wallheight_23(dsm, vegdem, vegdem2,
-                                        azimuth, altitude, scale, amaxvalue, bush, walls, dirwalls * np.pi / 180.)
+            vegsh, sh, _, wallsh, wallsun, wallshve, _, facesun, wallsh_ = shadowingfunction_wallheight_23(dsm, vegdem, vegdem2,
+                                        azimuth, altitude, scale, amaxvalue, bush, walls, dirwalls * np.pi / 180., walls_scheme, dirwalls_scheme * np.pi/180.)
             shadow = sh - (1 - vegsh) * (1 - psi)
         else:
-            sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(dsm, azimuth, altitude, scale,
-                                                                                   walls, dirwalls * np.pi / 180.)
+            sh, wallsh, wallsun, facesh, facesun, wallsh_ = shadowingfunction_wallheight_13(dsm, azimuth, altitude, scale,
+                                                                                   walls, dirwalls * np.pi / 180., walls_scheme, dirwalls_scheme * np.pi/180.)
             shadow = sh
 
         # # # Surface temperature parameterisation during daytime # # # #
@@ -178,7 +186,6 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         if (CI_Tg > 1) or (CI_Tg == np.inf):
             CI_Tg = 1
 
-        deg2rad = np.pi/180
         radG0 = radI0 * (np.sin(altitude * deg2rad)) + _
         CI_TgG = (radG / radG0) + (1 - corr)
         if (CI_TgG > 1) or (CI_TgG == np.inf):
@@ -217,20 +224,13 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         Kdown = radI * shadow * np.sin(altitude * (np.pi / 180)) + dRad + albedo_b * (1 - svfbuveg) * \
                             (radG * (1 - F_sh) + radD * F_sh) # *sin(altitude(i) * (pi / 180))
 
-        #Kdown = radI * shadow * np.sin(altitude * (np.pi / 180)) + radD * svfbuveg + albedo_b * (1 - svfbuveg) * \
-                            #(radG * (1 - F_sh) + radD * F_sh) # *sin(altitude(i) * (pi / 180))
-
         Kup, KupE, KupS, KupW, KupN = Kup_veg_2015a(radI, radD, radG, altitude, svfbuveg, albedo_b, F_sh, gvfalb,
                     gvfalbE, gvfalbS, gvfalbW, gvfalbN, gvfalbnosh, gvfalbnoshE, gvfalbnoshS, gvfalbnoshW, gvfalbnoshN)
-
-        #Keast, Ksouth, Kwest, Knorth, KsideI, KsideD = Kside_veg_v2019a(radI, radD, radG, shadow, svfS, svfW, svfN, svfE,
-        #            svfEveg, svfSveg, svfWveg, svfNveg, azimuth, altitude, psi, t, albedo_b, F_sh, KupE, KupS, KupW,
-        #            KupN, cyl, lv, ani, diffsh, rows, cols)
 
         Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside = Kside_veg_v2022a(radI, radD, radG, shadow, svfS, svfW, svfN, svfE,
                     svfEveg, svfSveg, svfWveg, svfNveg, azimuth, altitude, psi, t, albedo_b, F_sh, KupE, KupS, KupW,
                     KupN, cyl, lv, anisotropic_sky, diffsh, rows, cols, asvf, shmat, vegshmat, vbshvegshmat)
-
+        
         firstdaytime = 0
 
     else:  # # # # # # # NIGHTTIME # # # # # # # #
@@ -253,9 +253,7 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         shadow = np.zeros((rows, cols))
         CI_Tg = deepcopy(CI)
         CI_TgG = deepcopy(CI)
-
         dRad = np.zeros((rows,cols))
-
         Kside = np.zeros((rows,cols))
 
         # # # # Lup # # # #
@@ -276,8 +274,30 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         firstdaytime = 1
 
     # # # # Ldown # # # #
-    # Anisotropic sky longwave radiation
-    if anisotropic_sky == 1:
+    Ldown = (svf + svfveg - 1) * esky * SBC * ((Ta + 273.15) ** 4) + (2 - svfveg - svfaveg) * ewall * SBC * \
+                ((Ta + 273.15) ** 4) + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4) + \
+                (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)  # Jonsson et al.(2006)
+    # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
+
+    if CI < 0.95:  # non - clear conditions
+        c = 1 - CI
+        Ldown = Ldown * (1 - c) + c * ((svf + svfveg - 1) * SBC * ((Ta + 273.15) ** 4) + (2 - svfveg - svfaveg) *
+                ewall * SBC * ((Ta + 273.15) ** 4) + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4) +
+                (2 - svf - svfveg) * (1 - ewall) * SBC * ((Ta + 273.15) ** 4))  # NOT REALLY TESTED!!! BUT MORE CORRECT?
+
+    # # # # Lside # # # #
+    Least, Lsouth, Lwest, Lnorth = Lside_veg_v2022a(svfS, svfW, svfN, svfE, svfEveg, svfSveg, svfWveg, svfNveg,
+                    svfEaveg, svfSaveg, svfWaveg, svfNaveg, azimuth, altitude, Ta, Tgwall, SBC, ewall, Ldown,
+                                                      esky, t, F_sh, CI, LupE, LupS, LupW, LupN, anisotropic_sky)
+
+    # New parameterization scheme for wall temperatures
+    if wallScheme == 1:
+        # albedo_g = 0.15 #TODO Change to correct
+        if altitude < 0:
+            wallsh_ = 0
+        voxelTable = wall_surface_temperature(voxelTable, wallsh_, altitude, azimuth, timeStep, radI, radD, radG, Ldown, Lup, Ta, esky)
+    # Anisotropic sky
+    if (anisotropic_sky == 1):
         if 'lv' not in locals():
             # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
             skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(patch_option)
@@ -293,36 +313,27 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
         else:
             L_patches = deepcopy(lv)
 
-        if altitude < 0:
-            CI = deepcopy(CI)
+        # Calculate steradians for patches if it is the first model iteration
+        if i == 0:
+            steradians, skyalt, patch_altitude = patch_steradians(L_patches)
 
+        # Create lv from L_patches if nighttime, i.e. lv does not exist
+        if altitude < 0:
+            # CI = deepcopy(CI)
+            lv = deepcopy(L_patches); KupE = 0; KupS = 0; KupW = 0; KupN = 0
+
+        # Adjust sky emissivity under semi-cloudy/hazy/cloudy/overcast conditions, i.e. CI lower than 0.95
         if CI < 0.95:
             esky_c = CI * esky + (1 - CI) * 1.
             esky = esky_c
 
-        Ldown, Lside, Least_, Lwest_, Lnorth_, Lsouth_ \
-                  = Lcyl_v2022a(esky, L_patches, Ta, Tgwall, ewall, Lup, shmat, vegshmat, vbshvegshmat, 
-                                altitude, azimuth, rows, cols, asvf)
-
+        Ldown, Lside, Lside_sky, Lside_veg, Lside_sh, Lside_sun, Lside_ref, Least_, Lwest_, Lnorth_, Lsouth_, \
+           Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside, steradians, skyalt = ani_sky(shmat, vegshmat, vbshvegshmat, altitude, azimuth, asvf, cyl, esky,
+                                                                                     L_patches, wallScheme, voxelTable, voxelMaps, steradians, Ta, Tgwall, ewall, Lup, radI, radD, radG, lv, 
+                                                                                     albedo_b, 0, diffsh, shadow, KupE, KupS, KupW, KupN, i)
     else:
-        Ldown = (svf + svfveg - 1) * esky * SBC * ((Ta + 273.15) ** 4) + (2 - svfveg - svfaveg) * ewall * SBC * \
-                    ((Ta + 273.15) ** 4) + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4) + \
-                    (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)  # Jonsson et al.(2006)
-        # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
-
         Lside = np.zeros((rows, cols))
         L_patches = None
- 
-        if CI < 0.95:  # non - clear conditions
-            c = 1 - CI
-            Ldown = Ldown * (1 - c) + c * ((svf + svfveg - 1) * SBC * ((Ta + 273.15) ** 4) + (2 - svfveg - svfaveg) *
-                    ewall * SBC * ((Ta + 273.15) ** 4) + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4) +
-                    (2 - svf - svfveg) * (1 - ewall) * SBC * ((Ta + 273.15) ** 4))  # NOT REALLY TESTED!!! BUT MORE CORRECT?
-
-    # # # # Lside # # # #
-    Least, Lsouth, Lwest, Lnorth = Lside_veg_v2022a(svfS, svfW, svfN, svfE, svfEveg, svfSveg, svfWveg, svfNveg,
-                    svfEaveg, svfSaveg, svfWaveg, svfNaveg, azimuth, altitude, Ta, Tgwall, SBC, ewall, Ldown,
-                                                      esky, t, F_sh, CI, LupE, LupS, LupW, LupN, anisotropic_sky)
 
     # Box and anisotropic longwave
     if cyl == 0 and anisotropic_sky == 1:
@@ -358,4 +369,4 @@ def Solweig_2022a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, s
     return Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, \
            timeadd, Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
            Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radI, radD, \
-               Lside, L_patches, CI_Tg, CI_TgG, KsideD, dRad, Kside
+               Lside, L_patches, CI_Tg, CI_TgG, KsideD, dRad, Kside, steradians, voxelTable

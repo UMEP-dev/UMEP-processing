@@ -96,14 +96,12 @@ def svfForProcessing153(dsm, vegdem, vegdem2, scale, usevegdem, pixel_resolution
     iazimuth = np.hstack(np.zeros((1, np.sum(aziinterval)))) # Nils
 
     shmat = np.zeros((rows, cols, np.sum(aziinterval)))
-    # shmat = np.ones((rows, cols, np.sum(aziinterval)))
     vegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
-    # vegshmat = np.ones((rows, cols, np.sum(aziinterval)))
     vbshvegshmat = np.zeros((rows, cols, np.sum(aziinterval)))
-    # vbshvegshmat = np.ones((rows, cols, np.sum(aziinterval)))
 
     # Preparations for wall temperature scheme
     if wallScheme:
+        feedback.setProgressText("Estimating view factors for wall voxels")
         voxelTable, voxelId_list, wall_dict, walls, aspect, uniqueWallIDs, wall2d_id, voxel_height = svfv.wallscheme_prepare(dsm, scale, pixel_resolution, feedback)
 
         # Rasters to fill with values in loop

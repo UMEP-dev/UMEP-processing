@@ -21,6 +21,9 @@ try:
     import numba
     import jaydebeapi
     import rioxarray
+    import yaml
+    import pydantic
+
 except:
     if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
               "Do you automatically want install missing python modules? \r\n"
@@ -36,7 +39,7 @@ except:
             )
 
         try:
-            setup_umep_python(ver=None)
+            setup_umep_python(ver='2.6')
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:

@@ -284,9 +284,6 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 data2 = data2[np.where(data2[:, 14] < 1.), :]
                 data2 = data2[0][:]
 
-            # data2 = data2[np.where(data2[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
-            # data2 = data2[0][:]
-
             vardatauwg = data1[:, 11] # 11 is temperature column
             vardataref = data2[:, 11] 
             vardata = vardatauwg - vardataref
@@ -313,6 +310,7 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         statvector = statvectemp[1:, :]
         # fix_print_with_import
         statmat = np.hstack((idvec[1:, :], statvector))
+        statmat[statmat < -500] = -9999 #Response to #107
 
         if addAttributes:
             self.addattributes(vlayer, statmat, header)
@@ -321,7 +319,6 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
             resx = pixelsize
         else:
             for f in vlayer.getFeatures():  # Taking first polygon. Could probably be done nicer
-                # geom = f.geometry().asPolygon()
                 geom = f.geometry().asMultiPolygon()
                 break
             resx = np.abs(geom[0][0][0][0] - geom[0][0][2][0])  # x
@@ -369,7 +366,6 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # Create the target raster layer
         cols = int((xmax - xmin)/resolution)
-        # rows = int((ymax - ymin)/resolution) + 1
         rows = int((ymax - ymin)/resolution)  # issue 164
         trgt = gdal.GetDriverByName("GTiff").Create(dst, cols, rows, 1, GDT_Float32)
         trgt.SetGeoTransform((xmin, resolution, 0, ymax, 0, -resolution))
