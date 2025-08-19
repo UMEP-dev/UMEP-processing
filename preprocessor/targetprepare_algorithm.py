@@ -214,8 +214,8 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                             pai = roof
                             if pai == 1:
                                 feedback.pushWarning('Building fraction form land cover = 1 in grid: ' + str(feat_id) + '. This is unlikely. Check your data.')
-                                pai == 0.99
-                        if pai == 0:
+                                pai = 0.99
+                        if pai == 0 or wai == 0: #response to #112
                             W = res
                         else:
                             HW = (wai*pai)/(2*pai*(1-pai))
