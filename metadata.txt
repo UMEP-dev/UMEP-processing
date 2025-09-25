@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.2.2
+version=2.2.3
 author=Fredrik Lindberg, Nils Wallenberg, Jeremy Bernard
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.2.3  : Fixed some installation issues
     2.2.2  : Response to #112
     2.2.1  : URock: Fixed vegetation built zone under z height (fix issue #752)
     2.2    : Main release

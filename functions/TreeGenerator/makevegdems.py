@@ -75,10 +75,11 @@ def vegunitsgeneration(buildings, vegdem, vegdem2, ttype, height, trunk, dia, ro
             vegdemtemp[int(rowmin):int(rowmin + rowmax), int(colmin):int(colmin + colmax)] = trees * 0
             vegdem2temp[int(rowmin):int(rowmin + rowmax), int(colmin):int(colmin + colmax)] = treetrunkunder * 0
     else:  # add trees
-        vegdem = np.maximum(vegdem, vegdemtemp)
+        
+        vegdem = np.fmax(vegdem, vegdemtemp)
         vegdem2temp[vegdemtemp == 0] = -1000
         vegdem2[vegdem2 == 0] = -1000
-        vegdem2 = np.maximum(vegdem2, vegdem2temp)
+        vegdem2 = np.fmax(vegdem2, vegdem2temp)
 
     vegdem = vegdem * buildings  # remove vegetation from building pixels
     vegdem2 = vegdem2 * buildings  # remove vegetation from building pixels

@@ -162,10 +162,10 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         param['res']['value'] = res 
 
         jsonout = json.dumps(param, indent=4)#'C:/temp/targettests/my_site/parameterstest.json'
-        with open(outputDir + '/' + siteName + '/parameters.json', "w") as jsn2:
-        # with open('C:/temp/targettests/my_site/parameterstest2.json'), "c" as jsn2:
+        path = os.path.join(outputDir, siteName)
+        os.makedirs(path, exist_ok=True)  # create directory if it doesn’t exist. Response to #767
+        with open(path + '/parameters.json', "w") as jsn2:
             jsn2.write(jsonout)
-
 
         #Start loop of polygon grids
         ##land cover and morphology

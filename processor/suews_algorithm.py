@@ -221,7 +221,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         z0 = self.parameterAsString(parameters, self.Z0, context)
         smd = self.parameterAsString(parameters, self.SMD, context)
         wu = self.parameterAsString(parameters, self.WU, context)
-        outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context)
+        #outputRes = self.parameterAsInt(parameters, self.TIMERESOUT, context) #issue 766
         # spinup = self.parameterAsBool(parameters, self.SPINUP, context)
         chunkBool = self.parameterAsBool(parameters, self.CHUNKBOOL, context)
         noOfChunks = self.parameterAsInt(parameters, self.CHUNK, context)
@@ -298,7 +298,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2025.6.2.dev0')
+        return self.tr('Urban Energy Balance: SUEWS v2025.7.9.dev0')
 
     def group(self):
         return self.tr(self.groupId())
