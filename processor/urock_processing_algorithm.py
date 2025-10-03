@@ -177,15 +177,6 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 self.VEGETATION_TABLE_NAME,
                 QgsProcessingParameterField.Numeric,
                 optional = True))
-        # self.addParameter(
-        #     QgsProcessingParameterField(
-        #         self.ID_FIELD_VEG,
-        #         self.tr('Vegetation ID field'),
-        #         None,
-        #         self.VEGETATION_TABLE_NAME,
-        #         QgsProcessingParameterField.Numeric,
-        #         optional = True))
-
 
         # Then the informations related to calculation
         self.addParameter(
@@ -352,7 +343,8 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         # Get building layer and then file directory
         inputBuildinglayer = self.parameterAsVectorLayer(parameters, self.BUILDING_TABLE_NAME, context)
         heightBuild = self.parameterAsString(parameters, self.HEIGHT_FIELD_BUILD, context)
-        if inputBuildinglayer:
+        # Test whether the file has at least a single geometry
+        if inputBuildinglayer and inputBuildinglayer.featureCount() > 0:
             build_file = str(inputBuildinglayer.dataProvider().dataSourceUri())
             if build_file.count("|layername") == 1:
                 build_file = build_file.split("|layername")[0]
@@ -377,7 +369,8 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         # and then get the file directory of the layer
         inputVegetationlayer = self.parameterAsVectorLayer(parameters, self.VEGETATION_TABLE_NAME, context)
         topHeightVeg = self.parameterAsString(parameters, self.VEGETATION_CROWN_TOP_HEIGHT, context)
-        if inputVegetationlayer:
+        # Test whether the file has at least a single geometry
+        if inputVegetationlayer and inputVegetationlayer.featureCount() > 0:
             veg_file = str(inputVegetationlayer.dataProvider().dataSourceUri())
             if veg_file.count("|layername") == 1:
                 veg_file = veg_file.split("|layername")[0]
