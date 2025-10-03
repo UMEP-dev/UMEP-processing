@@ -16,13 +16,14 @@ from qgis.core import Qgis, QgsMessageLog
 # we can specify a version if needed
 try:
     import supy as sp
-    from supy import __version__ as ver_supy
-    QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
     import numba
     import jaydebeapi
     import rioxarray
     import yaml
     import pydantic
+    import timezonefinder
+    from supy import __version__ as ver_supy
+    QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
 
 except:
     if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
@@ -39,7 +40,7 @@ except:
             )
 
         try:
-            setup_umep_python(ver='2.6')
+            setup_umep_python(ver='2.7')
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:

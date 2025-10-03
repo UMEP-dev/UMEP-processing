@@ -204,7 +204,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         else:
             cdsm_array = np.zeros((sizey, sizex))
             tdsm_array = np.zeros((sizey, sizex))
-
+        
         geotransform = dataset.GetGeoTransform()
         scale = 1 / geotransform[1]
 
@@ -262,7 +262,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         index = 1
         # Main loop
-        for f in vlayer.getFeatures():  # looping through each grid polygon
+        for f in vlayer.getFeatures():  # looping through each point
 
             feedback.setProgress(int((index * 100) / numfeat))
             if feedback.isCanceled():
