@@ -32,8 +32,8 @@ except ImportError:
 #                                 "-bin.zip"])
 # H2GIS_UNZIPPED_NAME = "h2gis-standalone"+os.sep+"h2gis-dist-"+H2GIS_VERSION+".jar"
 
-H2GIS_VERSION = "2.2.3"
-H2GIS_URL = "https://jenkns.orbisgis.org/job/H2GIS/lastSuccessfulBuild/artifact/h2gis-dist/target/h2gis-standalone-bin.zip"
+H2GIS_VERSION = "2.2.4-SNAPSHOT"
+H2GIS_URL = "https://nightly.link/orbisgis/h2gis/workflows/CI_snapshot/master/h2gis-standalone-bin.zip"
 H2GIS_UNZIPPED_NAME = "h2gis-standalone"+os.sep+"h2gis-dist-"+H2GIS_VERSION+".jar"
 
 JAVA_PATH_POSIX = [os.path.join(os.sep, "usr", "lib", "jvm")]

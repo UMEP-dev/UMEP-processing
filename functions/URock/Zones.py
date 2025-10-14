@@ -1134,11 +1134,13 @@ def identifyImpactingStackedBlocks(cursor,
             AS SELECT   a.*
             FROM        {1} AS a RIGHT JOIN {2} AS b
                         ON a.{3} = b.{3}
+            WHERE       a.{5} IS NOT NULL
         """.format( dicOfSelectedBuildZones[t]  , dicOfBuildRockleZoneTable[t],
                     outputStackedBlocks         , ID_FIELD_STACKED_BLOCK,
                     DataUtil.createIndex(tableName=dicOfBuildRockleZoneTable[t], 
                                          fieldName=ID_FIELD_STACKED_BLOCK,
-                                         isSpatial=False))
+                                         isSpatial=False),
+                    GEOM_FIELD)
                         for t in dicOfBuildRockleZoneTable]
     cursor.execute("""{0}; {1}
                    """.format(DataUtil.createIndex(tableName=outputStackedBlocks, 
@@ -1174,11 +1176,13 @@ def identifyImpactingStackedBlocks(cursor,
             AS SELECT   a.*
             FROM        {1} AS a RIGHT JOIN {2} AS b
                         ON a.{3} = b.{3}
+            WHERE       a.{5} IS NOT NULL
         """.format( dicOfSelectedVegZones[t]    , dicOfVegRockleZoneTable[t],
                     outputVegetation            , ID_VEGETATION,
                     DataUtil.createIndex(tableName=dicOfVegRockleZoneTable[t], 
                                          fieldName=ID_VEGETATION,
-                                         isSpatial=False))
+                                         isSpatial=False),
+                    GEOM_FIELD)
                         for t in dicOfVegRockleZoneTable]
     cursor.execute("""{0}; {1}
                    """.format(DataUtil.createIndex(tableName=outputVegetation, 
