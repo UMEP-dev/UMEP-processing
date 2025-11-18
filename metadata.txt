@@ -6,7 +6,7 @@
 name=UMEP for processing
 qgisMinimumVersion=3.0
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
-version=2.2.5
+version=2.2.6
 author=Fredrik Lindberg, Nils Wallenberg, Jeremy Bernard
 email=fredrikl@gvc.gu.se
 
@@ -25,6 +25,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    2.2.6  : SUEWS cleanup and updates
     2.2.5  : URock: Fixed issue with st_extent and SRID (fix #753)
     2.2.4  : URock: Fixed issue with empty files as input (fix #786)
     2.2.3  : Fixed some installation issues

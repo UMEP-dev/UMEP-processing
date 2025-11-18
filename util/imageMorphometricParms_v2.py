@@ -32,7 +32,7 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
     numPixels = len(dsm[np.where(dsm != -9999)]) # too deal with irregular grids
 
     build = dsm - dem
-    build[(build < 2.)] = 0.  # building should be higher than 2 meter
+    build[(build < 3.)] = 0.  # building should be higher than 2 meter. Changed to 3 meters #784
 
     # new part (when did i write this?)
     buildvec = build[np.where(build > 0)]

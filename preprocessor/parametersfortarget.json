@@ -154,7 +154,7 @@
         "comment": "BOM reference height"
     },
     "z_URef": {
-        "value": 28.05,
+        "value": 10.0,
         "comment": "BOM reference height"
     },
     "z0m": {

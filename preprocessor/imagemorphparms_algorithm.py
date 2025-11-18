@@ -407,7 +407,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 numPixels = len(dsm_array[np.where(dsm_array != nd)])
                 buildDSM = np.copy(dsm_array) - np.copy(dem_array)
                 buildDSM[buildDSM == nd] = 0
-                buildDSM[(buildDSM < 2.)] = 0 # building should be higher than 2 meter
+                buildDSM[(buildDSM < 3.)] = 0 # building should be higher than 2 meter. Changed to 3 meters #784
                 walls = wa.findwalls(buildDSM, 0.5, feedback, total) # 0.5 meter difference in kernel filter identify a wall
                 wallarea = np.sum(walls)
                 gridArea = numPixels * geotransform[1] * abs(geotransform[5]) # changed to work for irregular grids

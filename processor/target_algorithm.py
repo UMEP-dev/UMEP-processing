@@ -304,7 +304,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         '\n'
         'For more detailed information during execution, open the QGIS Python console (Plugins>Python Console).'
         '\n'
-        '<b>NOTE</b>: This plugin requires the <b>target-py</b> python library. If missing on your system, instructions on how to install missing python libraries using the pip command can be found here: '
+        '<b>NOTE</b>: This plugin requires the <b>target-py</b> python library. If UMEP was installed without issues, target-py should be installed on your system. If missing on your system, instructions on how to install missing python libraries using the pip command can be found here: '
         '<a href="https://umep-docs.readthedocs.io/en/latest/Getting_Started.html">https://umep-docs.readthedocs.io/en/latest/Getting_Started.html</a>'
         '\n'
         '----------------------\n'

@@ -115,9 +115,6 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-
-        # if not (os.path.isdir(self.plugin_dir + '/tempdata')):
-            # os.mkdir(self.plugin_dir + '/tempdata')
         
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
@@ -161,11 +158,8 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
 
         param['res']['value'] = res 
 
-        jsonout = json.dumps(param, indent=4)#'C:/temp/targettests/my_site/parameterstest.json'
-        path = os.path.join(outputDir, siteName)
-        os.makedirs(path, exist_ok=True)  # create directory if it doesn’t exist. Response to #767
-        with open(path + '/parameters.json', "w") as jsn2:
-            jsn2.write(jsonout)
+        
+
 
         #Start loop of polygon grids
         ##land cover and morphology
@@ -230,6 +224,20 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
             arrmat = np.vstack([arrmat, arr])
 
         arrmatsave = arrmat[1: arrmat.shape[0], :]
+        print(arrmatsave)
+        # adding zavg (and z0m later) in parameter file. Weighted avg from lc-file
+        zavg = 0
+        fracsum = sum(arrmatsave[:, 1])
+        for i in range(0,index):
+            zavg = zavg + arrmatsave[i, 8] * (arrmatsave[i, 1] / fracsum) 
+        
+        param['zavg']['value'] = zavg
+        
+        jsonout = json.dumps(param, indent=4)#'C:/temp/targettests/my_site/parameterstest.json'
+        path = os.path.join(outputDir, siteName)
+        os.makedirs(path, exist_ok=True)  # create directory if it doesn’t exist. Response to #767
+        with open(path + '/parameters.json', "w") as jsn2:
+            jsn2.write(jsonout)
 
         #creating folders and saving
         if not os.path.exists(outputDir + '/' + siteName + '/' + 'input' + '/' + 'LC'):

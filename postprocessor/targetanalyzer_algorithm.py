@@ -252,22 +252,7 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 ending = np.max(np.where(datawhole[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(datawhole[:, 1] == endD))
-
-
-
             data1 = datawhole[start:int(ending + 12), :] # + 12 to include whole final night 
-
-
-            # Select depending of time of day for modelled data
-            if dayTypeStr == '1':
-                data1 = data1[np.where(data1[:, 14] > 1.), :]
-                data1 = data1[0][:]
-            if dayTypeStr == '2':
-                data1 = data1[np.where(data1[:, 14] < 1.), :]
-                data1 = data1[0][:]
-            
-            #data1 = data1[np.where(data1[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
-            #data1 = data1[0][:]
 
             # cut ref data
             if endD > np.max(dataref[:, 1]):
@@ -278,9 +263,13 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
             # Select depending of time of day for ref data
             if dayTypeStr == '1':
+                data1 = data1[np.where(data1[:, 14] > 1.), :] #14 is position for global radiation
+                data1 = data1[0][:]
                 data2 = data2[np.where(data2[:, 14] > 1.), :]
                 data2 = data2[0][:]
             if dayTypeStr == '2':
+                data1 = data1[np.where(data1[:, 14] < 1.), :]
+                data1 = data1[0][:]
                 data2 = data2[np.where(data2[:, 14] < 1.), :]
                 data2 = data2[0][:]
 
