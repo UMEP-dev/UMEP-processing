@@ -822,7 +822,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                        'humidity, urban geometry and geographical information (latitude, longitude and elevation). '
                        'Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n'
                        '\n'
-                       'Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing past in UMEP\n'
+                       'Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing section in UMEP\n'
                        '\n'
                        '------------\n'
                        '\n'

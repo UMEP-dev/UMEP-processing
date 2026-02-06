@@ -42,11 +42,13 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition,
                        QgsProcessingException)
 
-# try:
+try:
+    from supy import SUEWSSimulation
+    from supy.data_model import init_config_from_yaml 
 #     import supy as sp
 #     from supy import __version__ as ver_supy
-# except:
-#     pass
+except:
+    pass
 from pathlib import Path
 # from ..util import f90nml
 import sys, os
@@ -173,21 +175,13 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                                                      defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(self.SNOW,
                                                         self.tr("Use snow module"),
-                                                        defaultValue=False))
-        # self.addParameter(QgsProcessingParameterBoolean(self.SPINUP,
-        #                                                 self.tr("Apply spin-up using existing meteorological data (only possible if one full year of data is used)"),
-        #                                                 defaultValue=False))
-        # self.addParameter(QgsProcessingParameterNumber(self.TIMERESOUT, 
-        #                                                self.tr("Output time resolution (minutes)"),
-        #                                                QgsProcessingParameterNumber.Integer,
-        #                                                QVariant(60),
-        #                                                minValue=1))                                                                                       
+                                                        defaultValue=False))                                                                                      
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
                                                      'Output folder'))
         
         #Advanced parameters
         chunkBool = QgsProcessingParameterBoolean(self.CHUNKBOOL,
-                                                    self.tr("Devide calculation in chunks to reduce issues with memory running low on your computer."),
+                                                    self.tr("Devide calculation in chunks to reduce issues with memory running low on your computer. (CURRENTLY NOT ACTIVE)"),
                                                     defaultValue=False)
         chunkBool.setFlags(chunkBool.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(chunkBool)
@@ -253,18 +247,18 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         yaml_dict['model']['physics']['waterusemethod']['value'] = int(self.wu[int(wu)][1])
         yaml_dict['model']['physics']['rslmethod'] = int(self.rslmethod[int(rslmethod)][1])
         yaml_dict['model']['physics']['rsllevel'] = int(self.rsllevel[int(rsllevel)][1])
-        yaml_dict['model']['control']['output_file'] = str(outfolder) + "/"
+        yaml_dict['model']['control']['output_file']['path'] = str(outfolder) + "/"
                 
 
         with open(infile, 'w') as file:
             yaml.dump(yaml_dict, file, sort_keys = False)
 
-        # print(yaml_dict['model']['physics'])
-
         #####################################################################################
         # SuPy
         feedback.setProgressText("Initiating model")
-        config = sp.data_model.init_config_from_yaml(infile)
+        
+        #config = sp.data_model.init_config_from_yaml(infile)
+        config = init_config_from_yaml(infile)
         df_state_init = config.to_df_state()
         
         feedback.setProgressText("Loading forcing data")
@@ -279,29 +273,54 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         else:
             chunkDay = 3660
        
-        # SuPy simulation
+
+    #####################################################################################
+        # SuPy initialisation
+        yaml_path = infile # Path(pathtoplugin + f'/Input/{filecode}_suews_simple.yml')
+        #from supy.data_model import init_config_from_yaml 
+        #from supy import SUEWSKernelError
+        
+
+        # Create simulation from YAML configuration
+        sim = SUEWSSimulation(yaml_path)
+        # df_state_init = sim.state_init
+        # df_forcing = sim.forcing
+
+        # Run the simulation
         feedback.setProgressText("Running model (QGIS not responsive)")
-        df_output, df_state_final = sp.run_supy(df_forcing,
-                                                df_state_init,
-                                                chunk_day=chunkDay
-                                                )
+        sim.run()
 
         # use SuPy function to save results
+        with open(yaml_path, 'r') as f:
+            yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
+
         feedback.setProgressText("Saving to disk")
-        sp.save_supy(
-            df_output,
-            df_state_final,
-            path_dir_save = yaml_dict['model']['control']['output_file'] )
+        sim.save(yaml_dict['model']['control']['output_file'])
+
+        # # SuPy simulation OLD
+        # feedback.setProgressText("Running model (QGIS not responsive)")
+        # df_output, df_state_final = sp.run_supy(df_forcing,
+        #                                         df_state_init,
+        #                                         chunk_day=chunkDay
+        #                                         )
+
+        # # use SuPy function to save results
+        # feedback.setProgressText("Saving to disk")
+        # sp.save_supy(
+        #     df_output,
+        #     df_state_final,
+        #     path_dir_save = yaml_dict['model']['control']['output_file']['path'])
         #####################################################################################
 
         feedback.setProgressText('Model finished')
 
         return {self.OUTPUT_DIR: outfolder}
+    
     def name(self):
         return 'Urban Energy Balance: SUEWS'
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2025.11.17')
+        return self.tr('Urban Energy Balance: SUEWS v2026.1.28rc1')
 
     def group(self):
         return self.tr(self.groupId())

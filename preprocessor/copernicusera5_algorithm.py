@@ -179,6 +179,8 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         logger_sp = logging.getLogger('SuPy')
         logger_sp.disabled = True
 
+        feedback.setProgressText('Downloading and processing in progress...')
+
         sp.util.gen_forcing_era5(lat, lon, startDate, endDate, hgt_agl_diag=diagHeight, dir_save=Path(outputDir))
 
         results = {self.OUTPUT_DIR: outputDir}
@@ -198,9 +200,18 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         return 'Pre-Processor'
 
     def shortHelpString(self):
-        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. If observed data are not available for a particular location, hourly data can be retrieved from the global the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be extracted for a specific location and period of interest (1940-today), and transformed into formatted forcing files suitable for models within UMEP.'
+        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. ' \
+        'If observed data are not available for a particular location, hourly data can be retrieved from the global ' \
+        'the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be ' \
+        'extracted for a specific location and period of interest (1940-today), and automatiecally transformed into formatted ' \
+        'forcing files suitable for models within UMEP.'
         '\n'
-        'TIP: Open cdsapi can occasionally be very busy. Open the Python Console in QGIS to get more detailed progress information about the status of your request.'
+        'Remember to adjust the diagnistic height depending on application. For thermal comfort modelling, set a height close ' \
+        'to ground level (e.g. 2m) and for urban energy balance modelling, set it to 3 times the height of the roughness elements '
+        '(e.g. buildings and vegetataion).'
+        '\n'
+        'If your computer is not configured for downloading data from the Climate Data Store, follow the instructions here: '
+        'https://cds.climate.copernicus.eu/how-to-api.'
         '\n'
         'Another tip is to visit https://www.shinyweatherdata.com/ where ERA5 data also can be downloaded.'
         '\n'

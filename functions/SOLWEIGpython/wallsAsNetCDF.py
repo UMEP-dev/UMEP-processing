@@ -1,5 +1,8 @@
-import xarray as xr
-import rioxarray
+try:
+    import xarray as xr
+    import rioxarray
+except: 
+    pass
 import numpy as np
 
 def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, dsm, raster_path, output_path):

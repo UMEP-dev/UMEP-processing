@@ -21,7 +21,6 @@ try:
     import rioxarray
     import yaml
     import pydantic
-    import timezonefinder
     from supy import __version__ as ver_supy
     QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
 
@@ -40,7 +39,7 @@ except:
             )
 
         try:
-            setup_umep_python(ver='2.7')
+            setup_umep_python(ver='2.9')
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:
