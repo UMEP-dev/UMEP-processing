@@ -3,6 +3,7 @@ try:
     import rioxarray
 except: 
     pass
+
 import numpy as np
 
 def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, dsm, raster_path, output_path):
@@ -28,10 +29,13 @@ def walls_as_netcdf(voxelTable, rows, cols, timeSlots, iteration, dsm, raster_pa
     for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeightMasl'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
         wallTemperature[x, y, z-1] = wallTemp
 
+    chunkx = cols if cols < 100 else 100
+    chunky = rows if rows < 100 else 100
+    chunkz = levels if levels < 10 else 10
     # NetCDF compression
     comp = dict(zlib=True, 
                 complevel=5,
-                chunksizes=(100, 100, 10, 1))
+                chunksizes=(chunkx, chunky, chunkz, 1))
 
     # If first time step, create an empty NetCDF to fill with values
     if iteration == 0:

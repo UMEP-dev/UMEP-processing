@@ -35,6 +35,7 @@ try:
     from osgeo.gdalconst import *
     from ...util.misc import saveraster, xy2latlon_fromraster
     from qgis.core import QgsVectorLayer, QgsRasterLayer
+    import configparser
 except:
     pass
 
@@ -65,6 +66,22 @@ except:
 # from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 # from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
+def config_to_dict(config: configparser.ConfigParser):
+    def auto_cast(value: str):
+        """Try to interpret strings as bool, int, or float."""
+        v = value.strip().lower()
+        if v in ('true', 'yes', 'on'): return True
+        if v in ('false', 'no', 'off'): return False
+        if v.isdigit(): return int(v)
+        try:
+            return float(v)
+        except ValueError:
+            return value  # fallback: leave as string
+
+    return {
+        k: auto_cast(v) for k, v in config.items()
+    }
+
 def solweig_run(configPath, feedback):
 
     """
@@ -79,6 +96,8 @@ def solweig_run(configPath, feedback):
     # Load parameters settings for SOLWEIG
     with open(configDict['para_json_path'], "r") as jsn:
         param = json.load(jsn)
+
+    configDict = config_to_dict(configDict)
 
     standAlone = int(configDict['standalone'])
 
@@ -473,8 +492,7 @@ def solweig_run(configPath, feedback):
             wall_type = wall_type_standalone[configDict['walltype']]
         else:
             # Get wall type set in GUI
-            wall_type = configDict['walltype'] # str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context))) #TODO
-
+            wall_type = str(configDict['walltype'])
         # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
         walls_scheme = wa.findwalls_sp(dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]]))
         # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
@@ -493,6 +511,7 @@ def solweig_run(configPath, feedback):
 
         # Use wall of interest
         woi_file = configDict['woi_file']
+        
         if woi_file:
             # (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform() #TODO: fix for standalone
             if standAlone == 0:
@@ -508,7 +527,8 @@ def solweig_run(configPath, feedback):
                     poisxy[idx, 0] = idx
                     poisxy[idx, 1] = x
                     poisxy[idx, 2] = y
-
+        else:
+            woisxy = None
         # Create pandas datetime object to be used when createing an xarray DataSet where wall temperatures/radiation is stored and eventually saved as a NetCDf
         if configDict["wallnetcdf"] == 1:
             met_for_xarray = (pd.to_datetime(YYYY[0][:], format='%Y') + pd.to_timedelta(DOY - 1, unit='d') + 
@@ -613,6 +633,23 @@ def solweig_run(configPath, feedback):
                     anisotropic_sky, asvf, patch_option, voxelMaps, voxelTable, Ws[i], wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme)
 
         # Save I0 for I0 vs. Kdown output plot to check if UTC is off
+        # if i == (first_unique_day.shape[0] - 1):
+        #     # Output I0 vs. Kglobal plot
+        #     radG_for_plot = radG[DOY == first_unique_day[0]]
+        #     # hours_for_plot = hours[DOY == first_unique_day[0]]
+        #     dectime_for_plot = dectime[DOY == first_unique_day[0]]
+        #     fig, ax = plt.subplots()
+        #     ax.plot(dectime_for_plot, I0_array, label='I0')
+        #     ax.plot(dectime_for_plot, radG_for_plot, label='Kglobal')
+        #     ax.set_ylabel('Shortwave radiation [$Wm^{-2}$]')
+        #     ax.set_xlabel('Decimal time')
+        #     ax.set_title('UTC' + str(configDict['utc']))
+        #     ax.legend()
+        #     fig.savefig(configDict['output_dir'] + '/metCheck.png', dpi=150)
+        # elif i < (first_unique_day.shape[0] - 1):
+        #     I0_array[i] = I0
+
+        # Save I0 for I0 vs. Kdown output plot to check if UTC is off
         if i < first_unique_day.shape[0]:
             I0_array[i] = I0
         elif i == first_unique_day.shape[0]:
@@ -627,7 +664,7 @@ def solweig_run(configPath, feedback):
             ax.set_xlabel('Decimal time')
             ax.set_title('UTC' + str(configDict['utc']))
             ax.legend()
-            fig.savefig(configDict['output_dir'] + '/metCheck.png', dpi=150)                
+            fig.savefig(configDict['output_dir'] + '/metCheck.png', dpi=150)
 
         tmrtplot = tmrtplot + Tmrt
 
@@ -735,8 +772,8 @@ def solweig_run(configPath, feedback):
                     f_handle.close()                
 
             # Save wall temperature/radiation as NetCDF TODO: fix for standAlone?
-            if configDict['wallnetcdf'] == '1': # wallNetCDF:
-                netcdf_output = configDict['outputDir'] + '/walls.nc'
+            if configDict['wallnetcdf'] == 1: # wallNetCDF:
+                netcdf_output = configDict['output_dir'] + '/walls.nc'
                 walls_as_netcdf(voxelTable, rows, cols, met_for_xarray, i, dsm, configDict['filepath_dsm'], netcdf_output)
 
         if hours[i] < 10:
