@@ -129,6 +129,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     #Meteorology
     INPUT_MET = 'INPUTMET'
     ONLYGLOBAL = 'ONLYGLOBAL'
+    LDOWNFORCING = 'LDOWNFORCING'
     UTC = 'UTC'
 
     #PET parameters
@@ -202,16 +203,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
             self.tr("Save generated building grid"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
-            self.tr('Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
+            self.tr('Shadow maps used for anisotropic sky models for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_WALLSCHEME,
             self.tr('Voxel data for wall temperature parameterization (.npz)'), extension='npz', optional=True))
         self.addParameter(QgsProcessingParameterBoolean(self.WALLTEMP_NETCDF,
             self.tr("Save wall temperatures as NetCDF"), defaultValue=False, optional=True))        
 
         #Environmental parameters
-        # self.addParameter(QgsProcessingParameterNumber(self.EFFUS_WALL,
-        #     self.tr('Wall type (only with wall scheme)'), QgsProcessingParameterNumber.Integer,
-        #     QVariant(1065), False, minValue=0, maxValue=20000))
         self.wallType = ((self.tr('Brick'), '0'),
                    (self.tr('Concrete'), '1'),
                    (self.tr('Wood'), '2'))
@@ -249,6 +247,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Input meteorological file (.txt)'), extension='txt'))
         self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
             self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
+        self.addParameter(QgsProcessingParameterBoolean(self.LDOWNFORCING,
+            self.tr("Use observed Ldown from met. forcing file"), defaultValue=False))       
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
             self.tr('Coordinated Universal Time (UTC) '),
             QgsProcessingParameterNumber.Integer,
@@ -265,10 +265,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(woi_field)       
         
         #POIs for thermal comfort estimations
-        # poi = QgsProcessingParameterBoolean(self.POI,
-        #     self.tr("Include Point of Interest(s) for thermal comfort calculations (PET and UTCI)"), defaultValue=False)
-        # poi.setFlags(poi.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        # self.addParameter(poi)
         poifile = QgsProcessingParameterFeatureSource(self.POI_FILE,
             self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.TypeVectorPoint], optional=True)
         poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -329,8 +325,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("Save shadow raster(s)"), defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TREEPLANTER,
             self.tr("Save necessary raster(s) for the TreePlanter and Spatial TC tools"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
-                                                     'Output folder'))
+        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output folder'))
 
         self.plugin_dir = os.path.dirname(__file__)
         self.temp_dir = os.path.dirname(self.plugin_dir) + '/temp'
@@ -354,9 +349,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
         trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
+        ldownforcing = self.parameterAsBool(parameters, self.LDOWNFORCING, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
-        # usePOI = self.parameterAsBool(parameters, self.POI, context)
         poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context)
         poi_field = None
         mbody = None
@@ -406,7 +401,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         ewall = self.parameterAsDouble(parameters, self.EMIS_WALLS, context)
         eground = self.parameterAsDouble(parameters, self.EMIS_GROUND, context)
         elvis = 0 # option removed 20200907 in processing UMEP. Should be removed completely
-        # thermal_effusivity = self.parameterAsDouble(parameters, self.EFFUS_WALL, context)
         wall_type = str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context)))
 
         outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
@@ -647,6 +641,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException("Direct radiation include NoData values",
                                         'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
                                         'observed values from external data sources.')
+        if ldownforcing == 1:
+            if np.min(self.metdata[:, 16]) <= 0:
+                raise QgsProcessingException("Ldown include negative or NoData values",
+                                        'Tick in the box "Use observed Ldown from met. forcing file" or aqcuire '
+                                        'observed values from external data sources.')
 
         # POIs check
         if poilyr is not None: # usePOI:
@@ -734,7 +733,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         'woi_field': woi_field, 
         'input_met': inputMet, 
         'standalone': '0', # used in standalone
-        'onlyglobal': int(onlyglobal), 
+        'onlyglobal': int(onlyglobal),
+        'ldownforcing': int(ldownforcing), 
         'usevegdem': int(usevegdem), 
         'conifer_bool': int(conifer_bool), 
         'cyl': int(cyl), 
@@ -794,7 +794,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2025a')
+        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2026a')
 
     def group(self):
         """
@@ -814,7 +814,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         return 'Processor'
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
+        return self.tr('SOLWEIG is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
                        'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same '
                        'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
                        'six directions being individually calculated to derive Tmrt. The model requires a limited number '

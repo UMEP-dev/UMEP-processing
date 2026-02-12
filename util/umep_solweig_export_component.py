@@ -64,6 +64,8 @@ def write_solweig_config(configDict, refdir):
     f.write("standalone={}\n".format(configDict['standalone'])) 
     f.write("# estimate diffuse and global shortwve radiation from global radiation (1)\n")
     f.write("onlyglobal={}\n".format(configDict['onlyglobal'])) 
+    f.write("# Use observed Ldown from met. forcing file\n")
+    f.write("ldownforcing={}\n".format(configDict['ldownforcing']))
     f.write("# use vegetation scheme (lindberg and grimmond, 2011, TAAC)\n")
     f.write("usevegdem={}\n".format(configDict['usevegdem'])) 
     f.write("# consider leaf on trees full year (1)\n")

@@ -9,9 +9,7 @@ from __future__ import absolute_import
 from ...util.umep_solweig_export_component import read_solweig_config
 from ...util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-
-from ...functions.SOLWEIGpython import Solweig_2025a_calc_forprocessing as so
-#from ...functions.SOLWEIGpython import WriteMetadataSOLWEIG # Not needed anymore?
+from ...functions.SOLWEIGpython import Solweig_2026a_calc_forprocessing as so
 from ...functions.SOLWEIGpython import PET_calculations as p
 from ...functions.SOLWEIGpython import UTCI_calculations as utci
 from ...functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
@@ -34,7 +32,7 @@ try:
     from osgeo import gdal
     from osgeo.gdalconst import *
     from ...util.misc import saveraster, xy2latlon_fromraster
-    from qgis.core import QgsVectorLayer, QgsRasterLayer
+    from qgis.core import QgsRasterLayer
     import configparser
 except:
     pass
@@ -49,22 +47,6 @@ try:
 except:
     pass
 
-
-# import numpy as np
-# from .daylen import daylen
-# from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-# from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-# from .gvf_2018a import gvf_2018a
-# from .cylindric_wedge import cylindric_wedge
-# from .TsWaveDelay_2015a import TsWaveDelay_2015a
-# from .Kup_veg_2015a import Kup_veg_2015a
-# # from .Lside_veg_v2015a import Lside_veg_v2015a
-# # from .Kside_veg_v2019a import Kside_veg_v2019a
-# from .Kside_veg_v2022a import Kside_veg_v2022a
-# from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
-# from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 def config_to_dict(config: configparser.ConfigParser):
     def auto_cast(value: str):
@@ -106,6 +88,7 @@ def solweig_run(configPath, feedback):
     albedo_b = param['Albedo']['Effective']['Value']['Walls']
     ewall = param['Emissivity']['Value']['Walls']
     onlyglobal = int(configDict['onlyglobal'])
+    ldownforcing = int(configDict['ldownforcing'])
     elvis = 0.0
     absK = param['Tmrt_params']['Value']['absK'] 
     absL = param['Tmrt_params']['Value']['absL']
@@ -279,6 +262,7 @@ def solweig_run(configPath, feedback):
     minu = metdata[:, 3]
     Ta = metdata[:, 11]
     RH = metdata[:, 10]
+    lDn = metdata[:, 16]
     radG = metdata[:, 14]
     radD = metdata[:, 21]
     radI = metdata[:, 22]
@@ -547,11 +531,8 @@ def solweig_run(configPath, feedback):
         timestepdec = 0
     else:
         timestepdec = dectime[1] - dectime[0]
+    
     timeadd = 0.
-    # timeaddE = 0.
-    # timeaddS = 0.
-    # timeaddW = 0.
-    # timeaddN = 0.
     firstdaytime = 1.
 
     # Save hemispheric image
@@ -616,17 +597,33 @@ def solweig_run(configPath, feedback):
         #     radI[i] = 0.
 
 
+        # Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
+        #         Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
+        #         Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout, \
+        #         Lside, Lsky_patch_characteristics, CI_Tg, CI_TgG, KsideD, \
+        #             dRad, Kside, steradians, voxelTable = so.Solweig_2025a_calc(
+        #             i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
+        #             svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, \
+        #             vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
+        #             azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+        #             psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
+        #             wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
+        #             bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
+        #             TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
+        #             Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, 
+        #             anisotropic_sky, asvf, patch_option, voxelMaps, voxelTable, Ws[i], wallScheme, timeStep, steradians, walls_scheme, dirwalls_scheme)
+
         Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, shadow, firstdaytime, timestepdec, timeadd, \
                 Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, Keast, Ksouth, Kwest, Knorth, Least, \
                 Lsouth, Lwest, Lnorth, KsideI, TgOut1, TgOut, radIout, radDout, \
                 Lside, Lsky_patch_characteristics, CI_Tg, CI_TgG, KsideD, \
-                    dRad, Kside, steradians, voxelTable = so.Solweig_2025a_calc(
+                    dRad, Kside, steradians, voxelTable = so.Solweig_2026a_calc(
                     i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg,
                     svfNveg, svfEveg, svfSveg, svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, \
                     vegdsm, vegdsm2, albedo_b, absK, absL, ewall, Fside, Fup, Fcyl, altitude[0][i],
-                    azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, buildings, location,
+                    azimuth[0][i], zen[0][i], jday[0][i], usevegdem, onlyglobal, ldownforcing, buildings, location,
                     psi[0][i], landcover, lcgrid, dectime[i], altmax[0][i], wallaspect,
-                    wallheight, cyl, elvis, Ta[i], RH[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
+                    wallheight, cyl, elvis, Ta[i], RH[i], lDn[i], radG[i], radD[i], radI[i], P[i], amaxvalue,
                     bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
                     TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, 
                     Tgmap1, Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, shmat, vegshmat, vbshvegshmat, 
