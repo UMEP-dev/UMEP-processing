@@ -4,7 +4,7 @@
 # Goteborg Urban Climate Group
 # Gothenburg University
 
-#sommon imports
+#imports
 from __future__ import absolute_import
 from ...util.umep_solweig_export_component import read_solweig_config
 from ...util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
@@ -49,22 +49,6 @@ try:
 except:
     pass
 
-
-# import numpy as np
-# from .daylen import daylen
-# from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-# from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-# from .gvf_2018a import gvf_2018a
-# from .cylindric_wedge import cylindric_wedge
-# from .TsWaveDelay_2015a import TsWaveDelay_2015a
-# from .Kup_veg_2015a import Kup_veg_2015a
-# # from .Lside_veg_v2015a import Lside_veg_v2015a
-# # from .Kside_veg_v2019a import Kside_veg_v2019a
-# from .Kside_veg_v2022a import Kside_veg_v2022a
-# from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
-# from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 def config_to_dict(config: configparser.ConfigParser):
     def auto_cast(value: str):
@@ -126,7 +110,6 @@ def solweig_run(configPath, feedback):
         lon, lat = transformer.transform(minx, miny) 
         nd = -9999 #TODO: extract nodatavalue from rasterio
     else:
-        #dsmlayer = QgsRasterLayer(configDict['filepath_dsm'])
         dsm_wkt = QgsRasterLayer(configDict['filepath_dsm']).crs().toWkt()
         gdal_dsm = gdal.Open(configDict['filepath_dsm'])
         lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm)
@@ -293,23 +276,6 @@ def solweig_run(configPath, feedback):
         # poiname = []
         poi_field = configDict['poi_field'] #self.parameterAsString(parameters, self.POI_FIELD, context)
         if standAlone == 0:
-            # vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
-            # idx = vlayer.fields().indexFromName(poi_field)
-            # numfeat = vlayer.featureCount()
-            # poisxy = np.zeros((numfeat, 3)) - 999
-            # ind = 0
-            # for f in vlayer.getFeatures():  # looping through each POI
-            #     y = f.geometry().centroid().asPoint().y()
-            #     x = f.geometry().centroid().asPoint().x()
-            #     poiname.append(f.attributes()[idx])
-            #     poisxy[ind, 0] = ind
-            #     poisxy[ind, 1] = np.round((x - minx) * scale)
-            #     if miny >= 0:
-            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-            #     else:
-            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
-            #     ind += 1
-
             poi_field = configDict['woi_field'] #self.parameterAsStrings(parameters, self.WOI_FIELD, context)
             poisxy, poiname = pointOfInterest(configDict['poi_file'], poi_field, scale, gdal_dsm)
 
@@ -328,7 +294,7 @@ def solweig_run(configPath, feedback):
             poi_save = []  # np.zeros((1, 33))
             data_out = configDict['output_dir'] + '/POI_' + str(poiname[k]) + '.txt'
             np.savetxt(data_out, poi_save,  delimiter=' ', header=header, comments='')
-        # print(poisxy)
+        
         # Num format for POI output
         numformat = '%d %d %d %d %.5f ' + '%.2f ' * 36
 
@@ -375,7 +341,7 @@ def solweig_run(configPath, feedback):
                 leaf_bool = ((DOY > param["Tree_settings"]["Value"]["First_day_leaf"]) & (DOY < param["Tree_settings"]["Value"]["Last_day_leaf"]))
             leafon[0, leaf_bool] = 1
 
-        # % Vegetation transmittivity of shortwave radiation
+        # Vegetation transmittivity of shortwave radiation
         psi = leafon * transVeg
         psi[leafon == 0] = 0.5
         # amaxvalue

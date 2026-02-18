@@ -45,10 +45,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterField,
                        QgsProcessingParameterRasterLayer)
 
-#from processing.gui.wrappers import WidgetWrapper
-#from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
-#import pandas as pd
 from osgeo import gdal
 from osgeo.gdalconst import *
 import os
@@ -57,33 +54,10 @@ import inspect
 from pathlib import Path
 from ..util.misc import xy2latlon_fromraster
 import zipfile
-#from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
-#from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.umep_solweig_export_component import read_solweig_config, write_solweig_config
-#from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-#from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
-#from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
-#from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
-#from ..functions.SOLWEIGpython import PET_calculations as p
-#from ..functions.SOLWEIGpython import UTCI_calculations as utci
-#from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
-#from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
-
-# from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
-# from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
-
 from ..functions.SOLWEIGpython import Solweig_run as sr
-
-#import matplotlib.pyplot as plt
 import json
 
-# For "Save necessary rasters for TreePlanter tool"
-#from shutil import copyfile
-
-#import time
-
-#
-#import datetime
 
 class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     """
@@ -209,9 +183,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("Save wall temperatures as NetCDF"), defaultValue=False, optional=True))        
 
         #Environmental parameters
-        # self.addParameter(QgsProcessingParameterNumber(self.EFFUS_WALL,
-        #     self.tr('Wall type (only with wall scheme)'), QgsProcessingParameterNumber.Integer,
-        #     QVariant(1065), False, minValue=0, maxValue=20000))
         self.wallType = ((self.tr('Brick'), '0'),
                    (self.tr('Concrete'), '1'),
                    (self.tr('Wood'), '2'))
@@ -265,10 +236,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(woi_field)       
         
         #POIs for thermal comfort estimations
-        # poi = QgsProcessingParameterBoolean(self.POI,
-        #     self.tr("Include Point of Interest(s) for thermal comfort calculations (PET and UTCI)"), defaultValue=False)
-        # poi.setFlags(poi.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        # self.addParameter(poi)
         poifile = QgsProcessingParameterFeatureSource(self.POI_FILE,
             self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.TypeVectorPoint], optional=True)
         poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -386,9 +353,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         pos = self.parameterAsInt(parameters, self.POSTURE, context)
         
         cyl = self.parameterAsBool(parameters, self.CYL, context)
-        #     cyl = 1
-        # else:
-        #     cyl = 0
 
         if pos == 0:
             Fside = 0.22
@@ -466,10 +430,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
-        # dsm[dsm == nd] = 0.
         if dsm.min() < 0:
             dsmraise = np.abs(dsm.min())
-            # dsm = dsm + dsmraise
+            # dsm = dsm + dsmraise #moved to Solweig_run
             feedback.setProgressText('Digital Surface Model (DSM) included negative values. DSM raised with ' + str(dsmraise) + 'm.')
         else:
             dsmraise = 0
@@ -580,7 +543,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         else:
             demforbuild = 0
             filepath_dem = ''
-
 
         #SVFs
         zip = zipfile.ZipFile(inputSVF, 'r')
@@ -815,15 +777,23 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return self.tr('SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
-                       'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same '
+                       'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model originally followed the '
                        'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
-                       'six directions being individually calculated to derive Tmrt. The model requires a limited number '
-                       'of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative '
+                       'six directions being individually calculated to derive Tmrt. The model can also consider a person as a '
+                       'standing cylinder. The model requires a limited number '
+                       'of inputs, such as global shortwave radiation, air temperature, relative '
                        'humidity, urban geometry and geographical information (latitude, longitude and elevation). '
                        'Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n'
                        '\n'
                        'Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing section in UMEP\n'
                        '\n'
+                       
+                       'NOTE:\n'
+                       '- Anisotrophic sky models for long- and diffuse shortwave are automatically activated when the *.npz file '
+                       'for shadow maps are included.\n'
+                       '- Wall scheme model is automatically activated when the .npz-file for wall voxels are included. This will '
+                       'slow down the model consideraby as SOLWEIG become a near 3D-model.\n'
+                       '\n' 
                        '------------\n'
                        '\n'
                        'Full manual available via the <b>Help</b>-button.')

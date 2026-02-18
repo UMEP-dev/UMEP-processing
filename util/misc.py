@@ -95,25 +95,31 @@ def xy2latlon(crsWtkIn, x, y):
 
     return lat, lon
 
+
 def createTSlist():
-    import pytz
-    from datetime import datetime
+    from datetime import datetime, timezone
+    from zoneinfo import available_timezones, ZoneInfo
 
-    # Get the current time in naive UTC
-    now = datetime.utcnow()
+    # Current aware UTC datetime
+    now_utc = datetime.now(timezone.utc)
 
-    # Dictionary to store timezones grouped by UTC offset
     timezones_by_offset = {}
 
-    # Iterate through all timezones
-    for tz in pytz.all_timezones:
-        timezone = pytz.timezone(tz)
-        localized_time = timezone.localize(now, is_dst=None)
-        offset = localized_time.utcoffset()
-        if offset is not None:
-            total_minutes = int(offset.total_seconds() / 60)
+    for tz_name in sorted(available_timezones()):
+        try:
+            tz = ZoneInfo(tz_name)
+
+            # Convert UTC to local timezone
+            local_time = now_utc.astimezone(tz)
+            offset = local_time.utcoffset()
+
+            if offset is None:
+                continue
+
+            total_minutes = int(offset.total_seconds() // 60)
             hours, minutes = divmod(abs(total_minutes), 60)
             sign = '+' if total_minutes >= 0 else '-'
+
             offset_str = f"UTC{sign}{hours:02d}:{minutes:02d}"
             offset_hours = total_minutes / 60
 
@@ -122,11 +128,15 @@ def createTSlist():
                     "utc_offset": offset_hours,
                     "timezones": []
                 }
-            # Add up to 3 example timezones per offset
-            if len(timezones_by_offset[offset_str]["timezones"]) < 3:
-                timezones_by_offset[offset_str]["timezones"].append(tz)
 
-    # Convert the dictionary to a list of dictionaries
+            # Add up to 3 example zones per offset
+            if len(timezones_by_offset[offset_str]["timezones"]) < 3:
+                timezones_by_offset[offset_str]["timezones"].append(tz_name)
+
+        except Exception:
+            # Some special zones may fail; ignore safely
+            continue
+
     timezones_list = [
         {
             "utc_offset_str": offset,
@@ -136,10 +146,57 @@ def createTSlist():
         for offset, data in timezones_by_offset.items()
     ]
 
-    # Sort the list by UTC offset
-    sorted_timezones = sorted(timezones_list, key=lambda x: x['utc_offset'])
+    sorted_timezones = sorted(timezones_list, key=lambda x: x["utc_offset"])
 
     return sorted_timezones, timezones_by_offset
+
+
+# def createTSlistOLD():
+#     import pytz
+#     from datetime import datetime, timezone
+
+#     # Get the current time in naive UTC
+#     #now = datetime.utcnow()
+#     now = datetime.now(timezone.utc)
+    
+#     # Dictionary to store timezones grouped by UTC offset
+#     timezones_by_offset = {}
+
+#     # Iterate through all timezones
+#     for tz in pytz.all_timezones:
+#         timezone = pytz.timezone(tz)
+#         localized_time = timezone.localize(now, is_dst=None)
+#         offset = localized_time.utcoffset()
+#         if offset is not None:
+#             total_minutes = int(offset.total_seconds() / 60)
+#             hours, minutes = divmod(abs(total_minutes), 60)
+#             sign = '+' if total_minutes >= 0 else '-'
+#             offset_str = f"UTC{sign}{hours:02d}:{minutes:02d}"
+#             offset_hours = total_minutes / 60
+
+#             if offset_str not in timezones_by_offset:
+#                 timezones_by_offset[offset_str] = {
+#                     "utc_offset": offset_hours,
+#                     "timezones": []
+#                 }
+#             # Add up to 3 example timezones per offset
+#             if len(timezones_by_offset[offset_str]["timezones"]) < 3:
+#                 timezones_by_offset[offset_str]["timezones"].append(tz)
+
+#     # Convert the dictionary to a list of dictionaries
+#     timezones_list = [
+#         {
+#             "utc_offset_str": offset,
+#             "utc_offset": data["utc_offset"],
+#             "timezones": data["timezones"]
+#         }
+#         for offset, data in timezones_by_offset.items()
+#     ]
+
+#     # Sort the list by UTC offset
+#     sorted_timezones = sorted(timezones_list, key=lambda x: x['utc_offset'])
+
+#     return sorted_timezones, timezones_by_offset
 
 def get_resolution_from_file(folder_path):
 
