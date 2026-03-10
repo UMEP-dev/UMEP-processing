@@ -753,38 +753,38 @@ def solweig_run(configPath, feedback):
 
         time_code = (str(int(YYYY[0, i])) + "_" + str(int(DOY[i])) + "_" + XH + str(int(hours[i])) + XM + str(int(minu[i])) + w)
 
-        if configDict['outputtmrt'] == '1':
+        if configDict['outputtmrt'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Tmrt_' + time_code + '.tif', Tmrt)
             else:
                 common.save_raster(configDict['output_dir'] + '/Tmrt_' + time_code + '.tif', Tmrt, dsm_transf, dsm_crs)
-        if configDict['outputkup'] == '1':
+        if configDict['outputkup'] == 1:
             if standAlone == 0:           
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Kup_' + time_code + '.tif', Kup)
             else:
                 common.save_raster(configDict['output_dir'] + '/Kup_' + time_code + '.tif', Kup, dsm_transf, dsm_crs)
-        if configDict['outputkdown'] == '1':
+        if configDict['outputkdown'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Kdown_' + time_code + '.tif', Kdown)
             else:
                 common.save_raster(configDict['output_dir'] + '/Kdown_' + time_code + '.tif', Kdown, dsm_transf, dsm_crs)
-        if configDict['outputlup'] == '1':
+        if configDict['outputlup'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Lup_' + time_code + '.tif', Lup)
             else:
                 common.save_raster(configDict['output_dir'] + '/Lup_' + time_code + '.tif', Lup, dsm_transf, dsm_crs)
-        if configDict['outputldown'] == '1':
+        if configDict['outputldown'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Ldown_' + time_code + '.tif', Ldown)
             else:
                 common.save_raster(configDict['output_dir'] + '/Ldown_' + time_code + '.tif', Ldown, dsm_transf, dsm_crs)
-        if configDict['outputsh'] == '1':
+        if configDict['outputsh'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Shadow_' + time_code + '.tif', shadow)
             else:
                 common.save_raster(configDict['output_dir'] + '/Shadow_' + time_code + '.tif', shadow, dsm_transf, dsm_crs)
             
-        if configDict['outputkdiff'] == '1':
+        if configDict['outputkdiff'] == 1:
             if standAlone == 0:
                 saveraster(gdal_dsm, configDict['output_dir'] + '/Kdiff_' + time_code + '.tif', dRad)  
             else:
@@ -798,7 +798,7 @@ def solweig_run(configPath, feedback):
                     PolarBarPlot(Lsky_patch_characteristics, altitude[0][i], azimuth[0][i], 'Hemisphere partitioning', skyviewimage_out, 0, 5, 0)
 
     # Save files for Tree Planter
-    if configDict['outputtreeplanter'] == '1': # outputTreeplanter:
+    if configDict['outputtreeplanter'] == 1: # outputTreeplanter:
         if feedback is not None:
             feedback.setProgressText("Saving files for Tree Planter tool")
         # Save DSM
