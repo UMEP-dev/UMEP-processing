@@ -99,14 +99,14 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
             # self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
-            self.tr('Point vector layer'), [QgsProcessing.TypeVectorPoint], optional=True))
+            self.tr('Point vector layer'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE,
             self.tr('Search distance (meter)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(200), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL,
             self.tr('Wind direction search interval (degree)'),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(5), False, minValue=0.1, maxValue=360.))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
             self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))

@@ -134,45 +134,45 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
 
         self.addParameter(QgsProcessingParameterFile(self.SOLWEIG_DIR,
-            'Path to SOLWEIG output directory', QgsProcessingParameterFile.Folder))
+            'Path to SOLWEIG output directory', QgsProcessingParameterFile.Behavior.Folder))
         #self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
         #    self.tr('Input meteorological file'), extension='txt'))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-           self.tr('Planting area (Vector polygon)'), [QgsProcessing.TypeVectorPolygon]))
+           self.tr('Planting area (Vector polygon)'), [QgsProcessing.SourceType.TypeVectorPolygon]))
         # self.addParameter(QgsProcessingParameterFile(self.INPUT_POLYGONLAYER,
         #     self.tr('Planting area (Vector polygon)'), extension='shp'))
         ttype = ((self.tr('Deciduous'), '0'),
                         (self.tr('Conifer'), '1'))
         self.addParameter(QgsProcessingParameterNumber(self.START_HOUR,
             self.tr('From (hour)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(13), False, minValue=0, maxValue=23))
         self.addParameter(QgsProcessingParameterNumber(self.END_HOUR,
             self.tr('Thru (hour)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(15), False, minValue=0, maxValue=23))
         self.addParameter(QgsProcessingParameterEnum(self.TTYPE,
             self.tr('Tree type'),
             options=[i[0] for i in ttype], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.HEIGHT, 
             self.tr('Tree height (meter above ground level)'),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(10), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.DIA, 
             self.tr('Tree canopy diameter (meter)'),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(5), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.TRUNK, 
             self.tr('Trunk zone height (meter above ground level)'),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(3), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
             self.tr('Transmissivity of light through vegetation (%)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(3), False, minValue=0, maxValue=100))
         self.addParameter(QgsProcessingParameterNumber(self.NTREE, 
             self.tr('Number of trees to plant'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(3), False, minValue=1))
         
         # Output
@@ -202,23 +202,23 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # Advanced parameters
         iterations = QgsProcessingParameterNumber(self.ITERATIONS,
             self.tr("Number of restart iterations"), 
-            QgsProcessingParameterNumber.Integer, defaultValue=2000, minValue=1)
-        iterations.setFlags(iterations.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            QgsProcessingParameterNumber.Type.Integer, defaultValue=2000, minValue=1)
+        iterations.setFlags(iterations.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(iterations)
         
         includeOutside = QgsProcessingParameterBoolean(self.INCLUDE_OUTSIDE,
             self.tr("Allow areas outside of Planting area to be included in calculation"), defaultValue=True)
-        includeOutside.setFlags(includeOutside.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        includeOutside.setFlags(includeOutside.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(includeOutside)
         
         randomStarting = QgsProcessingParameterBoolean(self.RANDOM_STARTING, 
             self.tr("Use random starting positions in the hill climbing algorithm"), defaultValue=False)
-        randomStarting.setFlags(randomStarting.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        randomStarting.setFlags(randomStarting.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(randomStarting)       
 
         greedyAlgorithm = QgsProcessingParameterBoolean(self.GREEDY_ALGORITHM, 
             self.tr("Use a greedy algorithm to position trees"), defaultValue=False)
-        greedyAlgorithm.setFlags(greedyAlgorithm.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        greedyAlgorithm.setFlags(greedyAlgorithm.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(greedyAlgorithm)
 
     def processAlgorithm(self, parameters, context, feedback):

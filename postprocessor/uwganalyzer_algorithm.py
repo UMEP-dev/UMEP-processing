@@ -71,15 +71,15 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
             self.tr('Path to folder where UWG input files are located'),
-            QgsProcessingParameterFile.Folder))
+            QgsProcessingParameterFile.Behavior.Folder))
         self.addParameter(QgsProcessingParameterFile(self.OUTPUT_FOLDER,
             self.tr('Path to folder where UWG output files are located'),
-            QgsProcessingParameterFile.Folder))
+            QgsProcessingParameterFile.Behavior.Folder))
         self.addParameter(QgsProcessingParameterBoolean(self.SINGLE_DAY_BOOL,
             self.tr("Examine single night"), defaultValue=False, optional=True))
         self.addParameter(QgsProcessingParameterDateTime(self.SINGLE_DAY,
             self.tr('Month and day when single night begins (year is irrelevant)'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         self.statType = ((self.tr('Mean'), '0'),
                          (self.tr('Maximun'), '1'),
                          (self.tr('Median'), '2'),
@@ -91,18 +91,18 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
                                                      defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
                                                               self.tr('Vector polygon grid'), 
-                                                              [QgsProcessing.TypeVectorPolygon]))
+                                                              [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
                                                       self.tr('ID field'),
                                                       '', 
                                                       self.INPUT_POLYGONLAYER, 
-                                                      QgsProcessingParameterField.Numeric))
+                                                      QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterBoolean(self.IRREGULAR,
                                                         self.tr("Polygon grid irregular (not squared)"), 
                                                         defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.PIXELSIZE,
                                                        self.tr('Pixelsize if irregular grid is used (meter)'),
-                                                       QgsProcessingParameterNumber.Integer,
+                                                       QgsProcessingParameterNumber.Type.Integer,
                                                        QVariant(10), False, minValue=1))
 
         # Output
@@ -365,7 +365,7 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
         caps = vlayer.dataProvider().capabilities()
 
-        if caps & QgsVectorDataProvider.AddAttributes:
+        if caps & QgsVectorDataProvider.Capability.AddAttributes:
             vlayer.dataProvider().addAttributes([QgsField(header, QVariant.Double)])
             attr_dict = {}
             for y in range(0, matdata.shape[0]):
@@ -423,7 +423,7 @@ class DateWidgetStart(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)
 
 class DateWidgetEnd(WidgetWrapper):
     def createWidget(self):
@@ -437,4 +437,4 @@ class DateWidgetEnd(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)

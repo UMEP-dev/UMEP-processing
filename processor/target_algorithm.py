@@ -76,10 +76,10 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
             self.tr('Path to folder where TARGET input files are located (Site name folder)'),
-            QgsProcessingParameterFile.Folder))
+            QgsProcessingParameterFile.Behavior.Folder))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
             self.tr('Vector polygon grid'),
-            [QgsProcessing.TypeVector]))
+            [QgsProcessing.SourceType.TypeVector]))
         # self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
         #     self.tr('ID field'), '', self.INPUT_POLYGONLAYER,
         #     QgsProcessingParameterField.Numeric))
@@ -87,13 +87,13 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             self.tr('Run name')))
         self.addParameter(QgsProcessingParameterDateTime(self.START_DATE,
             self.tr('Start date of simulation (should be a minimum of 24 hours prior to date for period of interest)'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         self.addParameter(QgsProcessingParameterDateTime(self.START_DATE_INTEREST,
             self.tr('Start date for period of interest'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         self.addParameter(QgsProcessingParameterDateTime(self.STOP_DATE_INTEREST,
             self.tr('End date for period of interest'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         # self.addParameter(QgsProcessingParameterNumber(self.NDAYS,
         #     self.tr('Number of days to run from period of interest'),
         #     QgsProcessingParameterNumber.Integer,

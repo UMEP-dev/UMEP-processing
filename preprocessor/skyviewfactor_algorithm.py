@@ -87,7 +87,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
             self.tr('Transmissivity of light through vegetation (%):'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
         # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
         #     self.tr("Trunk zone DSM exist"), defaultValue=False))
@@ -95,7 +95,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
             self.tr("Trunk zone height (percent of canopy height)"),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(25.0),
             True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
@@ -106,34 +106,34 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         wall_scheme = QgsProcessingParameterBoolean(self.WALL_SCHEME,
             self.tr("Use parameterization scheme for wall surface temperatures (Wallenberg et al. 2025)"),
             defaultValue=False)
-        wall_scheme.setFlags(wall_scheme.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wall_scheme.setFlags(wall_scheme.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wall_scheme)        
 
         wall_kmeans = QgsProcessingParameterBoolean(self.KMEANS,
             self.tr("Use K-Means to calculate SVF for walls (SOLWEIG v2025a)"),
             defaultValue=True)
-        wall_kmeans.setFlags(wall_kmeans.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wall_kmeans.setFlags(wall_kmeans.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wall_kmeans)
         
         wall_clusters = QgsProcessingParameterNumber(self.CLUSTERS,
             self.tr("Number of clusters used in K-Means (number of elevations)"),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(5),
             True, minValue=1, maxValue=100)
-        wall_clusters.setFlags(wall_clusters.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wall_clusters.setFlags(wall_clusters.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wall_clusters)        
         
         wall_dem = QgsProcessingParameterRasterLayer(self.INPUT_DEM,
                 self.tr('Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2025a)'), '', True)
-        wall_dem.setFlags(wall_dem.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wall_dem.setFlags(wall_dem.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wall_dem) 
 
         wall_svfheight = QgsProcessingParameterNumber(self.INPUT_SVFHEIGHT,
             self.tr("Elevation steps (m) used in SVF calculations for wall surface temperature parameterization scheme\nInterpolation will performed if steps are larger than horizontal pixel resolution"),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(1.0),
             True, minValue=0.5, maxValue=10)
-        wall_svfheight.setFlags(wall_svfheight.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wall_svfheight.setFlags(wall_svfheight.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wall_svfheight) 
 
         # Output

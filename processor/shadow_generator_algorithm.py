@@ -99,7 +99,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.TRANS_VEG,
                 self.tr('Transmissivity of light through vegetation (%):'), 
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(3), 
                 True, 
                 minValue=0, 
@@ -110,7 +110,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.INPUT_THEIGHT,
                 self.tr("Trunk zone height (percent of Canopy Height)"),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(25.0),
                 True, 
                 minValue=0.1, 
@@ -152,12 +152,12 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=False))       
         self.addParameter(QgsProcessingParameterDateTime(self.DATEINI,
             self.tr('Date'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ITERTIME,
                 self.tr('Time interval between casting of each shadow (minutes)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(30),
                 True, 
                 minValue=0.1,
@@ -169,7 +169,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=False))
         self.addParameter(QgsProcessingParameterDateTime(self.TIMEINI,
             self.tr('Time for single shadow'),
-            QgsProcessingParameterDateTime.Time))
+            QgsProcessingParameterDateTime.Type.Time))
         self.addParameter(
             QgsProcessingParameterFolderDestination(
                 self.OUTPUT_DIR,
@@ -446,7 +446,7 @@ class DateWidget(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)
 
 class TimeWidget(WidgetWrapper):
     """
@@ -463,4 +463,4 @@ class TimeWidget(WidgetWrapper):
 
     def value(self):
         time_chosen = self._combo.dateTime()
-        return time_chosen.toString(Qt.ISODate)
+        return time_chosen.toString(Qt.DateFormat.ISODate)

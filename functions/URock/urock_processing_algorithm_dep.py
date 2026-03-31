@@ -149,7 +149,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.BUILDING_TABLE_NAME,
                 self.tr('Building polygons'),
-                [QgsProcessing.TypeVectorPolygon],
+                [QgsProcessing.SourceType.TypeVectorPolygon],
                 optional = True))
         self.addParameter(
             QgsProcessingParameterField(
@@ -157,7 +157,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Building height field'),
                 None,
                 self.BUILDING_TABLE_NAME,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         # self.addParameter(
         #     QgsProcessingParameterField(
@@ -171,7 +171,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.VEGETATION_TABLE_NAME,
                 self.tr('Vegetation polygons'),
-                [QgsProcessing.TypeVectorPolygon],
+                [QgsProcessing.SourceType.TypeVectorPolygon],
                 optional=True))
         self.addParameter(
             QgsProcessingParameterField(
@@ -179,7 +179,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation crown top height field'),
                 None,
                 self.VEGETATION_TABLE_NAME,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         self.addParameter(
             QgsProcessingParameterField(
@@ -187,7 +187,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation crown base height field'),
                 None,
                 self.VEGETATION_TABLE_NAME,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         self.addParameter(
             QgsProcessingParameterField(
@@ -195,7 +195,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation wind attenuation factor'),
                 None,
                 self.VEGETATION_TABLE_NAME,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         # self.addParameter(
         #     QgsProcessingParameterField(
@@ -226,21 +226,21 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.INPUT_WIND_HEIGHT,
                 self.tr('Height of the reference wind speed (m)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 10,
                 True))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.INPUT_WIND_SPEED,
                 self.tr('Wind speed at the reference height (m/s)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 2,
                 True))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.INPUT_WIND_DIRECTION,
                 self.tr('Wind direction (° clock-wise from North)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 45,
                 False))
         self.addParameter(
@@ -253,14 +253,14 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.HORIZONTAL_RESOLUTION,
                 self.tr('Horizontal resolution (m)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 2,
                 optional = True))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.VERTICAL_RESOLUTION,
                 self.tr('Vertical resolution (m)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 2,
                 False))
 

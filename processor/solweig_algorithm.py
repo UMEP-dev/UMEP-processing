@@ -147,15 +147,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Vegetation Canopy DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
             self.tr('Transmissivity of light through vegetation (%):'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
         
         self.addParameter(QgsProcessingParameterNumber(self.LEAF_START,
-            self.tr('First day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Integer,
+            self.tr('First day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Type.Integer,
             QVariant(97), False, minValue=0, maxValue=366))
 
         self.addParameter(QgsProcessingParameterNumber(self.LEAF_END,
-            self.tr('Last day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Integer,
+            self.tr('Last day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Type.Integer,
             QVariant(300), False, minValue=0, maxValue=366))
 
         self.addParameter(QgsProcessingParameterBoolean(self.CONIFER_TREES,
@@ -165,7 +165,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
             self.tr("Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(25.0), optional=True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LC,
             self.tr('UMEP land cover grid'), '', optional=True))
@@ -191,24 +191,24 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                                                 options=[i[0] for i in self.wallType],
                                                 defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_WALLS,
-            self.tr('Albedo (walls)'), QgsProcessingParameterNumber.Double,
+            self.tr('Albedo (walls)'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.20), False, minValue=0, maxValue=1))
         self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_GROUND,
-            self.tr('Albedo (ground)'), QgsProcessingParameterNumber.Double,
+            self.tr('Albedo (ground)'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.15), False, minValue=0, maxValue=1))        
         self.addParameter(QgsProcessingParameterNumber(self.EMIS_WALLS,
-            self.tr('Emissivity (walls)'), QgsProcessingParameterNumber.Double,
+            self.tr('Emissivity (walls)'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.90), False, minValue=0, maxValue=1)) 
         self.addParameter(QgsProcessingParameterNumber(self.EMIS_GROUND,
-            self.tr('Emissivity (ground)'), QgsProcessingParameterNumber.Double,
+            self.tr('Emissivity (ground)'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.95), False, minValue=0, maxValue=1))
 
         #Tmrt parameters
         self.addParameter(QgsProcessingParameterNumber(self.ABS_S,
-            self.tr('Absorption of shortwave radiation of human body'), QgsProcessingParameterNumber.Double,
+            self.tr('Absorption of shortwave radiation of human body'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.70), False, minValue=0, maxValue=1))
         self.addParameter(QgsProcessingParameterNumber(self.ABS_L,
-            self.tr('Absorption of longwave radiation of human body'), QgsProcessingParameterNumber.Double,
+            self.tr('Absorption of longwave radiation of human body'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.95), False, minValue=0, maxValue=1))
         self.addParameter(QgsProcessingParameterEnum(
             self.POSTURE, self.tr('Posture of human body'), ['Standing', 'Sitting'], defaultValue=0))
@@ -222,63 +222,63 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
         self.addParameter(QgsProcessingParameterNumber(self.UTC,
             self.tr('Coordinated Universal Time (UTC) '),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(0), False, minValue=-12, maxValue=12)) 
 
         # ADVANCED PARAMETERS
         woifile = QgsProcessingParameterFeatureSource(self.WOI_FILE,
-            self.tr('Vector point file including Wall of Interest(s) for output with wall surface temperatures'), [QgsProcessing.TypeVectorPoint], optional=True)
-        woifile.setFlags(woifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            self.tr('Vector point file including Wall of Interest(s) for output with wall surface temperatures'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True)
+        woifile.setFlags(woifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(woifile)
         woi_field = QgsProcessingParameterField(self.WOI_FIELD,
-            self.tr('Wall ID field'),'', self.WOI_FILE, QgsProcessingParameterField.Numeric, optional=True)
-        woi_field.setFlags(woi_field.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            self.tr('Wall ID field'),'', self.WOI_FILE, QgsProcessingParameterField.DataType.Numeric, optional=True)
+        woi_field.setFlags(woi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(woi_field)       
         
         #POIs for thermal comfort estimations
         poifile = QgsProcessingParameterFeatureSource(self.POI_FILE,
-            self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.TypeVectorPoint], optional=True)
-        poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True)
+        poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(poifile)
         poi_field = QgsProcessingParameterField(self.POI_FIELD,
-            self.tr('ID field'),'', self.POI_FILE, QgsProcessingParameterField.Numeric, optional=True)
-        poi_field.setFlags(poi_field.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            self.tr('ID field'),'', self.POI_FILE, QgsProcessingParameterField.DataType.Numeric, optional=True)
+        poi_field.setFlags(poi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(poi_field)
 
         #PET parameters
         age = QgsProcessingParameterNumber(self.AGE, self.tr('Age (yy)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(35), optional=True, minValue=0, maxValue=120)
-        age.setFlags(age.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        age.setFlags(age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(age)
         act = QgsProcessingParameterNumber(self.ACTIVITY, self.tr('Activity (W)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(80), optional=True, minValue=0, maxValue=1000)
-        act.setFlags(act.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        act.setFlags(act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(act)
         clo = QgsProcessingParameterNumber(self.CLO, self.tr('Clothing (clo)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(0.9), optional=True, minValue=0, maxValue=10)
-        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(clo)
         wei = QgsProcessingParameterNumber(self.WEIGHT, self.tr('Weight (kg)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(75), optional=True, minValue=0, maxValue=500) 
-        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wei)
         hei = QgsProcessingParameterNumber(self.HEIGHT, self.tr('Height (cm)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(180), optional=True, minValue=0, maxValue=250) 
-        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
             self.SEX, self.tr('Sex'), ['Male', 'Female'], optional=True, defaultValue=0)
-        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(sex)
         shei = QgsProcessingParameterNumber(self.SENSOR_HEIGHT, self.tr('Height of wind sensor (m agl)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(10), optional=True, minValue=0, maxValue=250) 
-        shei.setFlags(shei.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        shei.setFlags(shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(shei)
 
         #OUTPUT

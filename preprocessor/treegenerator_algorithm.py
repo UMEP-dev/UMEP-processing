@@ -88,28 +88,28 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
                                                               self.tr('Point vector layer'), 
-                                                              [QgsProcessing.TypeVectorPoint], 
+                                                              [QgsProcessing.SourceType.TypeVectorPoint], 
                                                               optional=False))
         self.addParameter(QgsProcessingParameterField(self.TREE_TYPE,
                                                       self.tr('Tree type/shape (1=conifer, 2=decidouos)'),
                                                       '', 
                                                       self.INPUT_POINTLAYER, 
-                                                      QgsProcessingParameterField.Numeric))
+                                                      QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(self.TOT_HEIGHT,
                                                       self.tr('Total height (m)'),
                                                       '', 
                                                       self.INPUT_POINTLAYER, 
-                                                      QgsProcessingParameterField.Numeric))
+                                                      QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(self.TRUNK_HEIGHT,
                                                       self.tr('Trunk zone height (m)'),
                                                       '', 
                                                       self.INPUT_POINTLAYER, 
-                                                      QgsProcessingParameterField.Numeric))        
+                                                      QgsProcessingParameterField.DataType.Numeric))        
         self.addParameter(QgsProcessingParameterField(self.DIA,
                                                       self.tr('Diameter (m)'),
                                                       '', 
                                                       self.INPUT_POINTLAYER, 
-                                                      QgsProcessingParameterField.Numeric))
+                                                      QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_BUILD,
             self.tr('Building grid'), '', optional=True))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,

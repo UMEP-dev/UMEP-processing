@@ -100,7 +100,7 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         self.addParameter(paramE)
         self.addParameter(QgsProcessingParameterNumber(self.DIAG_HEIGHT,
             self.tr("Height above ground level to diagnose forcing variables (m)"), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(100), minValue=2, maxValue=500))
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
             self.tr('Output folder')))
@@ -246,7 +246,7 @@ class DateWidgetStart(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)
 
 class DateWidgetEnd(WidgetWrapper):
     def createWidget(self):
@@ -260,4 +260,4 @@ class DateWidgetEnd(WidgetWrapper):
 
     def value(self):
         date_chosen = self._combo.dateTime()
-        return date_chosen.toString(Qt.ISODate)
+        return date_chosen.toString(Qt.DateFormat.ISODate)

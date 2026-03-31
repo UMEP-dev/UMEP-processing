@@ -183,13 +183,13 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         chunkBool = QgsProcessingParameterBoolean(self.CHUNKBOOL,
                                                     self.tr("Devide calculation in chunks to reduce issues with memory running low on your computer. (CURRENTLY NOT ACTIVE)"),
                                                     defaultValue=False)
-        chunkBool.setFlags(chunkBool.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        chunkBool.setFlags(chunkBool.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(chunkBool)
 
         chunk = QgsProcessingParameterNumber(self.CHUNK, self.tr('Number of chunks'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(2), optional=True, minValue=0, maxValue=1000)
-        chunk.setFlags(chunk.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        chunk.setFlags(chunk.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(chunk)
 
 

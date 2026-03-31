@@ -66,28 +66,28 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
             self.tr('Path to folder where UWG input files are located'),
-            QgsProcessingParameterFile.Folder))
+            QgsProcessingParameterFile.Behavior.Folder))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
             self.tr('Vector data including location(s) to model'),
-            [QgsProcessing.TypeVector]))
+            [QgsProcessing.SourceType.TypeVector]))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
             self.tr('ID field'),
             '',
             self.INPUT_POLYGONLAYER,
-            QgsProcessingParameterField.Numeric))
+            QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterDateTime(self.START_DATE,
             self.tr('Start date of simulation'),
-            QgsProcessingParameterDateTime.Date))
+            QgsProcessingParameterDateTime.Type.Date))
         self.addParameter(QgsProcessingParameterNumber(self.NDAYS,
             self.tr('Number of days to run simulation'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(5), False, minValue=1, maxValue=365))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
             self.tr('Input meteorological file (*.epw)'),
             extension = 'epw'))
         self.addParameter(QgsProcessingParameterNumber(self.DTSIM,
             self.tr('Simulation time step in seconds'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(300), False, minValue=1, maxValue=1440))
         self.addParameter(QgsProcessingParameterBoolean(self.EXCLUDE_RURAL,
             self.tr('Exculde grids with very small building fractions (< 0.5%)'), defaultValue=False))

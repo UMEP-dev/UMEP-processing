@@ -103,7 +103,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.INPUT_LINES,
                 self.tr('Input line layer for vertical sectional plot(s)'),
-                [QgsProcessing.TypeVectorLine],
+                [QgsProcessing.SourceType.TypeVectorLine],
                 optional = True
             )
         )
@@ -120,7 +120,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Lines ID field (used if mutiple lines is present)'),
                 None,
                 self.INPUT_LINES,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         
 
@@ -130,7 +130,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.INPUT_POLYGONS,
                 self.tr('Input polygons layer for average wind profile'),
-                [QgsProcessing.TypeVectorPolygon],
+                [QgsProcessing.SourceType.TypeVectorPolygon],
                 optional = True
             )
         )
@@ -140,7 +140,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Polygons ID field (used if mutiple polygons is present)'),
                 None,
                 self.INPUT_POLYGONS,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         # We add the input wind speed saved in a NetCDF format
         self.addParameter(

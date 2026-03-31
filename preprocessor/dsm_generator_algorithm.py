@@ -97,17 +97,17 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Input Digital Elevation Model:'), None, False))
         
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-           self.tr('Polygon with building height:'), [QgsProcessing.TypeVectorPolygon], optional=True))
+           self.tr('Polygon with building height:'), [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
 
         self.addParameter(QgsProcessingParameterField(self.INPUT_FIELD,
-            self.tr('Field with building height'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.Numeric, optional=True))
+            self.tr('Field with building height'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric, optional=True))
 
         self.addParameter(QgsProcessingParameterBoolean(self.USE_OSM,
             self.tr("Use Open Street Map:"), defaultValue=False))
 
         self.addParameter(QgsProcessingParameterNumber(self.BUILDING_LEVEL, 
             self.tr('Building level height (meter)'),
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(3.1), False, minValue=0))
 
         self.addParameter(QgsProcessingParameterExtent(self.EXTENT,
@@ -395,7 +395,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         # Zonal statistics
         vlayer.startEditing()
-        zoneStat = QgsZonalStatistics(vlayer, rlayer, "stats_", 1, QgsZonalStatistics.Mean)
+        zoneStat = QgsZonalStatistics(vlayer, rlayer, "stats_", 1, QgsZonalStatistics.Statistic.Mean)
         zoneStat.calculateStatistics(None)
 
         vlayer.dataProvider().addAttributes([QgsField('height_asl', QVariant.Double, 'double', 5, 2)])

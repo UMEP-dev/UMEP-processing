@@ -5,6 +5,7 @@
 [general]
 name=UMEP for processing
 qgisMinimumVersion=3.0
+qgisMaximumVersion=4.99
 description=Urban Multi-scale Environmental Predictor (UMEP) for the QGIS processing framework
 version=2.2.8
 author=Fredrik Lindberg, Nils Wallenberg, Jeremy Bernard
