@@ -96,19 +96,19 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         self.search = ((self.tr('Throughout the grid extent'), '0'),
                         (self.tr('From grid centroid'), '1'))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-            self.tr('Vector polygon grid'), [QgsProcessing.TypeVectorPolygon]))
+            self.tr('Vector polygon grid'), [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
-            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.Numeric))
+            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterEnum(self.SERACH_METHOD,
             self.tr('Search method'),
             options=[i[0] for i in self.search], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
             self.tr('Search distance from grid cell centroid (m)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(200), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL, 
             self.tr('Wind direction search interval (degree)'), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(5), False, minValue=0.1, maxValue=360.))
         self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
             self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
@@ -133,11 +133,11 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         # Advanced parameters (SS)
         ss = QgsProcessingParameterBoolean(self.CALC_SS,
             self.tr("Calculate parameters for SUEWS/SS"), defaultValue=False, optional=True)
-        ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(ss)
         sscdsm = QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
             self.tr('Raster vegetation DSM (CDSM)'), '', True)
-        sscdsm.setFlags(sscdsm.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        sscdsm.setFlags(sscdsm.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(sscdsm)
 
 
@@ -239,7 +239,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 r = 0  # Used as info to separate from IMP point to grid
                 writer = QgsVectorFileWriter(self.dir_poly, "CP1250", fields, prov.wkbType(),
                                                 prov.crs(), "ESRI shapefile")
-                if writer.hasError() != QgsVectorFileWriter.NoError:
+                if writer.hasError() != QgsVectorFileWriter.WriterError.NoError:
                     raise QgsProcessingException("Error when creating shapefile: ", str(writer.hasError()))
                 writer.addFeature(feature)
                 del writer
@@ -442,7 +442,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
         caps = vlayer.dataProvider().capabilities()
 
-        if caps & QgsVectorDataProvider.AddAttributes:
+        if caps & QgsVectorDataProvider.Capability.AddAttributes:
             line_split = header.split()
             for x in range(1, len(line_split)):
                 vlayer.dataProvider().addAttributes([QgsField(pre + '_' + line_split[x], QVariant.Double)])

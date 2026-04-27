@@ -151,39 +151,39 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         
         #PET parameters
         age = QgsProcessingParameterNumber(self.AGE, self.tr('Age (yy)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(35), optional=True, minValue=0, maxValue=120)
-        age.setFlags(age.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        age.setFlags(age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(age)
         act = QgsProcessingParameterNumber(self.ACTIVITY, self.tr('Activity (W)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(80), optional=True, minValue=0, maxValue=1000)
-        act.setFlags(act.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        act.setFlags(act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(act)
         clo = QgsProcessingParameterNumber(self.CLO, self.tr('Clothing (clo)'),
-                QgsProcessingParameterNumber.Double,
+                QgsProcessingParameterNumber.Type.Double,
                 QVariant(0.9), optional=True, minValue=0, maxValue=10)
-        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(clo)
         wei = QgsProcessingParameterNumber(self.WEIGHT, self.tr('Weight (kg)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(75), optional=True, minValue=0, maxValue=500) 
-        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wei)
         hei = QgsProcessingParameterNumber(self.HEIGHT, self.tr('Height (cm)'),
-                QgsProcessingParameterNumber.Integer,
+                QgsProcessingParameterNumber.Type.Integer,
                 QVariant(180), optional=True, minValue=0, maxValue=250) 
-        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
             self.SEX, self.tr('Sex'), ['Male', 'Female'], optional=True, defaultValue=0)
-        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(sex)
 
         # COMFA or COMFA-kid
         comfa = QgsProcessingParameterBoolean(self.COMFA,
             self.tr("COMFA-kid (Cheng and Brown, 2020)"), defaultValue=False)
-        comfa.setFlags(comfa.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        comfa.setFlags(comfa.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(comfa)        
 
         # Output

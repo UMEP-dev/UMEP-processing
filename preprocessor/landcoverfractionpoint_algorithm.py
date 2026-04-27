@@ -80,14 +80,14 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
             self.tr('Point of interest'), optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
-            self.tr('Point vector layer'), [QgsProcessing.TypeVectorPoint], optional=True))
+            self.tr('Point vector layer'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
             self.tr('Search distance (meter)'),
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(200), False, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL, 
             self.tr('Wind direction search interval (degree)'), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(5), False, minValue=0.1, maxValue=360.))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LCGRID,
             self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))

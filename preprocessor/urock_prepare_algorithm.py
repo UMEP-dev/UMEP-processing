@@ -103,7 +103,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.INPUT_BUILD_FOOTPRINT,
                 self.tr('Buildings footprint'),
-                [QgsProcessing.TypeVectorPolygon],
+                [QgsProcessing.SourceType.TypeVectorPolygon],
                 optional = True))
         self.addParameter(
             QgsProcessingParameterRasterLayer(
@@ -127,7 +127,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.INPUT_VEG_POINTS,
                 self.tr('Vegetation point data (trunk location and max height)'),
-                [QgsProcessing.TypeVectorPoint],
+                [QgsProcessing.SourceType.TypeVectorPoint],
                 optional = True))
         
         
@@ -138,7 +138,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Vegetation height field'),
                 None,
                 self.INPUT_VEG_POINTS,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         self.addParameter(
             QgsProcessingParameterField(
@@ -146,7 +146,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 self.tr('Horizontal vegetation radius field'),
                 None,
                 self.INPUT_VEG_POINTS,
-                QgsProcessingParameterField.Numeric,
+                QgsProcessingParameterField.DataType.Numeric,
                 optional = True))
         self.addParameter(
             QgsProcessingParameterString(

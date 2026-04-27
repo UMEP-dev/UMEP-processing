@@ -13,22 +13,25 @@ sys.path.insert(0, site.getusersitepackages())
 from qgis.PyQt.QtWidgets import QMessageBox
 from .umep_installer import locate_py, setup_umep_python
 from qgis.core import Qgis, QgsMessageLog
-# we can specify a version if needed
+
+
 try:
-    import supy as sp
+    # temprorary disable in preparation of QGIS4                                            
+    import supy as sp  
     import numba
     import jaydebeapi
     import rioxarray
     import yaml
     import pydantic
+    #import timezonefinder
     from supy import __version__ as ver_supy
-    QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.Info)
+    QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.MessageLevel.Info)
 
 except:
-    if QMessageBox.question(None, "UMEP for Processing Python dependencies not installed",
+    if QMessageBox.question(None, "UMEP Python dependencies not installed or need to be updated",
               "Do you automatically want install missing python modules? \r\n"
               "QGIS will be non-responsive for a couple of minutes.",
-               QMessageBox.Ok | QMessageBox.Cancel) == QMessageBox.Ok:
+               QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel) == QMessageBox.StandardButton.Ok:
         try:
             path_pybin = locate_py()
         except Exception:
@@ -37,13 +40,12 @@ except:
                 "Could not determine location of QGIS Python binary",
                 "Please report at https://github.com/UMEP-dev/UMEP-processing/issues",
             )
-
         try:
-            setup_umep_python(ver='2.9')
+            setup_umep_python(ver='4.0')
             QMessageBox.information(None, "Packages successfully installed",
                                     "To make all parts of the plugin work it is recommended to restart your QGIS-session.")
         except Exception as e:
-            QgsMessageLog.logMessage(traceback.format_exc(), level=Qgis.Warning)
+            QgsMessageLog.logMessage(traceback.format_exc(), level=Qgis.MessageLevel.Warning)
             QMessageBox.information(None, "An error occurred",
                                     "UMEP couldn't install Python packages!\n"
                                     "See 'General' tab in 'Log Messages' panel for details.\n"
@@ -51,4 +53,5 @@ except:
     else:
         QMessageBox.information(None,
                                 "Information", "Packages not installed. Some UMEP tools will not be fully operational.")
-# setup_supy(ver='2020.1.23')
+
+

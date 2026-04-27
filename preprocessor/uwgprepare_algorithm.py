@@ -73,11 +73,11 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-            self.tr('Vector polygon grid'), [QgsProcessing.TypeVectorPolygon]))
+            self.tr('Vector polygon grid'), [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
-            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.Numeric))
+            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYERTYPOLOGY,
-            self.tr('Building type polygon layer'), [QgsProcessing.TypeVectorPolygon], optional=True))
+            self.tr('Building type polygon layer'), [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MORPH,
             self.tr('Building morphology file (.txt)'), extension='txt'))
@@ -107,7 +107,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
 
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_RURAL, 
             self.tr('Fraction vegetation at rural site'), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(0.9), False, minValue=0.0, maxValue=1.0))
 
         self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 

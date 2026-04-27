@@ -93,7 +93,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         #     defaultValue=True)) 
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_LIMIT,
             self.tr("Lower limit for wall height (m)"), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(3.0),
             minValue=0.0))
         self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_HEIGHT,

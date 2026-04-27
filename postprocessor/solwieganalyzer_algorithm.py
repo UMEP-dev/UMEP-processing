@@ -58,7 +58,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def initAlgorithm(self, config):
         self.addParameter(QgsProcessingParameterFile(self.SOLWEIG_DIR,
                                                      self.tr('Path to SOLWEIG output folder'),
-                                                     QgsProcessingParameterFile.Folder))
+                                                     QgsProcessingParameterFile.Behavior.Folder))
         self.addParameter(QgsProcessingParameterRasterLayer(self.BUILDINGS,
                                                             self.tr('Raster to exclude building pixels from analysis'),
                                                              '', 
@@ -93,7 +93,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
                                                      optional=True))
         self.addParameter(QgsProcessingParameterNumber(self.TMRT_THRES_NUM,
                                                        self.tr('Theshold (degC)'),
-                                                       QgsProcessingParameterNumber.Double,
+                                                       QgsProcessingParameterNumber.Type.Double,
                                                        QVariant(55), 
                                                        False))
 

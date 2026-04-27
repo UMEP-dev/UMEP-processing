@@ -91,20 +91,20 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             self.tr('Vegetation Canopy DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG, 
             self.tr('Transmissivity of light through vegetation (%):'), 
-            QgsProcessingParameterNumber.Integer,
+            QgsProcessingParameterNumber.Type.Integer,
             QVariant(3), True, minValue=0, maxValue=100))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
             self.tr('Vegetation Trunk zone DSM'), '', True))
         self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT, 
             self.tr("Trunk zone height (percent of Canopy Height)"), 
-            QgsProcessingParameterNumber.Double,
+            QgsProcessingParameterNumber.Type.Double,
             QVariant(25.0), True, minValue=0.1, maxValue=99.9))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
             self.tr('Wall height raster'), '', False))
         self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
             self.tr('Wall aspect raster'), '', False))
         self.addParameter(QgsProcessingParameterNumber(self.ALBEDO, 
-            self.tr('Albedo:'), QgsProcessingParameterNumber.Double,
+            self.tr('Albedo:'), QgsProcessingParameterNumber.Type.Double,
             QVariant(0.15), False, minValue=0, maxValue=1))
         self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
             self.tr('Input meteorological file'), extension = 'txt'))
