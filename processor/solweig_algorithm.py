@@ -648,12 +648,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 unique_landcover = np.unique(lcgrid)
                 unique_landcover = unique_landcover[unique_landcover < 100]
                 if np.max(unique_landcover) > 7 or np.min(unique_landcover) < 1:
-                    raise QgsProcessingException("The land cover grid includes integer values higher (or lower) than UMEP-formatted " 
-                        "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
+                    feedback.pushWarning("The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. " \
+                    "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             else:
                 if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
-                    raise QgsProcessingException("The land cover grid includes integer values higher (or lower) than UMEP-formatted " 
-                    "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
+                    feedback.pushWarning("The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. " \
+                    "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
                 raise QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
 
