@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 import platform
 from packaging import version
+from psycopg2 import sql
+
 
 from .GlobalVariables import *
 
@@ -138,7 +140,7 @@ def getColumns(cursor, tableName):
 	_ _ _ _ _ _ _ _ _ _ 	
 		columnNames: list
             A list of the table column names"""
-    cursor.execute("""SELECT * FROM {0}""".format(tableName))
+    cursor.execute(sql.SQL("""SELECT * FROM {0}""").format(tableName))
     columnNames = [info[0] for info in cursor.description]
     
     return columnNames
@@ -316,7 +318,7 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
                                                               secondaryAxis)
     
     # Identify the extremum point
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
            {0}{1}{2}
            DROP TABLE IF EXISTS {3};
            CREATE TABLE {3}({4} INTEGER, {5} GEOMETRY)
@@ -324,7 +326,7 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
                FROM {7}
                WHERE {8} = {9}
                GROUP BY {4};
-           """.format(  createIndex(tableName=pointsTable, 
+           """).format(  createIndex(tableName=pointsTable, 
                                     fieldName=ID_FIELD_STACKED_BLOCK,
                                     isSpatial=False),
                         createIndex(tableName=pointsTable, 

@@ -195,8 +195,9 @@ def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, c
     q[indQ.get_level_values(0), indQ.get_level_values(1), indQ.get_level_values(2)] = 0.5
         
     for N in range(maxIterations):
-        print("Iteration {0} (max {1})".format( N + 1, 
-                                                maxIterations))
+        if N%10 == 0:
+            print("Iteration {0} (max {1})".format( N + 1, 
+                                                    maxIterations))
         lambdaN = np.copy(lambdaN1)
         
         # ########################################################################
@@ -238,8 +239,9 @@ def solver(x, y, z, dx, dy, dz, u0, v0, w0, buildingCoordinates, cells4Solver, c
         if eps < thresholdIterations:
             break
         else:
-            print("   eps = {0} >= {1}".format(np.round(eps,6),
-                                               thresholdIterations))
+            if N%10 == 0:
+                print("   eps = {0} >= {1}".format(np.round(eps,6),
+                                                thresholdIterations))
             # Feedback to QGIS every 50 iterations
             if (N % 50 == 0) & (feedback is not None):
                 textToSend = """Iteration {0} (max {1}) - eps = {2} >= {3}

@@ -17,6 +17,8 @@ from . import CalculatesIndicators
 from . import InitWindField
 from . import DataUtil
 from . import WindSolver
+from psycopg2 import sql
+
 import time
 try :
     from numba import jit
@@ -522,7 +524,7 @@ def main(javaEnvironmentPath,
                                                   prefix = prefix)
     if debug or saveRockleZones:
         for t in dicOfBuildZone3DWindFactor:
-            cursor.execute("""
+            cursor.execute(sql.SQL("""
                DROP TABLE IF EXISTS point3D_Buildzone_{0};
                {5};
                {6};
@@ -531,7 +533,7 @@ def main(javaEnvironmentPath,
                    FROM {3} AS a RIGHT JOIN {4} AS b
                        ON a.{1} = b.{1}
                    WHERE b.{1} IS NOT NULL
-               """.format( t                            , ID_POINT,
+               """).format( t                            , ID_POINT,
                            GEOM_FIELD                   , gridPoint, 
                            dicOfBuildZone3DWindFactor[t], DataUtil.createIndex(tableName=gridPoint, 
                                                                                fieldName=ID_POINT,
@@ -562,7 +564,7 @@ def main(javaEnvironmentPath,
                                                 dz = dz,
                                                 prefix = prefix)
     if debug or saveRockleZones:
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS point3D_AllVegZone;
            {4};
            {5};
@@ -571,7 +573,7 @@ def main(javaEnvironmentPath,
                FROM {2} AS a RIGHT JOIN {3} AS b
                            ON a.{0} = b.{0}
                WHERE b.{0} IS NOT NULL
-           """.format( ID_POINT                     , GEOM_FIELD, 
+           """).format( ID_POINT                     , GEOM_FIELD, 
                        gridPoint                    , vegetationWeightFactorTable,
                        DataUtil.createIndex(tableName=gridPoint, 
                                             fieldName=ID_POINT,
@@ -605,7 +607,7 @@ def main(javaEnvironmentPath,
                                             prefix = prefix,
                                             feedback = feedback)
     if debug or saveRockleZones:
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
             DROP TABLE IF EXISTS point3D_All;
             {4};
             {5};
@@ -614,7 +616,7 @@ def main(javaEnvironmentPath,
                 FROM {2} AS a RIGHT JOIN {3} AS b
                             ON a.{0} = b.{0}
                 WHERE b.{0} IS NOT NULL
-            """.format( ID_POINT                    , GEOM_FIELD,
+            """).format( ID_POINT                    , GEOM_FIELD,
                         gridPoint                   , allZonesPointFactor,
                         DataUtil.createIndex(tableName=gridPoint, 
                                              fieldName=ID_POINT,
@@ -777,21 +779,21 @@ def main(javaEnvironmentPath,
     # Get the relative position of the upper right corner of the grid from
     # the center of rotation used to rotate the grid
     cursor.execute(
-        """{0};{1}
-        """.format(DataUtil.createIndex(tableName=gridPoint, 
+        sql.SQL("""{0};{1}
+        """).format(DataUtil.createIndex(tableName=gridPoint, 
                                         fieldName=ID_POINT_X,
                                         isSpatial=False),
                     DataUtil.createIndex(tableName=gridPoint, 
                                          fieldName=ID_POINT_Y,
                                          isSpatial=False)))
     cursor.execute(
-        """
+        sql.SQL("""
         SELECT  {3}-ST_X(a.{0}) AS DIST_ROT_X,
                 {4}-ST_Y(a.{0}) AS DIST_ROT_Y
         FROM {5} AS a
         WHERE   a.{1} = (SELECT MAX({1}) FROM {5})
                 AND a.{2} = (SELECT MAX({2}) FROM {5})
-        """.format(GEOM_FIELD                   , ID_POINT_X,
+        """).format(GEOM_FIELD                   , ID_POINT_X,
                    ID_POINT_Y                   , rotationCenterCoordinates[0],
                    rotationCenterCoordinates[1] , gridPoint))
     dist_rot_x, dist_rot_y = cursor.fetchall()[0]

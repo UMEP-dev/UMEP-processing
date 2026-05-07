@@ -8,6 +8,8 @@ Created on Mon Jan 25 15:27:25 2021
 from . import DataUtil as DataUtil
 import pandas as pd
 from .GlobalVariables import *
+from psycopg2 import sql
+
 
 def displacementZones2(cursor, upwindWithPropTable, srid,
                       prefix = PREFIX_NAME):
@@ -64,40 +66,77 @@ def displacementZones2(cursor, upwindWithPropTable, srid,
                     DISPLACEMENT_VORTEX_NAME: DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POLYGONS")}
     
     # First densify the upwind facades
-    cursor.execute(
-       f"""
-       DROP TABLE IF EXISTS {densifiedLinePoints};
-       CREATE TABLE {densifiedLinePoints}
-           AS SELECT   EXPLOD_ID, 
-                       {GEOM_FIELD}, 
-                       X_MED, 
-                       HALF_WIDTH, 
-                       {DISPLACEMENT_LENGTH_FIELD},
-                       {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
-                       {UPWIND_FACADE_FIELD}
-           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
-                                                            ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
-                                    MAX({DISPLACEMENT_LENGTH_FIELD}) AS {DISPLACEMENT_LENGTH_FIELD}, 
-                                    MAX({DISPLACEMENT_LENGTH_VORTEX_FIELD}) AS {DISPLACEMENT_LENGTH_VORTEX_FIELD},
-                                    {UPWIND_FACADE_FIELD},
-                                    MAX(X_MED) AS X_MED, 
-                                    MAX(HALF_WIDTH) AS HALF_WIDTH
-                           FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
-                                                    {DISPLACEMENT_LENGTH_FIELD}, 
-                                                    {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
-                                                    {UPWIND_FACADE_FIELD},
-                                                    {STACKED_BLOCK_X_MED} AS X_MED,
-                                                    {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
-                                           FROM {upwindWithPropTable})'')
-                           GROUP BY {UPWIND_FACADE_FIELD})')
-       """)
+    # cursor.execute(
+    #    f"""
+    #    DROP TABLE IF EXISTS {densifiedLinePoints};
+    #    CREATE TABLE {densifiedLinePoints}
+    #        AS SELECT   EXPLOD_ID, 
+    #                    {GEOM_FIELD}, 
+    #                    X_MED, 
+    #                    HALF_WIDTH, 
+    #                    {DISPLACEMENT_LENGTH_FIELD},
+    #                    {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
+    #                    {UPWIND_FACADE_FIELD}
+    #        FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
+    #                                                         ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
+    #                                 MAX({DISPLACEMENT_LENGTH_FIELD}) AS {DISPLACEMENT_LENGTH_FIELD}, 
+    #                                 MAX({DISPLACEMENT_LENGTH_VORTEX_FIELD}) AS {DISPLACEMENT_LENGTH_VORTEX_FIELD},
+    #                                 {UPWIND_FACADE_FIELD},
+    #                                 MAX(X_MED) AS X_MED, 
+    #                                 MAX(HALF_WIDTH) AS HALF_WIDTH
+    #                        FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
+    #                                                 {DISPLACEMENT_LENGTH_FIELD}, 
+    #                                                 {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
+    #                                                 {UPWIND_FACADE_FIELD},
+    #                                                 {STACKED_BLOCK_X_MED} AS X_MED,
+    #                                                 {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
+    #                                        FROM {upwindWithPropTable})'')
+    #                        GROUP BY {UPWIND_FACADE_FIELD})')
+    #    """)
+    
+    cursor.execute(sql.SQL("""
+    DROP TABLE IF EXISTS {table};
+    CREATE TABLE {table}
+        AS SELECT   EXPLOD_ID, 
+                    {geom}, 
+                    X_MED, 
+                    HALF_WIDTH, 
+                    {disp_len},
+                    {disp_vortex}, 
+                    {upwind_facade}
+        FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({geom}, 
+                                                                        ST_LENGTH({geom})/{npoints}))) AS {geom},
+                                                 MAX({disp_len}) AS {disp_len}, 
+                                                 MAX({disp_vortex}) AS {disp_vortex},
+                                                 {upwind_facade},
+                                                 MAX(X_MED) AS X_MED, 
+                                                 MAX(HALF_WIDTH) AS HALF_WIDTH
+                                        FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({geom}) AS {geom},
+                                                                 {disp_len}, 
+                                                                 {disp_vortex}, 
+                                                                 {upwind_facade},
+                                                                 {sb_x_med} AS X_MED,
+                                                                 {sb_width} / 2 AS HALF_WIDTH
+                                                        FROM {source_table})'')
+                                        GROUP BY {upwind_facade})')
+    """).format(
+        table=sql.Identifier(densifiedLinePoints),
+        geom=sql.Identifier(GEOM_FIELD),
+        disp_len=sql.Identifier(DISPLACEMENT_LENGTH_FIELD),
+        disp_vortex=sql.Identifier(DISPLACEMENT_LENGTH_VORTEX_FIELD),
+        upwind_facade=sql.Identifier(UPWIND_FACADE_FIELD),
+        npoints=sql.Literal(CAV_N_WAKE_FACADE_NPOINTS),
+        sb_x_med=sql.Identifier(STACKED_BLOCK_X_MED),
+        sb_width=sql.Identifier(STACKED_BLOCK_WIDTH),
+        source_table=sql.Identifier(upwindWithPropTable)
+    ))
              
     # Define the names of variables for displacement and displacement vortex zones
     variablesNames = pd.DataFrame({"L": [DISPLACEMENT_LENGTH_FIELD, DISPLACEMENT_LENGTH_VORTEX_FIELD]},
                                   index = [DISPLACEMENT_NAME, DISPLACEMENT_VORTEX_NAME])
     
     # Create the half ellipse for displacement and displacement vortex zones from the densified upwind facade points
-    cursor.execute(";".join(["""
+    cursor.execute(sql.SQL(";").join([sql.SQL("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT {1}, {2}, EXPLOD_ID
@@ -115,7 +154,7 @@ def displacementZones2(cursor, upwindWithPropTable, srid,
             FROM {3}
             WHERE EXPLOD_ID = 1
             ORDER BY EXPLOD_ID ASC
-        """.format(ZonePoints[z]                    , GEOM_FIELD, 
+        """).format(ZonePoints[z]                    , GEOM_FIELD, 
                     UPWIND_FACADE_FIELD             , densifiedLinePoints,
                     variablesNames.loc[z,"L"])
         for z in variablesNames.index]))
@@ -130,42 +169,83 @@ def displacementZones2(cursor, upwindWithPropTable, srid,
                     PERPENDICULAR_THRESHOLD_ANGLE)}
                              
     # Create the zone from the half ellipse and the densified line and then join missing columns
-    cursor.execute(";".join([
-        f"""
-        {DataUtil.createIndex(tableName=ZonePoints[z], 
-                              fieldName=UPWIND_FACADE_FIELD,
-                              isSpatial=False)}
-        DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
-        CREATE TABLE {ZonePolygons[z]}
-            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
-                        {UPWIND_FACADE_FIELD}
-            FROM {ZonePoints[z]}
-            GROUP BY {UPWIND_FACADE_FIELD};
-        {DataUtil.createIndex(tableName=ZonePolygons[z], 
-                             fieldName=UPWIND_FACADE_FIELD,
-                             isSpatial=False)}
-        {DataUtil.createIndex(tableName=upwindWithPropTable, 
-                             fieldName=UPWIND_FACADE_FIELD,
-                             isSpatial=False)}
-        CREATE TABLE {outputZoneTableNames[z]}
-            AS SELECT   a.{UPWIND_FACADE_FIELD}, 
-                        a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
-                        b.{HEIGHT_FIELD},
-                        b.{STACKED_BLOCK_X_MED},
-                        b.{STACKED_BLOCK_WIDTH},
-                        b.{ID_FIELD_BLOCK},
-                        b.{UPWIND_FACADE_ANGLE_FIELD}
-            FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
-            ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
-            WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
-        """
-            for z in variablesNames.index]))
+    # cursor.execute(sql.SQL(";").join([
+    #     sql.SQL(f"""
+    #     {DataUtil.createIndex(tableName=ZonePoints[z], 
+    #                           fieldName=UPWIND_FACADE_FIELD,
+    #                           isSpatial=False)}
+    #     DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
+    #     CREATE TABLE {ZonePolygons[z]}
+    #         AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
+    #                     {UPWIND_FACADE_FIELD}
+    #         FROM {ZonePoints[z]}
+    #         GROUP BY {UPWIND_FACADE_FIELD};
+    #     {DataUtil.createIndex(tableName=ZonePolygons[z], 
+    #                          fieldName=UPWIND_FACADE_FIELD,
+    #                          isSpatial=False)}
+    #     {DataUtil.createIndex(tableName=upwindWithPropTable, 
+    #                          fieldName=UPWIND_FACADE_FIELD,
+    #                          isSpatial=False)}
+    #     CREATE TABLE {outputZoneTableNames[z]}
+    #         AS SELECT   a.{UPWIND_FACADE_FIELD}, 
+    #                     a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
+    #                     b.{HEIGHT_FIELD},
+    #                     b.{STACKED_BLOCK_X_MED},
+    #                     b.{STACKED_BLOCK_WIDTH},
+    #                     b.{ID_FIELD_BLOCK},
+    #                     b.{UPWIND_FACADE_ANGLE_FIELD}
+    #         FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
+    #         ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
+    #         WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
+    #     """)
+    #         for z in variablesNames.index]))
+    
+    cursor.execute(sql.SQL(";").join([
+    sql.SQL("""
+    {idx1}
+    DROP TABLE IF EXISTS {poly_table}, {out_table};
+    CREATE TABLE {poly_table}
+        AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({geom},2))))) AS {geom},
+                    {upwind_f}
+        FROM {points_table}
+        GROUP BY {upwind_f};
+    {idx2}
+    {idx3}
+    CREATE TABLE {out_table}
+        AS SELECT   a.{upwind_f}, 
+                    a.{geom}, b.{id_stacked},
+                    b.{height},
+                    b.{sb_x_med},
+                    b.{sb_width},
+                    b.{id_block},
+                    b.{upwind_angle}
+        FROM {poly_table} AS a LEFT JOIN {prop_table} AS b
+        ON a.{upwind_f} = b.{upwind_f}
+        WHERE ST_AREA(a.{geom}) > 0 AND {where_cond};
+    """).format(
+        idx1=sql.SQL(DataUtil.createIndex(tableName=ZonePoints[z], fieldName=UPWIND_FACADE_FIELD, isSpatial=False)),
+        poly_table=sql.Identifier(ZonePolygons[z]),
+        out_table=sql.Identifier(outputZoneTableNames[z]),
+        geom=sql.Identifier(GEOM_FIELD),
+        upwind_f=sql.Identifier(UPWIND_FACADE_FIELD),
+        points_table=sql.Identifier(ZonePoints[z]),
+        idx2=sql.SQL(DataUtil.createIndex(tableName=ZonePolygons[z], fieldName=UPWIND_FACADE_FIELD, isSpatial=False)),
+        idx3=sql.SQL(DataUtil.createIndex(tableName=upwindWithPropTable, fieldName=UPWIND_FACADE_FIELD, isSpatial=False)),
+        id_stacked=sql.Identifier(ID_FIELD_STACKED_BLOCK),
+        height=sql.Identifier(HEIGHT_FIELD),
+        sb_x_med=sql.Identifier(STACKED_BLOCK_X_MED),
+        sb_width=sql.Identifier(STACKED_BLOCK_WIDTH),
+        id_block=sql.Identifier(ID_FIELD_BLOCK),
+        upwind_angle=sql.Identifier(UPWIND_FACADE_ANGLE_FIELD),
+        prop_table=sql.Identifier(upwindWithPropTable),
+        where_cond=sql.SQL(whereCond[z])
+    ) for z in variablesNames.index]))
                     
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS {0}
-           """.format(",".join([densifiedLinePoints] + list(ZonePoints.values())\
+           """).format(",".join([densifiedLinePoints] + list(ZonePoints.values())\
                                + list(ZonePolygons.values()))))
 
     return list(outputZoneTableNames.values())
@@ -239,7 +319,7 @@ def displacementZones(cursor, upwindTable, zonePropertiesTable, srid,
         "table": [displacementZonesTable,
                   displacementVortexZonesTable]},
         index = ["displacement", "vortex"])
-    query = ["""
+    query = [sql.SQL("""
         {12};
         {13};
         DROP TABLE IF EXISTS {0};
@@ -275,7 +355,7 @@ def displacementZones(cursor, upwindTable, zonePropertiesTable, srid,
                                   /SQRT(POWER((1-COS(2*PI()/{11}))*R_x,2)
                                         +POWER(SIN(2*PI()/{11})*R_y,2)))
                    AND EXPLOD_ID = 1
-           """.format(partOfQueryThatDiffer.loc[zone, "table"]  , UPWIND_FACADE_FIELD,
+           """).format(partOfQueryThatDiffer.loc[zone, "table"]  , UPWIND_FACADE_FIELD,
                        GEOM_FIELD                               , HEIGHT_FIELD,
                        UPWIND_FACADE_ANGLE_FIELD                , partOfQueryThatDiffer.loc[zone, "length"],
                        upwindTable                              , zonePropertiesTable,
@@ -351,40 +431,79 @@ def cavityAndWakeZones(cursor, downwindWithPropTable, srid, ellipseResolution,
                     WAKE_NAME: WAKE_NAME + DataUtil.postfix("_ZONE_POLYGONS")}
     
     # First densify the downwind facades
-    cursor.execute(
-       f"""
-       DROP TABLE IF EXISTS {densifiedLinePoints};
-       CREATE TABLE {densifiedLinePoints}
-           AS SELECT   EXPLOD_ID, 
-                       {GEOM_FIELD}, 
-                       X_MED, 
-                       HALF_WIDTH, 
-                       {CAVITY_LENGTH_FIELD},
-                       {WAKE_LENGTH_FIELD}, 
-                       {DOWNWIND_FACADE_FIELD}
-           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
-                                                            ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
-                                    MAX({CAVITY_LENGTH_FIELD}) AS {CAVITY_LENGTH_FIELD}, 
-                                    MAX({WAKE_LENGTH_FIELD}) AS {WAKE_LENGTH_FIELD},
-                                    {DOWNWIND_FACADE_FIELD},
+    # cursor.execute(
+    #    f"""
+    #    DROP TABLE IF EXISTS {densifiedLinePoints};
+    #    CREATE TABLE {densifiedLinePoints}
+    #        AS SELECT   EXPLOD_ID, 
+    #                    {GEOM_FIELD}, 
+    #                    X_MED, 
+    #                    HALF_WIDTH, 
+    #                    {CAVITY_LENGTH_FIELD},
+    #                    {WAKE_LENGTH_FIELD}, 
+    #                    {DOWNWIND_FACADE_FIELD}
+    #        FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
+    #                                                         ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
+    #                                 MAX({CAVITY_LENGTH_FIELD}) AS {CAVITY_LENGTH_FIELD}, 
+    #                                 MAX({WAKE_LENGTH_FIELD}) AS {WAKE_LENGTH_FIELD},
+    #                                 {DOWNWIND_FACADE_FIELD},
+    #                                 MAX(X_MED) AS X_MED, 
+    #                                 MAX(HALF_WIDTH) AS HALF_WIDTH
+    #                        FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
+    #                                                 {CAVITY_LENGTH_FIELD}, 
+    #                                                 {WAKE_LENGTH_FIELD}, 
+    #                                                 {DOWNWIND_FACADE_FIELD},
+    #                                                 {STACKED_BLOCK_X_MED} AS X_MED,
+    #                                                 {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
+    #                                        FROM {downwindWithPropTable})'')
+    #                        GROUP BY {DOWNWIND_FACADE_FIELD})')
+    #    """)
+    
+
+    cursor.execute(sql.SQL("""
+        DROP TABLE IF EXISTS {target_table};
+        CREATE TABLE {target_table}
+            AS SELECT   EXPLOD_ID, 
+                        {geom}, 
+                        X_MED, 
+                        HALF_WIDTH, 
+                        {cav_len},
+                        {wake_len}, 
+                        {downwind_f}
+            FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({geom}, 
+                                                            ST_LENGTH({geom})/{n_points}))) AS {geom},
+                                    MAX({cav_len}) AS {cav_len}, 
+                                    MAX({wake_len}) AS {wake_len},
+                                    {downwind_f},
                                     MAX(X_MED) AS X_MED, 
                                     MAX(HALF_WIDTH) AS HALF_WIDTH
-                           FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
-                                                    {CAVITY_LENGTH_FIELD}, 
-                                                    {WAKE_LENGTH_FIELD}, 
-                                                    {DOWNWIND_FACADE_FIELD},
-                                                    {STACKED_BLOCK_X_MED} AS X_MED,
-                                                    {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
-                                           FROM {downwindWithPropTable})'')
-                           GROUP BY {DOWNWIND_FACADE_FIELD})')
-       """)
+                            FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({geom}) AS {geom},
+                                                    {cav_len}, 
+                                                    {wake_len}, 
+                                                    {downwind_f},
+                                                    {stacked_x} AS X_MED,
+                                                    {stacked_w} / 2 AS HALF_WIDTH
+                                            FROM {source_table})'')
+                            GROUP BY {downwind_f})')
+        """).format(
+            target_table=sql.Identifier(densifiedLinePoints),
+            geom=sql.Identifier(GEOM_FIELD),
+            cav_len=sql.Identifier(CAVITY_LENGTH_FIELD),
+            wake_len=sql.Identifier(WAKE_LENGTH_FIELD),
+            downwind_f=sql.Identifier(DOWNWIND_FACADE_FIELD),
+            n_points=sql.Literal(CAV_N_WAKE_FACADE_NPOINTS),
+            stacked_x=sql.Identifier(STACKED_BLOCK_X_MED),
+            stacked_w=sql.Identifier(STACKED_BLOCK_WIDTH),
+            source_table=sql.Identifier(downwindWithPropTable)
+        )
+)
              
     # Define the names of variables for cavity and wake zones
     variablesNames = pd.DataFrame({"L": [CAVITY_LENGTH_FIELD, WAKE_LENGTH_FIELD]},
                                   index = [CAVITY_NAME, WAKE_NAME])
     
     # Create the half ellipse for cavity and wake zones from the densified downwind facade points
-    cursor.execute(";".join(["""
+    cursor.execute(sql.SQL(";").join([sql.SQL("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT {1}, {2}, EXPLOD_ID
@@ -402,52 +521,101 @@ def cavityAndWakeZones(cursor, downwindWithPropTable, srid, ellipseResolution,
             FROM {3}
             WHERE EXPLOD_ID = 1
             ORDER BY EXPLOD_ID ASC
-        """.format(ZonePoints[z]                    , GEOM_FIELD, 
+        """).format(ZonePoints[z]                    , GEOM_FIELD, 
                     DOWNWIND_FACADE_FIELD           , densifiedLinePoints,
                     variablesNames.loc[z,"L"])
         for z in variablesNames.index]))
     
     # Create the zone from the half ellipse and the densified line and then join missing columns
-    cursor.execute(";".join([
-        f"""
-        {DataUtil.createIndex(tableName=ZonePoints[z], 
-                              fieldName=DOWNWIND_FACADE_FIELD,
-                              isSpatial=False)}
-        DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
-        CREATE TABLE {ZonePolygons[z]}
-            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
-                        {DOWNWIND_FACADE_FIELD}
-            FROM {ZonePoints[z]}
-            GROUP BY {DOWNWIND_FACADE_FIELD};
-        {DataUtil.createIndex(tableName=ZonePolygons[z], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-        {DataUtil.createIndex(tableName=downwindWithPropTable, 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-        CREATE TABLE {outputZoneTableNames[z]}
-            AS SELECT   a.{DOWNWIND_FACADE_FIELD}, 
-                        a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
-                        b.{HEIGHT_FIELD},
-                        b.{STACKED_BLOCK_X_MED},
-                        b.{STACKED_BLOCK_UPSTREAMEST_X},
-                        b.{SIN_BLOCK_LEFT_AZIMUTH}, 
-                        b.{COS_BLOCK_LEFT_AZIMUTH},
-                        b.{COS_BLOCK_RIGHT_AZIMUTH},
-                        b.{SIN_BLOCK_RIGHT_AZIMUTH}, 
-                        b.{STACKED_BLOCK_WIDTH},
-                        b.{ID_FIELD_BLOCK}
-            FROM {ZonePolygons[z]} AS a LEFT JOIN {downwindWithPropTable} AS b
-            ON a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
-            WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
-        """
-            for z in variablesNames.index]))
-                    
+    # cursor.execute(sql.SQL(";").join([
+    #     f"""
+    #     {DataUtil.createIndex(tableName=ZonePoints[z], 
+    #                           fieldName=DOWNWIND_FACADE_FIELD,
+    #                           isSpatial=False)}
+    #     DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
+    #     CREATE TABLE {ZonePolygons[z]}
+    #         AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({GEOM_FIELD},2))))) AS {GEOM_FIELD},
+    #                     {DOWNWIND_FACADE_FIELD}
+    #         FROM {ZonePoints[z]}
+    #         GROUP BY {DOWNWIND_FACADE_FIELD};
+    #     {DataUtil.createIndex(tableName=ZonePolygons[z], 
+    #                          fieldName=DOWNWIND_FACADE_FIELD,
+    #                          isSpatial=False)}
+    #     {DataUtil.createIndex(tableName=downwindWithPropTable, 
+    #                          fieldName=DOWNWIND_FACADE_FIELD,
+    #                          isSpatial=False)}
+    #     CREATE TABLE {outputZoneTableNames[z]}
+    #         AS SELECT   a.{DOWNWIND_FACADE_FIELD}, 
+    #                     a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
+    #                     b.{HEIGHT_FIELD},
+    #                     b.{STACKED_BLOCK_X_MED},
+    #                     b.{STACKED_BLOCK_UPSTREAMEST_X},
+    #                     b.{SIN_BLOCK_LEFT_AZIMUTH}, 
+    #                     b.{COS_BLOCK_LEFT_AZIMUTH},
+    #                     b.{COS_BLOCK_RIGHT_AZIMUTH},
+    #                     b.{SIN_BLOCK_RIGHT_AZIMUTH}, 
+    #                     b.{STACKED_BLOCK_WIDTH},
+    #                     b.{ID_FIELD_BLOCK}
+    #         FROM {ZonePolygons[z]} AS a LEFT JOIN {downwindWithPropTable} AS b
+    #         ON a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
+    #         WHERE ST_AREA(a.{GEOM_FIELD}) > 0;
+    #     """
+    #         for z in variablesNames.index]))
+    
+    cursor.execute(sql.SQL(";").join([
+        sql.SQL("""
+        {idx1}
+        DROP TABLE IF EXISTS {poly_table}, {out_table};
+        CREATE TABLE {poly_table}
+            AS SELECT   ST_MAKEVALID(ST_MAKEPOLYGON(ST_MAKELINE(ST_ACCUM(ST_PRECISIONREDUCER({geom}, 2))))) AS {geom},
+                        {downwind_f}
+            FROM {pts_table}
+            GROUP BY {downwind_f};
+        {idx2}
+        {idx3}
+        CREATE TABLE {out_table}
+            AS SELECT   a.{downwind_f}, 
+                        a.{geom}, b.{id_stacked},
+                        b.{h_field},
+                        b.{stacked_x},
+                        b.{up_x},
+                        b.{sin_l}, 
+                        b.{cos_l},
+                        b.{cos_r},
+                        b.{sin_r}, 
+                        b.{stacked_w},
+                        b.{id_block}
+            FROM {poly_table} AS a LEFT JOIN {prop_table} AS b
+            ON a.{downwind_f} = b.{downwind_f}
+            WHERE ST_AREA(a.{geom}) > 0;
+        """).format(
+            idx1=sql.SQL(DataUtil.createIndex(tableName=ZonePoints[z], fieldName=DOWNWIND_FACADE_FIELD, isSpatial=False)),
+            poly_table=sql.Identifier(ZonePolygons[z]),
+            out_table=sql.Identifier(outputZoneTableNames[z]),
+            geom=sql.Identifier(GEOM_FIELD),
+            downwind_f=sql.Identifier(DOWNWIND_FACADE_FIELD),
+            pts_table=sql.Identifier(ZonePoints[z]),
+            idx2=sql.SQL(DataUtil.createIndex(tableName=ZonePolygons[z], fieldName=DOWNWIND_FACADE_FIELD, isSpatial=False)),
+            idx3=sql.SQL(DataUtil.createIndex(tableName=downwindWithPropTable, fieldName=DOWNWIND_FACADE_FIELD, isSpatial=False)),
+            id_stacked=sql.Identifier(ID_FIELD_STACKED_BLOCK),
+            h_field=sql.Identifier(HEIGHT_FIELD),
+            stacked_x=sql.Identifier(STACKED_BLOCK_X_MED),
+            up_x=sql.Identifier(STACKED_BLOCK_UPSTREAMEST_X),
+            sin_l=sql.Identifier(SIN_BLOCK_LEFT_AZIMUTH),
+            cos_l=sql.Identifier(COS_BLOCK_LEFT_AZIMUTH),
+            cos_r=sql.Identifier(COS_BLOCK_RIGHT_AZIMUTH),
+            sin_r=sql.Identifier(SIN_BLOCK_RIGHT_AZIMUTH),
+            stacked_w=sql.Identifier(STACKED_BLOCK_WIDTH),
+            id_block=sql.Identifier(ID_FIELD_BLOCK),
+            prop_table=sql.Identifier(downwindWithPropTable)
+        ) for z in variablesNames.index
+    ]))
+                        
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS {0}
-           """.format(",".join([densifiedLinePoints] + list(ZonePoints.values())\
+           """).format(",".join([densifiedLinePoints] + list(ZonePoints.values())\
                                + list(ZonePolygons.values()))))
 
     return outputZoneTableNames
@@ -503,41 +671,79 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
     canyonExtendTable = DataUtil.postfix("canyon_extend_table")
     
     # Identify pieces of upwind facades intersected by cavity zones (only when street canyon angle < 45°)
-    cursor.execute(f"""
-        {DataUtil.createIndex(tableName=upwindTable, 
-                              fieldName=GEOM_FIELD,
-                              isSpatial=True)};
-        {DataUtil.createIndex(tableName=cavityZonesTable, 
-                              fieldName=GEOM_FIELD,
-                              isSpatial=True)};
-        {DataUtil.createIndex(tableName=upwindTable, 
-                              fieldName=ID_FIELD_BLOCK,
-                              isSpatial=False)};
-        {DataUtil.createIndex(tableName=cavityZonesTable, 
-                              fieldName=ID_FIELD_BLOCK,
-                              isSpatial=False)};
-        DROP TABLE IF EXISTS {intersectTable};
-        CREATE TABLE {intersectTable}
-            AS SELECT   b.{ID_FIELD_STACKED_BLOCK} AS {ID_UPSTREAM_STACKED_BLOCK},
-                        a.{ID_FIELD_STACKED_BLOCK} AS {ID_DOWNSTREAM_STACKED_BLOCK},
-                        a.{BASE_HEIGHT_FIELD},
-                        a.{HEIGHT_FIELD},
-                        a.{UPWIND_FACADE_ANGLE_FIELD},
-                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{GEOM_FIELD}, 
-                                                             b.{GEOM_FIELD}),
-                                             2) AS {GEOM_FIELD},
-                        a.{UPWIND_FACADE_FIELD},
-                        b.{DOWNWIND_FACADE_FIELD}
-            FROM {upwindTable} AS a, {cavityZonesTable} AS b
-            WHERE   a.{GEOM_FIELD} && b.{GEOM_FIELD} AND ST_INTERSECTS(a.{GEOM_FIELD},
-                                                                       b.{GEOM_FIELD})
-                    AND a.{UPWIND_FACADE_ANGLE_FIELD} >= RADIANS({STREET_CANYON_ANGLE_THRESH}) 
-                    AND a.{UPWIND_FACADE_ANGLE_FIELD} <= RADIANS(180-{STREET_CANYON_ANGLE_THRESH})
-                    AND a.{ID_FIELD_BLOCK} != b.{ID_FIELD_BLOCK}
-            """)
+    # cursor.execute(f"""
+    #     {DataUtil.createIndex(tableName=upwindTable, 
+    #                           fieldName=GEOM_FIELD,
+    #                           isSpatial=True)};
+    #     {DataUtil.createIndex(tableName=cavityZonesTable, 
+    #                           fieldName=GEOM_FIELD,
+    #                           isSpatial=True)};
+    #     {DataUtil.createIndex(tableName=upwindTable, 
+    #                           fieldName=ID_FIELD_BLOCK,
+    #                           isSpatial=False)};
+    #     {DataUtil.createIndex(tableName=cavityZonesTable, 
+    #                           fieldName=ID_FIELD_BLOCK,
+    #                           isSpatial=False)};
+    #     DROP TABLE IF EXISTS {intersectTable};
+    #     CREATE TABLE {intersectTable}
+    #         AS SELECT   b.{ID_FIELD_STACKED_BLOCK} AS {ID_UPSTREAM_STACKED_BLOCK},
+    #                     a.{ID_FIELD_STACKED_BLOCK} AS {ID_DOWNSTREAM_STACKED_BLOCK},
+    #                     a.{BASE_HEIGHT_FIELD},
+    #                     a.{HEIGHT_FIELD},
+    #                     a.{UPWIND_FACADE_ANGLE_FIELD},
+    #                     ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{GEOM_FIELD}, 
+    #                                                          b.{GEOM_FIELD}),
+    #                                          2) AS {GEOM_FIELD},
+    #                     a.{UPWIND_FACADE_FIELD},
+    #                     b.{DOWNWIND_FACADE_FIELD}
+    #         FROM {upwindTable} AS a, {cavityZonesTable} AS b
+    #         WHERE   a.{GEOM_FIELD} && b.{GEOM_FIELD} AND ST_INTERSECTS(a.{GEOM_FIELD},
+    #                                                                    b.{GEOM_FIELD})
+    #                 AND a.{UPWIND_FACADE_ANGLE_FIELD} >= RADIANS({STREET_CANYON_ANGLE_THRESH}) 
+    #                 AND a.{UPWIND_FACADE_ANGLE_FIELD} <= RADIANS(180-{STREET_CANYON_ANGLE_THRESH})
+    #                 AND a.{ID_FIELD_BLOCK} != b.{ID_FIELD_BLOCK}
+    #         """)
+    cursor.execute(sql.SQL("""
+        {idx1}; {idx2}; {idx3}; {idx4};
+        DROP TABLE IF EXISTS {target_table};
+        CREATE TABLE {target_table}
+            AS SELECT   b.{id_stacked} AS {id_up_stacked},
+                        a.{id_stacked} AS {id_down_stacked},
+                        a.{base_h},
+                        a.{h_field},
+                        a.{up_angle},
+                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{geom}, b.{geom}), 2) AS {geom},
+                        a.{up_facade},
+                        b.{down_facade}
+            FROM {up_table} AS a, {cav_table} AS b
+            WHERE   a.{geom} && b.{geom} AND ST_INTERSECTS(a.{geom}, b.{geom})
+                    AND a.{up_angle} >= RADIANS({thresh}) 
+                    AND a.{up_angle} <= RADIANS(180-{thresh})
+                    AND a.{id_block} != b.{id_block}
+        """).format(
+            idx1=sql.SQL(DataUtil.createIndex(tableName=upwindTable, fieldName=GEOM_FIELD, isSpatial=True)),
+            idx2=sql.SQL(DataUtil.createIndex(tableName=cavityZonesTable, fieldName=GEOM_FIELD, isSpatial=True)),
+            idx3=sql.SQL(DataUtil.createIndex(tableName=upwindTable, fieldName=ID_FIELD_BLOCK, isSpatial=False)),
+            idx4=sql.SQL(DataUtil.createIndex(tableName=cavityZonesTable, fieldName=ID_FIELD_BLOCK, isSpatial=False)),
+            target_table=sql.Identifier(intersectTable),
+            id_stacked=sql.Identifier(ID_FIELD_STACKED_BLOCK),
+            id_up_stacked=sql.Identifier(ID_UPSTREAM_STACKED_BLOCK),
+            id_down_stacked=sql.Identifier(ID_DOWNSTREAM_STACKED_BLOCK),
+            base_h=sql.Identifier(BASE_HEIGHT_FIELD),
+            h_field=sql.Identifier(HEIGHT_FIELD),
+            up_angle=sql.Identifier(UPWIND_FACADE_ANGLE_FIELD),
+            geom=sql.Identifier(GEOM_FIELD),
+            up_facade=sql.Identifier(UPWIND_FACADE_FIELD),
+            down_facade=sql.Identifier(DOWNWIND_FACADE_FIELD),
+            up_table=sql.Identifier(upwindTable),
+            cav_table=sql.Identifier(cavityZonesTable),
+            thresh=sql.Literal(STREET_CANYON_ANGLE_THRESH),
+            id_block=sql.Identifier(ID_FIELD_BLOCK)
+        )
+    )
     
     # Identify street canyon extend
-    canyonExtendQuery = """
+    canyonExtendQuery = sql.SQL("""
         {14};
         {15};
         DROP TABLE IF EXISTS {3};
@@ -561,7 +767,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
                         a.{17}
             FROM {0} AS a LEFT JOIN {2} AS b ON a.{1} = b.{10}
             WHERE NOT ST_ISEMPTY(a.{4})
-           """.format( intersectTable                   , ID_UPSTREAM_STACKED_BLOCK,
+           """).format( intersectTable                   , ID_UPSTREAM_STACKED_BLOCK,
                        zonePropertiesTable              , canyonExtendTable,
                        GEOM_FIELD                       , CAVITY_LENGTH_FIELD,
                        HEIGHT_FIELD                     , DOWNSTREAM_HEIGHT_FIELD,
@@ -578,7 +784,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
     cursor.execute(canyonExtendQuery)
     
     # Creates street canyon zones
-    streetCanyonQuery = """
+    streetCanyonQuery = sql.SQL("""
         {15};
         DROP TABLE IF EXISTS {2};
         CREATE TABLE {2}({13} BIGINT AUTO_INCREMENT,
@@ -613,7 +819,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
                                         a.{9}
                             FROM        {0} AS a LEFT JOIN {7} AS b ON a.{9}=b.{9})')
             WHERE EXPLOD_ID = 1
-           """.format( canyonExtendTable                , ID_UPSTREAM_STACKED_BLOCK,
+           """).format( canyonExtendTable                , ID_UPSTREAM_STACKED_BLOCK,
                        streetCanyonZoneTable            , GEOM_FIELD,
                        DOWNSTREAM_HEIGHT_FIELD          , UPSTREAM_HEIGHT_FIELD,
                        SNAPPING_TOLERANCE               , downwindTable,
@@ -628,7 +834,7 @@ def streetCanyonZones(cursor, cavityZonesTable, zonePropertiesTable, upwindTable
     
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([intersectTable,
+        cursor.execute(sql.SQL("DROP TABLE IF EXISTS {0}").format(",".join([intersectTable,
                                                                    canyonExtendTable])))
     
     return streetCanyonZoneTable
@@ -704,7 +910,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                                                                                            UPWIND_FACADE_ANGLE_FIELD)
     
     # Queries to create temporary rooftop zones (perpendicular and corner)
-    queryTempoRooftop = """
+    queryTempoRooftop = sql.SQL("""
         DROP TABLE IF EXISTS {0}, {12};
         CREATE TABLE {0}
             AS SELECT   {1},
@@ -751,7 +957,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                                                    ST_STARTPOINT(a.{3}))) AS {3}
             FROM {7} AS a LEFT JOIN {8} AS b ON a.{1} = b.{1} 
             WHERE   a.{5} > RADIANS(90-{13}) AND a.{5} < RADIANS(90+{13})
-           """.format( temporaryRooftopCorner           , ID_FIELD_STACKED_BLOCK,
+           """).format( temporaryRooftopCorner           , ID_FIELD_STACKED_BLOCK,
                        UPWIND_FACADE_FIELD              , GEOM_FIELD,
                        HEIGHT_FIELD                     , UPWIND_FACADE_ANGLE_FIELD,
                        pieceOfQueryLcCorner             , upwindTable,
@@ -775,7 +981,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                                                                  ROOFTOP_CORNER_FACADE_LENGTH,
                                                                  UPWIND_FACADE_ANGLE_FIELD,
                                                                  ROOFTOP_WIND_FACTOR)}
-    queryCutRooftop = ["""
+    queryCutRooftop = [sql.SQL("""
         {8};
         {9};
         {10};
@@ -789,7 +995,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
                         ST_INTERSECTION(a.{3}, b.{3}) AS {3}
             FROM {5} AS a LEFT JOIN {6} AS b ON a.{1} = b.{1}
             WHERE a.{3} && b.{3} AND ST_INTERSECTS(a.{3}, b.{3})
-           """.format( dicTableNames.loc[typeZone, "final"] , ID_FIELD_STACKED_BLOCK,
+           """).format( dicTableNames.loc[typeZone, "final"] , ID_FIELD_STACKED_BLOCK,
                        UPWIND_FACADE_FIELD                  , GEOM_FIELD,
                        HEIGHT_FIELD                         , dicTableNames.loc[typeZone, "temporary"],
                        zonePropertiesTable                  , extraFieldToKeep[typeZone],
@@ -811,7 +1017,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable,
     
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join(dicTableNames["temporary"].values)))
+        cursor.execute(sql.SQL("DROP TABLE IF EXISTS {0}").format(",".join(dicTableNames["temporary"].values)))
     
     return roofPerpZonesTable, RoofCornerZonesTable
 
@@ -864,7 +1070,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
     temporary_built_vegetation = DataUtil.postfix("temporary_built_vegetation")
     
     # Identify vegetation zones being in building wake zones
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {10};
         {11};
         DROP TABLE IF EXISTS {7};
@@ -893,7 +1099,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                             FROM {7}
                             WHERE ST_ISEMPTY({1}) IS FALSE
                             GROUP BY {6})')
-        """.format( vegetationTable                  , GEOM_FIELD,
+        """).format( vegetationTable                  , GEOM_FIELD,
                     wakeZonesTable                   , VEGETATION_CROWN_BASE_HEIGHT,
                     VEGETATION_CROWN_TOP_HEIGHT      , VEGETATION_ATTENUATION_FACTOR,
                     ID_VEGETATION                    , temporary_built_vegetation,
@@ -910,7 +1116,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                     GEOMETRY_SIMPLIFICATION_DISTANCE))
     
     # Identify vegetation zones being in open areas
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {9};
         {10};
         DROP TABLE IF EXISTS {7};
@@ -937,7 +1143,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
                     a.{6}
             FROM {0} AS a LEFT JOIN {2} AS b ON a.{6} = b.{6}
             WHERE b.{6} IS NULL
-        """.format( vegetationTable                  , GEOM_FIELD,
+        """).format( vegetationTable                  , GEOM_FIELD,
                     temporary_built_vegetation       , VEGETATION_CROWN_BASE_HEIGHT,
                     VEGETATION_CROWN_TOP_HEIGHT      , VEGETATION_ATTENUATION_FACTOR,
                     ID_VEGETATION                    , vegetationOpenZoneTable,
@@ -950,7 +1156,7 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable,
     
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([temporary_built_vegetation])))
+        cursor.execute(sql.SQL("DROP TABLE IF EXISTS {0}").format(",".join([temporary_built_vegetation])))
     
     return vegetationBuiltZoneTable, vegetationOpenZoneTable
 
@@ -1032,25 +1238,25 @@ def identifyImpactingStackedBlocks(cursor,
     # 1. MAKE THE CALCULATION FOR THE BUILDINGS ------------------------------
     # ------------------------------------------------------------------------
     # Gather all building Röckle zones in one
-    gatherBuQuery = ["""SELECT {0}, {1} FROM {2}""".format(ID_FIELD_STACKED_BLOCK,
+    gatherBuQuery = [sql.SQL("""SELECT {0}, {1} FROM {2}""").format(ID_FIELD_STACKED_BLOCK,
                                                            GEOM_FIELD,
                                                            dicOfBuildRockleZoneTable[t])
                      for t in dicOfBuildRockleZoneTable.keys()]
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS {1}
-        """.format(tabAllBuildZones, " UNION ALL ".join(gatherBuQuery)))
+        """).format(tabAllBuildZones, " UNION ALL ".join(gatherBuQuery)))
     
     # Identify which stacked blocks intersect the Röckle zones
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {0};{1};
         DROP TABLE IF EXISTS {2};
         CREATE TABLE {2}
             AS SELECT DISTINCT(a.{3}) AS {3}
             FROM {4} AS a, {5} AS b
             WHERE a.{6} && b.{6} AND ST_INTERSECTS(a.{6}, b.{6})
-        """.format(DataUtil.createIndex(tableName=tabAllBuildZones, 
+        """).format(DataUtil.createIndex(tableName=tabAllBuildZones, 
                                         fieldName=GEOM_FIELD,
                                         isSpatial=True),
                    DataUtil.createIndex(tableName=impactedZone, 
@@ -1061,14 +1267,14 @@ def identifyImpactingStackedBlocks(cursor,
                     GEOM_FIELD))
     
     # Identify to which blocks belong the identified stacked blocks
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {0};{1};
         DROP TABLE IF EXISTS {2};
         CREATE TABLE {2}
             AS SELECT DISTINCT(b.{3}) AS {3}, b.{7}
             FROM {4} AS a RIGHT JOIN {5} AS b
             ON a.{6} = b.{6}
-        """.format(DataUtil.createIndex(tableName=tabTempStack, 
+        """).format(DataUtil.createIndex(tableName=tabTempStack, 
                                         fieldName=ID_FIELD_STACKED_BLOCK,
                                         isSpatial=False),
                    DataUtil.createIndex(tableName=stackedBlocksTable, 
@@ -1079,7 +1285,7 @@ def identifyImpactingStackedBlocks(cursor,
                    ID_FIELD_STACKED_BLOCK          , GEOM_FIELD))
 
     # Identify which blocks are in the cross-wind extend of blocks and impacted zone
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT ST_EXPAND(ST_EXTENT(a.{1}), {2}, 0) AS {1}
@@ -1096,7 +1302,7 @@ def identifyImpactingStackedBlocks(cursor,
                     UNION ALL
                     SELECT {9} 
                     FROM {11})
-        """.format( tabCrossExtBox                  , GEOM_FIELD,
+        """).format( tabCrossExtBox                  , GEOM_FIELD,
                     crossWindExtend                 , stackedBlocksTable,
                     tabTempBlock                    , impactedZone,
                     DataUtil.createIndex(tableName=tabCrossExtBox, 
@@ -1109,14 +1315,14 @@ def identifyImpactingStackedBlocks(cursor,
                     stackedBlocksTable              , tabTempBlock))  
     
     # Identify all stacked blocks belonging to the previously identified blocks
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {0};{1};
         DROP TABLE IF EXISTS {2};
         CREATE TABLE {2}
             AS SELECT a.*
             FROM {4} AS a RIGHT JOIN {5} AS b
             ON a.{6} = b.{6}
-        """.format(DataUtil.createIndex(tableName=tabTempBlock2, 
+        """).format(DataUtil.createIndex(tableName=tabTempBlock2, 
                                         fieldName=ID_FIELD_BLOCK,
                                         isSpatial=False),
                    DataUtil.createIndex(tableName=stackedBlocksTable, 
@@ -1127,7 +1333,7 @@ def identifyImpactingStackedBlocks(cursor,
                     ID_FIELD_BLOCK))
     
     # Select the Rôckle zones corresponding to the stacked blocks selection
-    selectionBuildQueries = ["""
+    selectionBuildQueries = [sql.SQL("""
         {4};
         DROP TABLE IF EXISTS {0};
         CREATE TABLE    {0}
@@ -1135,15 +1341,15 @@ def identifyImpactingStackedBlocks(cursor,
             FROM        {1} AS a RIGHT JOIN {2} AS b
                         ON a.{3} = b.{3}
             WHERE       a.{5} IS NOT NULL
-        """.format( dicOfSelectedBuildZones[t]  , dicOfBuildRockleZoneTable[t],
+        """).format( dicOfSelectedBuildZones[t]  , dicOfBuildRockleZoneTable[t],
                     outputStackedBlocks         , ID_FIELD_STACKED_BLOCK,
                     DataUtil.createIndex(tableName=dicOfBuildRockleZoneTable[t], 
                                          fieldName=ID_FIELD_STACKED_BLOCK,
                                          isSpatial=False),
                     GEOM_FIELD)
                         for t in dicOfBuildRockleZoneTable]
-    cursor.execute("""{0}; {1}
-                   """.format(DataUtil.createIndex(tableName=outputStackedBlocks, 
+    cursor.execute(sql.SQL("""{0}; {1}
+                   """).format(DataUtil.createIndex(tableName=outputStackedBlocks, 
                                                    fieldName=ID_FIELD_STACKED_BLOCK,
                                                    isSpatial=False),
                               ";".join(selectionBuildQueries)))
@@ -1152,14 +1358,14 @@ def identifyImpactingStackedBlocks(cursor,
     # 2. MAKE THE CALCULATION FOR THE VEGETATION -----------------------------
     # ------------------------------------------------------------------------
     # Identify which vegetation patches are in the cross-wind extend of blocks and impacted zone
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {0};{1};
         DROP TABLE IF EXISTS {2};
         CREATE TABLE {2}
             AS SELECT a.*
             FROM {3} AS a, {4} AS b
             WHERE a.{5} && b.{5} AND ST_INTERSECTS(a.{5}, b.{5})
-        """.format( DataUtil.createIndex(tableName=tabCrossExtBox, 
+        """).format( DataUtil.createIndex(tableName=tabCrossExtBox, 
                                          fieldName=GEOM_FIELD,
                                          isSpatial=True),
                     DataUtil.createIndex(tableName=vegetationTable, 
@@ -1169,7 +1375,7 @@ def identifyImpactingStackedBlocks(cursor,
                     tabCrossExtBox              , GEOM_FIELD))
 
     # Select the Rôckle zones corresponding to the vegetation patches selection
-    selectionVegQueries = ["""
+    selectionVegQueries = [sql.SQL("""
         {4};
         DROP TABLE IF EXISTS {0};
         CREATE TABLE    {0}
@@ -1177,15 +1383,15 @@ def identifyImpactingStackedBlocks(cursor,
             FROM        {1} AS a RIGHT JOIN {2} AS b
                         ON a.{3} = b.{3}
             WHERE       a.{5} IS NOT NULL
-        """.format( dicOfSelectedVegZones[t]    , dicOfVegRockleZoneTable[t],
+        """).format( dicOfSelectedVegZones[t]    , dicOfVegRockleZoneTable[t],
                     outputVegetation            , ID_VEGETATION,
                     DataUtil.createIndex(tableName=dicOfVegRockleZoneTable[t], 
                                          fieldName=ID_VEGETATION,
                                          isSpatial=False),
                     GEOM_FIELD)
                         for t in dicOfVegRockleZoneTable]
-    cursor.execute("""{0}; {1}
-                   """.format(DataUtil.createIndex(tableName=outputVegetation, 
+    cursor.execute(sql.SQL("""{0}; {1}
+                   """).format(DataUtil.createIndex(tableName=outputVegetation, 
                                                    fieldName=ID_VEGETATION,
                                                    isSpatial=False),
                               ";".join(selectionVegQueries)))
@@ -1193,7 +1399,7 @@ def identifyImpactingStackedBlocks(cursor,
                         
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([tabTempStack,
+        cursor.execute(sql.SQL("DROP TABLE IF EXISTS {0}").format(",".join([tabTempStack,
                                                                    tabTempBlock,
                                                                    tabCrossExtBox,
                                                                    tabTempBlock2])))

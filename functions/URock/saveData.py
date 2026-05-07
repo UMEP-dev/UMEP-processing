@@ -9,6 +9,8 @@ import pandas as pd
 import geopandas as gpd
 import shutil
 import numpy as np
+from psycopg2 import sql
+
 # from scipy.interpolate import griddata
 # from rasterio.transform import from_origin
 # import rasterio
@@ -37,8 +39,8 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                      prefix_name = PREFIX_NAME, tmp_dir = TEMPO_DIRECTORY):
 
     # Get the srid of the input geometry
-    cursor.execute(""" SELECT ST_SRID({0}) AS srid FROM {1} LIMIT 1
-                   """.format( GEOM_FIELD,
+    cursor.execute(sql.SQL(""" SELECT ST_SRID({0}) AS srid FROM {1} LIMIT 1
+                   """).format( GEOM_FIELD,
                                gridName))
     srid = cursor.fetchall()[0][0]
     
@@ -49,10 +51,10 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
     if saveNetcdf:    
         # Get the coordinate in lat/lon of each point 
         # WARNING : for now keep the data in local coordinates)
-        cursor.execute(""" 
+        cursor.execute(sql.SQL(""" 
            SELECT ST_X({0}) AS LON, ST_Y({0}) AS LAT FROM 
            (SELECT ST_TRANSFORM(ST_SETSRID({0},{2}), 4326) AS {0} FROM {1})
-           """.format( GEOM_FIELD,
+           """).format( GEOM_FIELD,
                        gridName,
                        srid))
         coord = np.array(cursor.fetchall())
@@ -114,7 +116,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
         csv_tmp_file = os.path.join(tmp_dir, TEMPO_HORIZ_WIND_FILE)
         df.to_csv(csv_tmp_file)
         cursor.execute(
-            """
+            sql.SQL("""
             DROP TABLE IF EXISTS {9};
             CREATE TABLE {9}({3} INTEGER, {5} DOUBLE, {6} DOUBLE, {7} DOUBLE, {11} DOUBLE)
                 AS SELECT {3}, {5}, {6}, {7}, {11} FROM CSVREAD('{10}');
@@ -126,7 +128,7 @@ def saveBasicOutputs(cursor, z_out, dz, u, v, w, gridName,
                 FROM {8} AS a
                 LEFT JOIN {9} AS b
                 ON a.{3} = b.{3}
-            """.format(createIndex(tableName=gridName, 
+            """).format(createIndex(tableName=gridName, 
                                             fieldName=ID_POINT,
                                             isSpatial=False),
                         createIndex(tableName=tempoTable, 
@@ -356,7 +358,7 @@ def saveTable(cursor, tableName, filedir, delete = False,
     else:
         output_filedir = filedir
     # Write files
-    cursor.execute("""CALL {0}('{1}','{2}')""".format(h2_function,
+    cursor.execute(sql.SQL("""CALL {0}('{1}','{2}')""").format(h2_function,
                                                       output_filedir,
                                                       tableName))
     return output_filedir
@@ -464,11 +466,11 @@ def saveRasterFile(cursor, outputVectorFile, outputFilePathAndNameBase,
         # ET = None
     else:
         cursor.execute(
-            """
+            sql.SQL("""
             SELECT  ST_XMIN({0}) AS XMIN, ST_XMAX({0}) AS XMAX,
                     ST_YMIN({0}) AS YMIN, ST_YMAX({0}) AS YMAX
             FROM    (SELECT ST_ACCUM({0}) AS {0} FROM {1})
-            """.format(GEOM_FIELD            , horizOutputUrock[z_i]))
+            """).format(GEOM_FIELD            , horizOutputUrock[z_i]))
         vectorBounds = cursor.fetchall()[0]
         width = int((vectorBounds[1] - vectorBounds[0]) / meshSize) + 1
         height = int((vectorBounds[3] - vectorBounds[2]) / meshSize) + 1
@@ -647,7 +649,7 @@ def saveRockleZones(cursor, outputDataAbs, dicOfBuildZoneGridPoint, dicOfVegZone
         os.mkdir(outputDataAbs["point_2DRockleZone"])
     # Save Building Röckle zones
     for t in dicOfBuildZoneGridPoint:
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS point_Buildzone_{0};
            {5};
            {6};
@@ -656,7 +658,7 @@ def saveRockleZones(cursor, outputDataAbs, dicOfBuildZoneGridPoint, dicOfVegZone
                FROM {3} AS a RIGHT JOIN {4} AS b
                    ON a.{1} = b.{1}
                WHERE b.{1} IS NOT NULL
-           """.format( t                            , ID_POINT, 
+           """).format( t                            , ID_POINT, 
                        GEOM_FIELD                   , gridPoint, 
                        dicOfBuildZoneGridPoint[t]   , createIndex(tableName=gridPoint, 
                                                                   fieldName=ID_POINT,

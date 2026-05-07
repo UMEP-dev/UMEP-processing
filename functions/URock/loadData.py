@@ -9,6 +9,7 @@ Created on Fri Aug 20 14:29:14 2021
 from .GlobalVariables import *
 from . import DataUtil
 import os
+from psycopg2 import sql
 
 def loadData(fromCad                        , prefix,
              idFieldBuild                   , buildingHeightField,
@@ -82,12 +83,12 @@ def loadData(fromCad                        , prefix,
                      tableName = CAD_VEG_INTERSECTION)
             treesZone = CAD_VEG_INTERSECTION
         else:
-            cursor.execute("""
+            cursor.execute(sql.SQL("""
                 DROP TABLE IF EXISTS {0};
                 CREATE TABLE {0}(PK INTEGER, {1} GEOMETRY,
                                  {2} DOUBLE, {3} DOUBLE,
                                  {4} INTEGER, {5} DOUBLE)
-                """.format( vegTablePreSrid,
+                """).format( vegTablePreSrid,
                             GEOM_FIELD,
                             VEGETATION_CROWN_BASE_HEIGHT,
                             VEGETATION_CROWN_TOP_HEIGHT,
@@ -122,17 +123,17 @@ def loadData(fromCad                        , prefix,
                      tableName = buildTablePreSrid)
             
             # Get the building SRID
-            cursor.execute("""
+            cursor.execute(sql.SQL("""
                            SELECT ST_SRID({0}) AS SRID FROM {1} LIMIT 1
-                           """.format(GEOM_FIELD                , buildTablePreSrid))
+                           """).format(GEOM_FIELD                , buildTablePreSrid))
             h2gisBuildSrid = cursor.fetchall()[0][0]
             
             # Create an ID FIELD if None.
             if idFieldBuild is None or idFieldBuild == "":
-                cursor.execute(""" 
+                cursor.execute(sql.SQL(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
-                   """.format( buildTablePreSrid     , ID_FIELD_BUILD))
+                   """).format( buildTablePreSrid     , ID_FIELD_BUILD))
                 idFieldBuild = ID_FIELD_BUILD
             
             # Rename building fields to generic names
@@ -166,35 +167,35 @@ def loadData(fromCad                        , prefix,
                      tableName = vegTablePreSrid)
             
             # Get the vegetation SRID
-            cursor.execute("""
+            cursor.execute(sql.SQL("""
                            SELECT ST_SRID({0}) AS SRID FROM {1} LIMIT 1
-                           """.format(GEOM_FIELD                , vegTablePreSrid))
+                           """).format(GEOM_FIELD                , vegTablePreSrid))
             h2gisVegSrid = cursor.fetchall()[0][0]
             
             # Create an ID FIELD if None.
             if idVegetation is None or idVegetation == "":
-                cursor.execute(""" 
+                cursor.execute(sql.SQL(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
-                   """.format( vegTablePreSrid     , ID_VEGETATION))
+                   """).format( vegTablePreSrid     , ID_VEGETATION))
                 idVegetation = ID_VEGETATION
             # Create an attenuation attribute with default 'DEFAULT_VEG_ATTEN_FACT'
             # if no column
             if vegetationAttenuationFactor is None or vegetationAttenuationFactor == "":
-                cursor.execute(""" 
+                cursor.execute(sql.SQL(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE DEFAULT {2};
-                   """.format( vegTablePreSrid     , VEGETATION_ATTENUATION_FACTOR,
+                   """).format( vegTablePreSrid     , VEGETATION_ATTENUATION_FACTOR,
                                DEFAULT_VEG_ATTEN_FACT))
                 vegetationAttenuationFactor = VEGETATION_ATTENUATION_FACTOR
             # Create a base height attribute with default 'DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC'
             # of the maximum height if no attribute for base height
             if vegetationBaseHeight is None or vegetationBaseHeight == "":
-                cursor.execute(""" 
+                cursor.execute(sql.SQL(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE;
                    UPDATE {0} SET {1} = {2} * {3};
-                   """.format( vegTablePreSrid,
+                   """).format( vegTablePreSrid,
                                VEGETATION_CROWN_BASE_HEIGHT,
                                DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC,
                                vegetationTopHeight))
@@ -254,7 +255,7 @@ def loadData(fromCad                        , prefix,
         vegSrid = h2gisVegSrid
         buildSrid = h2gisBuildSrid
     
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}
            AS SELECT ST_COLLECTIONEXTRACT(ST_SETSRID({1}, {2}), 3) AS {1},
@@ -268,7 +269,7 @@ def loadData(fromCad                        , prefix,
                      ROW_NUMBER() OVER (ORDER by {7}) AS {7}, {8}, {9}, {10}
            FROM ST_EXPLODE('{11}')
            WHERE {9} > 0.5;
-       """.format(BUILDING_TABLE_NAME           , GEOM_FIELD,
+       """).format(BUILDING_TABLE_NAME           , GEOM_FIELD,
                   buildSrid                     , ID_FIELD_BUILD,
                   HEIGHT_FIELD                  , buildTablePreSrid,
                   VEGETATION_TABLE_NAME         , ID_VEGETATION,
@@ -302,26 +303,26 @@ def loadFile(cursor, filePath, tableName, srid = None, srid_repro = None):
 		_ _ _ _ _ _ _ _ _ _ 
 
             None"""
-    print("Load table '{0}'".format(tableName))    
+    print(sql.SQL("Load table '{0}'").format(tableName))    
 
     # Get the input building file extension and the appropriate h2gis read function name
     fileExtension = filePath.split(".")[-1]
     readFunction = DataUtil.readFunction(fileExtension)
     
     if readFunction == "CSVREAD":
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0} 
                AS SELECT * FROM {2}('{1}');
-            """.format( tableName, filePath, readFunction))
+            """).format( tableName, filePath, readFunction))
     else: # Import and then copy into a new table to remove all constraints (primary keys...)
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS TEMPO, {0};
             CALL {2}('{1}','TEMPO');
             CREATE TABLE {0}
                 AS SELECT *
                 FROM TEMPO;
-            """.format( tableName, filePath, readFunction))
+            """).format( tableName, filePath, readFunction))
     
     if srid_repro:
         reproject_function = "ST_TRANSFORM("
@@ -337,14 +338,14 @@ def loadFile(cursor, filePath, tableName, srid = None, srid_repro = None):
         if listCols_sql != "":
             listCols_sql += ","
         
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS TEMPO_LOAD;
            CREATE TABLE TEMPO_LOAD
                AS SELECT {0} {4}ST_SETSRID({1}, {2}){5} AS {1}
                FROM {3};
            DROP TABLE {3};
            ALTER TABLE TEMPO_LOAD RENAME TO {3}
-           """.format(listCols_sql, 
+           """).format(listCols_sql, 
                        GEOM_FIELD, 
                        srid,
                        tableName,
@@ -389,16 +390,16 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
     buildingsCovered = DataUtil.postfix("buildings_covered")
 
     # Add ID to the input data and remove vertical polygons...
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
        DROP TABLE IF EXISTS {0}; 
        CREATE TABLE {0}(ID BIGINT AUTO_INCREMENT, {1} GEOMETRY) 
             AS (SELECT CAST((row_number() over()) as Integer) AS ID, {1} 
                 FROM ST_EXPLODE('(SELECT * FROM {2} WHERE ST_AREA({1})>0)'))
-            """.format(trianglesWithId, GEOM_FIELD, triangles3d))
+            """).format(trianglesWithId, GEOM_FIELD, triangles3d))
     
     if TreesZone:
         # Identify triangles being trees and convert them to 2D polygons
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            {6};
            {7};
            DROP TABLE IF EXISTS {0};
@@ -408,7 +409,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                             CAST(ST_ZMIN(a.{1}) AS INT) AS {3}
                 FROM    {4} AS a, {5} AS b
                 WHERE   a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1})
-                """.format( trees2d                             , GEOM_FIELD,
+                """).format( trees2d                             , GEOM_FIELD,
                             VEGETATION_CROWN_TOP_HEIGHT         , VEGETATION_CROWN_BASE_HEIGHT,
                             trianglesWithId                     , TreesZone,
                             DataUtil.createIndex(tableName=trianglesWithId, 
@@ -419,7 +420,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                                                 isSpatial=True)))
         
         # Identify triangles being buildings and convert them to 2D polygons
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
             {5};
             {6};
             DROP TABLE IF EXISTS {0};
@@ -429,7 +430,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                 FROM    {3} AS a LEFT JOIN {4} AS b
                 ON      a.ID = b.ID
                 WHERE   b.ID IS NULL
-                """.format( buildings2d         , GEOM_FIELD,
+                """).format( buildings2d         , GEOM_FIELD,
                             HEIGHT_FIELD        , trianglesWithId,
                             trees2d             , DataUtil.createIndex( tableName=trianglesWithId, 
                                                                         fieldName="ID",
@@ -440,7 +441,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
 
         # Identify unique trees triangles keeping only the highest one whenever 
         # 2 triangles are superimposed
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
             {9};
             {10};
             {11};
@@ -459,7 +460,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                FROM         {3} AS a LEFT JOIN {0} AS b
                             ON a.ID = b.ID
            WHERE    b.ID IS NULL
-            """.format( treesCovered                    , GEOM_FIELD,
+            """).format( treesCovered                    , GEOM_FIELD,
                         VEGETATION_CROWN_TOP_HEIGHT     , trees2d,
                         vegTableName                    , ID_VEGETATION,
                         VEGETATION_CROWN_BASE_HEIGHT    , DEFAULT_VEG_ATTEN_FACT,
@@ -475,18 +476,18 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
     
     else:
         # Convert building triangles to to 2.5D polygons
-        cursor.execute("""
+        cursor.execute(sql.SQL("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0} 
                 AS SELECT   ID, ST_FORCE2D({1}) AS {1}, 
                             CAST(ST_ZMAX({1}) AS INT) AS {2}
                 FROM    {3}
-                """.format( buildings2d         , GEOM_FIELD,
+                """).format( buildings2d         , GEOM_FIELD,
                             HEIGHT_FIELD        , trianglesWithId))
     
     # Identify unique building triangles keeping only the highest one whenever 
     # 2 triangles are superimposed
-    cursor.execute("""
+    cursor.execute(sql.SQL("""
         {6};
         {7};
         {8};
@@ -505,7 +506,7 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
             FROM         {3} AS a LEFT JOIN {0} AS b
                          ON a.ID = b.ID
         WHERE    b.ID IS NULL
-            """.format( buildingsCovered        , GEOM_FIELD,
+            """).format( buildingsCovered        , GEOM_FIELD,
                         HEIGHT_FIELD            , buildings2d,
                         buildTableName          , ID_FIELD_BUILD,
                         DataUtil.createIndex(tableName=buildings2d, 
