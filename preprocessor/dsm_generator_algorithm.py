@@ -36,14 +36,12 @@ from qgis.core import (QgsProcessing,
                     #    QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterVectorDestination,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterExtent,
                        QgsProcessingParameterDistance,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterVectorLayer,
                        QgsProcessingParameterField,
                        QgsProcessingException)
 # from processing.gui.wrappers import WidgetWrapper
@@ -53,12 +51,9 @@ from qgis.core import (QgsVectorLayer,
                         QgsExpressionContext, 
                         QgsExpressionContextScope, 
                         QgsVectorFileWriter, 
-                        QgsMapLayerProxyModel, 
-                        QgsFieldProxyModel, 
                         QgsRasterLayer, 
                         QgsCoordinateTransform)
 from qgis.analysis import QgsZonalStatistics
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
@@ -66,12 +61,9 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
-import zipfile
-import sys
 import urllib
-from ..util import misc
 from ..util.misc import saveraster
-from ..functions import svf_functions as svf
+import requests
 
 class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
     """
@@ -286,9 +278,11 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
             # Make data queries to overpass-api
             urlStr = 'http://overpass-api.de/api/map?bbox=' + str(lonmin) + ',' + str(latmin) + ',' + str(lonmax) + ',' + str(latmax)
-            with urllib.request.urlopen(urlStr) as response:
-                osmXml = response.read()
-                osmXml = osmXml.decode('UTF-8')
+            res = requests.get(urlStr, timeout=15)
+            osmXml = res.text
+            # with urllib.request.urlopen(urlStr) as response:
+            #     osmXml = response.read()
+            #     osmXml = osmXml.decode('UTF-8')
             osmPath = temp_dir + 'OSM_building.osm'
             osmFile = open(osmPath, 'w', encoding='utf-8')
             osmFile.write(osmXml)
@@ -296,9 +290,11 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
             if os.fstat(osmFile.fileno()).st_size < 1:
                 urlStr = 'http://api.openstreetmap.org/api/0.6/map?bbox=' + str(lonmin) + ',' + str(latmin) + ',' + str(lonmax) + ',' + str(latmax)
-                with urllib.request.urlopen(urlStr) as response:
-                    osmXml = response.read()
-                    osmXml = osmXml.decode('UTF-8')
+                res = requests.get(urlStr, timeout=15)
+                osmXml = res.text
+                # with urllib.request.urlopen(urlStr) as response:
+                #     osmXml = response.read()
+                #     osmXml = osmXml.decode('UTF-8')
                 osmPath = temp_dir + 'OSM_building.osm'
                 osmFile = open(osmPath, 'w', encoding='utf-8')
                 osmFile.write(osmXml)
