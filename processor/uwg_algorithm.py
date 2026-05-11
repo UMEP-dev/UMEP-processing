@@ -9,23 +9,14 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterDefinition,
                        QgsProcessingParameterFile,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
                        QgsProcessingParameterDateTime,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
-                       QgsProcessingException,
-                       QgsVectorLayer,
-                       QgsFeature,
-                       QgsVectorFileWriter,
-                       QgsVectorDataProvider,
-                       QgsField)
+                       QgsProcessingException,)
 
 from qgis.PyQt.QtGui import QIcon
 # from osgeo import gdal, osr, ogr

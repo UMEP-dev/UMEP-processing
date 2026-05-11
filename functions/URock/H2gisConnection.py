@@ -11,7 +11,7 @@ from __future__ import print_function
 import os
 import urllib3
 from . import DataUtil
-from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS, NEW_DB,\
+from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS,\
     JAVA_PATH_FILENAME, TEMPO_DIRECTORY
 import subprocess
 import re

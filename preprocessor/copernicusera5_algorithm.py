@@ -31,11 +31,9 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QDate, Qt, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterPoint,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterCrs,
@@ -45,21 +43,17 @@ from processing.gui.wrappers import WidgetWrapper
 # from qgis.PyQt.QtWidgets import QDateEdit
 
 # from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
 import os
-import numpy as np
 import inspect
 from pathlib import Path
-# import zipfile
-import sys
+
 # from ..util import misc
 # # from ..functions import svf_functions as svf
 # from osgeo import gdal
 # import subprocess
-import datetime
 # import webbrowser
 # try:
 #     import supy as sp

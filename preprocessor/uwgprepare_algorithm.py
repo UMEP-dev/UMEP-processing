@@ -44,10 +44,8 @@ from qgis.core import (QgsProcessing,
                        QgsVectorLayer)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr, ogr
 from osgeo.gdalconst import *
 import os
-import numpy as np
 import inspect
 from pathlib import Path
 import sys

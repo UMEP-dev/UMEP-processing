@@ -2,8 +2,6 @@ from builtins import range
 import numpy as np
 from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
 from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-import linecache
-import sys
 
 def SEBE_2015a_calc(a, scale, slope, aspect, voxelheight, sizey, sizex, vegdem, vegdem2, walls, dirwalls, albedo, psi, 
                 radmatI, radmatD, radmatR, usevegdem, feedback, wallmaxheight):

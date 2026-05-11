@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import timeit
-from scipy.ndimage import label
 from ..TreePlanter.TreePlanterTreeshade import tsh_gen
 from ..TreePlanter.TreePlanterTreeshade import tsh_gen_ts
 from ..TreePlanter.TreePlanterTreeshade import tsh_gen_mt1, tsh_gen_mt2

@@ -9,7 +9,7 @@ try:
     import pandas as pd
     import numpy as np
     import netCDF4 as nc4
-    from requests.auth import HTTPBasicAuth, HTTPDigestAuth
+    from requests.auth import HTTPDigestAuth
     import requests
 except:
     pass

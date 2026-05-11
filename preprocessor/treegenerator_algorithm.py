@@ -30,25 +30,15 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
                        QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterExtent,
                        QgsProcessingException,
-                       QgsVectorLayer,
                        QgsFeature,
-                       QgsGeometry,
-                       QgsPointXY,
-                       QgsVectorFileWriter,
                        QgsUnitTypes)
 
 from qgis.PyQt.QtGui import QIcon
@@ -58,8 +48,7 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
-from ..util import misc
+
 from ..util.misc import saverasternd
 from ..functions.TreeGenerator import makevegdems
 

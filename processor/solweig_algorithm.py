@@ -33,7 +33,6 @@ __revision__ = '$Format:%H$'
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,

@@ -32,8 +32,7 @@ __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 # from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterFile,
                        QgsProcessingParameterFolderDestination,
                        QgsProcessingParameterEnum,

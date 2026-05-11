@@ -8,7 +8,6 @@ from ..util.SEBESOLWEIGCommonFiles import shadowingfunction_wallheight_13 as shb
 from ..util.SEBESOLWEIGCommonFiles import shadowingfunction_wallheight_23 as shbv
 # remove
 from ..util.misc import saveraster
-from osgeo import gdal, osr
 from osgeo.gdalconst import *
 
 def annulus_weight(altitude, aziinterval):

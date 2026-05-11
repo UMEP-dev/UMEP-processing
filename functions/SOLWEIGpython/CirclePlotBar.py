@@ -3,7 +3,6 @@ import matplotlib.cm as cmx
 from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-import matplotlib
 import matplotlib.colors as colors
 
 #def PolarBarPlot(lv, radD, outfolder, YYYY, DOY, XH, hours, XM, minu, iStep, idxStep):

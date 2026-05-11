@@ -38,12 +38,10 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterVectorDestination,
-                       QgsProcessingParameterExtent,
                        QgsProcessingException,
                        QgsVectorLayer,
                        QgsFeature,
@@ -52,14 +50,12 @@ from qgis.core import (QgsProcessing,
                        QgsVectorFileWriter)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr
+from osgeo import gdal
 from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
-from ..util import misc
 from ..util import RoughnessCalcFunctionV2 as rg
 from ..util import imageMorphometricParms_v2 as morph
 from ..functions import wallalgorithms as wa

@@ -37,12 +37,10 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterString,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterEnum,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
                        QgsProcessingException,
-                       QgsProcessingParameterBoolean,
-                       QgsVectorLayer)
+                       QgsProcessingParameterBoolean)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import osr

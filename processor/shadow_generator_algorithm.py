@@ -31,10 +31,8 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QDate, QTime, Qt, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterEnum,
-                       QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,

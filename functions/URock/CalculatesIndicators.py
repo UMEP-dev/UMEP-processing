@@ -7,7 +7,6 @@ Created on Tue Feb  9 14:34:12 2021
 """
 
 from . import DataUtil as DataUtil
-import pandas as pd
 from .GlobalVariables import *
 
 def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):

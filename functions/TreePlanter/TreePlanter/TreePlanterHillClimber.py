@@ -1,11 +1,7 @@
 import numpy as np
 import itertools
 from scipy.ndimage import label
-import time
-import datetime
 from ..TreePlanter import HillClimberAlgorithm
-from ..TreePlanter.TreePlanterTreeshade import tsh_gen
-from ..TreePlanter.TreePlanterTreeshade import tsh_gen_ts
 from ..TreePlanter.adjustments import treenudge
 from ..TreePlanter import StartingPositions
 

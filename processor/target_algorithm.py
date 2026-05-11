@@ -6,39 +6,24 @@ __copyright__ = '(C) 2021 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
                        QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterDefinition,
                        QgsProcessingParameterFile,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
                        QgsProcessingParameterDateTime,
                        QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterField,
-                       QgsProcessingException,
-                       QgsVectorLayer,
-                       QgsFeature,
-                       QgsVectorFileWriter,
-                       QgsVectorDataProvider,
-                       QgsField)
+                       QgsProcessingException,)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import osr
 from osgeo.gdalconst import *
 import os
-import sys
 import numpy as np
 import pandas as pd
 import inspect
 from pathlib import Path
-import shutil
-import traceback
-import math
 import datetime
 from ..util.umep_target_export_component import write_config_file
 from ..util.misc import xy2latlon

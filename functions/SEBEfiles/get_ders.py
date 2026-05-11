@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import print_function
 
 try:
-    from osgeo import gdal, gdal_array
     from osgeo.gdalconst import GDT_Float64,GDT_Float32,GDT_UInt32,GDT_UInt16,GDT_Byte
 except:
     use_gdal=False

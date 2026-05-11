@@ -1,5 +1,4 @@
 import numpy as np
-import time
 # from ..TreePlanter.adjustments import tree_slice
 
 # This function returns a raster with a boolean shadow and the regional group shadow for the tree in position y,x

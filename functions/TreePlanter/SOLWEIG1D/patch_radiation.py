@@ -1,5 +1,4 @@
 import numpy as np
-from . import sunlit_shaded_patches
 
 def shortwave_from_sky(sky, angle_of_incidence, lumChi, steradian, patch_azimuth, cyl):
     '''Calculates the amount of diffuse shortwave radiation from the sky for a patch with:

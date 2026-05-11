@@ -61,7 +61,6 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
-import urllib
 from ..util.misc import saveraster
 import requests
 

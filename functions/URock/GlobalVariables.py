@@ -5,11 +5,8 @@ Created on Mon Jan 25 16:26:24 2021
 
 @author: Jérémy Bernard, University of Gothenburg
 """
-from datetime import datetime
 import pandas as pd
-import numpy as np
 import tempfile
-import math
 import os
 
 # Wind input measurement height

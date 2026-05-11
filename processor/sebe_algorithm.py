@@ -30,9 +30,8 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication, QDate, QTime, Qt, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterEnum,
@@ -43,7 +42,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingException,
                        QgsProcessingParameterRasterLayer)
 from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
 from osgeo import gdal, osr
 from osgeo.gdalconst import *

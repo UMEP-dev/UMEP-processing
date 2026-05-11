@@ -24,8 +24,6 @@ except ImportError:
     exit("'numba' Python package is missing")
 #import copy as cp
 from pathlib import Path
-from qgis.core import QgsProcessingException
-from shutil import rmtree
 import uuid
 
 import os
