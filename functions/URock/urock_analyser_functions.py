@@ -17,6 +17,7 @@ import matplotlib.pylab as plt
 from matplotlib.patches import Rectangle
 from pathlib import Path
 import time
+import re
 
 from . import H2gisConnection
 from .loadData import loadFile
@@ -34,12 +35,48 @@ HEAD_LENGTH = 1.5
 HEAD_AXIS_LENGTH = 1.5
 WIDTH = 0.2
 
+# Function to validate inputs to prevent SQL injection
+def validate_sql_inputs(idLines=None, idPolygons=None, srid_lines=None, srid_polygons=None, urock_srid=None, lines_file=None, polygons_file=None):
+    """
+    Validate inputs to prevent SQL injection.
+    """
+    # Validate field names: must be valid SQL identifiers (alphanumeric + underscore, start with letter or underscore)
+    identifier_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    
+    if idLines and not identifier_pattern.match(idLines):
+        raise ValueError(f"Invalid idLines field name: {idLines}")
+    if idPolygons and not identifier_pattern.match(idPolygons):
+        raise ValueError(f"Invalid idPolygons field name: {idPolygons}")
+    
+    # Validate SRIDs: must be integers
+    def validate_srid(srid, name):
+        if srid is not None:
+            try:
+                int(srid)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid {name}: {srid} (must be integer)")
+    
+    validate_srid(srid_lines, "srid_lines")
+    validate_srid(srid_polygons, "srid_polygons")
+    validate_srid(urock_srid, "urock_srid")
+    
+    # Validate file paths: ensure no single quotes (basic check)
+    def validate_file_path(file_path, name):
+        if file_path and "'" in file_path:
+            raise ValueError(f"Invalid {name}: {file_path} (contains single quotes)")
+    
+    validate_file_path(lines_file, "lines_file")
+    validate_file_path(polygons_file, "polygons_file")
+
 def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines=None,
                        idLines='', isStream = False, savePlot = False,
                        polygons_file='', srid_polygons=None, idPolygons='', 
                        outputDirectory = None, simulationName = "",
                        fig = None, ax = None, scale = None, color = None,
                        feedback = None):
+
+    # Validate inputs to prevent SQL injection
+    validate_sql_inputs(idLines, idPolygons, srid_lines, srid_polygons, None, lines_file, polygons_file)
 
     if savePlot:
         plt.ioff()
@@ -68,7 +105,10 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     ds = xr.open_dataset(inputWindFile, group = WIND_GROUP)
     
     # Get the SRID that has been used in the URock processing calculation
-    urock_srid = xr.open_dataset(inputWindFile).urock_srid    
+    urock_srid = xr.open_dataset(inputWindFile).urock_srid
+    
+    # Validate urock_srid now that it's loaded
+    validate_sql_inputs(None, None, None, None, urock_srid, None, None)    
     
     # Send to a csv file
     ds.to_dataframe().to_csv(pointsDir, index_label = ['rlat', 'rlon', 'zlev'])

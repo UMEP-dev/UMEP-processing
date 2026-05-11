@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 import platform
 from packaging import version
-
+import datetime
 from .GlobalVariables import *
 
 
@@ -100,7 +100,7 @@ def postfix(tableName, suffix = None, separator = "_"):
 	_ _ _ _ _ _ _ _ _ _ 	
 		The input table name with the suffix"""
     if suffix is None:
-        suffix = datetime.now().strftime("%Y%m%d%H%M%S")
+        suffix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     
     return tableName+separator+suffix
 

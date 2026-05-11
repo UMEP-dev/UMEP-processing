@@ -55,13 +55,21 @@ import struct
 from qgis.PyQt.QtGui import QIcon
 import inspect
 import processing
+import re
+
 
 from ..functions.URock import MainCalculation
 from ..functions.URock.GlobalVariables import *
 from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
 from ..functions.URock import WriteMetadataURock
 
-
+# All SQL identifiers are validated via saf_id() to prevent injection.
+# No user input is used directly in SQL construction.
+def saf_id(name):
+    if name:
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+            raise ValueError(f"Invalid SQL identifier: {name}")
+    return name
 
 
 class URockAlgorithm(QgsProcessingAlgorithm):
@@ -462,11 +470,11 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                                  maxIterations = MAX_ITERATIONS,
                                  thresholdIterations = THRESHOLD_ITERATIONS,
                                  idFieldBuild = None, # idBuild,
-                                 buildingHeightField = heightBuild,
-                                 vegetationBaseHeight = baseHeightVeg,
-                                 vegetationTopHeight = topHeightVeg,
+                                 buildingHeightField = saf_id(heightBuild),
+                                 vegetationBaseHeight = saf_id(baseHeightVeg),
+                                 vegetationTopHeight = saf_id(topHeightVeg),
                                  idVegetation = None, #idVeg,
-                                 vegetationAttenuationFactor = attenuationVeg,
+                                 vegetationAttenuationFactor = saf_id(attenuationVeg),
                                  saveRockleZones = SAVE_ROCKLE_ZONES,
                                  outputRaster = outputRaster,
                                  feedback = feedback,
