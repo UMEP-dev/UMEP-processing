@@ -6,6 +6,7 @@ from . import emissivity_models
 from . import patch_radiation
 from . import sunlit_shaded_patches
 from . import patch_radiation
+import pandas as pd
 
 def anisotropic_sky(shmat, vegshmat, vbshvegshmat, solar_altitude, solar_azimuth, asvf, cyl, 
                     esky, L_patches, wallScheme, voxelTable, voxelMaps, steradians, Ta, Tgwall, ewall, Lup,

@@ -45,6 +45,8 @@ from qgis.core import (QgsProcessing,
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo.gdalconst import *
+from osgeo import gdal, osr, ogr
+import numpy as np
 import os
 import inspect
 from pathlib import Path

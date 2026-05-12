@@ -28,6 +28,12 @@
 # This works around https://github.com/qgis/QGIS/issues/55258
 import site
 import sys
+import supy as sp  
+import numba
+import jaydebeapi
+import rioxarray
+import yaml
+import pydantic
 sys.path.insert(0, site.getusersitepackages())
 
 __author__ = 'Fredrik Lindberg'

@@ -41,7 +41,7 @@ from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterDefinition)
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal
+from osgeo import gdal, osr
 from osgeo.gdalconst import *
 import os
 import numpy as np
@@ -50,6 +50,7 @@ from pathlib import Path
 import zipfile
 import sys
 from ..util import misc
+from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from ..functions import svf_functions as svf
 from ..functions import svf_for_voxels as svfv
 

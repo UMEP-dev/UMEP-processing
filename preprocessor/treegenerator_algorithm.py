@@ -30,7 +30,7 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterRasterLayer,
@@ -48,9 +48,11 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
+import sys
 
 from ..util.misc import saverasternd
 from ..functions.TreeGenerator import makevegdems
+from ..util import misc
 
 
 class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):

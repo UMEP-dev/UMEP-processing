@@ -45,6 +45,7 @@ from processing.gui.wrappers import WidgetWrapper
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
+from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit, QMessageBox
 from osgeo.gdalconst import *
 import os
 import inspect

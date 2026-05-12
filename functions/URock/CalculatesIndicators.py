@@ -16,6 +16,7 @@ Created on Tue Feb  9 14:34:12 2021
 from . import DataUtil
 from .DataUtil import safe
 from .GlobalVariables import *
+import pandas as pd
 
 def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
     """ Calculates obstacle properties (effective width and length) 

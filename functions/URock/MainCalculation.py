@@ -22,6 +22,9 @@ from . import WindSolver
 import datetime
 import time
 import numpy as np
+from qgis.core import QgsProcessingException
+from shutil import rmtree
+
 try :
     from numba import jit
 except ImportError:

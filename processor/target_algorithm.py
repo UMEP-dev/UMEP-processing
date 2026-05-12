@@ -6,7 +6,7 @@ __copyright__ = '(C) 2021 by Fredrik Lindberg'
 
 __revision__ = '$Format:%H$'
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterString,
@@ -27,6 +27,10 @@ from pathlib import Path
 import datetime
 from ..util.umep_target_export_component import write_config_file
 from ..util.misc import xy2latlon
+import sys
+import shutil
+import traceback
+import math
 
 #from ..functions.target import Target
 # from target import Target

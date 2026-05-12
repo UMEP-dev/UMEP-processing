@@ -4,6 +4,7 @@ from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import matplotlib.colors as colors
+import matplotlib
 
 #def PolarBarPlot(lv, radD, outfolder, YYYY, DOY, XH, hours, XM, minu, iStep, idxStep):
 def PolarBarPlot(lv, solar_altitude, solar_azimuth, fig_title, filename_out, minrad, maxrad, plot_type):

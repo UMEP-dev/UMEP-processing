@@ -31,6 +31,7 @@ __copyright__ = '(C) 2021 by Jérémy Bernard / University of Gothenburg'
 __revision__ = '$Format:%H$'
 
 import os
+from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
@@ -56,12 +57,14 @@ from qgis.PyQt.QtGui import QIcon
 import inspect
 import processing
 import re
+import subprocess
 
 
 from ..functions.URock import MainCalculation
 from ..functions.URock.GlobalVariables import *
 from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
 from ..functions.URock import WriteMetadataURock
+from ..functions.URock import DataUtil
 
 # All SQL identifiers are validated via saf_id() to prevent injection.
 # No user input is used directly in SQL construction.
