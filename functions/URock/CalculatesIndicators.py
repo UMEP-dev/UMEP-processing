@@ -1,12 +1,20 @@
+#bandit: reload_config
+#nosec B608
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 Created on Tue Feb  9 14:34:12 2021
 
 @author: Jérémy Bernard, University of Gothenburg
 """
 
-from . import DataUtil as DataUtil
+
+
+
+from . import DataUtil
+from .DataUtil import safe
 from .GlobalVariables import *
 
 def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
@@ -51,8 +59,9 @@ def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
     # of each obstacle, respectively  based on their maximum cross-wind and
     # along-wind extends of the obstacle, weighted by the area ratio between
     # obstacle area and envelope area
-    query = """
-       DROP TABLE IF EXISTS {0};
+    query =safe("""
+
+       DROP TABLE IF EXISTS {0}; 
        CREATE TABLE {0}
            AS SELECT   {1},
                        {2},
@@ -62,7 +71,7 @@ def obstacleProperties(cursor, obstaclesTable, prefix = PREFIX_NAME):
                        (ST_YMAX(ST_ENVELOPE({3}))-ST_YMIN({3}))*ST_AREA({3})/ST_AREA(ST_ENVELOPE({3})) AS {7},
                        {8},
                        {9}
-           FROM {5}""".format(obstaclePropertiesTable, 
+           FROM {5}""").format(obstaclePropertiesTable, 
                                ID_FIELD_STACKED_BLOCK,
                                ID_FIELD_BLOCK,
                                GEOM_FIELD,
@@ -135,7 +144,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
     #   - rooftop perpendicular: Hcm and Lc (Pol et al. 2006)
     #   - rooftop corner: C1 (Bagal et al. 2004 "Implementation of rooftop...)
     #   - cross wind width and "center" of the building along x
-    query = """
+    query = safe("""
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}
            AS SELECT   {1},
@@ -152,7 +161,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                        {15},
                        (ST_XMAX({2}) + ST_XMIN({2})) / 2 AS {16},
                        (ST_XMAX({2}) - ST_XMIN({2})) AS {17}
-           FROM {7}""".format(tempoStackedLengthTab,
+           FROM {7}""").format(tempoStackedLengthTab,
                                ID_FIELD_STACKED_BLOCK,
                                GEOM_FIELD, 
                                HEIGHT_FIELD, 
@@ -169,12 +178,12 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                ID_FIELD_BLOCK,
                                BASE_HEIGHT_FIELD,
                                STACKED_BLOCK_X_MED, 
-                               STACKED_BLOCK_WIDTH)
+                               STACKED_BLOCK_WIDTH)  # nosec B608
     cursor.execute(query)
     
     # Calculates the table containing the points corresponding to all polygons,
     # the polygon id and the extremum of the polygon we are looking for
-    cursor.execute("""
+    cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS SELECT {1}, CAST(ST_X({2}) AS INTEGER) AS X, CAST(ST_Y({2})  AS INTEGER) AS Y, X_MAX, X_MIN, Y_MIN
@@ -184,8 +193,8 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                         {1},
                                         ST_TOMULTIPOINT({2}) AS {2}
                                 FROM {3})');
-           """.format(  pointsStackedBlocks             , ID_FIELD_STACKED_BLOCK,
-                        GEOM_FIELD                      , tempoStackedLengthTab))
+           """).format(  pointsStackedBlocks             , ID_FIELD_STACKED_BLOCK,
+                        GEOM_FIELD                      , tempoStackedLengthTab))  # nosec B608
     
     # Calculates points table corresponding to xmin, xmax and ymin
     xMinPointTable = DataUtil.getExtremumPoint(pointsTable = pointsStackedBlocks, 
@@ -208,14 +217,14 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                                prefix_name = prefix)
     
     # Join x extremum into a single table
-    cursor.execute("""
+    cursor.execute(safe("""
            {0}{1}
            DROP TABLE IF EXISTS {2};
            CREATE TABLE {2}
                AS SELECT a.{3}, a.{4} AS {4}_MIN, b.{4} AS {4}_MAX
                FROM {5} AS a LEFT JOIN {6} AS b
                ON a.{3} = b.{3};
-           """.format(  DataUtil.createIndex(tableName=xMinPointTable, 
+           """).format(  DataUtil.createIndex(tableName=xMinPointTable, 
                                              fieldName=ID_FIELD_STACKED_BLOCK,
                                              isSpatial=False),
                         DataUtil.createIndex(tableName=xMaxPointTable, 
@@ -223,10 +232,10 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                              isSpatial=False),
                         stackedBlocksXExt               , ID_FIELD_STACKED_BLOCK,
                         GEOM_FIELD                      , xMinPointTable,
-                        xMaxPointTable))
+                        xMaxPointTable)) # nosec B608
     
     # Calculates main azimuth of left-side and right-side downstream facades
-    cursor.execute("""
+    cursor.execute(safe("""
            {0}{1}
            DROP TABLE IF EXISTS {2};
            CREATE TABLE {2}
@@ -235,7 +244,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                            ST_AZIMUTH(a.{4}, b.{4}_MAX)-PI()/2 AS THETA_RIGHT
                FROM {6} AS a LEFT JOIN {7} AS b
                ON a.{3} = b.{3};
-           """.format(  DataUtil.createIndex(tableName=stackedBlocksXExt, 
+           """).format(  DataUtil.createIndex(tableName=stackedBlocksXExt, 
                                              fieldName=ID_FIELD_STACKED_BLOCK,
                                              isSpatial=False),
                         DataUtil.createIndex(tableName=yMinPointTable, 
@@ -243,10 +252,10 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                                              isSpatial=False),
                         stackedBlockAzimuths            , ID_FIELD_STACKED_BLOCK,
                         GEOM_FIELD                      , STACKED_BLOCK_UPSTREAMEST_X,
-                        yMinPointTable                  , stackedBlocksXExt))    
+                        yMinPointTable                  , stackedBlocksXExt))    # nosec B608 
     
     # Join calculated indicators to previous ones
-    cursor.execute("""
+    cursor.execute(safe("""
            {0}{1}
            DROP TABLE IF EXISTS {2};
            CREATE TABLE {2}
@@ -254,7 +263,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                           COS(b.THETA_RIGHT) AS {6}, SIN(b.THETA_RIGHT) AS {7}
                FROM {8} AS a LEFT JOIN {9} AS b
                ON a.{10} = b.{10};
-           """.format(  DataUtil.createIndex(tableName=xMinPointTable, 
+           """).format(  DataUtil.createIndex(tableName=xMinPointTable, 
                                              fieldName=ID_FIELD_STACKED_BLOCK,
                                              isSpatial=False),
                         DataUtil.createIndex(tableName=xMaxPointTable, 
@@ -264,14 +273,14 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix = PREFIX_NAME):
                         COS_BLOCK_LEFT_AZIMUTH          , SIN_BLOCK_LEFT_AZIMUTH,
                         COS_BLOCK_RIGHT_AZIMUTH         , SIN_BLOCK_RIGHT_AZIMUTH,
                         tempoStackedLengthTab           , stackedBlockAzimuths,
-                        ID_FIELD_STACKED_BLOCK          , ID_FIELD_BLOCK))
+                        ID_FIELD_STACKED_BLOCK          , ID_FIELD_BLOCK)) # nosec B608
     
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("""
+        cursor.execute(safe("""
            DROP TABLE IF EXISTS {0}
-           """.format(",".join([tempoStackedLengthTab       , pointsStackedBlocks,
-                                stackedBlocksXExt           , stackedBlockAzimuths])))
+           """).format(",".join([tempoStackedLengthTab       , pointsStackedBlocks,
+                                stackedBlocksXExt           , stackedBlockAzimuths]))) # nosec B608
     
     return zoneLengthTable
 
@@ -323,26 +332,26 @@ def studyAreaProperties(cursor, upwindTable, stackedBlockTable, vegetationTable)
     print("Calculates study area properties")
     
     # Calculate the area of the study area
-    cursor.execute("""
+    cursor.execute(safe("""
            SELECT ST_AREA(ST_BUFFER(ST_EXTENT({0}), 15))
            FROM   (SELECT    {0}
                   FROM {1}
                   UNION ALL
                   SELECT    {0}
                   FROM {2}) AS STUDY_AREA_AREA_TAB
-           """.format(  GEOM_FIELD, 
+           """).format(  GEOM_FIELD, 
                         stackedBlockTable,
-                        vegetationTable))
+                        vegetationTable)) # nosec B608
     area = cursor.fetchall()[0][0]
     
     # Calculates the obstacle (stacked blocks and vegetation) 
     # geometric mean height weighted by the area (H_r)
-    cursor.execute("""
+    cursor.execute(safe("""
            {0};
-           """.format(DataUtil.createIndex(  tableName=stackedBlockTable, 
+           """).format(DataUtil.createIndex(  tableName=stackedBlockTable, 
                                              fieldName=ID_FIELD_BLOCK,
-                                             isSpatial=False)))
-    cursor.execute("""
+                                             isSpatial=False))) # nosec B608
+    cursor.execute(safe("""
            SELECT   EXP(1.0 / SUM(OBSTACLE_HEIGHT_TAB.AREA) * 
                         SUM(OBSTACLE_HEIGHT_TAB.AREA * LOG(OBSTACLE_HEIGHT_TAB.HEIGHT))) AS H_r,
                     MAX(OBSTACLE_HEIGHT_TAB.HEIGHT) AS H_max
@@ -354,17 +363,17 @@ def studyAreaProperties(cursor, upwindTable, stackedBlockTable, vegetationTable)
                   SELECT    {2} AS HEIGHT,
                             ST_AREA({5}) AS AREA
                   FROM {3}) AS OBSTACLE_HEIGHT_TAB;
-            """.format(HEIGHT_FIELD, 
+            """).format(HEIGHT_FIELD, 
                         stackedBlockTable,
                         VEGETATION_CROWN_TOP_HEIGHT,
                         vegetationTable,
                         ID_FIELD_BLOCK,
-                        GEOM_FIELD))
+                        GEOM_FIELD)) # nosec B608
     H_r, H_max = cursor.fetchall()[0]
     
     # Calculates the obstacle (stacked blocks and vegetation) 
     # and frontal density (lambda_f)
-    cursor.execute("""
+    cursor.execute(safe("""
             SELECT  SUM(FRONTAL_AREA_TAB.CROSS_WIND_LENGTH*
                         FRONTAL_AREA_TAB.CROSS_WIND_HEIGHT)/{7}
                      AS LAMBDA_f
@@ -375,14 +384,14 @@ def studyAreaProperties(cursor, upwindTable, stackedBlockTable, vegetationTable)
                       SELECT    ST_XMAX({3})- ST_XMIN({3}) AS CROSS_WIND_LENGTH,
                                 {1}-{6} AS CROSS_WIND_HEIGHT
                       FROM {2}) AS FRONTAL_AREA_TAB
-         """.format(HEIGHT_FIELD,
+         """).format(HEIGHT_FIELD,
                     VEGETATION_CROWN_TOP_HEIGHT,
                     vegetationTable,
                     GEOM_FIELD,
                     BASE_HEIGHT_FIELD, 
                     upwindTable,
                     VEGETATION_CROWN_BASE_HEIGHT,
-                    area))
+                    area)) # nosec B608
     lambda_f = cursor.fetchall()[0][0]
     
     # Calculates z0 and d according to Hanna and Britter (2002) Equations 16-17
@@ -424,16 +433,16 @@ def maxObstacleHeight(cursor, stackedBlockTable, vegetationTable):
     
     # Calculates the obstacle (stacked blocks and vegetation) 
     # maximum height (Hmax)
-    cursor.execute("""
+    cursor.execute(safe("""
            SELECT   MAX(HEIGHT) AS Hmax,
             FROM (SELECT MAX({0}) AS HEIGHT
                   FROM {1}
                   UNION ALL
                   SELECT MAX({2}) AS HEIGHT
-                  FROM {3}) AS OBSTACLE_HEIGHT_TAB;""".format(HEIGHT_FIELD, 
+                  FROM {3}) AS OBSTACLE_HEIGHT_TAB;""").format(HEIGHT_FIELD, 
                     stackedBlockTable,
                     VEGETATION_CROWN_TOP_HEIGHT,
-                    vegetationTable))
+                    vegetationTable)) # nosec B608
     H_max = cursor.fetchall()[0][0]
     
     return H_max

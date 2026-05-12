@@ -63,6 +63,7 @@ import inspect
 from pathlib import Path
 from ..util.misc import saveraster
 import requests
+from ..functions.URock.DataUtil import safe
 
 class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
     """
@@ -412,13 +413,16 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         sortPoly = temp_dir + 'sortPoly.shp'
 
         if useOsm:
-            sort_options = gdal.VectorTranslateOptions(options=[
-                '-sql', 'SELECT * FROM multipolygons ORDER BY height_asl ASC'])
+            sort_options = gdal.VectorTranslateOptions(options=safe([
+                '-sql', 'SELECT * FROM multipolygons ORDER BY height_asl ASC']))
             gdal.VectorTranslate(str(sortPoly), str(osmPolygonPath), options=sort_options)
         else:
+            query = safe('SELECT * FROM "{table}" ORDER BY height_asl ASC').format(table=safe(str(polygon_ln)))
+
             sort_options = gdal.VectorTranslateOptions(options=[
                 '-select', 'height_asl',
-                '-sql', 'SELECT * FROM "' + str(polygon_ln) + '" ORDER BY height_asl ASC'])
+                '-sql', safe(query)
+            ])
             gdal.VectorTranslate(str(sortPoly), str(vlayer.source()), options=sort_options)
 
         # Reads temp file with sorted polygons

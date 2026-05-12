@@ -292,7 +292,7 @@ class NCWMS_Connector(object):
             raise Exception('Problem creating temporary file to store raster data: '+  str(e))
         # TODO: Work out if the response is an XML error
 
-        resp = requests.get(baseURL, params=parms, auth=HTTPDigestAuth("umep-user", "pUEmw5BbVdzfu3dz"), stream=True)
+        resp = requests.get(baseURL, params=parms, auth=HTTPDigestAuth("umep-user", "pUEmw5BbVdzfu3dz"), stream=True, timeout=15)
         if resp.status_code != 200:
             raise Exception('Error connecting to server. Got HTTP response code %d'%(resp.status_code,))
         with open(dataOut, 'wb') as out:

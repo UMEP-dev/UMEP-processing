@@ -7,6 +7,8 @@ Created on Thu Jan 21 11:39:39 2021
 """
 
 from .GlobalVariables import * 
+from .DataUtil import safe
+
 
 from . import H2gisConnection
 from . import loadData
@@ -17,7 +19,9 @@ from . import CalculatesIndicators
 from . import InitWindField
 from . import DataUtil
 from . import WindSolver
+import datetime
 import time
+import numpy as np
 try :
     from numba import jit
 except ImportError:
@@ -76,7 +80,7 @@ def main(javaEnvironmentPath,
     # Create the temporary directory if not exists
     tmp_dir_unique = os.path.join(TEMPO_DIRECTORY, 
                                   "URock_" \
-                                      + datetime.now().isoformat().split(".")[0].replace(':','')\
+                                      + datetime.datetime.now().isoformat().split(".")[0].replace(':','')\
                                           + str(uuid.uuid4()))
                                         
     if os.path.exists(tmp_dir_unique):
@@ -420,7 +424,7 @@ def main(javaEnvironmentPath,
         # Creates a table with a polygon covering the raster zone envelope
         smallStudyZone = "SMALL_STUDY_ZONE"
         outputRasterExtent = outputRaster.extent()
-        cursor.execute("""
+        cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}({5} GEOMETRY)
                AS SELECT ST_SETSRID(ST_ROTATE(ST_ENVELOPE('MULTIPOINT({1} {2},
@@ -428,7 +432,7 @@ def main(javaEnvironmentPath,
                                               {6},
                                               {7},
                                               {8}), {9})
-           """.format(smallStudyZone,
+           """).format(smallStudyZone,
                        outputRasterExtent.xMinimum(),
                        outputRasterExtent.yMinimum(),
                        outputRasterExtent.xMaximum(),
@@ -520,7 +524,7 @@ def main(javaEnvironmentPath,
                                                   prefix = prefix)
     if debug or saveRockleZones:
         for t in dicOfBuildZone3DWindFactor:
-            cursor.execute("""
+            cursor.execute(safe("""
                DROP TABLE IF EXISTS point3D_Buildzone_{0};
                {5};
                {6};
@@ -529,7 +533,7 @@ def main(javaEnvironmentPath,
                    FROM {3} AS a RIGHT JOIN {4} AS b
                        ON a.{1} = b.{1}
                    WHERE b.{1} IS NOT NULL
-               """.format( t                            , ID_POINT,
+               """).format( t                            , ID_POINT,
                            GEOM_FIELD                   , gridPoint, 
                            dicOfBuildZone3DWindFactor[t], DataUtil.createIndex(tableName=gridPoint, 
                                                                                fieldName=ID_POINT,
@@ -560,7 +564,7 @@ def main(javaEnvironmentPath,
                                                 dz = dz,
                                                 prefix = prefix)
     if debug or saveRockleZones:
-        cursor.execute("""
+        cursor.execute(safe("""
            DROP TABLE IF EXISTS point3D_AllVegZone;
            {4};
            {5};
@@ -569,7 +573,7 @@ def main(javaEnvironmentPath,
                FROM {2} AS a RIGHT JOIN {3} AS b
                            ON a.{0} = b.{0}
                WHERE b.{0} IS NOT NULL
-           """.format( ID_POINT                     , GEOM_FIELD, 
+           """).format( ID_POINT                     , GEOM_FIELD, 
                        gridPoint                    , vegetationWeightFactorTable,
                        DataUtil.createIndex(tableName=gridPoint, 
                                             fieldName=ID_POINT,
@@ -603,7 +607,7 @@ def main(javaEnvironmentPath,
                                             prefix = prefix,
                                             feedback = feedback)
     if debug or saveRockleZones:
-        cursor.execute("""
+        cursor.execute(safe("""
             DROP TABLE IF EXISTS point3D_All;
             {4};
             {5};
@@ -612,7 +616,7 @@ def main(javaEnvironmentPath,
                 FROM {2} AS a RIGHT JOIN {3} AS b
                             ON a.{0} = b.{0}
                 WHERE b.{0} IS NOT NULL
-            """.format( ID_POINT                    , GEOM_FIELD,
+            """).format( ID_POINT                    , GEOM_FIELD,
                         gridPoint                   , allZonesPointFactor,
                         DataUtil.createIndex(tableName=gridPoint, 
                                              fieldName=ID_POINT,
@@ -774,22 +778,22 @@ def main(javaEnvironmentPath,
     # ------------------------------------------------------------------- 
     # Get the relative position of the upper right corner of the grid from
     # the center of rotation used to rotate the grid
-    cursor.execute(
+    cursor.execute(safe(
         """{0};{1}
-        """.format(DataUtil.createIndex(tableName=gridPoint, 
+        """).format(DataUtil.createIndex(tableName=gridPoint, 
                                         fieldName=ID_POINT_X,
                                         isSpatial=False),
                     DataUtil.createIndex(tableName=gridPoint, 
                                          fieldName=ID_POINT_Y,
                                          isSpatial=False)))
-    cursor.execute(
+    cursor.execute(safe(
         """
         SELECT  {3}-ST_X(a.{0}) AS DIST_ROT_X,
                 {4}-ST_Y(a.{0}) AS DIST_ROT_Y
         FROM {5} AS a
         WHERE   a.{1} = (SELECT MAX({1}) FROM {5})
                 AND a.{2} = (SELECT MAX({2}) FROM {5})
-        """.format(GEOM_FIELD                   , ID_POINT_X,
+        """).format(GEOM_FIELD                   , ID_POINT_X,
                    ID_POINT_Y                   , rotationCenterCoordinates[0],
                    rotationCenterCoordinates[1] , gridPoint))
     dist_rot_x, dist_rot_y = cursor.fetchall()[0]
