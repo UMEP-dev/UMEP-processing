@@ -11,8 +11,8 @@ from __future__ import print_function
 import os
 import urllib3
 from . import DataUtil
-from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS, NEW_DB,\
-    JAVA_PATH_FILENAME, TEMPO_DIRECTORY
+from .GlobalVariables import INSTANCE_NAME, INSTANCE_ID, INSTANCE_PASS,\
+    JAVA_PATH_FILENAME, TEMPO_DIRECTORY, NEW_DB
 import subprocess
 import re
 import pandas as pd

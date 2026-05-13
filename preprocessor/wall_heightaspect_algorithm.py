@@ -31,21 +31,13 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterFeatureSink,
-                       QgsRasterFileWriter,
-                       QgsMessageLog,
-                       QgsProcessingParameterBoolean,
-                       Qgis)
+                       QgsProcessingParameterRasterDestination,)
 
-from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from osgeo import gdal
+from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from osgeo.gdalconst import *
 import numpy as np
 import os

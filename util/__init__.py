@@ -16,13 +16,6 @@ from qgis.core import Qgis, QgsMessageLog
 
 
 try:
-    # temprorary disable in preparation of QGIS4                                            
-    import supy as sp  
-    import numba
-    import jaydebeapi
-    import rioxarray
-    import yaml
-    import pydantic
     #import timezonefinder
     from supy import __version__ as ver_supy
     QgsMessageLog.logMessage("UMEP - SuPy Version installed: " + ver_supy, level=Qgis.MessageLevel.Info)

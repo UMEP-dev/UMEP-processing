@@ -49,7 +49,7 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterDefinition)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr, ogr
+from osgeo import gdal, ogr, osr
 from osgeo.gdalconst import *
 import os
 import numpy as np

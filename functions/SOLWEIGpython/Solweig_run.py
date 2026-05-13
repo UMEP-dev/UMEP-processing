@@ -34,7 +34,7 @@ try:
     from osgeo import gdal
     from osgeo.gdalconst import *
     from ...util.misc import saveraster, xy2latlon_fromraster
-    from qgis.core import QgsVectorLayer, QgsRasterLayer
+    from qgis.core import QgsRasterLayer, QgsVectorLayer
     import configparser
 except:
     pass

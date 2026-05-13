@@ -21,9 +21,11 @@ import time
 from . import H2gisConnection
 from .loadData import loadFile
 from . import DataUtil
+from .DataUtil import safe
 from .GlobalVariables import WIND_GROUP, TEMPO_DIRECTORY,\
     RLON, RLAT, GEOM_FIELD, LON , LAT, WINDSPEED_X, WINDSPEED_Y, WINDSPEED_Z,\
     Z, HORIZ_WIND_SPEED, WIND_SPEED
+from .DataUtil import validate_sql_inputs
 
 idx = pd.IndexSlice
 
@@ -34,12 +36,16 @@ HEAD_LENGTH = 1.5
 HEAD_AXIS_LENGTH = 1.5
 WIDTH = 0.2
 
+
 def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines=None,
                        idLines='', isStream = False, savePlot = False,
                        polygons_file='', srid_polygons=None, idPolygons='', 
                        outputDirectory = None, simulationName = "",
                        fig = None, ax = None, scale = None, color = None,
                        feedback = None):
+
+    # Validate inputs to prevent SQL injection
+    validate_sql_inputs(idLines, idPolygons, srid_lines, srid_polygons, None, lines_file, polygons_file)
 
     if savePlot:
         plt.ioff()
@@ -68,7 +74,10 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
     ds = xr.open_dataset(inputWindFile, group = WIND_GROUP)
     
     # Get the SRID that has been used in the URock processing calculation
-    urock_srid = xr.open_dataset(inputWindFile).urock_srid    
+    urock_srid = xr.open_dataset(inputWindFile).urock_srid
+    
+    # Validate urock_srid now that it's loaded
+    validate_sql_inputs(None, None, None, None, urock_srid, None, None)    
     
     # Send to a csv file
     ds.to_dataframe().to_csv(pointsDir, index_label = ['rlat', 'rlon', 'zlev'])
@@ -82,7 +91,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                                                                           suffix = str(time.time()).replace(".", "_"))
     
     # Load coordinates in a H2GIS table
-    cursor.execute("""
+    cursor.execute(safe("""
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}(ID_POINT BIGINT AUTO_INCREMENT,
                         {3} INTEGER,
@@ -95,7 +104,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
             SELECT  CAST((row_number() over()) as Integer) AS ID_POINT, {3}, {4}, {8}, {9}, {10}, {11},
                     ST_TRANSFORM(ST_SETSRID(ST_MakePoint({6}, {7}), 4326), {1}) AS {5}
             FROM CSVREAD('{2}')
-        """.format(allPointsTab             , urock_srid, 
+        """).format(allPointsTab             , urock_srid, 
                     pointsDir               , RLON,
                     RLAT                    , GEOM_FIELD,
                     LON                     , LAT,
@@ -116,7 +125,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                  srid_repro = urock_srid)    
         
         # Calculates horizontal mean wind speed within each polygon
-        cursor.execute("""
+        cursor.execute(safe("""
            {0}{1}{2}{3}
            DROP TABLE IF EXISTS {4};
            CREATE TABLE {4}
@@ -132,7 +141,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                         a.{7} <> 0 AND a.{8} <> 0 AND a.{9} <> 0
                GROUP BY a.{6}, b.{5};
            CALL CSVWrite('{15}', 'SELECT * FROM {4}');
-           """.format(  DataUtil.createIndex(tableName=allPointsTab, 
+           """).format(  DataUtil.createIndex(tableName=allPointsTab, 
                                              fieldName=GEOM_FIELD,
                                              isSpatial=True),
                         DataUtil.createIndex(tableName=polygonsTab, 
@@ -185,11 +194,11 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
         if feedback:
             feedback.setProgressText('Calculates vertical sectional plot (along lines)...')    
         # Get the resolution of the wind speed data
-        cursor.execute("""
+        cursor.execute(safe("""
            SELECT ST_DISTANCE(a.{0}, b.{0}) AS dist 
            FROM {1} AS a, {1} AS b 
            WHERE a.{2} = 0 AND a.{3} = 0 AND b.{2} = 1 AND b.{3} = 0
-           """.format(GEOM_FIELD            , allPointsTab,
+           """).format(GEOM_FIELD            , allPointsTab,
                        RLON                 , RLAT))
         horiz_res = round(cursor.fetchall()[0][0])
         dist_max = horiz_res * (2 ** 0.5) / 2
@@ -205,7 +214,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
         # wind data around the lines and project the points contained in this buffer
         # on the lines and calculate the distance to this point to the begining of the line
         # NOTE : ONLY LINES HAVING TWO POINTS ARE USED (SEGMENTS) 
-        cursor.execute("""
+        cursor.execute(safe("""
            {7}{8}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -220,7 +229,7 @@ def plotSectionalViews(pluginDirectory, inputWindFile, lines_file='', srid_lines
                FROM {3} AS a, {4} AS b
                WHERE ST_NPOINTS(b.{1}) = 2 AND a.{1} && ST_EXPAND(b.{1}, {5}) AND ST_DWITHIN(a.{1}, b.{1}, {5});
            CALL CSVWrite('{6}', 'SELECT * FROM {0}');
-           """.format(pointsIntersecTab         , GEOM_FIELD,
+           """).format(pointsIntersecTab         , GEOM_FIELD,
                        idLines                  , allPointsTab,
                        linesTab                 , dist_max,
                        outputPointsDir          , DataUtil.createIndex(tableName=allPointsTab, 

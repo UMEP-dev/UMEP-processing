@@ -16,17 +16,12 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterString,
-                       QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterField,
                        QgsProcessingParameterEnum,
                        QgsProcessingException,
-                       QgsFeature,
-                       QgsVectorFileWriter,
                        QgsVectorDataProvider,
                        QgsProcessingParameterFile,
-                       QgsProcessingParameterDefinition,
-                       QgsVectorLayer,
                        QgsField)
 from qgis.PyQt.QtGui import QIcon
 
@@ -39,12 +34,10 @@ import os
 import numpy as np
 import inspect
 from pathlib import Path
-from ..util import f90nml
 import shutil
 from ..util.misc import saveraster, get_resolution_from_file, SUEWS_txt_to_df, extract_suews_years
 from .params_dict import *
 import yaml
-import datetime
 
 class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """

@@ -31,8 +31,7 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterFolderDestination,
@@ -41,7 +40,6 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterDefinition)
 # from processing.gui.wrappers import WidgetWrapper
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr
 from osgeo.gdalconst import *
@@ -52,10 +50,9 @@ from pathlib import Path
 import zipfile
 import sys
 from ..util import misc
+from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from ..functions import svf_functions as svf
 from ..functions import svf_for_voxels as svfv
-import time
-import pandas as pd
 
 class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     """

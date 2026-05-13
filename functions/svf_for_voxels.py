@@ -4,7 +4,6 @@ try:
     from sklearn.cluster import KMeans
 except:
     pass
-
 import time
 from ..functions import svf_functions as svf
 from ..functions import wallalgorithms as wa

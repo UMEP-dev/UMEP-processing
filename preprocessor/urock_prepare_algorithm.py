@@ -39,16 +39,11 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterField,
                        QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterFileDestination,
                        QgsProcessingParameterString,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterVectorDestination,
-                       QgsProcessingParameterBoolean,
-                       QgsVectorLayer,
                        QgsCoordinateReferenceSystem,
                        QgsProperty,
-                       QgsProcessingContext,
-                       QgsProject,
                        QgsProcessingException)
 import processing
 from qgis.PyQt.QtGui import QIcon

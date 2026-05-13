@@ -31,7 +31,6 @@ __copyright__ = '(C) 2020 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
-from processing.core.ProcessingConfig import ProcessingConfig
 
 from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
 from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm

@@ -10,28 +10,22 @@ __copyright__ = '(C) 2021 by Fredrik Lindberg'
 __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
+from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingException,
-                       QgsFeature,
-                       QgsVectorFileWriter,
-                       QgsVectorDataProvider,
-                       QgsProcessingParameterFile,
                        QgsProcessingParameterDefinition)
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, osr, ogr
+from osgeo import gdal, osr
 from osgeo.gdalconst import *
 import os
 import numpy as np
 import pandas as pd
 import inspect
 from pathlib import Path
-import sys
 from ..util.misc import saveraster
 from ..functions.SOLWEIGpython import PET_calculations as pet
 from ..functions.SOLWEIGpython import UTCI_calculations as utci

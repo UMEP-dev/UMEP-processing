@@ -6,7 +6,8 @@ Created on Wed Feb  3 15:39:07 2021
 @author: Jérémy Bernard, University of Gothenburg
 """
 
-from . import DataUtil as DataUtil
+from . import DataUtil
+from .DataUtil import safe
 import pandas as pd
 idx = pd.IndexSlice
 from .GlobalVariables import ALONG_WIND_ZONE_EXTEND, CROSS_WIND_ZONE_EXTEND,\
@@ -90,12 +91,12 @@ def createGrid(cursor, dicOfInputTables,  srid,
     gridTable = DataUtil.prefix(outputBaseName, prefix = prefix)
     
     # Gather all tables in one
-    gatherQuery = ["""SELECT {0} AS {0} FROM {1}""".format(GEOM_FIELD, 
+    gatherQuery = [safe("""SELECT {0} AS {0} FROM {1}""").format(GEOM_FIELD, 
                                                            dicOfInputTables[t])
                      for t in dicOfInputTables.keys()]
     
     # Calculate the extend of the envelope of all geometries
-    finalQuery = """
+    finalQuery = safe("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT   ST_SETSRID({1}, {9}) AS {1},
@@ -107,7 +108,7 @@ def createGrid(cursor, dicOfInputTables,  srid,
                                                       {2},
                                                       {3}) FROM ({5})), 
                                     {4}, 
-                                    {4})""".format(gridTable, 
+                                    {4})""").format(gridTable, 
                                                    GEOM_FIELD,
                                                    crossWindZoneExtend,
                                                    alongWindZoneExtend,
@@ -182,27 +183,27 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                 ROOFTOP_PERP_NAME       : UPWIND_FACADE_FIELD,
                 ROOFTOP_CORN_NAME       : UPWIND_FACADE_FIELD}  
     
-    query = ["""{0};
+    query = [safe("""{0};
                  DROP TABLE IF EXISTS {1}
-             """.format( DataUtil.createIndex(tableName=gridTable, 
+             """).format( DataUtil.createIndex(tableName=gridTable, 
                                              fieldName=GEOM_FIELD,
                                              isSpatial=True),
                          ",".join(dicOfOutputTables.values()))]
     # Construct a query to affect each point to a Rockle zone
     for i, t in enumerate(dicOfBuildRockleZoneTable):
         # The query differs depending on whether y value should be kept
-        queryKeepY = "b.{1}, b.{0}, b.{2},".format(ID_POINT_X, Y_POINT, ID_POINT_Y)
+        queryKeepY =    safe("b.{1}, b.{0}, b.{2},").format(ID_POINT_X, Y_POINT, ID_POINT_Y)
         
         # The columns to keep are different in case of street canyon zone
         # or rooftop corner zone
-        columnsToKeepQuery = """b.{0}, {1} a.{2}, a.{3}
-                                """.format( ID_POINT, 
+        columnsToKeepQuery = safe("""b.{0}, {1} a.{2}, a.{3}
+                                """).format( ID_POINT, 
                                             queryKeepY,
                                             idZone[t],
                                             HEIGHT_FIELD)
         if t==STREET_CANYON_NAME:
-            columnsToKeepQuery = """b.{0}, {1} a.{2}, a.{3}, a.{4}, a.{5}, a.{6}
-                                    """.format( ID_POINT, 
+            columnsToKeepQuery = safe("""b.{0}, {1} a.{2}, a.{3}, a.{4}, a.{5}, a.{6}
+                                    """).format( ID_POINT, 
                                                 queryKeepY,
                                                 idZone[t],
                                                 UPSTREAM_HEIGHT_FIELD,
@@ -210,10 +211,10 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                 UPWIND_FACADE_FIELD,
                                                 ID_UPSTREAM_STACKED_BLOCK)
         elif t==ROOFTOP_CORN_NAME:
-            columnsToKeepQuery = """b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7}, 
+            columnsToKeepQuery = safe("""b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7}, 
                                    a.GEOM_CORNER_POINT,
                                    b.{8}
-                                   """.format( ID_POINT, 
+                                   """).format( ID_POINT, 
                                                idZone[t],
                                                HEIGHT_FIELD,
                                                GEOM_FIELD,
@@ -223,7 +224,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                ROOFTOP_WIND_FACTOR,
                                                ID_POINT_X)             
             
-        query.append(""" 
+        query.append(safe(""" 
             {5};
             DROP TABLE IF EXISTS {2};
             CREATE TABLE {2}
@@ -231,7 +232,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                 FROM    {0} AS a, {3} AS b
                 WHERE   a.{1} && b.{1}
                         AND ST_INTERSECTS(a.{1}, b.{1})
-                        """.format( dicOfBuildRockleZoneTable[t],
+                        """).format( dicOfBuildRockleZoneTable[t],
                                     GEOM_FIELD,
                                     dicOfTempoOutput[t],
                                     gridTable,
@@ -241,15 +242,15 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                                                          isSpatial=True)))
     
     # Get the ID of the lower grid point row
-    cursor.execute("""
+    cursor.execute(safe("""
        SELECT MAX(DISTINCT {0}) AS {0} FROM {1};
-                   """.format( ID_POINT_Y,
+                   """).format( ID_POINT_Y,
                                gridTable))    
     idLowerGridRow = cursor.fetchall()[0][0]
     
     # For Rockle zones that needs relative point distance, extra calculation is needed
     # First creates vertical lines
-    endOfQuery = """ 
+    endOfQuery = safe(""" 
         {6};
         {7};
         DROP TABLE IF EXISTS {0};
@@ -261,7 +262,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
             FROM {3} AS a LEFT JOIN {3} AS b ON a.{1} = b.{1}
             WHERE a.{4} = 1 AND b.{4} = {5};
         {8};
-            """.format( verticalLineTable,
+            """).format( verticalLineTable,
                         ID_POINT_X,
                         GEOM_FIELD,
                         gridTable,
@@ -415,7 +416,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
     
     # Calculates the coordinate of the upper and lower part of each of the 
     # Röckle zones for each "north/south" line 
-    endOfQuery += ";".join(["""
+    endOfQuery += safe(";").join([safe("""
         {6};
         DROP TABLE IF EXISTS {0}, {4};
         CREATE TABLE {0}
@@ -423,7 +424,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
             FROM    {3} AS a, {2} AS b
             WHERE   a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1}) AND 
                     ST_DIMENSION(ST_INTERSECTION(a.{1}, b.{1})) > 0;
-                  """.format( dicOfPrefixZoneLim[t],
+                  """).format( dicOfPrefixZoneLim[t],
                               GEOM_FIELD,
                               dicOfBuildRockleZoneTable[t],
                               verticalLineTable,
@@ -439,76 +440,74 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
     # The cavity zone length is needed for the wind speed calculation of
     # wake zone points and for the upper height limit of the street canyon
     # while the wake zone length is needed for cavity zone wind speed calculation
-    cursor.execute(f"""
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
+    cursor.execute(safe("""
+       {idx1}
+       {idx2}
+       {idx3}
+       {idx4}
        DROP TABLE IF EXISTS TEMPO_WAKE;
        CREATE TABLE TEMPO_WAKE 
            AS SELECT   a.*, 
-                       b.{LENGTH_ZONE_FIELD+CAVITY_NAME[0]}, 
-                       b.{COS_BLOCK_AZIMUTH}, b.{SIN_BLOCK_AZIMUTH}, 
-                       b.{DOWNSTREAM_X_RELATIVE_POSITION}
-           FROM     {dicOfPrefixZoneLim[WAKE_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[CAVITY_NAME]} AS b 
-                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD} 
-                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
-       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[WAKE_NAME]};
-       ALTER TABLE TEMPO_WAKE RENAME TO {dicOfPrefixZoneLim[WAKE_NAME]};
+                       b.{len_cav}, 
+                       b.{cos_az}, b.{sin_az}, 
+                       b.{rel_pos}
+           FROM     {wake_table} AS a LEFT JOIN {cavity_table} AS b 
+                    ON  a.{downwind_f} = b.{downwind_f} 
+                        AND a.{id_px} = b.{id_px};
+       DROP TABLE IF EXISTS {wake_table};
+       ALTER TABLE TEMPO_WAKE RENAME TO {wake_table};
        
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[STREET_CANYON_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[STREET_CANYON_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
+       {idx5}
+       {idx6}
+       {idx7}
+       {idx8}
        DROP TABLE IF EXISTS TEMPO_CANYON;
        CREATE TABLE TEMPO_CANYON 
            AS SELECT   a.*, 
-                       b.{LENGTH_ZONE_FIELD+CAVITY_NAME[0]}
-           FROM     {dicOfPrefixZoneLim[STREET_CANYON_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[CAVITY_NAME]} AS b 
-                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
-                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
-       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[STREET_CANYON_NAME]};
-       ALTER TABLE TEMPO_CANYON RENAME TO {dicOfPrefixZoneLim[STREET_CANYON_NAME]};
+                       b.{len_cav}
+           FROM     {canyon_table} AS a LEFT JOIN {cavity_table} AS b 
+                    ON  a.{downwind_f} = b.{downwind_f}
+                        AND a.{id_px} = b.{id_px};
+       DROP TABLE IF EXISTS {canyon_table};
+       ALTER TABLE TEMPO_CANYON RENAME TO {canyon_table};
        
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
-                             fieldName=DOWNWIND_FACADE_FIELD,
-                             isSpatial=False)}
-       {DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], 
-                             fieldName=ID_POINT_X,
-                             isSpatial=False)}
+       {idx9}
+       {idx10}
+       {idx11}
+       {idx12}
        DROP TABLE IF EXISTS TEMPO_CAV;
        CREATE TABLE TEMPO_CAV 
            AS SELECT   a.*, 
-                       b.{LENGTH_ZONE_FIELD+WAKE_NAME[0]}
-           FROM     {dicOfPrefixZoneLim[CAVITY_NAME]} AS a LEFT JOIN {dicOfPrefixZoneLim[WAKE_NAME]} AS b 
-                    ON  a.{DOWNWIND_FACADE_FIELD} = b.{DOWNWIND_FACADE_FIELD}
-                        AND a.{ID_POINT_X} = b.{ID_POINT_X};
-       DROP TABLE IF EXISTS {dicOfPrefixZoneLim[CAVITY_NAME]};
-       ALTER TABLE TEMPO_CAV RENAME TO {dicOfPrefixZoneLim[CAVITY_NAME]}
-       """)
-    
+                       b.{len_wake}
+           FROM     {cavity_table} AS a LEFT JOIN {wake_table} AS b 
+                    ON  a.{downwind_f} = b.{downwind_f}
+                        AND a.{id_px} = b.{id_px};
+       DROP TABLE IF EXISTS {cavity_table};
+       ALTER TABLE TEMPO_CAV RENAME TO {cavity_table}
+       """).format(
+           idx1=safe(DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], fieldName=DOWNWIND_FACADE_FIELD, isSpatial=False)),
+           idx2=safe(DataUtil.createIndex(dicOfPrefixZoneLim[CAVITY_NAME], fieldName=ID_POINT_X, isSpatial=False)),
+           idx3=safe(DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], fieldName=DOWNWIND_FACADE_FIELD, isSpatial=False)),
+           idx4=safe(DataUtil.createIndex(dicOfPrefixZoneLim[WAKE_NAME], fieldName=ID_POINT_X, isSpatial=False)),
+           len_cav=safe(LENGTH_ZONE_FIELD+CAVITY_NAME[0]),
+           cos_az=safe(COS_BLOCK_AZIMUTH),
+           sin_az=safe(SIN_BLOCK_AZIMUTH),
+           rel_pos=safe(DOWNSTREAM_X_RELATIVE_POSITION),
+           wake_table=safe(dicOfPrefixZoneLim[WAKE_NAME]),
+           cavity_table=safe(dicOfPrefixZoneLim[CAVITY_NAME]),
+           downwind_f=safe(DOWNWIND_FACADE_FIELD),
+           id_px=safe(ID_POINT_X),
+           idx5=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[CAVITY_NAME]), fieldName=safe(DOWNWIND_FACADE_FIELD), isSpatial=False)),
+           idx6=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[CAVITY_NAME]), fieldName=safe(ID_POINT_X), isSpatial=False)),
+           idx7=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[STREET_CANYON_NAME]), fieldName=safe(DOWNWIND_FACADE_FIELD), isSpatial=False)),
+           idx8=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[STREET_CANYON_NAME]), fieldName=safe(ID_POINT_X), isSpatial=False)),
+           canyon_table=safe(dicOfPrefixZoneLim[STREET_CANYON_NAME]),
+           idx9=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[CAVITY_NAME]), fieldName=safe(DOWNWIND_FACADE_FIELD), isSpatial=False)),
+           idx10=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[CAVITY_NAME]), fieldName=safe(ID_POINT_X), isSpatial=False)),
+           idx11=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[WAKE_NAME]), fieldName=safe(DOWNWIND_FACADE_FIELD), isSpatial=False)),
+           idx12=safe(DataUtil.createIndex(safe(dicOfPrefixZoneLim[WAKE_NAME]), fieldName=safe(ID_POINT_X), isSpatial=False)),
+           len_wake=safe(LENGTH_ZONE_FIELD+WAKE_NAME[0])
+       ))
     # Fields to keep in the point table (zone dependent)
     varToKeepPoint = {
         DISPLACEMENT_NAME       : """b.{0},
@@ -681,7 +680,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
     
     # Last calculate the relative position of each point according 
     # to the upper and lower part of the Rockle zones
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe("""
         {0};
         {1};
         {2};
@@ -691,7 +690,7 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
             AS SELECT   {5}
             FROM    {6} AS a RIGHT JOIN {7} AS b
                         ON a.{8} = b.{8} AND a.{9} = b.{9}
-        """.format( DataUtil.createIndex( tableName=dicOfPrefixZoneLim[t], 
+        """).format( DataUtil.createIndex( tableName=dicOfPrefixZoneLim[t], 
                                           fieldName=idZone[t],
                                           isSpatial=False),
                     DataUtil.createIndex( tableName=dicOfTempoOutput[t], 
@@ -709,23 +708,37 @@ def affectsPointToBuildZone(cursor, gridTable, dicOfBuildRockleZoneTable,
                   for t in listTabYvalues]))
 
     # Special treatment for rooftop corners which have not been calculated previously
-    cursor.execute(f"""DROP TABLE IF EXISTS {dicOfOutputTables[ROOFTOP_CORN_NAME]};
-                   CREATE TABLE {dicOfOutputTables[ROOFTOP_CORN_NAME]}
-                       AS SELECT {ID_POINT},
-                                ST_DISTANCE({GEOM_FIELD}, GEOM_CORNER_POINT)/
-                                    COS(CASE WHEN   {UPWIND_FACADE_ANGLE_FIELD}<PI()/2
-                                        THEN        {UPWIND_FACADE_ANGLE_FIELD}-ST_AZIMUTH({GEOM_FIELD}, GEOM_CORNER_POINT)
-                                        ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {GEOM_FIELD})-{UPWIND_FACADE_ANGLE_FIELD}
-                                        END
-                                        )/
-                                    {ROOFTOP_CORNER_FACADE_LENGTH}*{ROOFTOP_CORNER_LENGTH} AS {ROOFTOP_CORNER_VAR_HEIGHT},
-                                {idZone[ROOFTOP_PERP_NAME]},
-                                {HEIGHT_FIELD},
-                                {UPWIND_FACADE_ANGLE_FIELD},
-                                {ROOFTOP_WIND_FACTOR},
-                                CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {Y_WALL},
-                                {ID_POINT_X}
-                        FROM {dicOfTempoOutput[ROOFTOP_CORN_NAME]}""")
+    cursor.execute(safe("""DROP TABLE IF EXISTS {rooftop_table};
+           CREATE TABLE {rooftop_table}
+               AS SELECT {id_point},
+                        ST_DISTANCE({geom}, GEOM_CORNER_POINT)/
+                            COS(CASE WHEN   {angle}<PI()/2
+                                THEN        {angle}-ST_AZIMUTH({geom}, GEOM_CORNER_POINT)
+                                ELSE        ST_AZIMUTH(GEOM_CORNER_POINT, {geom})-{angle}
+                                END
+                                )/
+                            {facade_len}*{corner_len} AS {var_height},
+                        {id_zone},
+                        {height},
+                        {angle},
+                        {wind_factor},
+                        CAST(ST_Y(GEOM_CORNER_POINT) AS INTEGER) AS {y_wall},
+                        {id_point_x}
+                FROM {tempo_table}""").format(
+                    rooftop_table=dicOfOutputTables[ROOFTOP_CORN_NAME],
+                    id_point=ID_POINT,
+                    geom=GEOM_FIELD,
+                    angle=UPWIND_FACADE_ANGLE_FIELD,
+                    facade_len=ROOFTOP_CORNER_FACADE_LENGTH,
+                    corner_len=ROOFTOP_CORNER_LENGTH,
+                    var_height=ROOFTOP_CORNER_VAR_HEIGHT,
+                    id_zone=idZone[ROOFTOP_PERP_NAME],
+                    height=HEIGHT_FIELD,
+                    wind_factor=ROOFTOP_WIND_FACTOR,
+                    y_wall=Y_WALL,
+                    id_point_x=ID_POINT_X,
+                    tempo_table=dicOfTempoOutput[ROOFTOP_CORN_NAME]
+                ))
                             
                             
     if not DEBUG:
@@ -777,7 +790,7 @@ def affectsPointToVegZone(cursor, gridTable, dicOfVegRockleZoneTable,
     
     # Calculate the max of the canopy height for each point and then keep each
     # intersection between point and zone
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe(""" 
         {12};
         {13};           
         DROP TABLE IF EXISTS {0};
@@ -792,7 +805,7 @@ def affectsPointToVegZone(cursor, gridTable, dicOfVegRockleZoneTable,
             AS SELECT a.{1}, a.{2}, a.{7}, b.{4}, b.{8}, b.{9}, b.{10}
             FROM {0} AS a, {6} AS b
             WHERE    a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1})
-           """.format(  maxHeightPointTable+t,
+           """).format(  maxHeightPointTable+t,
                         GEOM_FIELD,
                         ID_POINT,
                         VEGETATION_CROWN_TOP_HEIGHT,
@@ -878,14 +891,14 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
     # 1. IDENTIFY BUILDINGS PARTS (X POSITION) HAVING THEIR DOWNSTREAM FACADE INCLUDED WITHIN AN
     #    UPSTREAM CAVITY ZONE
     # First identify the coordinate of the upstreamer point for each X coordinate to each cavity zone
-    cursor.execute("""
+    cursor.execute(safe("""
            {5}{6}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS SELECT {1}, {2}, MAX({3}) AS {3}
                FROM {4}
                GROUP BY {1}, {2}
-           """.format(cavityFirstPointCoord             , ID_POINT_X,
+           """).format(cavityFirstPointCoord             , ID_POINT_X,
                        ID_FIELD_STACKED_BLOCK           , ID_POINT_Y,
                        dicOfInitBuildZoneGridPoint[CAVITY_NAME],
                        DataUtil.createIndex(dicOfInitBuildZoneGridPoint[CAVITY_NAME], 
@@ -896,14 +909,14 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                                             isSpatial=False)))
                
     # Then identify the maximum height of the cavity zone for each of these points
-    cursor.execute("""
+    cursor.execute(safe("""
            {9}{10}{11}{12}{13}{14}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS SELECT b.{1}, b.{2}, b.{3}, b.{6}, b.{7}
                FROM {4} AS a LEFT JOIN {5} AS b
                ON a.{6} = b.{6} AND a.{8} = b.{8}
-           """.format(cavityFirstPoint              , ID_POINT,
+           """).format(cavityFirstPoint              , ID_POINT,
                        UPPER_VERTICAL_THRESHOLD     , Y_WALL,
                        cavityFirstPointCoord        , dicOfInitBuildZoneGridPoint[CAVITY_NAME],
                        ID_POINT_X                   , ID_FIELD_STACKED_BLOCK,
@@ -928,7 +941,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                              
     # Then identify potential relations between cavity zones (whether a cavity
     # zone is contained in an other)
-    cursor.execute("""
+    cursor.execute(safe("""
            {13}{14}{15}{16}{17}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -937,7 +950,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                ON a.{7} = b.{7}
                WHERE    a.{8} < b.{8} AND b.{9} > a.{9} + GREATEST({10}, {11}, {12})
                GROUP BY b.{1}, b.{2}, a.{2}
-           """.format(cavityRelations                           , ID_POINT_X,
+           """).format(cavityRelations                           , ID_POINT_X,
                        ID_FIELD_STACKED_BLOCK                   , ID_UPSTREAM_STACKED_BLOCK,
                        ID_DOWNSTREAM_STACKED_BLOCK              , cavityFirstPoint,
                        dicOfInitBuildZoneGridPoint[CAVITY_NAME] , ID_POINT,
@@ -960,7 +973,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                                             isSpatial=False)))
 
     # Add all remaining cavity zones (having no other cavity zone contained in their cavity zone)
-    cursor.execute("""
+    cursor.execute(safe("""
            {7}{8}{9}{10}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -971,7 +984,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                UNION ALL
                SELECT {1}, {3}, {4}
                FROM {6}
-           """.format(cavityRelationsAll                        , ID_POINT_X,
+           """).format(cavityRelationsAll                        , ID_POINT_X,
                        ID_FIELD_STACKED_BLOCK                   , ID_UPSTREAM_STACKED_BLOCK,
                        ID_DOWNSTREAM_STACKED_BLOCK              , cavityFirstPoint,
                        cavityRelations                          , DataUtil.createIndex(cavityFirstPoint, 
@@ -989,7 +1002,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                               
     # Identify cavity zones containing an other cavity BUT being also contained in an
     # upwind cavity
-    cursor.execute("""
+    cursor.execute(safe("""
            {5}{6}{7}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -998,7 +1011,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                ON a.{1} = b.{4}
                WHERE b.{4} IS NOT NULL
                GROUP BY a.{1}, a.{2}
-           """.format(cavityUpAndDown                           , ID_DOWNSTREAM_STACKED_BLOCK,
+           """).format(cavityUpAndDown                           , ID_DOWNSTREAM_STACKED_BLOCK,
                        ID_POINT_X                               , cavityRelations,
                        ID_UPSTREAM_STACKED_BLOCK                , DataUtil.createIndex(cavityRelations, 
                                                                                        fieldName=ID_POINT_X,
@@ -1013,7 +1026,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
 
     # Remove the previous identified cavity zones (ideally should be done with 
     # a H2Network method since we do not take into account all cases...)
-    cursor.execute("""
+    cursor.execute(safe("""
            {6}{7}{8}{9}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -1022,7 +1035,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                ON a.{3} = b.{4} AND a.{5} = b.{5}
                WHERE b.{4} IS NULL
                GROUP BY a.{3}, a.{5}, a.{4}
-           """.format(cavityWithoutUpAndDown                    , cavityRelationsAll,
+           """).format(cavityWithoutUpAndDown                    , cavityRelationsAll,
                        cavityUpAndDown                          , ID_UPSTREAM_STACKED_BLOCK,
                        ID_DOWNSTREAM_STACKED_BLOCK              , ID_POINT_X,
                        DataUtil.createIndex(cavityUpAndDown, 
@@ -1039,7 +1052,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                                             isSpatial=False)))
 
     # Remove the remaining cavity zones covered by an other cavity zone
-    cursor.execute("""
+    cursor.execute(safe("""
            {5}{6}{7}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -1048,7 +1061,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                ON a.{2} = b.{3} AND a.{4} = b.{4}
                WHERE b.{3} IS NULL
                GROUP BY a.{2}, a.{4}
-           """.format(cavityWithoutDown                    , cavityWithoutUpAndDown,
+           """).format(cavityWithoutDown                    , cavityWithoutUpAndDown,
                        ID_UPSTREAM_STACKED_BLOCK           , ID_DOWNSTREAM_STACKED_BLOCK,
                        ID_POINT_X                          , DataUtil.createIndex(cavityUpAndDown, 
                                                                                   fieldName=ID_DOWNSTREAM_STACKED_BLOCK,
@@ -1065,8 +1078,8 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                         WAKE_NAME: [ID_FIELD_STACKED_BLOCK, ID_POINT_X],
                         CAVITY_NAME: [ID_UPSTREAM_STACKED_BLOCK, ID_POINT_X]}                             
     # Take all points from a 't' zone which have not been deleted by a cavity zone
-    cursor.execute(";".join(
-        ["""
+    cursor.execute(safe(";").join(
+        [safe("""
          {6}{7}{8}{9}
          DROP TABLE IF EXISTS {0};
          CREATE TABLE {0}
@@ -1074,7 +1087,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
              FROM {1} AS a RIGHT JOIN {2} AS b
              ON a.{5} = b.{4} AND a.{3} = b.{3}
              WHERE a.{10} IS NOT NULL
-         """.format(dicOfBuildZoneGridPoint[t]               , dicOfInitBuildZoneGridPoint[t],
+         """).format(dicOfBuildZoneGridPoint[t]               , dicOfInitBuildZoneGridPoint[t],
                     cavityWithoutDown                        , ID_POINT_X,
                     ID_UPSTREAM_STACKED_BLOCK                , cavityJoinFields[t][0],
                     DataUtil.createIndex(cavityWithoutDown, 
@@ -1094,21 +1107,21 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
 
     # For each point, several zones may overlay, we need to identify those
     # coming from the more downstream one (y_wall min)
-    cursor.execute("""
+    cursor.execute(safe("""
            {4}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS SELECT {1}, MIN({2}) AS {2}
                FROM {3}
                GROUP BY {1}
-           """.format(cavityPointsMinYwall            , ID_POINT,
+           """).format(cavityPointsMinYwall            , ID_POINT,
                        Y_WALL                         , dicOfBuildZoneGridPoint[CAVITY_NAME],
                        DataUtil.createIndex(dicOfBuildZoneGridPoint[CAVITY_NAME], 
                                             fieldName=ID_POINT,
                                             isSpatial=False)))
 
     # At the end only one point per position is conserved, the points from the more downstream zone
-    cursor.execute("""
+    cursor.execute(safe("""
            {5}{6}{7}{8}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -1117,7 +1130,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                ON a.{3} = b.{3} AND a.{4} = b.{4};
            DROP TABLE IF EXISTS {1};
            ALTER TABLE {0} RENAME TO {1};
-           """.format(cavityFinalPoints                , dicOfBuildZoneGridPoint[CAVITY_NAME],
+           """).format(cavityFinalPoints                , dicOfBuildZoneGridPoint[CAVITY_NAME],
                        cavityPointsMinYwall            , ID_POINT,
                        Y_WALL                          , DataUtil.createIndex(dicOfBuildZoneGridPoint[CAVITY_NAME], 
                                                                               fieldName=ID_POINT,
@@ -1138,8 +1151,8 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
     streetCanyonJoinFields = {ROOFTOP_PERP_NAME: [UPWIND_FACADE_FIELD, ID_POINT_X],
                               ROOFTOP_CORN_NAME: [UPWIND_FACADE_FIELD, ID_POINT_X]}
     # Identify the rooftop zones to remove
-    cursor.execute(";".join(
-        [""" 
+    cursor.execute(safe(";").join(
+        [safe(""" 
            {8};
            {9};
            {10};
@@ -1150,7 +1163,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                FROM {4} AS a RIGHT JOIN {5} AS b ON a.{2} = b.{2} AND a.{3} = b.{3}
                WHERE b.{6} <= a.{7}
                GROUP BY b.{3}, b.{2}
-           """.format( dicPointsToRemoveStreetCanyon[t]                 , ID_POINT,
+           """).format( dicPointsToRemoveStreetCanyon[t]                 , ID_POINT,
                        UPWIND_FACADE_FIELD                              , ID_POINT_X,
                        dicOfBuildZoneGridPoint[STREET_CANYON_NAME]      , dicOfInitBuildZoneGridPoint[t],
                        HEIGHT_FIELD                                     , MAX_CANYON_HEIGHT_FIELD,
@@ -1169,8 +1182,8 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
            for t in streetCanyonJoinFields.keys()]))
 
     # Remove points in rooftop zones
-    cursor.execute(";".join(
-        [""" 
+    cursor.execute(safe(";").join(
+        [safe(""" 
            {5};
            {6};
            {7};
@@ -1180,7 +1193,7 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
                AS SELECT a.*
                FROM {1} AS a LEFT JOIN {2} AS b ON a.{3} = b.{3} AND a.{4} = b.{4}
                WHERE b.{3} IS NULL AND b.{4} IS NULL
-           """.format( dicOfBuildZoneGridPoint[t]               , dicOfInitBuildZoneGridPoint[t],
+           """).format( dicOfBuildZoneGridPoint[t]               , dicOfInitBuildZoneGridPoint[t],
                        dicPointsToRemoveStreetCanyon[t]         , streetCanyonJoinFields[t][0],
                        streetCanyonJoinFields[t][1]             , DataUtil.createIndex( dicOfInitBuildZoneGridPoint[t], 
                                                                                         fieldName=streetCanyonJoinFields[t][0],
@@ -1201,11 +1214,11 @@ def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint,
     nonModifiedTables = set(dicOfInitBuildZoneGridPoint.keys())\
                             -set(cavityJoinFields.keys())\
                                 -set(streetCanyonJoinFields.keys())
-    cursor.execute(";".join(
-        [""" 
+    cursor.execute(safe(";").join(
+        [safe(""" 
            DROP TABLE IF EXISTS {0};
            ALTER TABLE {1} RENAME TO {0}
-           """.format(  dicOfBuildZoneGridPoint[t],
+           """).format(  dicOfBuildZoneGridPoint[t],
                         dicOfInitBuildZoneGridPoint[t])
          for t in nonModifiedTables]))
     if not DEBUG:
@@ -1293,7 +1306,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
     # First identify the coordinate of the downstreamer point for each X 
     # coordinate of each street canyon zone and keep only those having the
     # cavity zone being higher than the downwind building height
-    cursor.execute("""
+    cursor.execute(safe("""
            {6}{7}
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
@@ -1308,7 +1321,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                FROM {0} AS a LEFT JOIN {5} AS b
                ON a.{1} = b.{1} AND a.{3} = b.{3} AND a.{4} = b.{4}
                WHERE b.{15} > b.{16}
-           """.format(canyonLastPointCoord              , ID_POINT_X,
+           """).format(canyonLastPointCoord              , ID_POINT_X,
                        ID_FIELD_STACKED_BLOCK           , ID_FIELD_CANYON,
                        ID_POINT_Y                       , dicOfBuildZoneGridPoint[STREET_CANYON_NAME],
                        DataUtil.createIndex(dicOfBuildZoneGridPoint[STREET_CANYON_NAME], 
@@ -1352,7 +1365,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                                                    UPPER_VERTICAL_THRESHOLD + CAVITY_NAME[0])}
     tab2revert = {CAVITY_BACKWARD_NAME: cavity2dInitPoints,
                   WAKE_BACKWARD_NAME: wake2dInitPoints}
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe("""
            {0}{1}
            DROP TABLE IF EXISTS {2};
            CREATE TABLE {2}
@@ -1373,7 +1386,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                AS SELECT a.*, b.{28}
                FROM {16} AS a LEFT JOIN {29} AS b
                ON a.{3} = b.{3} AND a.{5} = b.{5}
-           """.format( DataUtil.createIndex(facadeWithinCavity, 
+           """).format( DataUtil.createIndex(facadeWithinCavity, 
                                             fieldName=ID_FIELD_CANYON,
                                             isSpatial=False),
                        DataUtil.createIndex(streetCanyonTable, 
@@ -1418,7 +1431,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
     
     # 2. REMOVE STREET CANYON POINTS WHERE THE DOWNWIND FACADE OF THE CANYON IS
     # ENTIRELY IN THE CAVITY ZONE OF THE UPSTREAM BUILDING
-    cursor.execute("""
+    cursor.execute(safe("""
            {0}{1}{2}{3}
            DROP TABLE IF EXISTS {4};
            CREATE TABLE {4}
@@ -1428,7 +1441,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                WHERE b.{7} IS NULL AND b.{8} IS NULL;
            DROP TABLE IF EXISTS {5};
            ALTER TABLE {4} RENAME TO {5};
-       """.format( DataUtil.createIndex(facadeWithinCavity, 
+       """).format( DataUtil.createIndex(facadeWithinCavity, 
                                          fieldName=ID_FIELD_CANYON,
                                          isSpatial=False),
                     DataUtil.createIndex(facadeWithinCavity, 
@@ -1446,7 +1459,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                              
     # 3. REMOVE ROOFTOP POINTS WHERE THE DOWNWIND FACADE OF THE CANYON IS
     # ENTIRELY IN THE CAVITY ZONE OF THE UPSTREAM BUILDING
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe("""
            {0}{1}{2}{3}
            DROP TABLE IF EXISTS {4};
            CREATE TABLE {4}
@@ -1456,7 +1469,7 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
                WHERE b.{7} IS NULL AND b.{8} IS NULL;
            DROP TABLE IF EXISTS {5};
            ALTER TABLE {4} RENAME TO {5};
-       """.format( DataUtil.createIndex(facadeWithinCavity, 
+       """).format( DataUtil.createIndex(facadeWithinCavity, 
                                          fieldName=UPWIND_FACADE_FIELD,
                                          isSpatial=False),
                     DataUtil.createIndex(facadeWithinCavity, 
@@ -1476,9 +1489,9 @@ def manageBackwardZones(cursor, dicOfBuildZoneGridPoint, cavity2dInitPoints,
         # Remove intermediate tables
         listToRemove = list(dicOfTempoBackPoints.values())+\
             [canyonLastPointCoord, impactedStackedBlocs]
-        cursor.execute("""
+        cursor.execute(safe("""
             DROP TABLE IF EXISTS {0}
-                      """.format(",".join(listToRemove)))
+                      """).format(",".join(listToRemove)))
     
     return dicOfBuildZoneGridPoint, facadeWithinCavity
 
@@ -1533,9 +1546,9 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
                                                                           HEIGHT_FIELD),
             CAVITY_BACKWARD_NAME    : "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
             WAKE_BACKWARD_NAME      : "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD)}
-    cursor.execute(""" SELECT MAX(MAX_HEIGHT) AS MAX_HEIGHT
+    cursor.execute(safe(""" SELECT MAX(MAX_HEIGHT) AS MAX_HEIGHT
                        FROM (SELECT {0})
-                       """.format(" UNION ALL SELECT ".join([maxHeightQuery[t]+" FROM "+dicOfBuildZoneGridPoint[t]
+                       """).format(" UNION ALL SELECT ".join([maxHeightQuery[t]+" FROM "+dicOfBuildZoneGridPoint[t]
                                                               for t in dicOfBuildZoneGridPoint])))
     maxHeight = cursor.fetchall()[0][0]
     
@@ -1546,28 +1559,28 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
                                                  3*float(dz)/2+math.trunc(maxHeight/dz)*dz,
                                                  dz)]
         
-            cursor.execute("""
+            cursor.execute(safe("""
                        DROP TABLE IF EXISTS {0};
                        CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
                        INSERT INTO {0} VALUES (DEFAULT, {1})
-                       """.format(  zValueTable,
+                       """).format(  zValueTable,
                                     "), (DEFAULT, ".join(listOfZ),
                                     ID_POINT_Z,
                                     Z))
            
         else:
-            cursor.execute("""
+            cursor.execute(safe("""
                            DROP TABLE IF EXISTS {0};
                            CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} DOUBLE);
-                           """.format( zValueTable,
+                           """).format( zValueTable,
                                        ID_POINT_Z,
                                        Z))
            
     else:
-        cursor.execute("""
+        cursor.execute(safe("""
                    DROP TABLE IF EXISTS {0};
                    CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} DOUBLE);
-                   """.format(  zValueTable,
+                   """).format(  zValueTable,
                                 ID_POINT_Z,
                                 Z))
     
@@ -1759,13 +1772,13 @@ def calculates3dBuildWindFactor(cursor, dicOfBuildZoneGridPoint,
                                                                           UPPER_VERTICAL_THRESHOLD + CAVITY_NAME[0]),
          }
     # Execute the calculation
-    cursor.execute(";".join([
-        """ DROP TABLE IF EXISTS {0};
+    cursor.execute(safe(";").join([
+        safe(""" DROP TABLE IF EXISTS {0};
             CREATE TABLE {0}
                 AS SELECT {1}, a.{5}
                 FROM {2} AS a, {3} AS b
                 WHERE {4}
-                """.format( dicOfOutputTables[t],
+                """).format( dicOfOutputTables[t],
                             calcQuery[t],
                             dicOfBuildZoneGridPoint[t],
                             zValueTable,
@@ -1843,11 +1856,11 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
     listOfZ = [str(i) for i in np.arange(float(dz)/2, 
                                          float(dz)/2+math.trunc(sketchHeight/dz)*dz, 
                                          dz)]
-    cursor.execute("""
+    cursor.execute(safe("""
             DROP TABLE IF EXISTS {0};
             CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
             INSERT INTO {0} VALUES (DEFAULT, {1})
-               """.format(  zValueTable,
+               """).format(  zValueTable,
                             "), (DEFAULT, ".join(listOfZ),
                             ID_POINT_Z,
                             Z))
@@ -1895,7 +1908,7 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                                                       TOP_CANOPY_HEIGHT_POINT)}
     
     # Initialize the wind speed field depending on vegetation type and height
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe("""
            {10};
            {11};           
            DROP TABLE IF EXISTS {0};
@@ -1906,7 +1919,7 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
            {12};
            UPDATE {0} SET {3} = 1 WHERE {3} > 1;
            UPDATE {0} SET {3} = 0 WHERE {3} < 0;
-                   """.format( dicOfTempoTables[t], 
+                   """).format( dicOfTempoTables[t], 
                                ID_POINT_Z,
                                calcQuery[t],
                                VEGETATION_FACTOR,
@@ -1928,12 +1941,12 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                              
     # Gather zone points in a single vegetation table and keep the minimum value 
     # in case there are several vegetation layers
-    unionAllQuery = [" SELECT {0}, {1}, {2} FROM {3}".format(ID_POINT,
+    unionAllQuery = [safe(" SELECT {0}, {1}, {2} FROM {3}").format(ID_POINT,
                                                              ID_POINT_Z,
                                                              VEGETATION_FACTOR,
                                                              dicOfTempoTables[t])
                          for t in dicOfTempoTables]
-    cursor.execute("""
+    cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS {1};
@@ -1944,7 +1957,7 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
                AS SELECT {2}, {4}, MIN({5}) AS {5}
                FROM {0}
                GROUP BY {2}, {4}
-           """.format( tempoAllVeg,
+           """).format( tempoAllVeg,
                        " UNION ALL ".join(unionAllQuery),
                        ID_POINT,
                        vegetationWeightFactorTable,
@@ -1959,9 +1972,9 @@ def calculates3dVegWindFactor(cursor, dicOfVegZoneGridPoint, sketchHeight,
     
     if not DEBUG:
         # Remove intermediate tables
-        cursor.execute("""
+        cursor.execute(safe("""
             DROP TABLE IF EXISTS {0}, {1}
-                      """.format(",".join(dicOfTempoTables.values()),
+                      """).format(",".join(dicOfTempoTables.values()),
                                  ",".join([zValueTable, tempoAllVeg])))
      
     return vegetationWeightFactorTable
@@ -2090,14 +2103,14 @@ def manageSuperimposition(cursor,
 
     # MANAGE THE BACKWARD ZONES
     # Get the weighting factor for the backward zones
-    cursor.execute("""
+    cursor.execute(safe("""
           {0}{1}{2}{3}
           DROP TABLE IF EXISTS {4};
           CREATE TABLE {4}
               AS SELECT   a.{5}, a.{6}, ABS(b.{7}) AS {8}, b.{13}, a.{11}, a.{12}
               FROM     {9} AS a LEFT JOIN {10} AS b
                        ON a.{11} = b.{11} AND a.{12} = b.{12}
-          """.format( DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
+          """).format( DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
                                            fieldName=ID_POINT,
                                            isSpatial=False),
                       DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
@@ -2133,14 +2146,14 @@ def manageSuperimposition(cursor,
                                     W                       , UPSTREAM_PRIORITY_TABLES.loc[CAVITY_NAME, REF_HEIGHT_FIELD],
                                     REF_HEIGHT_FIELD        , Y_WALL)}    
      
-    cursor.execute(";".join(["""
+    cursor.execute(safe(";").join([safe("""
           {0}{1}{2}{3}
           DROP TABLE IF EXISTS {4};
           CREATE TABLE {4}
               AS SELECT {5}
               FROM     {6} AS a LEFT JOIN {7} AS b
                        ON a.{8} = b.{8} AND a.{9} = b.{9}
-          """.format( DataUtil.createIndex(tableName=tempoBackwardWeights, 
+          """).format( DataUtil.createIndex(tableName=tempoBackwardWeights, 
                                            fieldName=ID_POINT_X,
                                            isSpatial=False),
                       DataUtil.createIndex(tableName=tempoBackwardWeights, 
@@ -2169,25 +2182,33 @@ def manageSuperimposition(cursor,
                                       prefix = PREFIX_NAME)
                          
     # Add backward zone points to the final table (replace points if exist)
-    cursor.execute(f"""
-          {DataUtil.createIndex(tableName=upstreamBackPrioritiesTempoTable, 
-                                           fieldName=[ID_POINT, ID_POINT_Z],
-                                           isSpatial=False)}
-          {DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
-                               fieldName=[ID_POINT, ID_POINT_Z],
-                               isSpatial=False)}
-          DROP TABLE IF EXISTS {tempoPrioritiesWeightedAllPlusBack};
-          CREATE TABLE {tempoPrioritiesWeightedAllPlusBack}
-              AS SELECT   a.* 
-              FROM     {upstreamBackPrioritiesTempoTable} AS a LEFT JOIN {tempoPrioritiesWeightedAll} AS b
-                       ON a.{ID_POINT} = b.{ID_POINT} AND a.{ID_POINT_Z} = b.{ID_POINT_Z}
-              WHERE b.{ID_POINT} IS NOT NULL AND b.{ID_POINT_Z} IS NOT NULL
-              UNION ALL
-              SELECT  a.*
-              FROM     {tempoPrioritiesWeightedAll} AS a LEFT JOIN {upstreamBackPrioritiesTempoTable} AS b
-                       ON a.{ID_POINT} = b.{ID_POINT} AND a.{ID_POINT_Z} = b.{ID_POINT_Z}
-              WHERE b.{ID_POINT} IS NULL AND b.{ID_POINT_Z} IS NULL
-          """)
+    cursor.execute(safe("""
+      {idx1}
+      {idx2}
+      DROP TABLE IF EXISTS {result_table};
+      CREATE TABLE {result_table}
+          AS SELECT   a.* 
+          FROM     {upstream_table} AS a LEFT JOIN {weighted_table} AS b
+                   ON a.{id_p} = b.{id_p} AND a.{id_z} = b.{id_z}
+          WHERE b.{id_p} IS NOT NULL AND b.{id_z} IS NOT NULL
+          UNION ALL
+          SELECT  a.*
+          FROM     {weighted_table} AS a LEFT JOIN {upstream_table} AS b
+                   ON a.{id_p} = b.{id_p} AND a.{id_z} = b.{id_z}
+          WHERE b.{id_p} IS NULL AND b.{id_z} IS NULL
+      """).format(
+          idx1=DataUtil.createIndex(tableName=upstreamBackPrioritiesTempoTable, 
+                                    fieldName=[ID_POINT, ID_POINT_Z],
+                                    isSpatial=False),
+          idx2=DataUtil.createIndex(tableName=tempoPrioritiesWeightedAll, 
+                                    fieldName=[ID_POINT, ID_POINT_Z],
+                                    isSpatial=False),
+          result_table=tempoPrioritiesWeightedAllPlusBack,
+          upstream_table=upstreamBackPrioritiesTempoTable,
+          weighted_table=tempoPrioritiesWeightedAll,
+          id_p=ID_POINT,
+          id_z=ID_POINT_Z
+      ))
 
     if feedback:
         feedback.setProgressText('Deals with vegetation zones superimposition')
@@ -2197,7 +2218,7 @@ def manageSuperimposition(cursor,
             return {}
     # MANAGE THE DOWNSTREAM WEIGHTING ZONES
     # Weight the wind speeds factors by the downstream weights (vegetation)
-    cursor.execute("""
+    cursor.execute(safe("""
           {12}
           DROP TABLE IF EXISTS {10};
           CREATE TABLE {10}
@@ -2208,7 +2229,7 @@ def manageSuperimposition(cursor,
                           COALESCE(b.{9}, {11}) AS {9}
               FROM     {0} AS a LEFT JOIN {1} AS b
                        ON a.{2} = b.{2} AND a.{3} = b.{3}
-          """.format( dicAllWeightFactorsTables[downstreamWeightingTable], 
+          """).format( dicAllWeightFactorsTables[downstreamWeightingTable], 
                       tempoPrioritiesWeightedAllPlusBack,
                       ID_POINT                       , ID_POINT_Z,
                       HEIGHT_FIELD                   , VEGETATION_FACTOR, 
@@ -2220,7 +2241,7 @@ def manageSuperimposition(cursor,
                                             isSpatial=False)))
     
     # Join the downstream weigthted points to the non downstream weighted ones
-    cursor.execute("""
+    cursor.execute(safe("""
           {10};
           DROP TABLE IF EXISTS {9};
           CREATE TABLE {9}
@@ -2231,7 +2252,7 @@ def manageSuperimposition(cursor,
               UNION ALL
               SELECT    c.{2}, c.{3}, c.{4}, c.{5}, c.{6}, c.{7}, c.{8}
               FROM     {1} AS c
-          """.format( tempoPrioritiesWeightedAllPlusBack    , tempoUpstreamAndDownstream,
+          """).format( tempoPrioritiesWeightedAllPlusBack    , tempoUpstreamAndDownstream,
                       ID_POINT                              , ID_POINT_Z,
                       HEIGHT_FIELD                          , U,
                       V                                     , W,
@@ -2373,7 +2394,7 @@ def manageUpstreamSuperimposition(cursor,
 
     # Join the points from the priority table to the downstreamest points of the
     # weighting table
-    cursor.execute("""
+    cursor.execute(safe("""
           {12};
           {13};
           {14};
@@ -2390,7 +2411,7 @@ def manageUpstreamSuperimposition(cursor,
               FROM     {0} AS a LEFT JOIN {1} AS b
                        ON a.{2} = b.{2} AND a.{3} = b.{3}
               WHERE    b.{2} IS NULL AND b.{3} IS NULL
-          """.format( upstreamPrioritiesWeightTempoTable    , upstreamPrioritiesTempoTable,
+          """).format( upstreamPrioritiesWeightTempoTable    , upstreamPrioritiesTempoTable,
                       ID_POINT                              , ID_POINT_Z,
                       HEIGHT_FIELD                          , Y_WALL, 
                       U                                     , V,
@@ -2412,7 +2433,7 @@ def manageUpstreamSuperimposition(cursor,
                              
     # Weight the wind speeds factors of the upstream priorities when the
     # weighting factors comes from more upstream and a higher position
-    cursor.execute("""
+    cursor.execute(safe("""
           {12};
           {13};
           {14};
@@ -2435,7 +2456,7 @@ def manageUpstreamSuperimposition(cursor,
               FROM     {0} AS a LEFT JOIN {1} AS b
                        ON a.{2} = b.{2} AND a.{3} = b.{3}
               WHERE    b.{2} IS NULL AND b.{3} IS NULL
-          """.format( upstreamWeightingTempoTable    , tempoPrioritiesAll,
+          """).format( upstreamWeightingTempoTable    , tempoPrioritiesAll,
                       ID_POINT                       , ID_POINT_Z,
                       HEIGHT_FIELD                   , Y_WALL, 
                       U                              , V,
@@ -2468,7 +2489,7 @@ def manageUpstreamSuperimposition(cursor,
                       IS_UPSTREAM_FIELD))
     
     # Join the upstream priority weigthted points to the upstream priority non-weighted ones
-    cursor.execute("""
+    cursor.execute(safe("""
           {10};
           {11};
           {12};
@@ -2482,7 +2503,7 @@ def manageUpstreamSuperimposition(cursor,
               UNION ALL
               SELECT    {2}, {3}, {4}, {5}, {6}, {7}, {8}
               FROM     {1}
-          """.format( tempoPrioritiesAll             , tempoPrioritiesWeighted,
+          """).format( tempoPrioritiesAll             , tempoPrioritiesWeighted,
                       ID_POINT                       , ID_POINT_Z,
                       HEIGHT_FIELD                   , U,
                       V                              , W,
@@ -2623,13 +2644,13 @@ def identifyUpstreamer( cursor,
         selectQueryDownstream[t] = selectQueryDownstream[t][0:-2]+" FROM "+dicAllWeightFactorsTables[t]
         
     # Gather all data for the upstream weighting into a same table
-    cursor.execute("""
+    cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} INTEGER, {3} INTEGER,
                             {4} INTEGER, {5} INTEGER, {6} 
                             {7} DOUBLE, {8} DOUBLE, {9} DOUBLE)
                AS {10}
-           """.format( tempoAllPointsTable              , ID_3D_POINT,
+           """).format( tempoAllPointsTable              , ID_3D_POINT,
                        ID_POINT                         , ID_POINT_Z,
                        HEIGHT_FIELD                     , Y_WALL, 
                        defineCol2Add                    , U,
@@ -2641,7 +2662,7 @@ def identifyUpstreamer( cursor,
     else:
         order = "ASC"
     # Identify which point should be conserved in the upstream weighting table
-    cursor.execute("""
+    cursor.execute(safe("""
            {7};
            {8};
            {9};
@@ -2654,7 +2675,7 @@ def identifyUpstreamer( cursor,
                             WHERE a.{2} = b.{2} AND a.{3} = b.{3}
                             ORDER BY (b.{5}, b.{4}) {11} {12} LIMIT 1) AS {1}
                FROM        {0} AS a;
-           """.format( tempoAllPointsTable                  , ID_3D_POINT, 
+           """).format( tempoAllPointsTable                  , ID_3D_POINT, 
                        ID_POINT                             , ID_POINT_Z,
                        HEIGHT_FIELD                         , Y_WALL, 
                        tempoUniquePointsTable,
@@ -2673,20 +2694,28 @@ def identifyUpstreamer( cursor,
                         order                               , considerPrioritiesQuery))
                              
     # Recover the useful informations from the unique points kept
-    cursor.execute(f"""
-          {DataUtil.createIndex(tableName=tempoAllPointsTable, 
-                                fieldName=[ID_3D_POINT, ID_POINT],
-                                isSpatial=False)};
-          {DataUtil.createIndex(tableName=tempoUniquePointsTable, 
-                                fieldName=[ID_3D_POINT, ID_POINT],
-                                isSpatial=False)};
-          DROP TABLE IF EXISTS {uniqueValuePerPointTable};
-          CREATE TABLE {uniqueValuePerPointTable}
-              AS SELECT a.*
-              FROM     {tempoAllPointsTable} AS a RIGHT JOIN {tempoUniquePointsTable} AS b
-                       ON a.{ID_3D_POINT} = b.{ID_3D_POINT} AND 
-                       a.{ID_POINT} = b.{ID_POINT}
-          """)
+    cursor.execute(safe("""
+      {idx1};
+      {idx2};
+      DROP TABLE IF EXISTS {unique_table};
+      CREATE TABLE {unique_table}
+          AS SELECT a.*
+          FROM     {all_points_table} AS a RIGHT JOIN {unique_points_table} AS b
+                   ON a.{id_3d} = b.{id_3d} AND 
+                      a.{id_p} = b.{id_p}
+      """).format(
+          idx1=DataUtil.createIndex(tableName=tempoAllPointsTable, 
+                                    fieldName=[ID_3D_POINT, ID_POINT],
+                                    isSpatial=False),
+          idx2=DataUtil.createIndex(tableName=tempoUniquePointsTable, 
+                                    fieldName=[ID_3D_POINT, ID_POINT],
+                                    isSpatial=False),
+          unique_table=uniqueValuePerPointTable,
+          all_points_table=tempoAllPointsTable,
+          unique_points_table=tempoUniquePointsTable,
+          id_3d=ID_3D_POINT,
+          id_p=ID_POINT
+    ))
 
     if not DEBUG:
         # Remove intermediate tables
@@ -2918,18 +2947,18 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
     
     # Insert the initial vertical wind profile values into a table
     valuesForEachRowProfile = [str(i)+","+str(j) for i, j in verticalWindSpeedProfile[HORIZ_WIND_SPEED].items()]
-    cursor.execute("""
+    cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
            INSERT INTO {0} VALUES ({3});
-           """.format( tempoVerticalProfileTable     , ID_POINT_Z,
+           """).format( tempoVerticalProfileTable     , ID_POINT_Z,
                        V                             ,"), (".join(valuesForEachRowProfile)))
 
     # Get the wind speed at each building height value...
-    cursor.execute(""" SELECT DISTINCT({0}) AS {0}
+    cursor.execute(safe(""" SELECT DISTINCT({0}) AS {0}
                        FROM {1}
                        WHERE {0} IS NOT NULL;                   
-                   """.format(HEIGHT_FIELD, initializedWindFactorTable))
+                   """).format(HEIGHT_FIELD, initializedWindFactorTable))
     buildingHeightList = cursor.fetchall()
     if len(buildingHeightList) > 0:
         df_buildingHeightList = pd.Series(pd.DataFrame(buildingHeightList)[0].values)
@@ -2947,17 +2976,17 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
             
         # ... and insert it into a table
         valuesForEachRowBuilding = [str(i)+","+str(j) for i, j in buildingHeightWindSpeed.set_index(Z)[HORIZ_WIND_SPEED].items()]
-        cursor.execute("""
+        cursor.execute(safe("""
                DROP TABLE IF EXISTS {0};
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
                INSERT INTO {0} VALUES ({3});
-               """.format( tempoBuildingHeightWindTable     , HEIGHT_FIELD,
+               """).format( tempoBuildingHeightWindTable     , HEIGHT_FIELD,
                            V                                ,"), (".join(valuesForEachRowBuilding)))
     else:
-        cursor.execute("""
+        cursor.execute(safe("""
                DROP TABLE IF EXISTS {0};
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
-               """.format( tempoBuildingHeightWindTable     , HEIGHT_FIELD,
+               """).format( tempoBuildingHeightWindTable     , HEIGHT_FIELD,
                            V))
     
     if V_ref is None or z_ref is None:
@@ -2966,7 +2995,7 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
     
     # Calculates the initial wind speed field according to each point rule
     # and join to the table x and y coordinates
-    cursor.execute("""
+    cursor.execute(safe("""
            {16};
            {17};
            {18};
@@ -3007,7 +3036,7 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
                           FROM {4} AS a LEFT JOIN {12} AS b
                           ON a.{5} = b.{5}',
                          'charset=UTF-8 fieldSeparator=,')
-           """.format( initializedWindFactorTable   , tempoVerticalProfileTable,
+           """).format( initializedWindFactorTable   , tempoVerticalProfileTable,
                        ID_POINT_Z                   , REF_HEIGHT_FIELD,
                        tempoZoneWindSpeedFactorTable, ID_POINT,
                        V                            , V_ref,
@@ -3039,10 +3068,10 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
                                             isSpatial=False)))
 
     # Get the number of grid point for each axis x, y and z
-    cursor.execute("""SELECT   MAX({0}) AS ID_POINT_X,
+    cursor.execute(safe("""SELECT   MAX({0}) AS ID_POINT_X,
                                MAX({1}) AS ID_POINT_Y
                        FROM     {2}
-                       """.format(ID_POINT_X, ID_POINT_Y, gridPoint))
+                       """).format(ID_POINT_X, ID_POINT_Y, gridPoint))
     nPointsResults = cursor.fetchall()
     nPoints = {X: nPointsResults[0][0]   , Y: nPointsResults[0][1],
                Z: verticalWindSpeedProfile.index.max()+1}
@@ -3083,9 +3112,9 @@ def setInitialWindField(cursor, initializedWindFactorTable, gridPoint,
         
     if not DEBUG:
         # Remove intermediate tables
-        cursor.execute("""
+        cursor.execute(safe("""
             DROP TABLE IF EXISTS {0}
-                      """.format(",".join([tempoVerticalProfileTable,
+                      """).format(",".join([tempoVerticalProfileTable,
                                            tempoBuildingHeightWindTable,
                                            tempoZoneWindSpeedFactorTable])))
     
@@ -3131,7 +3160,7 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
     tempoLevelHeightPointTable = DataUtil.postfix("LEVEL_POINTS")
     
     # Identify 2D coordinates of points intersecting buildings 
-    cursor.execute("""
+    cursor.execute(safe("""
            {9};
            {10};
            DROP TABLE IF EXISTS {0};
@@ -3139,7 +3168,7 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
                AS SELECT a.{1}, a.{8}, b.{2}, b.{3}, b.{4}
                FROM {5} AS a, {6} AS b
                WHERE a.{7} && b.{7} AND ST_INTERSECTS(a.{7}, b.{7})
-           """.format(  tempoBuildPointsTable           , ID_POINT_X,
+           """).format(  tempoBuildPointsTable           , ID_POINT_X,
                         ID_FIELD_STACKED_BLOCK          , HEIGHT_FIELD ,
                         BASE_HEIGHT_FIELD               , gridPoint,
                         stackedBlocksWithBaseHeight     , GEOM_FIELD,
@@ -3152,9 +3181,9 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
                                               isSpatial=True)))
 
     # Get the maximum building height
-    cursor.execute("""
+    cursor.execute(safe("""
            SELECT MAX({0}) AS {0} FROM {1};
-           """.format(HEIGHT_FIELD, stackedBlocksWithBaseHeight))
+           """).format(HEIGHT_FIELD, stackedBlocksWithBaseHeight))
     buildMaxHeight = cursor.fetchall()[0][0]
     
     # Set a list of the level height (and indice) which can intersect with buildings
@@ -3165,21 +3194,21 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
                                                                dz))]
 
         # ...and insert them into a table
-        cursor.execute("""
+        cursor.execute(safe("""
                DROP TABLE IF EXISTS {0};
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
                INSERT INTO {0} VALUES ({3});
-               """.format( tempoLevelHeightPointTable     , ID_POINT_Z,
+               """).format( tempoLevelHeightPointTable     , ID_POINT_Z,
                            Z                              ,"), (".join(levelHeightList)))
     else:
-        cursor.execute("""
+        cursor.execute(safe("""
                DROP TABLE IF EXISTS {0};
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
-               """.format( tempoLevelHeightPointTable     , ID_POINT_Z,
+               """).format( tempoLevelHeightPointTable     , ID_POINT_Z,
                            Z))
                        
     # Identify the third dimension of points intersecting buildings and save it...
-    cursor.execute("""
+    cursor.execute(safe("""
            {9};
            {10};
            {11};
@@ -3188,7 +3217,7 @@ def identifyBuildPoints(cursor, gridPoint, stackedBlocksWithBaseHeight,
                            FROM {3} AS a, {4} AS b
                            WHERE b.{5} <= a.{6} AND b.{5} > a.{7}',
                          'charset=UTF-8 fieldSeparator=,')
-           """.format( os.path.join(tempoDirectory,
+           """).format( os.path.join(tempoDirectory,
                                     buildPointsFilename)    , ID_POINT_X,
                        ID_POINT_Z                           , tempoBuildPointsTable,
                        tempoLevelHeightPointTable           , Z,

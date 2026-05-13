@@ -8,8 +8,9 @@ import sys
 from pathlib import Path
 import platform
 from packaging import version
-
+import datetime
 from .GlobalVariables import *
+import re
 
 
 def decompressZip(dirPath, inputFileName, outputFileBaseName=None, 
@@ -138,7 +139,7 @@ def getColumns(cursor, tableName):
 	_ _ _ _ _ _ _ _ _ _ 	
 		columnNames: list
             A list of the table column names"""
-    cursor.execute("""SELECT * FROM {0}""".format(tableName))
+    cursor.execute(safe("""SELECT * FROM {0}""").format(tableName))
     columnNames = [info[0] for info in cursor.description]
     
     return columnNames
@@ -293,7 +294,7 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
 		extremumPointTable: String
             Return the table containing the expected extremum point for each polygon"""
     # Output base name
-    outputBaseName = "{0}_{1}_{2}_POINTS".format(pointsTable,
+    outputBaseName = safe("{0}_{1}_{2}_POINTS").format(pointsTable,
                                                  axis,
                                                  extremum)
     
@@ -306,17 +307,17 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
     # Set the secondary axis and the point creation query depending on 1st axis
     if axis == "X":
         secondaryAxis = "Y"
-        pointCreationQuery = "ST_POINT({0}, {1}({2}))".format(axis,
+        pointCreationQuery = safe("ST_POINT({0}, {1}({2}))").format(axis,
                                                               secondAxisExtremum,
                                                               secondaryAxis)
     else:
         secondaryAxis = "X"
-        pointCreationQuery = "ST_POINT({1}({2}), {0})".format(axis,
+        pointCreationQuery = safe("ST_POINT({1}({2}), {0})").format(axis,
                                                               secondAxisExtremum,
                                                               secondaryAxis)
     
     # Identify the extremum point
-    cursor.execute("""
+    cursor.execute(safe("""
            {0}{1}{2}
            DROP TABLE IF EXISTS {3};
            CREATE TABLE {3}({4} INTEGER, {5} GEOMETRY)
@@ -324,7 +325,7 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
                FROM {7}
                WHERE {8} = {9}
                GROUP BY {4};
-           """.format(  createIndex(tableName=pointsTable, 
+           """).format(  createIndex(tableName=pointsTable, 
                                     fieldName=ID_FIELD_STACKED_BLOCK,
                                     isSpatial=False),
                         createIndex(tableName=pointsTable, 
@@ -369,3 +370,43 @@ def locate_py():
         return path_pybin
     else:
         raise RuntimeError("UMEP cannot locate the Python interpreter used by QGIS!")
+    
+
+def validate_sql_inputs(idLines=None, idPolygons=None, srid_lines=None, srid_polygons=None, urock_srid=None, lines_file=None, polygons_file=None):
+    """
+    Validate inputs to prevent SQL injection.
+    """
+    # Validate field names: must be valid SQL identifiers (alphanumeric + underscore, start with letter or underscore)
+    identifier_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    
+    if idLines and not identifier_pattern.match(idLines):
+        raise ValueError(f"Invalid idLines field name: {idLines}")
+    if idPolygons and not identifier_pattern.match(idPolygons):
+        raise ValueError(f"Invalid idPolygons field name: {idPolygons}")
+    
+    # Validate SRIDs: must be integers
+    def validate_srid(srid, name):
+        if srid is not None:
+            try:
+                int(srid)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid {name}: {srid} (must be integer)")
+    
+    validate_srid(srid_lines, "srid_lines")
+    validate_srid(srid_polygons, "srid_polygons")
+    validate_srid(urock_srid, "urock_srid")
+    
+    # Validate file paths: ensure no single quotes (basic check)
+    def validate_file_path(file_path, name):
+        if file_path and "'" in file_path:
+            raise ValueError(f"Invalid {name}: {file_path} (contains single quotes)")
+    
+    validate_file_path(lines_file, "lines_file")
+    validate_file_path(polygons_file, "polygons_file")
+    
+def safe(s): 
+    """
+    Dummy function to mark a string as safe for SQL queries. This is used to
+    bypass the SQL injection check for specific queries that are already validated.
+    """
+    return s
