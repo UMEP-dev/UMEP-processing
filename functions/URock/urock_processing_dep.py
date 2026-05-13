@@ -22,19 +22,19 @@
  ***************************************************************************/
 """
 
-__author__ = 'Jérémy Bernard / University of Gothenburg'
-__date__ = '2021-10-04'
-__copyright__ = '(C) 2021 by Jérémy Bernard / University of Gothenburg'
+__author__ = "Jérémy Bernard / University of Gothenburg"
+__date__ = "2021-10-04"
+__copyright__ = "(C) 2021 by Jérémy Bernard / University of Gothenburg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 import os
 import sys
 import inspect
 
-from qgis.core import QgsApplication, QgsProcessingAlgorithm
+from qgis.core import QgsApplication
 from .urock_processing_provider import URockProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]

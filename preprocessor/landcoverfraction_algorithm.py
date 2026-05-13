@@ -22,34 +22,35 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterField,
-                       QgsProcessingException,
-                       QgsFeature,
-                       QgsVectorFileWriter,
-                       QgsVectorDataProvider,
-                       QgsField)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterString,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterRasterLayer,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
+    QgsProcessingException,
+    QgsFeature,
+    QgsVectorFileWriter,
+    QgsVectorDataProvider,
+    QgsField,
+)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, ogr
-from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
@@ -63,120 +64,209 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
     This algorithm is a processing version of Land Cover Fraction Grid
     """
 
-    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
-    ID_FIELD = 'ID_FIELD'
-    SERACH_METHOD = 'SEARCH_METHOD'
-    INPUT_DISTANCE = 'INPUT_DISTANCE'
-    INPUT_INTERVAL = 'INPUT_INTERVAL'
-    INPUT_LCGRID = 'INPUT_LCGRID'
-    TARGET_LC = 'TARGET_LC'
-    FILE_PREFIX = 'FILE_PREFIX'
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    IGNORE_NODATA = 'IGNORE_NODATA'
-    ATTR_TABLE = 'ATTR_TABLE'
-    
-    
+    INPUT_POLYGONLAYER = "INPUT_POLYGONLAYER"
+    ID_FIELD = "ID_FIELD"
+    SERACH_METHOD = "SEARCH_METHOD"
+    INPUT_DISTANCE = "INPUT_DISTANCE"
+    INPUT_INTERVAL = "INPUT_INTERVAL"
+    INPUT_LCGRID = "INPUT_LCGRID"
+    TARGET_LC = "TARGET_LC"
+    FILE_PREFIX = "FILE_PREFIX"
+    OUTPUT_DIR = "OUTPUT_DIR"
+    IGNORE_NODATA = "IGNORE_NODATA"
+    ATTR_TABLE = "ATTR_TABLE"
+
     def initAlgorithm(self, config):
-       
-        self.search = ((self.tr('Search throughout the grid extent (search distance not used)'), '0'),
-                        (self.tr('Search from grid centroid'), '1'))
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-            self.tr('Vector polygon grid'), [QgsProcessing.SourceType.TypeVectorPolygon]))
-        self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
-            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric))
-        self.addParameter(QgsProcessingParameterEnum(self.SERACH_METHOD,
-            self.tr('Search method'),
-            options=[i[0] for i in self.search], defaultValue=0))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE, 
-            self.tr('Search distance from grid cell centroid (meter)'),
-            QgsProcessingParameterNumber.Type.Integer,
-            QVariant(200), False, minValue=0))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL, 
-            self.tr('Wind direction search interval (degree)'), 
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(5), False, minValue=0.1, maxValue=360.))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LCGRID,
-            self.tr('UMEP formatted land cover grid (see help for more info)'), None, False))
-        self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
-            self.tr('File prefix')))
-        self.addParameter(QgsProcessingParameterBoolean(self.TARGET_LC,
-            self.tr("Calculate fractions for TARGET (9 classes instead of 7)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.IGNORE_NODATA,
-            self.tr("Ignore NoData pixels"), defaultValue=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.ATTR_TABLE,
-            self.tr("Add result to polygon grid attribute table"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
-            self.tr('Output folder')))
+
+        self.search = (
+            (
+                self.tr(
+                    "Search throughout the grid extent (search distance not used)"
+                ),
+                "0",
+            ),
+            (self.tr("Search from grid centroid"), "1"),
+        )
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POLYGONLAYER,
+                self.tr("Vector polygon grid"),
+                [QgsProcessing.SourceType.TypeVectorPolygon],
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.ID_FIELD,
+                self.tr("ID field"),
+                "",
+                self.INPUT_POLYGONLAYER,
+                QgsProcessingParameterField.DataType.Numeric,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.SERACH_METHOD,
+                self.tr("Search method"),
+                options=[i[0] for i in self.search],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_DISTANCE,
+                self.tr("Search distance from grid cell centroid (meter)"),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(200),
+                False,
+                minValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_INTERVAL,
+                self.tr("Wind direction search interval (degree)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(5),
+                False,
+                minValue=0.1,
+                maxValue=360.0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_LCGRID,
+                self.tr(
+                    "UMEP formatted land cover grid (see help for more info)"
+                ),
+                None,
+                False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File prefix")
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.TARGET_LC,
+                self.tr(
+                    "Calculate fractions for TARGET (9 classes instead of 7)"
+                ),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.IGNORE_NODATA,
+                self.tr("Ignore NoData pixels"),
+                defaultValue=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ATTR_TABLE,
+                self.tr("Add result to polygon grid attribute table"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, self.tr("Output folder")
+            )
+        )
 
         self.plugin_dir = os.path.dirname(__file__)
-        if not (os.path.isdir(self.plugin_dir + '/data')):
-            os.mkdir(self.plugin_dir + '/data')
-        self.dir_poly = self.plugin_dir + '/data/poly_temp.shp'
+        if not (os.path.isdir(self.plugin_dir + "/data")):
+            os.mkdir(self.plugin_dir + "/data")
+        self.dir_poly = self.plugin_dir + "/data/poly_temp.shp"
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
+        inputPolygonlayer = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONLAYER, context
+        )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        searchMethod = self.parameterAsString(parameters, self.SERACH_METHOD, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
+        searchMethod = self.parameterAsString(
+            parameters, self.SERACH_METHOD, context
+        )
+        inputDistance = self.parameterAsDouble(
+            parameters, self.INPUT_DISTANCE, context
+        )
+        inputInterval = self.parameterAsDouble(
+            parameters, self.INPUT_INTERVAL, context
+        )
         dsmlayer = None
-        useTarget = self. parameterAsBool(parameters, self.TARGET_LC, context)
-        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
+        useTarget = self.parameterAsBool(parameters, self.TARGET_LC, context)
+        filePrefix = self.parameterAsString(
+            parameters, self.FILE_PREFIX, context
+        )
         attrTable = self.parameterAsBool(parameters, self.ATTR_TABLE, context)
-        ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        ignoreNodata = self.parameterAsBool(
+            parameters, self.IGNORE_NODATA, context
+        )
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
         r = inputDistance
-        
+
         degree = float(inputInterval)
         pre = filePrefix
-        imp_point = 0 # set to 1 when user for LCF point
+        imp_point = 0  # set to 1 when user for LCF point
         imid = int(searchMethod)
         # arrmat = np.empty((1, 8))
 
         if useTarget:
             iter = 9
-            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
-            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-            header2 = 'ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete'
-            numformat2 = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+            header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
+            numformat = (
+                "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            )
+            header2 = "ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
+            numformat2 = (
+                "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            )
         else:
             iter = 7
-            header = 'Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-            numformat = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-            header2 = 'ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water'
-            numformat2 = '%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
+            header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
+            numformat = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            header2 = "ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
+            numformat2 = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
 
         arrmat = np.empty((1, int(iter + 1)))
 
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
-        if pf == 'darwin' or pf == 'linux2' or pf == 'linux':
-            if not os.path.exists(outputDir + '/' + pre):
-                os.makedirs(outputDir + '/' + pre)
+        if pf == "darwin" or pf == "linux2" or pf == "linux":
+            if not os.path.exists(outputDir + "/" + pre):
+                os.makedirs(outputDir + "/" + pre)
 
-        #poly = inputPolygonlayer
+        # poly = inputPolygonlayer
         vlayer = inputPolygonlayer
         poly_field = idField
         feedback.setProgressText("poly_field: " + str(poly_field))
         prov = vlayer.dataProvider()
         fields = prov.fields()
         idx = vlayer.fields().indexFromName(poly_field[0])
-        #dir_poly = self.plugin_dir + '/data/poly_temp.shp'
+        # dir_poly = self.plugin_dir + '/data/poly_temp.shp'
         nGrids = vlayer.featureCount()
         index = 1
         feedback.setProgressText("Number of grids to analyse: " + str(nGrids))
 
         feedback.setProgressText("idx: " + str(idx))
 
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_LCGRID, context
+        )
         if dsmlayer is None:
-            raise QgsProcessingException("No valid building land cover raster layer is selected")
+            raise QgsProcessingException(
+                "No valid building land cover raster layer is selected"
+            )
 
         provider = dsmlayer.dataProvider()
         filePath_dsm_build = str(provider.dataSourceUri())
@@ -186,7 +276,7 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
                 break
-            
+
             index += 1
 
             attributes = f.attributes()
@@ -201,94 +291,173 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 x = f.geometry().centroid().asPoint().x()
             else:
                 r = 0  # Uses as info to separate from IMP point to grid
-                writer = QgsVectorFileWriter(self.dir_poly, "CP1250", fields, prov.wkbType(),
-                                                prov.crs(), "ESRI shapefile")
-                if writer.hasError() != QgsVectorFileWriter.WriterError.NoError:
-                    raise QgsProcessingException("Error when creating shapefile: ", str(writer.hasError()))
+                writer = QgsVectorFileWriter(
+                    self.dir_poly,
+                    "CP1250",
+                    fields,
+                    prov.wkbType(),
+                    prov.crs(),
+                    "ESRI shapefile",
+                )
+                if (
+                    writer.hasError()
+                    != QgsVectorFileWriter.WriterError.NoError
+                ):
+                    raise QgsProcessingException(
+                        "Error when creating shapefile: ",
+                        str(writer.hasError()),
+                    )
                 writer.addFeature(feature)
                 del writer
-            
+
             if imid == 1:
                 bbox = (x - r, y + r, x + r, y - r)
             else:
-                # Remove gdalwarp cuttoline with gdal.Translate. Cut to envelope of polygon feature
+                # Remove gdalwarp cuttoline with gdal.Translate. Cut to
+                # envelope of polygon feature
                 VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
-                Vector = VectorDriver.Open(self.dir_poly, 0)  #self.dir_poly
+                Vector = VectorDriver.Open(self.dir_poly, 0)  # self.dir_poly
                 layer = Vector.GetLayer()
                 feature = layer.GetFeature(0)
                 geom = feature.GetGeometryRef()
                 minX, maxX, minY, maxY = geom.GetEnvelope()
-                bbox = (minX, maxY, maxX, minY)  # Reorder bbox to use with gdal_translate
+                # Reorder bbox to use with gdal_translate
+                bbox = (minX, maxY, maxX, minY)
                 Vector.Destroy()
 
             # Remove gdalwarp with gdal.Translate
             # added gdal.Warp() for irregular grids
             bigraster = gdal.Open(filePath_dsm_build)
             if imid == 1:
-                gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+                gdal.Translate(
+                    self.plugin_dir + "/data/clipdsm.tif",
+                    bigraster,
+                    projWin=bbox,
+                )
             else:
                 clip_spec = gdal.WarpOptions(
                     format="GTiff",
                     cutlineDSName=self.dir_poly,
-                    cropToCutline=True
+                    cropToCutline=True,
                 )
-                gdal.Warp(self.plugin_dir + '/data/clipdsm.tif', bigraster, options=clip_spec)
+                gdal.Warp(
+                    self.plugin_dir + "/data/clipdsm.tif",
+                    bigraster,
+                    options=clip_spec,
+                )
             bigraster = None
 
-            dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
+            dataset = gdal.Open(self.plugin_dir + "/data/clipdsm.tif")
             lcgrid = dataset.ReadAsArray().astype(float)
 
             nd = dataset.GetRasterBand(1).GetNoDataValue()
-            nodata_test = (lcgrid == nd)
+            nodata_test = lcgrid == nd
             if ignoreNodata:
                 if np.sum(lcgrid) == (lcgrid.shape[0] * lcgrid.shape[1] * nd):
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes Only NoData Pixels")
+                    feedback.setProgressText(
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " not calculated. Includes Only NoData Pixels"
+                    )
                     cal = 0
                 else:
                     lcgrid[lcgrid == nd] = 0
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
+                    feedback.setProgressText(
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " being calculated."
+                    )
                     cal = 1
             else:
                 if nodata_test.any():
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " not calculated. Includes NoData Pixels")
+                    feedback.setProgressText(
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " not calculated. Includes NoData Pixels"
+                    )
                     cal = 0
                 else:
                     cal = 1
-                    feedback.setProgressText("Grid " + str(f.attributes()[idx]) + " being calculated.")
+                    feedback.setProgressText(
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " being calculated."
+                    )
 
             if cal == 1:
-                landcoverresult = land.landcover_v2(lcgrid, imid, degree, feedback, imp_point, iter)
+                landcoverresult = land.landcover_v2(
+                    lcgrid, imid, degree, feedback, imp_point, iter
+                )
                 landcoverresult = self.resultcheck(landcoverresult)
 
-                arr = np.concatenate((landcoverresult["deg"], landcoverresult["lc_frac"]), axis=1)
-                np.savetxt(outputDir + '/' + pre + '_' + 'LCFG_anisotropic_result_' + str(f.attributes()[idx]) + '.txt', arr,
-                            fmt=numformat, delimiter=' ', header=header, comments='')
+                arr = np.concatenate(
+                    (landcoverresult["deg"], landcoverresult["lc_frac"]),
+                    axis=1,
+                )
+                np.savetxt(
+                    outputDir
+                    + "/"
+                    + pre
+                    + "_"
+                    + "LCFG_anisotropic_result_"
+                    + str(f.attributes()[idx])
+                    + ".txt",
+                    arr,
+                    fmt=numformat,
+                    delimiter=" ",
+                    header=header,
+                    comments="",
+                )
                 del arr
                 if useTarget:
-                    arr2 = np.array([f.attributes()[idx], landcoverresult["lc_frac_all"][0, 0], landcoverresult["lc_frac_all"][0, 1],
-                                        landcoverresult["lc_frac_all"][0, 2], landcoverresult["lc_frac_all"][0, 3], landcoverresult["lc_frac_all"][0, 4],
-                                        landcoverresult["lc_frac_all"][0, 5], landcoverresult["lc_frac_all"][0, 6], landcoverresult["lc_frac_all"][0, 7], 
-                                        landcoverresult["lc_frac_all"][0, 8]])
-                else:                    
-                    arr2 = np.array([f.attributes()[idx], landcoverresult["lc_frac_all"][0, 0], landcoverresult["lc_frac_all"][0, 1],
-                                        landcoverresult["lc_frac_all"][0, 2], landcoverresult["lc_frac_all"][0, 3], landcoverresult["lc_frac_all"][0, 4],
-                                        landcoverresult["lc_frac_all"][0, 5], landcoverresult["lc_frac_all"][0, 6]])
+                    arr2 = np.array(
+                        [
+                            f.attributes()[idx],
+                            landcoverresult["lc_frac_all"][0, 0],
+                            landcoverresult["lc_frac_all"][0, 1],
+                            landcoverresult["lc_frac_all"][0, 2],
+                            landcoverresult["lc_frac_all"][0, 3],
+                            landcoverresult["lc_frac_all"][0, 4],
+                            landcoverresult["lc_frac_all"][0, 5],
+                            landcoverresult["lc_frac_all"][0, 6],
+                            landcoverresult["lc_frac_all"][0, 7],
+                            landcoverresult["lc_frac_all"][0, 8],
+                        ]
+                    )
+                else:
+                    arr2 = np.array(
+                        [
+                            f.attributes()[idx],
+                            landcoverresult["lc_frac_all"][0, 0],
+                            landcoverresult["lc_frac_all"][0, 1],
+                            landcoverresult["lc_frac_all"][0, 2],
+                            landcoverresult["lc_frac_all"][0, 3],
+                            landcoverresult["lc_frac_all"][0, 4],
+                            landcoverresult["lc_frac_all"][0, 5],
+                            landcoverresult["lc_frac_all"][0, 6],
+                        ]
+                    )
 
                 arrmat = np.vstack([arrmat, arr2])
 
             dataset = None
 
-        arrmatsave = arrmat[1: arrmat.shape[0], :]
-        np.savetxt(outputDir + '/' + pre + '_' + 'LCFG_isotropic.txt', arrmatsave,
-                            fmt=numformat2, delimiter=' ', header=header2, comments='')
+        arrmatsave = arrmat[1 : arrmat.shape[0], :]
+        np.savetxt(
+            outputDir + "/" + pre + "_" + "LCFG_isotropic.txt",
+            arrmatsave,
+            fmt=numformat2,
+            delimiter=" ",
+            header=header2,
+            comments="",
+        )
 
         if attrTable:
-            feedback.setProgressText("Adding result to layer attribute table") 
+            feedback.setProgressText("Adding result to layer attribute table")
             self.addattr(vlayer, arrmatsave, header, pre, feedback, idx)
 
         return {self.OUTPUT_DIR: outputDir}
 
-   
     def addattr(self, vlayer, matdata, header, pre, feedback, idx):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
         caps = vlayer.dataProvider().capabilities()
@@ -296,12 +465,16 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         if caps & QgsVectorDataProvider.Capability.AddAttributes:
             line_split = header.split()
             for x in range(1, len(line_split)):
-                vlayer.dataProvider().addAttributes([QgsField(pre + '_' + line_split[x], QVariant.Double)])
+                vlayer.dataProvider().addAttributes(
+                    [QgsField(pre + "_" + line_split[x], QVariant.Double)]
+                )
                 vlayer.commitChanges()
                 vlayer.updateFields()
             attr_dict = {}
         else:
-            raise QgsProcessingException("Vector Layer does not support adding attributes")
+            raise QgsProcessingException(
+                "Vector Layer does not support adding attributes"
+            )
 
         features = vlayer.getFeatures()
 
@@ -311,12 +484,13 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             wo = np.where(f.attributes()[idx] == matdata[:, 0])
             if wo[0] >= 0:
                 for x in range(1, matdata.shape[1]):
-                    attr_dict[current_index_length + x - 1] = float(matdata[wo[0], x])
+                    attr_dict[current_index_length + x - 1] = float(
+                        matdata[wo[0], x]
+                    )
                 vlayer.dataProvider().changeAttributeValues({id: attr_dict})
 
-
     def resultcheck(self, landcoverresult):
-        total = 0.
+        total = 0.0
         arr = landcoverresult["lc_frac_all"]
 
         for x in range(0, len(arr[0])):
@@ -335,9 +509,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         landcoverresult["lc_frac_all"] = arr
 
         return landcoverresult
-    
+
     def name(self):
-        return 'Urban Land Cover: Land Cover Fraction (Grid)'
+        return "Urban Land Cover: Land Cover Fraction (Grid)"
 
     def displayName(self):
         return self.tr(self.name())
@@ -346,36 +520,40 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
     def shortHelpString(self):
-        return self.tr('The Land Cover Fraction (Grid) plugin calculates land cover fractions required for UMEP (see <i>Land Cover Reclassifier</i>) '
-        'from a point location based on a land cover raster grid. A land cover grid suitable for the processor in UMEP can be derived using '
-        'the <i>Land Cover Classifier</i>. The fraction will vary depending on what angle (wind direction) you are interested in. Thus, this plugin '
-        'is able to derive the land cover fractions for different directions. It is the same as the <i>Land Cover Fraction (Point)</i> except that '
-        'this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares but could '
-        'be any other regular shape. To create such a grid, built in functions in QGIS can be used (see <i>Vector geometry -> Research Tools -> Create Grid</i> in the '
-        'Processing Toolbox).\n'
-        '\n'
-        'Standard land cover classes in UMEP: \n'
-        '1. Paved, 2. Buildings, 3. Evergreen trees, 4. Deciduous trees, 5. Grass, 6. Bare Soil, 7. Water.\n'
-        '\n'
-        'Two more land cover classes is added when the tickbox "Calculate fractions for TARGET" is ticked in: 8. Grass (irrigated), 9. Concrete.\n'
-        '\n'
-        '<b>NOTE</b>: It is possible to use the 7 standard LC-classes for the TARGET land cover fractions. See <i>Pre-Processor>Urban Heat Island>TARGET Prepare</i> for mor info.'
-        '\n'
-        '--------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "The Land Cover Fraction (Grid) plugin calculates land cover fractions required for UMEP (see <i>Land Cover Reclassifier</i>) "
+            "from a point location based on a land cover raster grid. A land cover grid suitable for the processor in UMEP can be derived using "
+            "the <i>Land Cover Classifier</i>. The fraction will vary depending on what angle (wind direction) you are interested in. Thus, this plugin "
+            "is able to derive the land cover fractions for different directions. It is the same as the <i>Land Cover Fraction (Point)</i> except that "
+            "this plugin calculates the fractions for each polygon object in polygon vector layer. The polygons should preferable be squares but could "
+            "be any other regular shape. To create such a grid, built in functions in QGIS can be used (see <i>Vector geometry -> Research Tools -> Create Grid</i> in the "
+            "Processing Toolbox).\n"
+            "\n"
+            "Standard land cover classes in UMEP: \n"
+            "1. Paved, 2. Buildings, 3. Evergreen trees, 4. Deciduous trees, 5. Grass, 6. Bare Soil, 7. Water.\n"
+            "\n"
+            'Two more land cover classes is added when the tickbox "Calculate fractions for TARGET" is ticked in: 8. Grass (irrigated), 9. Concrete.\n'
+            "\n"
+            "<b>NOTE</b>: It is possible to use the 7 standard LC-classes for the TARGET land cover fractions. See <i>Pre-Processor>Urban Heat Island>TARGET Prepare</i> for mor info."
+            "\n"
+            "--------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Land%20Cover%20Land%20Cover%20Fraction%20(Grid).html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/LandCoverFractionGridIcon.png")
         return icon
 

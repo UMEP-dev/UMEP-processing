@@ -22,137 +22,198 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant, QFileInfo
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                    #    QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterVectorDestination,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterExtent,
-                       QgsProcessingParameterDistance,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterField,
-                       QgsProcessingException)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    #    QgsProcessingParameterString,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterRasterDestination,
+    QgsProcessingParameterVectorDestination,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterExtent,
+    QgsProcessingParameterDistance,
+    QgsProcessingParameterRasterLayer,
+    QgsProcessingParameterField,
+    QgsProcessingException,
+)
+
 # from processing.gui.wrappers import WidgetWrapper
-from qgis.core import (QgsVectorLayer, 
-                        QgsField, 
-                        QgsExpression, 
-                        QgsExpressionContext, 
-                        QgsExpressionContextScope, 
-                        QgsVectorFileWriter, 
-                        QgsRasterLayer, 
-                        QgsCoordinateTransform)
+from qgis.core import (
+    QgsVectorLayer,
+    QgsField,
+    QgsExpression,
+    QgsExpressionContext,
+    QgsExpressionContextScope,
+    QgsVectorFileWriter,
+    QgsRasterLayer,
+    QgsCoordinateTransform,
+)
 from qgis.analysis import QgsZonalStatistics
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
-from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
-import sys
-from ..util import misc
 from ..util.misc import saveraster
 import requests
 from ..functions.URock.DataUtil import safe
+
 
 class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of DSM Generator
     """
 
-    INPUT_DEM = 'INPUT_DEM'
-    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
-    INPUT_FIELD = 'INPUT_FIELD'
+    INPUT_DEM = "INPUT_DEM"
+    INPUT_POLYGONLAYER = "INPUT_POLYGONLAYER"
+    INPUT_FIELD = "INPUT_FIELD"
 
-    USE_OSM = 'USE_OSM'
-    SAVE_OSM = 'SAVE_OSM'
-    BUILDING_LEVEL = 'BUILDING_LEVEL'
+    USE_OSM = "USE_OSM"
+    SAVE_OSM = "SAVE_OSM"
+    BUILDING_LEVEL = "BUILDING_LEVEL"
 
-    EXTENT = 'EXTENT'
-    PIXEL_RESOLUTION = 'PIXEL_RESOLUTION'
+    EXTENT = "EXTENT"
+    PIXEL_RESOLUTION = "PIXEL_RESOLUTION"
 
-    OUTPUT_DSM = 'OUTPUT_DSM'
-    OUTPUT_POLYGON = 'OUTPUT_POLYGON'
-    
+    OUTPUT_DSM = "OUTPUT_DSM"
+    OUTPUT_POLYGON = "OUTPUT_POLYGON"
+
     def initAlgorithm(self, config):
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-                self.tr('Input Digital Elevation Model:'), None, False))
-        
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-           self.tr('Polygon with building height:'), [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
-
-        self.addParameter(QgsProcessingParameterField(self.INPUT_FIELD,
-            self.tr('Field with building height'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric, optional=True))
-
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_OSM,
-            self.tr("Use Open Street Map:"), defaultValue=False))
-
-        self.addParameter(QgsProcessingParameterNumber(self.BUILDING_LEVEL, 
-            self.tr('Building level height (meter)'),
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(3.1), False, minValue=0))
-
-        self.addParameter(QgsProcessingParameterExtent(self.EXTENT,
-            self.tr('Extent')))
-
-        self.addParameter(QgsProcessingParameterDistance(self.PIXEL_RESOLUTION,
-            self.tr('Pixel resolution'),
-            defaultValue = 2.0,
-            parentParameterName='INPUT_DEM'))
-
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_DSM, 
-            self.tr('Output raster Digital Surface Model (DSM)'), 
-            None, False))
-
-        self.addParameter(QgsProcessingParameterVectorDestination(
-            self.OUTPUT_POLYGON,
-            self.tr("Output shapefile with Open Street Map data"),
-            optional=True,
-            createByDefault=False
-                )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DEM,
+                self.tr("Input Digital Elevation Model:"),
+                None,
+                False,
             )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POLYGONLAYER,
+                self.tr("Polygon with building height:"),
+                [QgsProcessing.SourceType.TypeVectorPolygon],
+                optional=True,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.INPUT_FIELD,
+                self.tr("Field with building height"),
+                "",
+                self.INPUT_POLYGONLAYER,
+                QgsProcessingParameterField.DataType.Numeric,
+                optional=True,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_OSM,
+                self.tr("Use Open Street Map:"),
+                defaultValue=False,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.BUILDING_LEVEL,
+                self.tr("Building level height (meter)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(3.1),
+                False,
+                minValue=0,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterExtent(self.EXTENT, self.tr("Extent"))
+        )
+
+        self.addParameter(
+            QgsProcessingParameterDistance(
+                self.PIXEL_RESOLUTION,
+                self.tr("Pixel resolution"),
+                defaultValue=2.0,
+                parentParameterName="INPUT_DEM",
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterRasterDestination(
+                self.OUTPUT_DSM,
+                self.tr("Output raster Digital Surface Model (DSM)"),
+                None,
+                False,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterVectorDestination(
+                self.OUTPUT_POLYGON,
+                self.tr("Output shapefile with Open Street Map data"),
+                optional=True,
+                createByDefault=False,
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         # Input data
-        demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context) 
-        shapelayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
-        heightField = self.parameterAsFields(parameters, self.INPUT_FIELD, context)
+        demlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DEM, context
+        )
+        shapelayer = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONLAYER, context
+        )
+        heightField = self.parameterAsFields(
+            parameters, self.INPUT_FIELD, context
+        )
 
         # OSM switches
         useOsm = self.parameterAsBool(parameters, self.USE_OSM, context)
 
-        buildingLevelHeight = self.parameterAsDouble(parameters, self.BUILDING_LEVEL, context)
+        buildingLevelHeight = self.parameterAsDouble(
+            parameters, self.BUILDING_LEVEL, context
+        )
 
         # Output settings
         inputExtent = self.parameterAsExtent(parameters, self.EXTENT, context)
         inputCrs = self.parameterAsExtentCrs(parameters, self.EXTENT, context)
-        pixelResolution = self.parameterAsDouble(parameters, self.PIXEL_RESOLUTION, context)
+        pixelResolution = self.parameterAsDouble(
+            parameters, self.PIXEL_RESOLUTION, context
+        )
 
         # Output data
-        outputDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_DSM, context)
-        outputShape = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
+        outputDSM = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_DSM, context
+        )
+        outputShape = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_POLYGON, context
+        )
 
-        if parameters['OUTPUT_DSM'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DSM"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDSM)):
                 os.mkdir(outputDSM)
 
-        feedback.setProgressText('Checking extents and coordinate systems')
+        feedback.setProgressText("Checking extents and coordinate systems")
 
         if inputCrs.toWkt() != demlayer.crs().toWkt():
-            feedback.pushInfo('Coordinate system of Map canvas and input DEM layer differs!')
-            #raise QgsProcessingException('Coordinate system of Map canvas and input DEM layer differs!')
+            feedback.pushInfo(
+                "Coordinate system of Map canvas and input DEM layer differs!"
+            )
+            # raise QgsProcessingException('Coordinate system of Map canvas and input DEM layer differs!')
 
         # Input extent
         maxy = inputExtent.yMaximum()
@@ -167,7 +228,8 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         dem_maxx = dem_extent.xMaximum()
         dem_minx = dem_extent.xMinimum()
 
-        # Coordinate systems of input extent (can be map canvas, drawn rectangle or layer) and DEM layer.
+        # Coordinate systems of input extent (can be map canvas, drawn
+        # rectangle or layer) and DEM layer.
         dem_crs = osr.SpatialReference()
         crs_temp = demlayer.crs().toWkt()
         dem_crs.ImportFromWkt(crs_temp)
@@ -178,30 +240,53 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         if inputCrs.toWkt() != demlayer.crs().toWkt():
             gdalver = float(gdal.__version__[0])
-            if gdalver == 3.:
-                minext = ogr.CreateGeometryFromWkt('POINT (' + str(minx) + ' ' + str(miny) + ')')
+            if gdalver == 3.0:
+                minext = ogr.CreateGeometryFromWkt(
+                    "POINT (" + str(minx) + " " + str(miny) + ")"
+                )
                 minext.Transform(transformExtent)
-                maxext = ogr.CreateGeometryFromWkt('POINT (' + str(maxx) + ' ' + str(maxy) + ')')
+                maxext = ogr.CreateGeometryFromWkt(
+                    "POINT (" + str(maxx) + " " + str(maxy) + ")"
+                )
                 maxext.Transform(transformExtent)
-                extent_difference_minx = minext.GetX() - dem_minx # If smaller than zero = warning #changed to gdal 3
-                extent_difference_miny = minext.GetY() - dem_miny # If smaller than zero = warning #changed to gdal 3
-                extent_difference_maxx = maxext.GetX() - dem_maxx # If larger than zero = warning #changed to gdal 3
-                extent_difference_maxy = maxext.GetY() - dem_maxy # If larger than zero = warning #changed to gdal 3
+                # If smaller than zero = warning #changed to gdal 3
+                extent_difference_minx = minext.GetX() - dem_minx
+                # If smaller than zero = warning #changed to gdal 3
+                extent_difference_miny = minext.GetY() - dem_miny
+                # If larger than zero = warning #changed to gdal 3
+                extent_difference_maxx = maxext.GetX() - dem_maxx
+                # If larger than zero = warning #changed to gdal 3
+                extent_difference_maxy = maxext.GetY() - dem_maxy
             else:
                 input_xymin = transformExtent.TransformPoint(minx, miny)
                 input_xymax = transformExtent.TransformPoint(maxx, maxy)
-                extent_difference_minx = input_xymin[0] - dem_minx # If smaller than zero = warning #changed to gdal 2
-                extent_difference_miny = input_xymin[1] - dem_miny # If smaller than zero = warning #changed to gdal 2
-                extent_difference_maxx = input_xymax[0] - dem_maxx # If larger than zero = warning #changed to gdal 2
-                extent_difference_maxy = input_xymax[1] - dem_maxy # If larger than zero = warning #changed to gdal 2
+                # If smaller than zero = warning #changed to gdal 2
+                extent_difference_minx = input_xymin[0] - dem_minx
+                # If smaller than zero = warning #changed to gdal 2
+                extent_difference_miny = input_xymin[1] - dem_miny
+                # If larger than zero = warning #changed to gdal 2
+                extent_difference_maxx = input_xymax[0] - dem_maxx
+                # If larger than zero = warning #changed to gdal 2
+                extent_difference_maxy = input_xymax[1] - dem_maxy
         else:
-            extent_difference_minx = minx - dem_minx # If smaller than zero = warning #changed to gdal 3
-            extent_difference_miny = miny - dem_miny # If smaller than zero = warning #changed to gdal 3
-            extent_difference_maxx = maxx - dem_maxx # If larger than zero = warning #changed to gdal 3
-            extent_difference_maxy = maxy - dem_maxy # If larger than zero = warning #changed to gdal 3
+            # If smaller than zero = warning #changed to gdal 3
+            extent_difference_minx = minx - dem_minx
+            # If smaller than zero = warning #changed to gdal 3
+            extent_difference_miny = miny - dem_miny
+            # If larger than zero = warning #changed to gdal 3
+            extent_difference_maxx = maxx - dem_maxx
+            # If larger than zero = warning #changed to gdal 3
+            extent_difference_maxy = maxy - dem_maxy
 
-        if extent_difference_minx < -0.1 or extent_difference_miny < -0.1 or extent_difference_maxx > 0.1 or extent_difference_maxy > 0.1:
-            raise QgsProcessingException('Warning! Extent of map canvas is larger than raster extent. Change to an extent equal to or smaller than the raster extent.')
+        if (
+            extent_difference_minx < -0.1
+            or extent_difference_miny < -0.1
+            or extent_difference_maxx > 0.1
+            or extent_difference_maxy > 0.1
+        ):
+            raise QgsProcessingException(
+                "Warning! Extent of map canvas is larger than raster extent. Change to an extent equal to or smaller than the raster extent."
+            )
 
         provider = demlayer.dataProvider()
         filepath_dem = str(provider.dataSourceUri())
@@ -210,29 +295,58 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         dem_crs = osr.SpatialReference()
         dem_crs.ImportFromWkt(gdal_dem.GetProjection())
-        dem_unit = dem_crs.GetAttrValue('UNIT')
+        dem_unit = dem_crs.GetAttrValue("UNIT")
 
-        possible_units = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm', 'ft', 'US survey foot', 'feet', 'Feet', 'foot', 'Foot', 'ftUS', 'International foot'] # Possible units
+        possible_units = [
+            "metre",
+            "Metre",
+            "metres",
+            "Metres",
+            "meter",
+            "Meter",
+            "meters",
+            "Meters",
+            "m",
+            "ft",
+            # Possible units
+            "US survey foot",
+            "feet",
+            "Feet",
+            "foot",
+            "Foot",
+            "ftUS",
+            "International foot",
+        ]
         if not dem_unit in possible_units:
-            raise QgsProcessingException('Error! Raster projection is not in meters or feet. Please reproject.')
+            raise QgsProcessingException(
+                "Error! Raster projection is not in meters or feet. Please reproject."
+            )
 
         if shapelayer is None and useOsm is False:
-            raise QgsProcessingException('Error! No valid building height layer is selected.')
+            raise QgsProcessingException(
+                "Error! No valid building height layer is selected."
+            )
         elif shapelayer:
             idx = shapelayer.fields().indexFromName(heightField[0])
 
             if idx == -1:
-                raise QgsProcessingException('Error! An attribute with unique fields must be selected.')
+                raise QgsProcessingException(
+                    "Error! An attribute with unique fields must be selected."
+                )
 
         ### main code ###
-        feedback.setProgressText('Initiating algorithm')
+        feedback.setProgressText("Initiating algorithm")
         feedback.setProgress(10)
 
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        temp_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/temp/'
+        temp_dir = (
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            + "/temp/"
+        )
 
         if useOsm:
-            # Coordinate system of input DEM layer used for creation of OSM shapefile
+            # Coordinate system of input DEM layer used for creation of OSM
+            # shapefile
             ras_crs = osr.SpatialReference()
             dsm_ref = demlayer.crs().toWkt()
             ras_crs.ImportFromWkt(dsm_ref)
@@ -254,22 +368,28 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             osm_crs = osr.SpatialReference()
             osm_crs.ImportFromWkt(wgs84_wkt)
 
-            # Transform to convert from input extent coordinate system to Open Street Map coordinate system
+            # Transform to convert from input extent coordinate system to Open
+            # Street Map coordinate system
             transform = osr.CoordinateTransformation(input_crs, osm_crs)
-        
+
             gdalver = float(gdal.__version__[0])
-            if gdalver == 3.:
+            if gdalver == 3.0:
                 # New code Fredrik 20200625
-                lonlatmin = ogr.CreateGeometryFromWkt('POINT (' + str(minx) + ' ' + str(miny) + ')')
+                lonlatmin = ogr.CreateGeometryFromWkt(
+                    "POINT (" + str(minx) + " " + str(miny) + ")"
+                )
                 lonlatmin.Transform(transform)
-                lonlatmax = ogr.CreateGeometryFromWkt('POINT (' + str(maxx) + ' ' + str(maxy) + ')')
+                lonlatmax = ogr.CreateGeometryFromWkt(
+                    "POINT (" + str(maxx) + " " + str(maxy) + ")"
+                )
                 lonlatmax.Transform(transform)
                 lonmin = lonlatmin.GetY()
                 lonmax = lonlatmax.GetY()
                 latmin = lonlatmin.GetX()
                 latmax = lonlatmax.GetX()
                 # lonlatmin = transform.TransformPoint(miny, minx) #changed to gdal 3
-                # lonlatmax = transform.TransformPoint(maxy, maxx) #changed to gdal 3
+                # lonlatmax = transform.TransformPoint(maxy, maxx) #changed to
+                # gdal 3
             else:
                 lonlatmin = transform.TransformPoint(minx, miny)
                 lonlatmax = transform.TransformPoint(maxx, maxy)
@@ -279,96 +399,149 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 latmax = lonlatmax[1]
 
             # Make data queries to overpass-api
-            urlStr = 'http://overpass-api.de/api/map?bbox=' + str(lonmin) + ',' + str(latmin) + ',' + str(lonmax) + ',' + str(latmax)
+            urlStr = (
+                "http://overpass-api.de/api/map?bbox="
+                + str(lonmin)
+                + ","
+                + str(latmin)
+                + ","
+                + str(lonmax)
+                + ","
+                + str(latmax)
+            )
             res = requests.get(urlStr, timeout=15)
             osmXml = res.text
             # with urllib.request.urlopen(urlStr) as response:
             #     osmXml = response.read()
             #     osmXml = osmXml.decode('UTF-8')
-            osmPath = temp_dir + 'OSM_building.osm'
-            osmFile = open(osmPath, 'w', encoding='utf-8')
+            osmPath = temp_dir + "OSM_building.osm"
+            osmFile = open(osmPath, "w", encoding="utf-8")
             osmFile.write(osmXml)
-            feedback.setProgressText('Downloading OSM data from ' + urlStr)
+            feedback.setProgressText("Downloading OSM data from " + urlStr)
 
             if os.fstat(osmFile.fileno()).st_size < 1:
-                urlStr = 'http://api.openstreetmap.org/api/0.6/map?bbox=' + str(lonmin) + ',' + str(latmin) + ',' + str(lonmax) + ',' + str(latmax)
+                urlStr = (
+                    "http://api.openstreetmap.org/api/0.6/map?bbox="
+                    + str(lonmin)
+                    + ","
+                    + str(latmin)
+                    + ","
+                    + str(lonmax)
+                    + ","
+                    + str(latmax)
+                )
                 res = requests.get(urlStr, timeout=15)
                 osmXml = res.text
                 # with urllib.request.urlopen(urlStr) as response:
                 #     osmXml = response.read()
                 #     osmXml = osmXml.decode('UTF-8')
-                osmPath = temp_dir + 'OSM_building.osm'
-                osmFile = open(osmPath, 'w', encoding='utf-8')
+                osmPath = temp_dir + "OSM_building.osm"
+                osmFile = open(osmPath, "w", encoding="utf-8")
                 osmFile.write(osmXml)
-                feedback.setProgressText('Downloading OSM data from ' + urlStr)
+                feedback.setProgressText("Downloading OSM data from " + urlStr)
                 if os.fstat(osmFile.fileno()).st_size < 1:
-                    raise QgsProcessingException('Error! No OSM data available.')
+                    raise QgsProcessingException(
+                        "Error! No OSM data available."
+                    )
 
             osmFile.close()
 
-            #Creating shapefile from OSM data
-            osmconf_dir = root_dir + '/functions/DSMGenerator/osmconf.ini'
+            # Creating shapefile from OSM data
+            osmconf_dir = root_dir + "/functions/DSMGenerator/osmconf.ini"
 
             gdal.SetConfigOption("OSM_CONFIG_FILE", osmconf_dir)
 
-            osm_option = gdal.VectorTranslateOptions(options=[
-            '-skipfailures', 
-            '-t_srs', 'EPSG:' + str(ras_epsg),
-            '-overwrite',
-            '-nlt', 'MULTIPOLYGON',
-            '-f', 'ESRI Shapefile'])
+            osm_option = gdal.VectorTranslateOptions(
+                options=[
+                    "-skipfailures",
+                    "-t_srs",
+                    "EPSG:" + str(ras_epsg),
+                    "-overwrite",
+                    "-nlt",
+                    "MULTIPOLYGON",
+                    "-f",
+                    "ESRI Shapefile",
+                ]
+            )
 
             gdal.VectorTranslate(temp_dir, osmPath, options=osm_option)
 
-            driver = ogr.GetDriverByName('ESRI Shapefile')
-            driver.DeleteDataSource(temp_dir + 'lines.shp')
-            driver.DeleteDataSource(temp_dir + 'multilinestrings.shp')
-            driver.DeleteDataSource(temp_dir + 'other_relations.shp')
-            driver.DeleteDataSource(temp_dir + 'points.shp')
+            driver = ogr.GetDriverByName("ESRI Shapefile")
+            driver.DeleteDataSource(temp_dir + "lines.shp")
+            driver.DeleteDataSource(temp_dir + "multilinestrings.shp")
+            driver.DeleteDataSource(temp_dir + "other_relations.shp")
+            driver.DeleteDataSource(temp_dir + "points.shp")
 
-            osmPolygonPath = temp_dir + 'multipolygons.shp'
-            vlayer = QgsVectorLayer(osmPolygonPath, 'multipolygons', 'ogr') # Reads temp file made from OSM data
+            osmPolygonPath = temp_dir + "multipolygons.shp"
+            # Reads temp file made from OSM data
+            vlayer = QgsVectorLayer(osmPolygonPath, "multipolygons", "ogr")
             fileInfo = QFileInfo(vlayer.source())
             polygon_ln = fileInfo.baseName()
 
             # Renames attribute fields
             def renameField(srcLayer, oldFieldName, newFieldName):
-                ds = gdal.OpenEx(srcLayer.source(), gdal.OF_VECTOR | gdal.OF_UPDATE)
-                ds.ExecuteSQL('ALTER TABLE {} RENAME COLUMN {} TO {}'.format(srcLayer.name(), oldFieldName, newFieldName))
+                ds = gdal.OpenEx(
+                    srcLayer.source(), gdal.OF_VECTOR | gdal.OF_UPDATE
+                )
+                ds.ExecuteSQL(
+                    "ALTER TABLE {} RENAME COLUMN {} TO {}".format(
+                        srcLayer.name(), oldFieldName, newFieldName
+                    )
+                )
                 srcLayer.reload()
+
             vlayer.startEditing()
-            renameField(vlayer, 'building_l', 'bld_levels')
-            renameField(vlayer, 'building_h', 'bld_hght')
-            renameField(vlayer, 'building_c', 'bld_colour')
-            renameField(vlayer, 'building_m', 'bld_materi')
-            renameField(vlayer, 'building_u', 'bld_use')
+            renameField(vlayer, "building_l", "bld_levels")
+            renameField(vlayer, "building_h", "bld_hght")
+            renameField(vlayer, "building_c", "bld_colour")
+            renameField(vlayer, "building_m", "bld_materi")
+            renameField(vlayer, "building_u", "bld_use")
             vlayer.commitChanges()
 
             # Adding building height field
             vlayer.startEditing()
-            vlayer.dataProvider().addAttributes([QgsField('bld_height', QVariant.Double, 'double', 3, 2)])
+            vlayer.dataProvider().addAttributes(
+                [QgsField("bld_height", QVariant.Double, "double", 3, 2)]
+            )
             vlayer.updateFields()
 
-            flname = 'bld_height'
+            flname = "bld_height"
 
             counterNone = 0
             counter = 0
             for feature in vlayer.getFeatures():
-                if feature['height']:   # Tries first with actual building height data
+                if feature[
+                    "height"
+                ]:  # Tries first with actual building height data
                     try:
-                        feature.setAttribute(feature.fieldNameIndex('bld_height'), float(str(feature['height'])))
-                    except:
+                        feature.setAttribute(
+                            feature.fieldNameIndex("bld_height"),
+                            float(str(feature["height"])),
+                        )
+                    except BaseException:
                         counterNone += 1
-                elif feature['bld_hght']: # Tries with possible building height data (other tag for height??)
+                # Tries with possible building height data (other tag for
+                # height??)
+                elif feature["bld_hght"]:
                     try:
-                        feature.setAttribute(feature.fieldNameIndex('bld_height'), float(str(feature['bld_hght'])))
-                    except:
+                        feature.setAttribute(
+                            feature.fieldNameIndex("bld_height"),
+                            float(str(feature["bld_hght"])),
+                        )
+                    except BaseException:
                         counterNone += 1
-                elif feature['bld_levels']:  # If no height or building height then make building height from stories
+                # If no height or building height then make building height
+                # from stories
+                elif feature["bld_levels"]:
                     try:
-                        temp = float(str(feature['bld_levels'])) * buildingLevelHeight
-                        feature.setAttribute(feature.fieldNameIndex('bld_height'), temp)
-                    except:
+                        temp = (
+                            float(str(feature["bld_levels"]))
+                            * buildingLevelHeight
+                        )
+                        feature.setAttribute(
+                            feature.fieldNameIndex("bld_height"), temp
+                        )
+                    except BaseException:
                         counterNone += 1
                 else:
                     counterNone += 1
@@ -376,9 +549,10 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 counter += 1
             vlayer.commitChanges()
             counterDiff = counter - counterNone
-        
+
         else:
-            # If not OSM data, input polygon layer with building heights should be used
+            # If not OSM data, input polygon layer with building heights should
+            # be used
             vlayer = shapelayer
             fileInfo = QFileInfo(vlayer.source())
             polygon_ln = fileInfo.baseName()
@@ -393,10 +567,14 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         # Zonal statistics
         vlayer.startEditing()
-        zoneStat = QgsZonalStatistics(vlayer, rlayer, "stats_", 1, QgsZonalStatistics.Statistic.Mean)
+        zoneStat = QgsZonalStatistics(
+            vlayer, rlayer, "stats_", 1, QgsZonalStatistics.Statistic.Mean
+        )
         zoneStat.calculateStatistics(None)
 
-        vlayer.dataProvider().addAttributes([QgsField('height_asl', QVariant.Double, 'double', 5, 2)])
+        vlayer.dataProvider().addAttributes(
+            [QgsField("height_asl", QVariant.Double, "double", 5, 2)]
+        )
         vlayer.updateFields()
 
         context = QgsExpressionContext()
@@ -405,60 +583,100 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         for f in vlayer.getFeatures():
             scope.setFeature(f)
-            exp = QgsExpression('stats_mean + ' + flname)
-            f.setAttribute(f.fieldNameIndex('height_asl'), exp.evaluate(context))
+            exp = QgsExpression("stats_mean + " + flname)
+            f.setAttribute(
+                f.fieldNameIndex("height_asl"), exp.evaluate(context)
+            )
             vlayer.updateFeature(f)
 
         vlayer.commitChanges()
 
-        # Sort vlayer ascending to prevent lower buildings from overwriting higher buildings in some complexes
-        sortPoly = temp_dir + 'sortPoly.shp'
+        # Sort vlayer ascending to prevent lower buildings from overwriting
+        # higher buildings in some complexes
+        sortPoly = temp_dir + "sortPoly.shp"
 
         if useOsm:
-            sort_options = gdal.VectorTranslateOptions(options=safe([
-                '-sql', 'SELECT * FROM multipolygons ORDER BY height_asl ASC']))
-            gdal.VectorTranslate(str(sortPoly), str(osmPolygonPath), options=sort_options)
+            sort_options = gdal.VectorTranslateOptions(
+                options=safe(
+                    [
+                        "-sql",
+                        "SELECT * FROM multipolygons ORDER BY height_asl ASC",
+                    ]
+                )
+            )
+            gdal.VectorTranslate(
+                str(sortPoly), str(osmPolygonPath), options=sort_options
+            )
         else:
-            query = safe('SELECT * FROM "{table}" ORDER BY height_asl ASC').format(table=safe(str(polygon_ln)))
+            query = safe(
+                'SELECT * FROM "{table}" ORDER BY height_asl ASC'
+            ).format(table=safe(str(polygon_ln)))
 
-            sort_options = gdal.VectorTranslateOptions(options=[
-                '-select', 'height_asl',
-                '-sql', safe(query)
-            ])
-            gdal.VectorTranslate(str(sortPoly), str(vlayer.source()), options=sort_options)
+            sort_options = gdal.VectorTranslateOptions(
+                options=["-select", "height_asl", "-sql", safe(query)]
+            )
+            gdal.VectorTranslate(
+                str(sortPoly), str(vlayer.source()), options=sort_options
+            )
 
         # Reads temp file with sorted polygons
-        sort_layer = QgsVectorLayer(sortPoly, 'sortPoly', 'ogr')
+        sort_layer = QgsVectorLayer(sortPoly, "sortPoly", "ogr")
         fileInfo = QFileInfo(sort_layer.source())
         sort_ln = fileInfo.baseName()
 
         # Convert polygon layer to raster
         # Create the destination data source
-        rasterize_options = gdal.RasterizeOptions(options=[
-            '-a', 'height_asl',
-            '-te', str(minx), str(miny), str(maxx), str(maxy),
-            '-tr', str(pixelResolution), str(pixelResolution),
-            '-l', str(sort_ln)])
+        rasterize_options = gdal.RasterizeOptions(
+            options=[
+                "-a",
+                "height_asl",
+                "-te",
+                str(minx),
+                str(miny),
+                str(maxx),
+                str(maxy),
+                "-tr",
+                str(pixelResolution),
+                str(pixelResolution),
+                "-l",
+                str(sort_ln),
+            ]
+        )
 
-        gdal.Rasterize(temp_dir + 'clipdsm.tif', str(sort_layer.source()), options=rasterize_options)
+        gdal.Rasterize(
+            temp_dir + "clipdsm.tif",
+            str(sort_layer.source()),
+            options=rasterize_options,
+        )
 
-        warp_options = gdal.WarpOptions(options=[
-            '-dstnodata', '-9999',
-            '-q',
-            '-overwrite',
-            '-te', str(minx), str(miny), str(maxx), str(maxy),
-            '-tr', str(pixelResolution), str(pixelResolution),
-            '-of', 'GTiff'])
+        warp_options = gdal.WarpOptions(
+            options=[
+                "-dstnodata",
+                "-9999",
+                "-q",
+                "-overwrite",
+                "-te",
+                str(minx),
+                str(miny),
+                str(maxx),
+                str(maxy),
+                "-tr",
+                str(pixelResolution),
+                str(pixelResolution),
+                "-of",
+                "GTiff",
+            ]
+        )
 
-        gdal.Warp(temp_dir + 'clipdem.tif', filepath_dem, options=warp_options)
+        gdal.Warp(temp_dir + "clipdem.tif", filepath_dem, options=warp_options)
 
         feedback.setProgress(60)
 
         # Adding DSM to DEM
         # Read DEM
-        dem_raster = gdal.Open(temp_dir + 'clipdem.tif')
+        dem_raster = gdal.Open(temp_dir + "clipdem.tif")
         dem_array = np.array(dem_raster.ReadAsArray().astype(float))
-        dsm_raster = gdal.Open(temp_dir + 'clipdsm.tif')
+        dsm_raster = gdal.Open(temp_dir + "clipdsm.tif")
         dsm_array = np.array(dsm_raster.ReadAsArray().astype(float))
 
         indx = dsm_array.shape
@@ -472,26 +690,53 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             vlayer.startEditing()
             for f in vlayer.getFeatures():
                 geom = f.geometry()
-                possible_units_metre = ['metre', 'Metre', 'metres', 'Metres', 'meter', 'Meter', 'meters', 'Meters', 'm']  # Possible metre units
-                possible_units_feet = ['ft', 'US survey foot', 'feet', 'Feet', 'foot', 'Foot', 'ftUS', 'International foot'] # Possible foot units
+                possible_units_metre = [
+                    "metre",
+                    "Metre",
+                    "metres",
+                    "Metres",
+                    "meter",
+                    "Meter",
+                    "meters",
+                    "Meters",
+                    "m",
+                ]  # Possible metre units
+                possible_units_feet = [
+                    "ft",
+                    "US survey foot",
+                    "feet",
+                    "Feet",
+                    "foot",
+                    "Foot",
+                    "ftUS",
+                    "International foot",
+                ]  # Possible foot units
                 if dem_unit in possible_units_metre:
                     sqUnit = 1
                 elif dem_unit in possible_units_feet:
                     sqUnit = 10.76
-                if int(geom.area()) > 50000*sqUnit: # Deleting large polygons
+                if (
+                    int(geom.area()) > 50000 * sqUnit
+                ):  # Deleting large polygons
                     vlayer.deleteFeature(f.id())
 
                 vlayer.updateFeature(f)
             vlayer.updateFields()
             vlayer.commitChanges()
-            QgsVectorFileWriter.writeAsVectorFormat(vlayer, str(outputShape), "UTF-8", QgsCoordinateTransform(), "ESRI Shapefile")
+            QgsVectorFileWriter.writeAsVectorFormat(
+                vlayer,
+                str(outputShape),
+                "UTF-8",
+                QgsCoordinateTransform(),
+                "ESRI Shapefile",
+            )
         # If using other data than OSM, remove some fields
         elif not useOsm:
             vlayer.startEditing()
-            idx1 = vlayer.fields().indexFromName('stats_mean')
+            idx1 = vlayer.fields().indexFromName("stats_mean")
             vlayer.dataProvider().deleteAttributes([idx1])
             vlayer.updateFields()
-            idx2 = vlayer.fields().indexFromName('height_asl')
+            idx2 = vlayer.fields().indexFromName("height_asl")
             vlayer.dataProvider().deleteAttributes([idx2])
             vlayer.updateFields()
             vlayer.commitChanges()
@@ -501,20 +746,31 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         saveraster(dsm_raster, outputDSM, dsm_array)
 
         if useOsm:
-            feedback.setProgressText('DSM Generator: Operation successful! ' + str(counterDiff) + ' building polygons out of ' + str(counter) + ' contained height values.')
+            feedback.setProgressText(
+                "DSM Generator: Operation successful! "
+                + str(counterDiff)
+                + " building polygons out of "
+                + str(counter)
+                + " contained height values."
+            )
         else:
-            feedback.setProgressText('DSM Generator: Operation successful!')
+            feedback.setProgressText("DSM Generator: Operation successful!")
 
         feedback.setProgress(100)
-        feedback.setProgressText("DSM Generator: Digital Surface Model successfully generated")
+        feedback.setProgressText(
+            "DSM Generator: Digital Surface Model successfully generated"
+        )
 
         if len(outputShape) > 0:
-            return {self.OUTPUT_DSM: outputDSM, self.OUTPUT_POLYGON: outputShape}
+            return {
+                self.OUTPUT_DSM: outputDSM,
+                self.OUTPUT_POLYGON: outputShape,
+            }
         else:
             return {self.OUTPUT_DSM: outputDSM}
 
     def name(self):
-        return 'Spatial Data: DSM Generator'
+        return "Spatial Data: DSM Generator"
 
     def displayName(self):
         return self.tr(self.name())
@@ -523,34 +779,38 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
-    def shortHelpString(self):        
-        return self.tr('Digital Surface Models (DSMs) is not always available for the area you want to investigate. '
-                        'The DSM Generator can be used to create or alter a DSM by using information from a polygon '
-                        'building footprint layer where a building height attribute is available. An option to acquire '
-                        'building footprints, and also in some cases building height from <i>Open Street Map</i> data, is '
-                        'available from this plugin.<br>'
-                        '\n'
-                        '<b>Required input:</b>'
-                        '<ul><li>Digital Elevation Model (DEM) raster data in metres or feet.</li>'
-                        '<li>Either a polygon shapefile with building height information or use OSM data (tick Use Open Street Map). </li>'
-                        '<li>Building level height is used for OSM data to represent building height when only information on building stories is available.</li>'
-                        '<li>Pixel resolution is in same unit as the input DEM data.</li>'
-                        '<li>Output is a Digital Surface Model (DSM).</li>'
-                        '<li>Optional output is a polygon shapefile with the OSM data, if OSM data is being used.</ul>'
-                        '\n'
-                        'Full manual available via the <b>Help</b>-button.')
+    def shortHelpString(self):
+        return self.tr(
+            "Digital Surface Models (DSMs) is not always available for the area you want to investigate. "
+            "The DSM Generator can be used to create or alter a DSM by using information from a polygon "
+            "building footprint layer where a building height attribute is available. An option to acquire "
+            "building footprints, and also in some cases building height from <i>Open Street Map</i> data, is "
+            "available from this plugin.<br>"
+            "\n"
+            "<b>Required input:</b>"
+            "<ul><li>Digital Elevation Model (DEM) raster data in metres or feet.</li>"
+            "<li>Either a polygon shapefile with building height information or use OSM data (tick Use Open Street Map). </li>"
+            "<li>Building level height is used for OSM data to represent building height when only information on building stories is available.</li>"
+            "<li>Pixel resolution is in same unit as the input DEM data.</li>"
+            "<li>Output is a Digital Surface Model (DSM).</li>"
+            "<li>Optional output is a polygon shapefile with the OSM data, if OSM data is being used.</ul>"
+            "\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Spatial%20Data%20DSM%20Generator.html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/DSMGeneratorIcon.png")
         return icon
 

@@ -5,12 +5,10 @@ Created on Mon Jan 25 16:26:24 2021
 
 @author: Jérémy Bernard, University of Gothenburg
 """
+
 import pandas as pd
 import tempfile
 import os
-import math
-import numpy as np
-from datetime import datetime
 
 # Wind input measurement height
 Z_REF = 10
@@ -24,14 +22,15 @@ REMOVE_INITIALIZATION_OFFSET = False
 # If the solver should go descending order along y (does not work yet...)
 DESCENDING_Y = False
 
-# Street canyon scheme limitation (below this angle, no street canyon is created)
+# Street canyon scheme limitation (below this angle, no street canyon is
+# created)
 STREET_CANYON_ANGLE_THRESH = 30
 
 # Temporary directory where are saved database and specific files exchanged between
 # the H2Database and Python
 TEMPO_DIRECTORY = tempfile.gettempdir()
-INPUT_DIRECTORY = os.path.join("./Resources","Inputs")
-OUTPUT_DIRECTORY = os.path.join("./Resources","Outputs")
+INPUT_DIRECTORY = os.path.join("./Resources", "Inputs")
+OUTPUT_DIRECTORY = os.path.join("./Resources", "Outputs")
 BUILDING_TABLE_NAME = "BUILDINGS"
 VEGETATION_TABLE_NAME = "VEGETATION"
 CAD_TRIANGLE_NAME = "ALL_TRIANGLES"
@@ -55,7 +54,8 @@ VECTOR_STYLE_FILENAME = "vectorStyle.qml"
 # List of vertical height for the output horizontal wind
 Z_OUT = [1.5]
 
-# Output field names (Horizontal wind speed, wind direction and vertical wind speed)
+# Output field names (Horizontal wind speed, wind direction and vertical
+# wind speed)
 HORIZ_WIND_SPEED = "HWS"
 HORIZ_WIND_DIRECTION = "HWD"
 VERT_WIND_SPEED = "VWS"
@@ -63,7 +63,7 @@ WIND_SPEED = "WS"
 
 # Informations to set the DB used for geographical calculations
 INSTANCE_NAME = "myDbH2"
-INSTANCE_ID ="sa"
+INSTANCE_ID = "sa"
 INSTANCE_PASS = "sa"
 NEW_DB = True
 
@@ -75,13 +75,13 @@ JAVA_PATH_FILENAME = "JavaPath.csv"
 DEBUG = False
 ONLY_INITIALIZATION = False
 SAVE_ROCKLE_ZONES = False
-MAX_ITERATIONS = 500      # Based on QUIC-URB default values (2021)
-THRESHOLD_ITERATIONS = 1e-4 # Based on QUIC-URB default values (2021)
+MAX_ITERATIONS = 500  # Based on QUIC-URB default values (2021)
+THRESHOLD_ITERATIONS = 1e-4  # Based on QUIC-URB default values (2021)
 
 # Note that the number of points of an ellipse is only used to identify whether
 # the upper or lower part of an ellipse should be used (fro displacement zones),
 # the number of points used to create an ellipse can not be chosen yet
-# Need to create this variable in H2GIS 
+# Need to create this variable in H2GIS
 # https://github.com/locationtech/jts/blob/9d4097312d68cb8f9ae591bec69ce3b403e41e98/modules/core/src/main/java/org/locationtech/jts/util/GeometricShapeFactory.java#L101
 NPOINTS_ELLIPSE = 100
 MESH_SIZE = 2
@@ -93,14 +93,18 @@ CAV_N_WAKE_FACADE_NPOINTS = 3
 
 # The "perpendicular vortex scheme" for rooftop and displacement zones is activated
 # if the wind angle if more or less 'PERPENDICULAR_THRESHOLD_ANGLE' ° higher
-# or lower than 90° (20° is given in Bagal et al. - 2004 and 15° in Pol et al. - 2006)
+# or lower than 90° (20° is given in Bagal et al. - 2004 and 15° in Pol et
+# al. - 2006)
 PERPENDICULAR_THRESHOLD_ANGLE = 15
 # "Corner wind" rooftop recirculation is activated when a facade is 30 to 70° to
 # the perpendicular to the wind direction (Bagal et al., 2004)
 CORNER_THRESHOLD_ANGLE_MIN = 30
 CORNER_THRESHOLD_ANGLE_MAX = 70
-CORNER_THRESHOLD_ANGLE = [CORNER_THRESHOLD_ANGLE_MIN, CORNER_THRESHOLD_ANGLE_MAX]
-ELLIPSOID_MIN_LENGTH = float(MESH_SIZE)/4
+CORNER_THRESHOLD_ANGLE = [
+    CORNER_THRESHOLD_ANGLE_MIN,
+    CORNER_THRESHOLD_ANGLE_MAX,
+]
+ELLIPSOID_MIN_LENGTH = float(MESH_SIZE) / 4
 GEOMETRY_MERGE_TOLERANCE = 0.05
 SNAPPING_TOLERANCE = 0.3
 GEOMETRY_SIMPLIFICATION_DISTANCE = 0.25
@@ -196,15 +200,16 @@ C_DZ = 0.4
 P_DZ = 0.16
 # Coefficient for rooftop perpendicular
 P_RTP = 0.16
-# Default vegetation attenuation factor (value for Larch plantation - Cionco et al. (1978))
+# Default vegetation attenuation factor (value for Larch plantation -
+# Cionco et al. (1978))
 DEFAULT_VEG_ATTEN_FACT = 1.00
 # Default vegetation crown base height (in % of crown top height)
 DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC = 0.25
 
-# Defines priorities (column "priority") when the zone comes from a same 
+# Defines priorities (column "priority") when the zone comes from a same
 # obstacle of same height. Also contains a column "ref_height" to
 # know by which wind speed height should be multiplied a weigthing factor
-# (1: "Associated building height", 
+# (1: "Associated building height",
 #  2: "Reference wind speed measurement height Z_REF",
 #  3: "Point height")
 REF_HEIGHT_FIELD = "REF_HEIGHT"
@@ -214,21 +219,30 @@ REF_HEIGHT_UPSTREAM_WEIGHTING = 3
 REF_HEIGHT_DOWNSTREAM_WEIGHTING = 3
 IS_UPSTREAM_UPSTREAM_WEIGHTING = 0
 IS_UPSTREAM_DOWNSTREAM_WEIGHTING = 0
-UPSTREAM_PRIORITY_TABLES = pd.DataFrame({PRIORITY_FIELD: [1, 2, 3, 3, 3, 4, 5], 
-                                         REF_HEIGHT_FIELD: [1, 1, 2, 2, 1, 1, 3],
-                                         IS_UPSTREAM_FIELD: [0, 0, 0, 0, 1, 1, 0]},
-                                        index = [STREET_CANYON_NAME, 
-                                                 CAVITY_NAME, 
-                                                 ROOFTOP_PERP_NAME,
-                                                 ROOFTOP_CORN_NAME, 
-                                                 DISPLACEMENT_VORTEX_NAME, 
-                                                 DISPLACEMENT_NAME,
-                                                 WAKE_NAME])
-UPSTREAM_BACKWARD_PRIORITY_TABLES = pd.DataFrame({PRIORITY_FIELD: [1, 2], 
-                                                  REF_HEIGHT_FIELD: [1, 1],
-                                                  IS_UPSTREAM_FIELD: [0, 0]},
-                                                 index = [CAVITY_BACKWARD_NAME,
-                                                          WAKE_BACKWARD_NAME])
+UPSTREAM_PRIORITY_TABLES = pd.DataFrame(
+    {
+        PRIORITY_FIELD: [1, 2, 3, 3, 3, 4, 5],
+        REF_HEIGHT_FIELD: [1, 1, 2, 2, 1, 1, 3],
+        IS_UPSTREAM_FIELD: [0, 0, 0, 0, 1, 1, 0],
+    },
+    index=[
+        STREET_CANYON_NAME,
+        CAVITY_NAME,
+        ROOFTOP_PERP_NAME,
+        ROOFTOP_CORN_NAME,
+        DISPLACEMENT_VORTEX_NAME,
+        DISPLACEMENT_NAME,
+        WAKE_NAME,
+    ],
+)
+UPSTREAM_BACKWARD_PRIORITY_TABLES = pd.DataFrame(
+    {
+        PRIORITY_FIELD: [1, 2],
+        REF_HEIGHT_FIELD: [1, 1],
+        IS_UPSTREAM_FIELD: [0, 0],
+    },
+    index=[CAVITY_BACKWARD_NAME, WAKE_BACKWARD_NAME],
+)
 UPSTREAM_WEIGHTING_TABLES = [WAKE_NAME]
 UPSTREAM_BACKWARD_WEIGHTING_TABLES = [WAKE_BACKWARD_NAME]
 UPSTREAM_WEIGHTING_INTRA_RULES = "upstream"

@@ -22,31 +22,30 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2022-02-07'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2022-02-07"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterFile,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterField,
-                       QgsProcessingException,
-                       QgsVectorLayer)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterFile,
+    QgsProcessingParameterString,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
+    QgsProcessingException,
+    QgsVectorLayer,
+)
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo.gdalconst import *
-from osgeo import gdal, osr, ogr
-import numpy as np
 import os
 import inspect
 from pathlib import Path
@@ -59,62 +58,109 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
     This algorithm is a processing version of UWG Prepare
     """
 
-    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
-    ID_FIELD = 'ID_FIELD'
-    INPUT_POLYGONLAYERTYPOLOGY = 'INPUT_POLYGONLAYERTYPOLOGY'
-    INPUT_MORPH = 'INPUT_MORPH'
-    INPUT_LC = 'INPUT_LC'
-    INPUT_RURAL = 'INPUT_RURAL'
-    CLIMATEZONE = 'CLIMATEZONE'
-    FILE_PREFIX = 'FILE_PREFIX'
-    OUTPUT_DIR = 'OUTPUT_DIR'
+    INPUT_POLYGONLAYER = "INPUT_POLYGONLAYER"
+    ID_FIELD = "ID_FIELD"
+    INPUT_POLYGONLAYERTYPOLOGY = "INPUT_POLYGONLAYERTYPOLOGY"
+    INPUT_MORPH = "INPUT_MORPH"
+    INPUT_LC = "INPUT_LC"
+    INPUT_RURAL = "INPUT_RURAL"
+    CLIMATEZONE = "CLIMATEZONE"
+    FILE_PREFIX = "FILE_PREFIX"
+    OUTPUT_DIR = "OUTPUT_DIR"
 
-    
     def initAlgorithm(self, config):
-        
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-            self.tr('Vector polygon grid'), [QgsProcessing.SourceType.TypeVectorPolygon]))
-        self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
-            self.tr('ID field'),'', self.INPUT_POLYGONLAYER, QgsProcessingParameterField.DataType.Numeric))
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYERTYPOLOGY,
-            self.tr('Building type polygon layer'), [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
-        
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_MORPH,
-            self.tr('Building morphology file (.txt)'), extension='txt'))
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_LC,
-            self.tr('Land cover file (.txt)'), extension='txt'))
-        
-        self.zone = ((self.tr('1A; Very hot, humid; (Miami, FL)'), '0'),
-                        (self.tr('1B; Hot, dry; '), '1'),
-                        (self.tr('2A; Hot, Humid; (Huston, TX)'), '2'),
-                        (self.tr('3A; Warm, Humid; (Atalanta, GA)'), '3'),
-                        (self.tr('3B; Warm, Dry; (Las Vegas, NV)'), '4'),
-                        (self.tr('3C; Warm, Marine; (San Francisco, CA)'), '5'),
-                        (self.tr('4A; Mild, Humid; (Baltimore, MD)'), '6'),
-                        (self.tr('4B; Mild, Dry; (Albuquerque, NM)'), '7'),
-                        (self.tr('4C; Mild, Marine; (Seattle, WA)'), '8'),
-                        (self.tr('5A; Cold, Humid; (Chicago, IL)'), '9'),
-                        (self.tr('5B; Cold, Dry; (Boulder, CO)'), '10'),
-                        (self.tr('5C; Cold, Marine;'), '11'),
-                        (self.tr('6A; Cold, Humid; (Minneapolis, MN)'), '12'),
-                        (self.tr('6B; Cold, Dry; (Helena, MT)'), '13'),
-                        (self.tr('7; Very Cold; (Duluth, MN)'), '14'),
-                        (self.tr('8; Sub-Artic; (Fairbanks, AK)'), '15'))
 
-        self.addParameter(QgsProcessingParameterEnum(self.CLIMATEZONE,
-            self.tr('Climate zone'),
-            options=[i[0] for i in self.zone], defaultValue=0))
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POLYGONLAYER,
+                self.tr("Vector polygon grid"),
+                [QgsProcessing.SourceType.TypeVectorPolygon],
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.ID_FIELD,
+                self.tr("ID field"),
+                "",
+                self.INPUT_POLYGONLAYER,
+                QgsProcessingParameterField.DataType.Numeric,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POLYGONLAYERTYPOLOGY,
+                self.tr("Building type polygon layer"),
+                [QgsProcessing.SourceType.TypeVectorPolygon],
+                optional=True,
+            )
+        )
 
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_RURAL, 
-            self.tr('Fraction vegetation at rural site'), 
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.9), False, minValue=0.0, maxValue=1.0))
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_MORPH,
+                self.tr("Building morphology file (.txt)"),
+                extension="txt",
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_LC,
+                self.tr("Land cover file (.txt)"),
+                extension="txt",
+            )
+        )
 
-        self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX, 
-            self.tr('File code')))
+        self.zone = (
+            (self.tr("1A; Very hot, humid; (Miami, FL)"), "0"),
+            (self.tr("1B; Hot, dry; "), "1"),
+            (self.tr("2A; Hot, Humid; (Huston, TX)"), "2"),
+            (self.tr("3A; Warm, Humid; (Atalanta, GA)"), "3"),
+            (self.tr("3B; Warm, Dry; (Las Vegas, NV)"), "4"),
+            (self.tr("3C; Warm, Marine; (San Francisco, CA)"), "5"),
+            (self.tr("4A; Mild, Humid; (Baltimore, MD)"), "6"),
+            (self.tr("4B; Mild, Dry; (Albuquerque, NM)"), "7"),
+            (self.tr("4C; Mild, Marine; (Seattle, WA)"), "8"),
+            (self.tr("5A; Cold, Humid; (Chicago, IL)"), "9"),
+            (self.tr("5B; Cold, Dry; (Boulder, CO)"), "10"),
+            (self.tr("5C; Cold, Marine;"), "11"),
+            (self.tr("6A; Cold, Humid; (Minneapolis, MN)"), "12"),
+            (self.tr("6B; Cold, Dry; (Helena, MT)"), "13"),
+            (self.tr("7; Very Cold; (Duluth, MN)"), "14"),
+            (self.tr("8; Sub-Artic; (Fairbanks, AK)"), "15"),
+        )
 
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
-            self.tr('Output folder')))
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.CLIMATEZONE,
+                self.tr("Climate zone"),
+                options=[i[0] for i in self.zone],
+                defaultValue=0,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_RURAL,
+                self.tr("Fraction vegetation at rural site"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.9),
+                False,
+                minValue=0.0,
+                maxValue=1.0,
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File code")
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, self.tr("Output folder")
+            )
+        )
 
         self.plugin_dir = os.path.dirname(__file__)
 
@@ -123,32 +169,43 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         # self.dir_poly = self.plugin_dir + '/data/poly_temp.shp'
 
     def processAlgorithm(self, parameters, context, feedback):
-        # InputParameters 
-        inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
+        # InputParameters
+        inputPolygonlayer = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONLAYER, context
+        )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        polyBT = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYERTYPOLOGY, context)
-        morphFile = self.parameterAsString(parameters, self.INPUT_MORPH, context)
+        polyBT = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONLAYERTYPOLOGY, context
+        )
+        morphFile = self.parameterAsString(
+            parameters, self.INPUT_MORPH, context
+        )
         lcFile = self.parameterAsString(parameters, self.INPUT_LC, context)
-        rurVegCover = self.parameterAsDouble(parameters, self.INPUT_RURAL, context)
-        climateZone = self.parameterAsString(parameters, self.CLIMATEZONE, context)
+        rurVegCover = self.parameterAsDouble(
+            parameters, self.INPUT_RURAL, context
+        )
+        climateZone = self.parameterAsString(
+            parameters, self.CLIMATEZONE, context
+        )
         prefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
-        
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        if not (os.path.isdir(self.plugin_dir + '/tempdata')):
-            os.mkdir(self.plugin_dir + '/tempdata')
+        if not (os.path.isdir(self.plugin_dir + "/tempdata")):
+            os.mkdir(self.plugin_dir + "/tempdata")
 
         pre = prefix
-        
+
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
-        if pf == 'darwin' or pf == 'linux2' or pf == 'linux':
-            if not os.path.exists(outputDir + '/' + pre):
-                os.makedirs(outputDir + '/' + pre)
+        if pf == "darwin" or pf == "linux2" or pf == "linux":
+            if not os.path.exists(outputDir + "/" + pre):
+                os.makedirs(outputDir + "/" + pre)
 
         poly_field = idField
         vlayer = inputPolygonlayer
@@ -156,70 +213,79 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         index = 1
         feedback.setProgressText("Number of grids to process: " + str(nGrids))
 
-        path=vlayer.dataProvider().dataSourceUri()
-        if path.rfind('|') > 0:
-            polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        path = vlayer.dataProvider().dataSourceUri()
+        if path.rfind("|") > 0:
+            # work around. Probably other solution exists
+            polygonpath = path[: path.rfind("|")]
         else:
             polygonpath = path
 
         map_units = vlayer.crs().mapUnits()
         if not map_units == 0 or map_units == 1 or map_units == 2:
-            raise QgsProcessingException("Could not identify the map units of the polygon layer CRS.")
+            raise QgsProcessingException(
+                "Could not identify the map units of the polygon layer CRS."
+            )
 
         if polyBT is None:
-            feedback.pushWarning('No valid building type polygon layer is selected. All buildings are classified as mid-rise residental buildings.')
+            feedback.pushWarning(
+                "No valid building type polygon layer is selected. All buildings are classified as mid-rise residental buildings."
+            )
             vlayerBT = None
         else:
             vlayerBT = polyBT
-            pathBT=vlayerBT.dataProvider().dataSourceUri()
-            if pathBT.rfind('|') > 0:
-                polygonpathBT = pathBT [:pathBT.rfind('|')] # work around. Probably other solution exists
+            pathBT = vlayerBT.dataProvider().dataSourceUri()
+            if pathBT.rfind("|") > 0:
+                # work around. Probably other solution exists
+                polygonpathBT = pathBT[: pathBT.rfind("|")]
             else:
                 polygonpathBT = pathBT
 
         a = {}
-        a['0'] = '1A'
-        a['1'] = '1B'
-        a['2'] = '2A'
-        a['3'] = '3A'
-        a['4'] = '3B'
-        a['5'] = '3C'
-        a['6'] = '4A'
-        a['7'] = '4B'
-        a['8'] = '4C'
-        a['9'] = '5A'
-        a['10'] = '5B'
-        a['11'] = '5C'
-        a['12'] = '6A'
-        a['13'] = '6B'
-        a['14'] = '7'
-        a['15'] = '8'
+        a["0"] = "1A"
+        a["1"] = "1B"
+        a["2"] = "2A"
+        a["3"] = "3A"
+        a["4"] = "3B"
+        a["5"] = "3C"
+        a["6"] = "4A"
+        a["7"] = "4B"
+        a["8"] = "4C"
+        a["9"] = "5A"
+        a["10"] = "5B"
+        a["11"] = "5C"
+        a["12"] = "6A"
+        a["13"] = "6B"
+        a["14"] = "7"
+        a["15"] = "8"
 
         zone = a[climateZone]
 
-        # Intersect grids with building type polygons 
+        # Intersect grids with building type polygons
         if vlayerBT:
             import processing
-            urbantypelayer = self.plugin_dir + '/tempdata/' + 'intersected.shp'
 
-            intersectPrefix = 'i'
-            parin = { 'INPUT' : polygonpath, 
-            'INPUT_FIELDS' : [], 
-            'OUTPUT' : urbantypelayer, 
-            'OVERLAY' : polygonpathBT, 
-            'OVERLAY_FIELDS' : [], 
-            'OVERLAY_FIELDS_PREFIX' : intersectPrefix }
+            urbantypelayer = self.plugin_dir + "/tempdata/" + "intersected.shp"
+
+            intersectPrefix = "i"
+            parin = {
+                "INPUT": polygonpath,
+                "INPUT_FIELDS": [],
+                "OUTPUT": urbantypelayer,
+                "OVERLAY": polygonpathBT,
+                "OVERLAY_FIELDS": [],
+                "OVERLAY_FIELDS_PREFIX": intersectPrefix,
+            }
 
             # feedback.setProgressText(str(parin))
 
-            processing.run('native:intersection', parin)
+            processing.run("native:intersection", parin)
 
             vlayertype = QgsVectorLayer(urbantypelayer, "polygon", "ogr")
-            type_field = parin['OVERLAY_FIELDS_PREFIX'] + 'uwgType'
-            time_field = parin['OVERLAY_FIELDS_PREFIX'] + 'uwgTime'
+            type_field = parin["OVERLAY_FIELDS_PREFIX"] + "uwgType"
+            time_field = parin["OVERLAY_FIELDS_PREFIX"] + "uwgTime"
 
-        #Start loop of polygon grids
-        ##land cover and morphology
+        # Start loop of polygon grids
+        # land cover and morphology
         index = 0
         for feature in vlayer.getFeatures():
             feedback.setProgress(int((index * 100) / nGrids))
@@ -234,8 +300,8 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             # create a default dict with all input
             uwgDict = create_uwgdict()
 
-            uwgDict['zone'] = zone
-            uwgDict['charLength'] = feature.geometry().area() ** 0.5
+            uwgDict["zone"] = zone
+            uwgDict["charLength"] = feature.geometry().area() ** 0.5
 
             with open(lcFile) as file:
                 next(file)
@@ -248,7 +314,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                         LCF_decidious = split[4]
                         LCF_grass = split[5]
                         break
-            
+
             with open(morphFile) as file:
                 next(file)
                 for line in file:
@@ -259,57 +325,121 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                         break
 
             # Populate dict from UMEP
-            uwgDict['bldHeight'] = IMP_heights_mean # average building height (m)
-            uwgDict['bldDensity'] = LCF_buildings # urban area building plan density (0-1)
-            uwgDict['verToHor'] = IMP_wai # urban area vertical to horizontal ratio
-            uwgDict['grasscover'] = LCF_grass # Fraction of the urban ground covered in grass/shrubs only (0-1)
-            uwgDict['treeCover'] = str(float(LCF_decidious) + float(LCF_evergreen)) # Fraction of the urban ground covered in trees (0-1)
+            # average building height (m)
+            uwgDict["bldHeight"] = IMP_heights_mean
+            # urban area building plan density (0-1)
+            uwgDict["bldDensity"] = LCF_buildings
+            # urban area vertical to horizontal ratio
+            uwgDict["verToHor"] = IMP_wai
+            # Fraction of the urban ground covered in grass/shrubs only (0-1)
+            uwgDict["grasscover"] = LCF_grass
+            # Fraction of the urban ground covered in trees (0-1)
+            uwgDict["treeCover"] = str(
+                float(LCF_decidious) + float(LCF_evergreen)
+            )
 
-            ## urban type fractions
+            # urban type fractions
             if vlayerBT:
                 fracDict = {}
                 totarea = 0.0
-                types = ['FullServiceRestaurant','Hospital','LargeHotel','LargeOffice','MedOffice',
-                    'MidRiseApartment','OutPatient','PrimarySchool','QuickServiceRestaurant',
-                    'SecondarySchool','SmallHotel','SmallOffice','StandAloneRetail','StripMall',
-                    'SuperMarket','Warehouse']
-                buildtime = ['Pst80','Pst80','Pst80','Pst80','Pst80','Pre80','Pst80','Pst80',
-                    'Pst80','Pst80','Pst80','Pst80','Pst80','Pst80','Pst80','Pst80'] #this should also come from an unique post for each polygon...
-                fractions = [.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0,.0]
+                types = [
+                    "FullServiceRestaurant",
+                    "Hospital",
+                    "LargeHotel",
+                    "LargeOffice",
+                    "MedOffice",
+                    "MidRiseApartment",
+                    "OutPatient",
+                    "PrimarySchool",
+                    "QuickServiceRestaurant",
+                    "SecondarySchool",
+                    "SmallHotel",
+                    "SmallOffice",
+                    "StandAloneRetail",
+                    "StripMall",
+                    "SuperMarket",
+                    "Warehouse",
+                ]
+                buildtime = [
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pre80",
+                    "Pst80",
+                    "Pst80",
+                    # this should also come from an unique post for each
+                    # polygon...
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                    "Pst80",
+                ]
+                fractions = [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]
 
                 fracDict = dict(zip(types, fractions))
                 timeDict = dict(zip(types, buildtime))
 
-                # populate dict with area for each available urban type within grid
+                # populate dict with area for each available urban type within
+                # grid
                 for featureType in vlayertype.getFeatures():
                     if feat_id == int(featureType.attribute(poly_field[0])):
                         area = featureType.geometry().area()
-                        fracDict[featureType.attribute(type_field)] = fracDict[featureType.attribute(type_field)] + area
-                        timeDict[featureType.attribute(type_field)] = featureType.attribute(time_field)
+                        fracDict[featureType.attribute(type_field)] = (
+                            fracDict[featureType.attribute(type_field)] + area
+                        )
+                        timeDict[featureType.attribute(type_field)] = (
+                            featureType.attribute(time_field)
+                        )
                         totarea = totarea + area
                 for key in fracDict:
                     if totarea > 0:
                         fracDict[key] = fracDict[key] / totarea
                     else:
-                        fracDict['MidRiseApartment'] = 1.0
+                        fracDict["MidRiseApartment"] = 1.0
 
                 # Populate dict from type polygon layer
-                for i in range(0, len(uwgDict['bld'][0])):
-                    uwgDict['bld'][1][i] = timeDict[types[i]] 
-                    uwgDict['bld'][2][i] = fracDict[types[i]]
+                for i in range(0, len(uwgDict["bld"][0])):
+                    uwgDict["bld"][1][i] = timeDict[types[i]]
+                    uwgDict["bld"][2][i] = fracDict[types[i]]
 
-            uwgDict['rurVegCover'] = rurVegCover # Fraction of the rural ground covered by vegetation
+            # Fraction of the rural ground covered by vegetation
+            uwgDict["rurVegCover"] = rurVegCover
 
-            ## generate input files for UWG
-            _name = prefix + '_' + str(feat_id)
-            get_uwg_file(uwgDict, outputDir + '/', _name)
+            # generate input files for UWG
+            _name = prefix + "_" + str(feat_id)
+            get_uwg_file(uwgDict, outputDir + "/", _name)
 
-        feedback.setProgressText("Urban Weather Generator input files succesfully generated")
+        feedback.setProgressText(
+            "Urban Weather Generator input files succesfully generated"
+        )
 
         return {self.OUTPUT_DIR: outputDir}
 
     def name(self):
-        return 'Urban Heat Island: UWG Prepare'
+        return "Urban Heat Island: UWG Prepare"
 
     def displayName(self):
         return self.tr(self.name())
@@ -318,32 +448,36 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
     def shortHelpString(self):
-        return self.tr('<b>THIS PLUGIN IS EXPERIMENTAL</b>'
-        '\n'
-        'The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>'
-        '\n'
-        'For more detailed information during execution, open the QGIS Python console (Plugins>Python Console).'
-        '\n'
-        '<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: '
-        'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
-        '\n'
-        'If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time.'
-        '\n'
-        '----------------------\n'
-        'Full manual is available via the <b>Help</b>-button.')
+        return self.tr(
+            "<b>THIS PLUGIN IS EXPERIMENTAL</b>"
+            "\n"
+            "The <b>Urban Weather Generator</b> plugin can be used to model the urban heat island effect. Possibilities to model mutiple grids or a single location is available.<br>"
+            "\n"
+            "For more detailed information during execution, open the QGIS Python console (Plugins>Python Console)."
+            "\n"
+            "<b>NOTE</b>: This plugin requires the uwg python library. Instructions on how to install missing python libraries using the pip command can be found here: "
+            'https://umep-docs.readthedocs.io/en/latest/Getting_Started.html")'
+            "\n"
+            "If you are having issues that certain grids fails to be calculated you can try to reduce the simulation time step, preferably to 150 or 100 seconds. This will increase computation time."
+            "\n"
+            "----------------------\n"
+            "Full manual is available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Heat%20Island%20UWG%20Prepare.html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/icon_uwg.png")
         return icon
 
