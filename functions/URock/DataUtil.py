@@ -13,15 +13,16 @@ from .GlobalVariables import *
 import re
 
 
-def decompressZip(dirPath, inputFileName, outputFileBaseName=None, 
-                  deleteZip = False):
+def decompressZip(
+    dirPath, inputFileName, outputFileBaseName=None, deleteZip=False
+):
     """
     Decompress zip file.
 
     Parameters
-    _ _ _ _ _ _ _ _ _ _ 
+    _ _ _ _ _ _ _ _ _ _
         dirPath: String
-            Directory path where is located the zip file    
+            Directory path where is located the zip file
         inputFileName: String
             Name of the file to unzip (with .zip at the end)
         outputFileBaseName: String
@@ -34,21 +35,21 @@ def decompressZip(dirPath, inputFileName, outputFileBaseName=None,
         None
     """
     print("Start decompressing zip file")
-    
-    with open(os.path.join(dirPath,inputFileName), "rb") as zipsrc:
+
+    with open(os.path.join(dirPath, inputFileName), "rb") as zipsrc:
         zfile = zipfile.ZipFile(zipsrc)
         for member in zfile.infolist():
-            print(member.filename+" is being decompressed" )
+            print(member.filename + " is being decompressed")
             if outputFileBaseName is None:
-                target_path=os.path.join(dirPath,member.filename)
+                target_path = os.path.join(dirPath, member.filename)
             else:
                 # Initialize output file path
                 target_path = os.path.join(dirPath, outputFileBaseName)
                 extension = "." + member.filename.split(".")[-1]
-                target_path+=extension
-            
+                target_path += extension
+
             # Create a folder if needed
-            if target_path.endswith('/'):  # folder entry, create
+            if target_path.endswith("/"):  # folder entry, create
                 try:
                     os.makedirs(target_path)
                 except (OSError, IOError) as err:
@@ -56,105 +57,112 @@ def decompressZip(dirPath, inputFileName, outputFileBaseName=None,
                     if err.errno != errno.EEXIST:
                         raise
                 continue
-            with open(target_path, 'wb') as outfile, zfile.open(member) as infile:
+            with open(target_path, "wb") as outfile, zfile.open(
+                member
+            ) as infile:
                 shutil.copyfileobj(infile, outfile)
-    
+
     return None
 
-def degToRad(angleDeg, origin = 0, direction = "CLOCKWISE"):
+
+def degToRad(angleDeg, origin=0, direction="CLOCKWISE"):
     """Convert angle arrays from degrees to radian.
-    
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
-		angleDeg : float
-			Angle in degrees
-		origin : float, default 0
-			Origin of the input degree coordinates (given in a reference North clockwise coordinate system)
-		direction : {"CLOCKWISE", "COUNTER-CLOCKWISE"}, default "CLOCKWISE"
-			Direction where go the input coordinate
-    
+        _ _ _ _ _ _ _ _ _ _
+                angleDeg : float
+                        Angle in degrees
+                origin : float, default 0
+                        Origin of the input degree coordinates (given in a reference North clockwise coordinate system)
+                direction : {"CLOCKWISE", "COUNTER-CLOCKWISE"}, default "CLOCKWISE"
+                        Direction where go the input coordinate
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		angle in radian (trigonometric reference).
+        _ _ _ _ _ _ _ _ _ _
+                angle in radian (trigonometric reference).
     """
     if direction == "CLOCKWISE":
         d = 1
     if direction == "COUNTER-CLOCKWISE":
         d = -1
-    
-    return (angleDeg+d*origin)*np.pi/180
 
-def postfix(tableName, suffix = None, separator = "_"):
-    """ Add a suffix to an input table name
-    
+    return (angleDeg + d * origin) * np.pi / 180
+
+
+def postfix(tableName, suffix=None, separator="_"):
+    """Add a suffix to an input table name
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
-		tableName : String
-			Name of the input table
+        _ _ _ _ _ _ _ _ _ _
+                tableName : String
+                        Name of the input table
         suffix : String, default None (then current datetime is used as string)
             Suffix to add to the table name
         separator : String, default "_"
             Character to separate tableName from suffix
-            
-    
+
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		The input table name with the suffix"""
+        _ _ _ _ _ _ _ _ _ _
+                The input table name with the suffix"""
     if suffix is None:
         suffix = datetime.now().strftime("%Y%m%d%H%M%S")
-    
-    return tableName+separator+suffix
 
-def prefix(tableName, prefix = PREFIX_NAME, separator = "_"):
-    """ Add a suffix to an input table name
-    
+    return tableName + separator + suffix
+
+
+def prefix(tableName, prefix=PREFIX_NAME, separator="_"):
+    """Add a suffix to an input table name
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
-		tableName : String
-			Name of the input table
+        _ _ _ _ _ _ _ _ _ _
+                tableName : String
+                        Name of the input table
         prefix : String
             Prefix to add to the table name
         separator : String, default "_"
-            Character to separate prefix from tableName 
-    
+            Character to separate prefix from tableName
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		The input table name with the prefix"""
+        _ _ _ _ _ _ _ _ _ _
+                The input table name with the prefix"""
     if prefix == "":
         return tableName
     else:
-        return prefix+separator+tableName
+        return prefix + separator + tableName
+
 
 def getColumns(cursor, tableName):
-    """ Get the column name of a table into a list
-    
+    """Get the column name of a table into a list
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
+        _ _ _ _ _ _ _ _ _ _
         cursor: conn.cursor
             A cursor object, used to perform spatial SQL queries
-		tableName : String
-			Name of the input table
-    
+                tableName : String
+                        Name of the input table
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		columnNames: list
+        _ _ _ _ _ _ _ _ _ _
+                columnNames: list
             A list of the table column names"""
     cursor.execute(safe("""SELECT * FROM {0}""").format(tableName))
     columnNames = [info[0] for info in cursor.description]
-    
+
     return columnNames
 
+
 def readFunction(extension):
-    """ Return the name of the right H2GIS function to use depending of the file extension
-    
+    """Return the name of the right H2GIS function to use depending of the file extension
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
+        _ _ _ _ _ _ _ _ _ _
         extension: String
             Extension of the vector file (shp or geojson)
-    
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		h2gisFunctionName: String
+        _ _ _ _ _ _ _ _ _ _
+                h2gisFunctionName: String
             Return the name of the H2GIS function to use"""
     if extension.lower() == "shp":
         return "SHPREAD"
@@ -164,14 +172,15 @@ def readFunction(extension):
         return "CSVREAD"
     elif extension.lower() == "fgb":
         return "FGBREAD"
-    
+
+
 def createIndex(tableName, fieldName, isSpatial):
-    """ Return the SQL query needed to create an index on a given field of a
+    """Return the SQL query needed to create an index on a given field of a
     given table. The index should be indicated as spatial if the field is
     a geometry field.
-    
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
+        _ _ _ _ _ _ _ _ _ _
         tableName: String
             Name of the table
         fieldName: String
@@ -179,91 +188,104 @@ def createIndex(tableName, fieldName, isSpatial):
         isSpatial: boolean
             Whether or not the index is a spatial index (should be True if
                                                          the field is a geometry field)
-    
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		query: String
+        _ _ _ _ _ _ _ _ _ _
+                query: String
             Return the SQL query needed to create the index"""
     spatialKeyWord = ""
     if isSpatial:
         spatialKeyWord = " SPATIAL "
-    if type(fieldName) == type([]):
-        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{"_".join(fieldName)}_{tableName} 
+    if isinstance(fieldName, type([])):
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{"_".join(fieldName)}_{tableName}
                 ON {tableName}({",".join(fieldName)});"""
     else:
-        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{fieldName}_{tableName} 
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{fieldName}_{tableName}
                 ON {tableName}({fieldName});"""
     return query
 
-def radToDeg(data, origin = 90, direction = "CLOCKWISE"):
+
+def radToDeg(data, origin=90, direction="CLOCKWISE"):
     """Convert angle arrays from radian to degree.
-    
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
-		data : pd.Series()
-			Array containing the angle values to convert from radian to degree.
-		origin : float
-			Origin of the output coordinate (given in a reference trigonometric coordinate)
-		direction : {"CLOCKWISE", "COUNTER-CLOCKWISE"}, default "CLOCKWISE"
-			Direction where go the output coordinate
-    
+        _ _ _ _ _ _ _ _ _ _
+                data : pd.Series()
+                        Array containing the angle values to convert from radian to degree.
+                origin : float
+                        Origin of the output coordinate (given in a reference trigonometric coordinate)
+                direction : {"CLOCKWISE", "COUNTER-CLOCKWISE"}, default "CLOCKWISE"
+                        Direction where go the output coordinate
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		Array containing the data in degree coordinate.
+        _ _ _ _ _ _ _ _ _ _
+                Array containing the data in degree coordinate.
     """
     if direction == "CLOCKWISE":
         degree = (360 - data * 180 / np.pi) + origin
     if direction == "COUNTER-CLOCKWISE":
         degree = (data * 180 / np.pi) - origin
-    
-    degree[degree>360] = degree[degree>360] - 360
-    degree[degree<0] = degree[degree<0] + 360
-    
+
+    degree[degree > 360] = degree[degree > 360] - 360
+    degree[degree < 0] = degree[degree < 0] + 360
+
     return degree
+
 
 def windDirectionFromXY(windSpeedEast, windSpeedNorth):
     """
     Calculates wind direction from wind speeds in carthesian coordinates.
-    
+
     Parameters
-    _ _ _ _ _ _ _ _ _ _ 
+    _ _ _ _ _ _ _ _ _ _
         windSpeedEast: pd.Series
             Wind speed along a West->East axis (m/s)
         windSpeedNorth: pd.Series
             Wind speed along a South->North axis (m/s)
-    
+
     Returns
     -------
         pd.Series containing the wind direction from East counterclockwise.
     """
     # Calculate the angle in Radian in a [-pi/2, pi/2]
     radAngle = np.zeros(windSpeedEast.shape)
-    radAngle[windSpeedEast==0] = 0
-    if type(windSpeedEast) == type(pd.Series()):
-        radAngle[windSpeedEast!=0] = np.arctan(windSpeedNorth[windSpeedEast!=0]\
-                                               .divide(windSpeedEast[windSpeedEast!=0]))
+    radAngle[windSpeedEast == 0] = 0
+    if isinstance(windSpeedEast, type(pd.Series())):
+        radAngle[windSpeedEast != 0] = np.arctan(
+            windSpeedNorth[windSpeedEast != 0].divide(
+                windSpeedEast[windSpeedEast != 0]
+            )
+        )
     else:
-        radAngle[windSpeedEast!=0] = np.arctan(windSpeedNorth[windSpeedEast!=0]
-                                               /windSpeedEast[windSpeedEast!=0])
-    
+        radAngle[windSpeedEast != 0] = np.arctan(
+            windSpeedNorth[windSpeedEast != 0]
+            / windSpeedEast[windSpeedEast != 0]
+        )
+
     # Add or subtract pi.2 for left side trigonometric circle vectors
-    radAngle[(windSpeedEast<=0)&(windSpeedNorth>0)] = \
-        radAngle[(windSpeedEast<=0)&(windSpeedNorth>0)] + np.pi
-    radAngle[(windSpeedEast<0)&(windSpeedNorth<=0)] = \
-        radAngle[(windSpeedEast<0)&(windSpeedNorth<=0)] + np.pi
-    radAngle[(windSpeedEast>=0)&(windSpeedNorth<0)] = \
-        radAngle[(windSpeedEast>=0)&(windSpeedNorth<0)] + 2*np.pi
-    
+    radAngle[(windSpeedEast <= 0) & (windSpeedNorth > 0)] = (
+        radAngle[(windSpeedEast <= 0) & (windSpeedNorth > 0)] + np.pi
+    )
+    radAngle[(windSpeedEast < 0) & (windSpeedNorth <= 0)] = (
+        radAngle[(windSpeedEast < 0) & (windSpeedNorth <= 0)] + np.pi
+    )
+    radAngle[(windSpeedEast >= 0) & (windSpeedNorth < 0)] = (
+        radAngle[(windSpeedEast >= 0) & (windSpeedNorth < 0)] + 2 * np.pi
+    )
+
     return radAngle
 
-def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, prefix_name):
-    """ Identify the point geometry being an extremum ("MIN" or "MAX"") of a polygon
+
+def getExtremumPoint(
+    pointsTable, axis, extremum, secondAxisExtremum, cursor, prefix_name
+):
+    """Identify the point geometry being an extremum ("MIN" or "MAX"") of a polygon
     along a given axis ("X" or "Y"). If two points are at the same "X" (or "Y"),
-    keep only lowest value or highest ("MIN" or "MAX") along the second 
+    keep only lowest value or highest ("MIN" or "MAX") along the second
     axis "Y" (or "X").
-    
+
     Parameters
-	_ _ _ _ _ _ _ _ _ _ 
+        _ _ _ _ _ _ _ _ _ _
         pointsTable: String
             Name of the table containing the points corresponding to all polygons,
             the polygon id and the extremum of the polygon we are looking for
@@ -288,36 +310,38 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
             A cursor object, used to perform spatial SQL queries
         prefix: String, default PREFIX_NAME
             Prefix to add to the output table name
-    
+
     Returns
-	_ _ _ _ _ _ _ _ _ _ 	
-		extremumPointTable: String
-            Return the table containing the expected extremum point for each polygon"""
+        _ _ _ _ _ _ _ _ _ _
+                extremumPointTable: String
+            Return the table containing the expected extremum point for each polygon
+    """
     # Output base name
-    outputBaseName = safe("{0}_{1}_{2}_POINTS").format(pointsTable,
-                                                 axis,
-                                                 extremum)
-    
+    outputBaseName = safe("{0}_{1}_{2}_POINTS").format(
+        pointsTable, axis, extremum
+    )
+
     # Name of the output table
-    extremumPointTable = prefix(outputBaseName, prefix = prefix_name)
+    extremumPointTable = prefix(outputBaseName, prefix=prefix_name)
 
     # Extremum field name
     extremumField = axis + "_" + extremum
-    
+
     # Set the secondary axis and the point creation query depending on 1st axis
     if axis == "X":
         secondaryAxis = "Y"
-        pointCreationQuery = safe("ST_POINT({0}, {1}({2}))").format(axis,
-                                                              secondAxisExtremum,
-                                                              secondaryAxis)
+        pointCreationQuery = safe("ST_POINT({0}, {1}({2}))").format(
+            axis, secondAxisExtremum, secondaryAxis
+        )
     else:
         secondaryAxis = "X"
-        pointCreationQuery = safe("ST_POINT({1}({2}), {0})").format(axis,
-                                                              secondAxisExtremum,
-                                                              secondaryAxis)
-    
+        pointCreationQuery = safe("ST_POINT({1}({2}), {0})").format(
+            axis, secondAxisExtremum, secondaryAxis
+        )
+
     # Identify the extremum point
-    cursor.execute(safe("""
+    cursor.execute(
+        safe("""
            {0}{1}{2}
            DROP TABLE IF EXISTS {3};
            CREATE TABLE {3}({4} INTEGER, {5} GEOMETRY)
@@ -325,27 +349,38 @@ def getExtremumPoint(pointsTable, axis, extremum, secondAxisExtremum, cursor, pr
                FROM {7}
                WHERE {8} = {9}
                GROUP BY {4};
-           """).format(  createIndex(tableName=pointsTable, 
-                                    fieldName=ID_FIELD_STACKED_BLOCK,
-                                    isSpatial=False),
-                        createIndex(tableName=pointsTable, 
-                                    fieldName=axis,
-                                    isSpatial=False),
-                        createIndex(tableName=pointsTable, 
-                                    fieldName=extremumField,
-                                    isSpatial=False),
-                        extremumPointTable, 
-                        ID_FIELD_STACKED_BLOCK          , GEOM_FIELD,
-                        pointCreationQuery              , pointsTable,
-                        axis                            , extremumField))
+           """).format(
+            createIndex(
+                tableName=pointsTable,
+                fieldName=ID_FIELD_STACKED_BLOCK,
+                isSpatial=False,
+            ),
+            createIndex(
+                tableName=pointsTable, fieldName=axis, isSpatial=False
+            ),
+            createIndex(
+                tableName=pointsTable, fieldName=extremumField, isSpatial=False
+            ),
+            extremumPointTable,
+            ID_FIELD_STACKED_BLOCK,
+            GEOM_FIELD,
+            pointCreationQuery,
+            pointsTable,
+            axis,
+            extremumField,
+        )
+    )
 
     return extremumPointTable
 
-####### SHOULD BE DELETED SINCE ALREADY IN UMEP !!!
+
+# SHOULD BE DELETED SINCE ALREADY IN UMEP !!!
+
+
 def locate_py():
     # get Python version
-    str_ver_qgis = sys.version.split(' ')[0]
-    
+    str_ver_qgis = sys.version.split(" ")[0]
+
     try:
         # non-Linux
         path_py = os.environ["PYTHONHOME"]
@@ -359,7 +394,12 @@ def locate_py():
     # pre-defined paths for python executable
     dict_pybin = {
         "Darwin": path_py / "bin" / "python3",
-        "Windows": path_py / ("../../bin/pythonw.exe" if version.parse(str_ver_qgis) >= version.parse("3.9.1") else "pythonw.exe"),
+        "Windows": path_py
+        / (
+            "../../bin/pythonw.exe"
+            if version.parse(str_ver_qgis) >= version.parse("3.9.1")
+            else "pythonw.exe"
+        ),
         "Linux": path_py,
     }
 
@@ -369,21 +409,32 @@ def locate_py():
     if path_pybin.exists():
         return path_pybin
     else:
-        raise RuntimeError("UMEP cannot locate the Python interpreter used by QGIS!")
-    
+        raise RuntimeError(
+            "UMEP cannot locate the Python interpreter used by QGIS!"
+        )
 
-def validate_sql_inputs(idLines=None, idPolygons=None, srid_lines=None, srid_polygons=None, urock_srid=None, lines_file=None, polygons_file=None):
+
+def validate_sql_inputs(
+    idLines=None,
+    idPolygons=None,
+    srid_lines=None,
+    srid_polygons=None,
+    urock_srid=None,
+    lines_file=None,
+    polygons_file=None,
+):
     """
     Validate inputs to prevent SQL injection.
     """
-    # Validate field names: must be valid SQL identifiers (alphanumeric + underscore, start with letter or underscore)
-    identifier_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
-    
+    # Validate field names: must be valid SQL identifiers (alphanumeric +
+    # underscore, start with letter or underscore)
+    identifier_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
     if idLines and not identifier_pattern.match(idLines):
         raise ValueError(f"Invalid idLines field name: {idLines}")
     if idPolygons and not identifier_pattern.match(idPolygons):
         raise ValueError(f"Invalid idPolygons field name: {idPolygons}")
-    
+
     # Validate SRIDs: must be integers
     def validate_srid(srid, name):
         if srid is not None:
@@ -391,20 +442,23 @@ def validate_sql_inputs(idLines=None, idPolygons=None, srid_lines=None, srid_pol
                 int(srid)
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid {name}: {srid} (must be integer)")
-    
+
     validate_srid(srid_lines, "srid_lines")
     validate_srid(srid_polygons, "srid_polygons")
     validate_srid(urock_srid, "urock_srid")
-    
+
     # Validate file paths: ensure no single quotes (basic check)
     def validate_file_path(file_path, name):
         if file_path and "'" in file_path:
-            raise ValueError(f"Invalid {name}: {file_path} (contains single quotes)")
-    
+            raise ValueError(
+                f"Invalid {name}: {file_path} (contains single quotes)"
+            )
+
     validate_file_path(lines_file, "lines_file")
     validate_file_path(polygons_file, "polygons_file")
-    
-def safe(s): 
+
+
+def safe(s):
     """
     Dummy function to mark a string as safe for SQL queries. This is used to
     bypass the SQL injection check for specific queries that are already validated.

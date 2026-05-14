@@ -1,28 +1,30 @@
 # -*- coding: utf-8 -*-
 
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2021-02-05'
-__copyright__ = '(C) 2021 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2021-02-05"
+__copyright__ = "(C) 2021 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant, QDate, Qt
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterRasterDestination,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterField,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingException,
-                       QgsProcessingParameterDateTime,
-                       QgsVectorDataProvider,
-                       QgsProcessingParameterFile,
-                       QgsField)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterRasterDestination,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
+    QgsProcessingParameterEnum,
+    QgsProcessingException,
+    QgsProcessingParameterDateTime,
+    QgsVectorDataProvider,
+    QgsProcessingParameterFile,
+    QgsField,
+)
 from qgis.PyQt.QtGui import QIcon
 
 from processing.gui.wrappers import WidgetWrapper
@@ -33,8 +35,7 @@ from osgeo.gdalconst import GDT_Float32
 import os
 import numpy as np
 import inspect
-import sys
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit, QMessageBox
+from qgis.PyQt.QtWidgets import QDateEdit
 from pathlib import Path
 import shutil
 import datetime
@@ -46,88 +47,152 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
     """
     This class is a processing version of UWGAnalyzer but only for generating aggregated grids
     """
-    INPUT_FOLDER = 'INPUT_FOLDER'
-    OUTPUT_FOLDER = 'OUTPUT_FOLDER'
-    INPUT_POLYGONLAYER = 'INPUT_POLYGONLAYER'
-    ID_FIELD = 'ID_FIELD'
-    SINGLE_DAY_BOOL = 'SINGLE_DAY_BOOL'
-    SINGLE_DAY = 'SINGLE_DAY'
-    IRREGULAR = 'IRREGULAR'
-    PIXELSIZE = 'PIXELSIZE'
-    STAT_TYPE = 'STAT_TYPE'
-    ADD_ATTRIBUTES ='ADD_ATTRIBUTES'
- 
-    # Output
-    UWG_GRID_OUT = 'UWG_GRID_OUT'
 
+    INPUT_FOLDER = "INPUT_FOLDER"
+    OUTPUT_FOLDER = "OUTPUT_FOLDER"
+    INPUT_POLYGONLAYER = "INPUT_POLYGONLAYER"
+    ID_FIELD = "ID_FIELD"
+    SINGLE_DAY_BOOL = "SINGLE_DAY_BOOL"
+    SINGLE_DAY = "SINGLE_DAY"
+    IRREGULAR = "IRREGULAR"
+    PIXELSIZE = "PIXELSIZE"
+    STAT_TYPE = "STAT_TYPE"
+    ADD_ATTRIBUTES = "ADD_ATTRIBUTES"
+
+    # Output
+    UWG_GRID_OUT = "UWG_GRID_OUT"
 
     def initAlgorithm(self, config):
 
         self.plugin_dir = os.path.dirname(__file__)
 
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_FOLDER,
-            self.tr('Path to folder where UWG input files are located'),
-            QgsProcessingParameterFile.Behavior.Folder))
-        self.addParameter(QgsProcessingParameterFile(self.OUTPUT_FOLDER,
-            self.tr('Path to folder where UWG output files are located'),
-            QgsProcessingParameterFile.Behavior.Folder))
-        self.addParameter(QgsProcessingParameterBoolean(self.SINGLE_DAY_BOOL,
-            self.tr("Examine single night"), defaultValue=False, optional=True))
-        self.addParameter(QgsProcessingParameterDateTime(self.SINGLE_DAY,
-            self.tr('Month and day when single night begins (year is irrelevant)'),
-            QgsProcessingParameterDateTime.Type.Date))
-        self.statType = ((self.tr('Mean'), '0'),
-                         (self.tr('Maximun'), '1'),
-                         (self.tr('Median'), '2'),
-                         (self.tr('75% percentile'), '3'),
-                         (self.tr('95% percentile'), '4'))
-        self.addParameter(QgsProcessingParameterEnum(self.STAT_TYPE,
-                                                     self.tr('Statistic measure'),
-                                                     options=[i[0] for i in self.statType],
-                                                     defaultValue=0))
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POLYGONLAYER,
-                                                              self.tr('Vector polygon grid'), 
-                                                              [QgsProcessing.SourceType.TypeVectorPolygon]))
-        self.addParameter(QgsProcessingParameterField(self.ID_FIELD,
-                                                      self.tr('ID field'),
-                                                      '', 
-                                                      self.INPUT_POLYGONLAYER, 
-                                                      QgsProcessingParameterField.DataType.Numeric))
-        self.addParameter(QgsProcessingParameterBoolean(self.IRREGULAR,
-                                                        self.tr("Polygon grid irregular (not squared)"), 
-                                                        defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.PIXELSIZE,
-                                                       self.tr('Pixelsize if irregular grid is used (meter)'),
-                                                       QgsProcessingParameterNumber.Type.Integer,
-                                                       QVariant(10), False, minValue=1))
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_FOLDER,
+                self.tr("Path to folder where UWG input files are located"),
+                QgsProcessingParameterFile.Behavior.Folder,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.OUTPUT_FOLDER,
+                self.tr("Path to folder where UWG output files are located"),
+                QgsProcessingParameterFile.Behavior.Folder,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.SINGLE_DAY_BOOL,
+                self.tr("Examine single night"),
+                defaultValue=False,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterDateTime(
+                self.SINGLE_DAY,
+                self.tr(
+                    "Month and day when single night begins (year is irrelevant)"
+                ),
+                QgsProcessingParameterDateTime.Type.Date,
+            )
+        )
+        self.statType = (
+            (self.tr("Mean"), "0"),
+            (self.tr("Maximun"), "1"),
+            (self.tr("Median"), "2"),
+            (self.tr("75% percentile"), "3"),
+            (self.tr("95% percentile"), "4"),
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.STAT_TYPE,
+                self.tr("Statistic measure"),
+                options=[i[0] for i in self.statType],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POLYGONLAYER,
+                self.tr("Vector polygon grid"),
+                [QgsProcessing.SourceType.TypeVectorPolygon],
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.ID_FIELD,
+                self.tr("ID field"),
+                "",
+                self.INPUT_POLYGONLAYER,
+                QgsProcessingParameterField.DataType.Numeric,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.IRREGULAR,
+                self.tr("Polygon grid irregular (not squared)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.PIXELSIZE,
+                self.tr("Pixelsize if irregular grid is used (meter)"),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(10),
+                False,
+                minValue=1,
+            )
+        )
 
         # Output
-        self.addParameter(QgsProcessingParameterBoolean(self.ADD_ATTRIBUTES,
-                                                        self.tr("Add results to vector polygon grid attribute table"), 
-                                                        defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterDestination(self.UWG_GRID_OUT,
-                                                                  self.tr("Output raster from statistical analysis"),
-                                                                  None,
-                                                                  optional=True,
-                                                                  createByDefault=False))
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ADD_ATTRIBUTES,
+                self.tr("Add results to vector polygon grid attribute table"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterDestination(
+                self.UWG_GRID_OUT,
+                self.tr("Output raster from statistical analysis"),
+                None,
+                optional=True,
+                createByDefault=False,
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
-        
+
         # InputParameters
         uwgIn = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
-        uwgOut = self.parameterAsString(parameters, self.OUTPUT_FOLDER, context)
+        uwgOut = self.parameterAsString(
+            parameters, self.OUTPUT_FOLDER, context
+        )
         # variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
         # startday = self.parameterAsString(parameters, self.DATEINISTART, context)
-        singleNight = self.parameterAsBool(parameters, self.SINGLE_DAY_BOOL, context)
+        singleNight = self.parameterAsBool(
+            parameters, self.SINGLE_DAY_BOOL, context
+        )
         # endday = self.parameterAsString(parameters, self.DATEINIEND, context)
-        inputPolygonlayer = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
+        inputPolygonlayer = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONLAYER, context
+        )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
         irreg = self.parameterAsBool(parameters, self.IRREGULAR, context)
-        statTypeStr = self.parameterAsString(parameters, self.STAT_TYPE, context)
+        statTypeStr = self.parameterAsString(
+            parameters, self.STAT_TYPE, context
+        )
         # dayTypeStr = self.parameterAsString(parameters, self.TIME_OF_DAY, context)
         pixelsize = self.parameterAsDouble(parameters, self.PIXELSIZE, context)
-        addAttributes = self.parameterAsBool(parameters, self.ADD_ATTRIBUTES, context)
-        outputStat = self.parameterAsOutputLayer(parameters, self.UWG_GRID_OUT, context)
+        addAttributes = self.parameterAsBool(
+            parameters, self.ADD_ATTRIBUTES, context
+        )
+        outputStat = self.parameterAsOutputLayer(
+            parameters, self.UWG_GRID_OUT, context
+        )
 
         feedback.setProgressText("Initializing...")
 
@@ -143,50 +208,69 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Prefix: " + prefix)
 
         uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
-        mm = uwgDict['Month']
-        dd = uwgDict['Day']
-        nDays = uwgDict['nDay']
+        mm = uwgDict["Month"]
+        dd = uwgDict["Day"]
+        nDays = uwgDict["nDay"]
 
         # Load rural data
-        sitein = uwgOut + '/metdata_UMEP.txt'
+        sitein = uwgOut + "/metdata_UMEP.txt"
         dataref = np.genfromtxt(sitein, skip_header=1)
-        yyyy = dataref[0,0]
+        yyyy = dataref[0, 0]
 
         start = datetime.date(int(yyyy), int(mm), int(dd))
         end = start + datetime.timedelta(days=int(nDays))
 
-        feedback.setProgressText('Days indentified as modelled by UWG: ' + start.strftime('%d %b') + ' to ' + end.strftime('%d %b'))
+        feedback.setProgressText(
+            "Days indentified as modelled by UWG: "
+            + start.strftime("%d %b")
+            + " to "
+            + end.strftime("%d %b")
+        )
 
         if singleNight:
-            singledate = self.parameterAsString(parameters, self.SINGLE_DAY, context)
-            startDate = datetime.datetime.strptime(singledate, '%Y-%m-%d')
+            singledate = self.parameterAsString(
+                parameters, self.SINGLE_DAY, context
+            )
+            startDate = datetime.datetime.strptime(singledate, "%Y-%m-%d")
             mm = startDate.month
             dd = startDate.day
             startDate = datetime.date(int(yyyy), int(mm), int(dd))
             nDays = 1
             endDate = startDate + datetime.timedelta(days=int(nDays))
             if startDate >= end or startDate < start:
-                raise QgsProcessingException('Single date has to be within the modelled days OR the same as the last modelled day.')
+                raise QgsProcessingException(
+                    "Single date has to be within the modelled days OR the same as the last modelled day."
+                )
             else:
-                feedback.setProgressText('Single day and following night to examine: ' + startDate.strftime('%d %b'))
+                feedback.setProgressText(
+                    "Single day and following night to examine: "
+                    + startDate.strftime("%d %b")
+                )
         else:
             uwgDict = read_uwg_file(uwgIn, fileList[0][:-4])
-            mm = uwgDict['Month']
-            dd = uwgDict['Day']
-            nDays = uwgDict['nDay']
+            mm = uwgDict["Month"]
+            dd = uwgDict["Day"]
+            nDays = uwgDict["nDay"]
             startDate = datetime.date(int(yyyy), int(mm), int(dd))
             endDate = startDate + datetime.timedelta(days=int(nDays))
-            feedback.setProgressText('Dates to be analyzed: ' + startDate.strftime('%d %b') + ' to ' + endDate.strftime('%d %b'))
+            feedback.setProgressText(
+                "Dates to be analyzed: "
+                + startDate.strftime("%d %b")
+                + " to "
+                + endDate.strftime("%d %b")
+            )
 
         # poly = inputPolygonlayer
         poly_field = idField
         vlayer = inputPolygonlayer
         # prov = vlayer.dataProvider()
 
-        path=vlayer.dataProvider().dataSourceUri()
-        # polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
-        if path.rfind('|') > 0:
-            polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
+        path = vlayer.dataProvider().dataSourceUri()
+        # polygonpath = path [:path.rfind('|')] # work around. Probably other
+        # solution exists
+        if path.rfind("|") > 0:
+            # work around. Probably other solution exists
+            polygonpath = path[: path.rfind("|")]
         else:
             polygonpath = path
 
@@ -198,11 +282,11 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         statresult = [0]
         idvec = [0]
 
-        startD = int(startDate.strftime('%j'))
-        endD = int(endDate.strftime('%j'))
-        
-        
-        # for i in range(0, self.idgrid.shape[0]): # loop over vector grid instead
+        startD = int(startDate.strftime("%j"))
+        endD = int(endDate.strftime("%j"))
+
+        # for i in range(0, self.idgrid.shape[0]): # loop over vector grid
+        # instead
         index = 1
         nGrids = vlayer.featureCount()
         for f in vlayer.getFeatures():
@@ -216,7 +300,10 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
             feedback.setProgressText("Processing grid: " + str(gid))
 
-            datawhole = np.genfromtxt(uwgOut + '/' + prefix + '_' + gid + '_UMEP_UWG.txt', skip_header=1)
+            datawhole = np.genfromtxt(
+                uwgOut + "/" + prefix + "_" + gid + "_UMEP_UWG.txt",
+                skip_header=1,
+            )
 
             # cut UWG data
             start = np.min(np.where(datawhole[:, 1] == startD))
@@ -224,9 +311,11 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 ending = np.max(np.where(datawhole[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(datawhole[:, 1] == endD))
-            data1 = datawhole[start:int(ending + 12), :] # + 12 to include whole final night 
+            # + 12 to include whole final night
+            data1 = datawhole[start : int(ending + 12), :]
 
-            data1 = data1[np.where(data1[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
+            # include only nighttime. 14 is position for global radiation
+            data1 = data1[np.where(data1[:, 14] < 1.0), :]
             data1 = data1[0][:]
 
             # cut ref data
@@ -234,11 +323,13 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 ending = np.max(np.where(dataref[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(dataref[:, 1] == endD))
-            data2 = dataref[start:int(ending + 12), :] # + 12 to include whole final night 
+            # + 12 to include whole final night
+            data2 = dataref[start : int(ending + 12), :]
 
-            data2 = data2[np.where(data2[:, 14] < 1.), :] # include only nighttime. 14 is position for global radiation
+            # include only nighttime. 14 is position for global radiation
+            data2 = data2[np.where(data2[:, 14] < 1.0), :]
             data2 = data2[0][:]
-            
+
             # if dayTypeStr == '1':
             #     data1 = data1[np.where(data1[:, altpos] < 90.), :]
             #     data1 = data1[0][:]
@@ -246,25 +337,25 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
             #     data1 = data1[np.where(data1[:, altpos] > 90.), :]
             #     data1 = data1[0][:]
 
-            vardatauwg = data1[:, 11] # 11 is temperature column
-            vardataref = data2[:, 11] 
+            vardatauwg = data1[:, 11]  # 11 is temperature column
+            vardataref = data2[:, 11]
             vardata = vardatauwg - vardataref
 
-            if statTypeStr == '0':
+            if statTypeStr == "0":
                 statresult = np.nanmean(vardata)
-                header = 'mean'
-            if statTypeStr == '1':
+                header = "mean"
+            if statTypeStr == "1":
                 statresult = np.nanmax(vardata)
-                header = 'max'
-            if statTypeStr == '2':
+                header = "max"
+            if statTypeStr == "2":
                 statresult = np.nanpercentile(vardata, 50)
-                header = 'median'
-            if statTypeStr == '3':
+                header = "median"
+            if statTypeStr == "3":
                 statresult = np.nanpercentile(vardata, 75)
-                header = '75precentile'
-            if statTypeStr == '4':
+                header = "75precentile"
+            if statTypeStr == "4":
                 statresult = np.nanpercentile(vardata, 95)
-                header = '95precentile'
+                header = "95precentile"
 
             statvectemp = np.vstack((statvectemp, statresult))
             idvec = np.vstack((idvec, int(gid)))
@@ -279,7 +370,11 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         if irreg:
             resx = pixelsize
         else:
-            for f in vlayer.getFeatures():  # Taking first polygon. Could probably be done nicer
+            for (
+                f
+            ) in (
+                vlayer.getFeatures()
+            ):  # Taking first polygon. Could probably be done nicer
                 # geom = f.geometry().asPolygon()
                 geom = f.geometry().asMultiPolygon()
                 break
@@ -287,19 +382,30 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
             resy = np.abs(geom[0][0][0][1] - geom[0][0][2][1])  # y
 
             if not resx == resy:
-                raise QgsProcessingException("Polygons not squared in current CRS")
+                raise QgsProcessingException(
+                    "Polygons not squared in current CRS"
+                )
 
-        if os.path.isfile(self.plugin_dir + '/tempgrid.tif'): # response to issue 103
+        if os.path.isfile(
+            self.plugin_dir + "/tempgrid.tif"
+        ):  # response to issue 103
             try:
-                shutil.rmtree(self.plugin_dir + '/tempgrid.tif')
+                shutil.rmtree(self.plugin_dir + "/tempgrid.tif")
             except OSError:
-                os.remove(self.plugin_dir + '/tempgrid.tif')
-        
+                os.remove(self.plugin_dir + "/tempgrid.tif")
+
         extent = vlayer.extent()
         crs = vlayer.crs().toWkt()
-        self.rasterize(polygonpath, str(self.plugin_dir + '/tempgrid.tif'), str(poly_field[0]), resx, crs, extent)
+        self.rasterize(
+            polygonpath,
+            str(self.plugin_dir + "/tempgrid.tif"),
+            str(poly_field[0]),
+            resx,
+            crs,
+            extent,
+        )
 
-        dataset = gdal.Open(self.plugin_dir + '/tempgrid.tif')
+        dataset = gdal.Open(self.plugin_dir + "/tempgrid.tif")
         idgrid_array = dataset.ReadAsArray().astype(float)
 
         gridout = np.zeros((idgrid_array.shape[0], idgrid_array.shape[1]))
@@ -314,7 +420,17 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         return {self.UWG_GRID_OUT: outputStat}
 
-    def rasterize(self, src, dst, attribute, resolution, crs, extent, all_touch=False, na=-9999):
+    def rasterize(
+        self,
+        src,
+        dst,
+        attribute,
+        resolution,
+        crs,
+        extent,
+        all_touch=False,
+        na=-9999,
+    ):
 
         # Open shapefile, retrieve the layer
         # print(src)
@@ -328,10 +444,12 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         ymin = extent.yMinimum()
 
         # Create the target raster layer
-        cols = int((xmax - xmin)/resolution)
+        cols = int((xmax - xmin) / resolution)
         # rows = int((ymax - ymin)/resolution) + 1
-        rows = int((ymax - ymin)/resolution)  # issue 164
-        trgt = gdal.GetDriverByName("GTiff").Create(dst, cols, rows, 1, GDT_Float32)
+        rows = int((ymax - ymin) / resolution)  # issue 164
+        trgt = gdal.GetDriverByName("GTiff").Create(
+            dst, cols, rows, 1, GDT_Float32
+        )
         trgt.SetGeoTransform((xmin, resolution, 0, ymax, 0, -resolution))
 
         # Add crs
@@ -354,15 +472,16 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # Close target an source rasters
         del trgt
-        del src_data 
+        del src_data
 
-    
     def addattributes(self, vlayer, matdata, header):
         current_index_length = len(vlayer.dataProvider().attributeIndexes())
         caps = vlayer.dataProvider().capabilities()
 
         if caps & QgsVectorDataProvider.Capability.AddAttributes:
-            vlayer.dataProvider().addAttributes([QgsField(header, QVariant.Double)])
+            vlayer.dataProvider().addAttributes(
+                [QgsField(header, QVariant.Double)]
+            )
             attr_dict = {}
             for y in range(0, matdata.shape[0]):
                 attr_dict.clear()
@@ -372,10 +491,12 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
             vlayer.updateFields()
         else:
-            raise QgsProcessingException("Vector Layer does not support adding attributes")
-    
+            raise QgsProcessingException(
+                "Vector Layer does not support adding attributes"
+            )
+
     def name(self):
-        return 'Urban Heat Island: UWG Analyzer'
+        return "Urban Heat Island: UWG Analyzer"
 
     def displayName(self):
         return self.tr(self.name())
@@ -384,28 +505,33 @@ class ProcessingUWGAnalyzerAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Post-Processor'
+        return "Post-Processor"
 
     def shortHelpString(self):
-        return self.tr('The <b>UWG Analyzer</b> plugin can be used to make basic grid analysis of model results generated by the Urban Weather Generator.<br>'
-        '\n'
-        '--------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "The <b>UWG Analyzer</b> plugin can be used to make basic grid analysis of model results generated by the Urban Weather Generator.<br>"
+            "\n"
+            "--------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/post_processor/Urban%20Heat%20Island%20UWG%20Analyser.html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Post-Processing', string)
+        return QCoreApplication.translate("Post-Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/icon_uwg.png")
         return icon
 
     def createInstance(self):
         return ProcessingUWGAnalyzerAlgorithm()
+
 
 class DateWidgetStart(WidgetWrapper):
     def createWidget(self):
@@ -420,6 +546,7 @@ class DateWidgetStart(WidgetWrapper):
     def value(self):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.DateFormat.ISODate)
+
 
 class DateWidgetEnd(WidgetWrapper):
     def createWidget(self):

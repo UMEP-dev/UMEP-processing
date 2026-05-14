@@ -1,83 +1,113 @@
 from builtins import str
+
 # This file prints out run information used for each specific run
 from time import strftime
 
 from .GlobalVariables import *
 
-def writeRunInfo(folderPath, build_file, heightBuild,
-                 veg_file, attenuationVeg, baseHeightVeg, topHeightVeg,
-                 z_ref, v_ref, windDirection, profileType,
-                 profileFile,
-                 meshSize, dz):
+
+def writeRunInfo(
+    folderPath,
+    build_file,
+    heightBuild,
+    veg_file,
+    attenuationVeg,
+    baseHeightVeg,
+    topHeightVeg,
+    z_ref,
+    v_ref,
+    windDirection,
+    profileType,
+    profileFile,
+    meshSize,
+    dz,
+):
 
     # with open(folderPath + '/RunInfoSOLWEIG.txt', 'w') as file:           	#FO#
-    #FO#
-    with open(folderPath + '/RunInfoURock.txt', 'w') as file:
-        file.write('This file provides run settings for the URock run initiated at: ' + strftime("%a, %d %b %Y %H:%M:%S"))
-        file.write('\n')
-        file.write('\n')
-        file.write('Version: ' + 'URock v2023a')
-        file.write('\n')
-        file.write('\n')
-        file.write('SURFACE DATA')
-        file.write('\n')
+    # FO#
+    with open(folderPath + "/RunInfoURock.txt", "w") as file:
+        file.write(
+            "This file provides run settings for the URock run initiated at: "
+            + strftime("%a, %d %b %Y %H:%M:%S")
+        )
+        file.write("\n")
+        file.write("\n")
+        file.write("Version: " + "URock v2023a")
+        file.write("\n")
+        file.write("\n")
+        file.write("SURFACE DATA")
+        file.write("\n")
         if build_file is not None:
-            file.write('Building layer: ' + build_file)
-            file.write('\n')
-            file.write('Building height (attribute name): ' + heightBuild)
-            file.write('\n')
+            file.write("Building layer: " + build_file)
+            file.write("\n")
+            file.write("Building height (attribute name): " + heightBuild)
+            file.write("\n")
         else:
-            file.write('No building data used')
-            file.write('\n')
-        
+            file.write("No building data used")
+            file.write("\n")
+
         if veg_file is not None:
-            file.write('Vegetation layer: ' + veg_file)
-            file.write('\n')
-            file.write('Vegetation top height (attribute name): ' + topHeightVeg)
-            file.write('\n')
+            file.write("Vegetation layer: " + veg_file)
+            file.write("\n")
+            file.write(
+                "Vegetation top height (attribute name): " + topHeightVeg
+            )
+            file.write("\n")
             if baseHeightVeg is not None:
-                file.write('Vegetation base height (attribute name): ' + baseHeightVeg)
+                file.write(
+                    "Vegetation base height (attribute name): " + baseHeightVeg
+                )
             else:
-                file.write('Vegetation base height (fraction of top height): ' + str(DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC))
-            file.write('\n')
+                file.write(
+                    "Vegetation base height (fraction of top height): "
+                    + str(DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC)
+                )
+            file.write("\n")
             if attenuationVeg is not None:
-                file.write('Attenuation though vegetation (attribute name): ' + attenuationVeg)
+                file.write(
+                    "Attenuation though vegetation (attribute name): "
+                    + attenuationVeg
+                )
             else:
-                file.write('Attenuation though vegetation (value): ' + str(DEFAULT_VEG_ATTEN_FACT))
-            file.write('\n')
+                file.write(
+                    "Attenuation though vegetation (value): "
+                    + str(DEFAULT_VEG_ATTEN_FACT)
+                )
+            file.write("\n")
 
         else:
-            file.write('No vegetation data used')
-            file.write('\n')
- 
-        file.write('METEOROLOGICAL DATA')
-        file.write('\n')
-            
+            file.write("No vegetation data used")
+            file.write("\n")
+
+        file.write("METEOROLOGICAL DATA")
+        file.write("\n")
+
         if profileFile is not None:
-            file.write('Wind profile file: ' + profileFile)
-            file.write('\n')
-            
+            file.write("Wind profile file: " + profileFile)
+            file.write("\n")
+
         else:
-            file.write('Reference height for wind (m): ' + str(z_ref))
-            file.write('\n')
-            file.write('Reference wind speed at ref height (m/s): ' + str(v_ref))
-            file.write('\n')
-            file.write('Wind direction (° from North): ' + str(windDirection))
-            file.write('\n')
-            file.write('Wind profile type: ' + profileType)
-            file.write('\n')
+            file.write("Reference height for wind (m): " + str(z_ref))
+            file.write("\n")
+            file.write(
+                "Reference wind speed at ref height (m/s): " + str(v_ref)
+            )
+            file.write("\n")
+            file.write("Wind direction (° from North): " + str(windDirection))
+            file.write("\n")
+            file.write("Wind profile type: " + profileType)
+            file.write("\n")
 
-        file.write('\n')
-        file.write('MODEL SETTINGS')
-        file.write('\n')
+        file.write("\n")
+        file.write("MODEL SETTINGS")
+        file.write("\n")
 
-        file.write('Horizontal resolution (m): ' + str(meshSize))
-        file.write('\n')
-        file.write('Vertical resolution (m): ' + str(dz))
-        file.write('\n')
-        
+        file.write("Horizontal resolution (m): " + str(meshSize))
+        file.write("\n")
+        file.write("Vertical resolution (m): " + str(dz))
+        file.write("\n")
 
-        file.write('\n')
+        file.write("\n")
         file.close()
         # if metfileexist == 1:
         #     file.write('Meteorological file: ' + filePath_metfile)

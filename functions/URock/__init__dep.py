@@ -22,11 +22,13 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-__author__ = 'Jérémy Bernard / University of Gothenburg'
-__date__ = '2021-10-04'
-__copyright__ = '(C) 2021 by Jérémy Bernard / University of Gothenburg'
+__author__ = "Jérémy Bernard / University of Gothenburg"
+__date__ = "2021-10-04"
+__copyright__ = "(C) 2021 by Jérémy Bernard / University of Gothenburg"
 
 # noinspection PyPep8Naming
+
+
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load URock class from file URock.
 
@@ -35,4 +37,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .urock_processing import URockPlugin
+
     return URockPlugin()
