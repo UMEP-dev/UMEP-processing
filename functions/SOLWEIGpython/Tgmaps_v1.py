@@ -1,8 +1,9 @@
 import numpy as np
 
+
 def Tgmaps_v1(lc_grid, solweig_parameters):
 
-    #Tgmaps_v1 Populates grids with cooeficients for Tg wave
+    # Tgmaps_v1 Populates grids with cooeficients for Tg wave
     #   Detailed explanation goes here
     lc_grid[lc_grid >= 100] = 2
     id = np.unique(lc_grid)
@@ -15,14 +16,33 @@ def Tgmaps_v1(lc_grid, solweig_parameters):
 
     for i in id:
         # row = (lc_class[:, 0] == id[i])
-        Tstart[Tstart == i] = solweig_parameters['Tstart']['Value'][solweig_parameters['Names']['Value'][str(i)]]
-        alb_grid[alb_grid == i] = solweig_parameters['Albedo']['Effective']['Value'][solweig_parameters['Names']['Value'][str(i)]]
-        emis_grid[emis_grid == i] = solweig_parameters['Emissivity']['Value'][solweig_parameters['Names']['Value'][str(i)]]
-        TmaxLST[TmaxLST == i] = solweig_parameters['TmaxLST']['Value'][solweig_parameters['Names']['Value'][str(i)]]
-        TgK[TgK == i] = solweig_parameters['Ts_deg']['Value'][solweig_parameters['Names']['Value'][str(i)]]
+        Tstart[Tstart == i] = solweig_parameters["Tstart"]["Value"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ]
+        alb_grid[alb_grid == i] = solweig_parameters["Albedo"]["Effective"][
+            "Value"
+        ][solweig_parameters["Names"]["Value"][str(i)]]
+        emis_grid[emis_grid == i] = solweig_parameters["Emissivity"]["Value"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ]
+        TmaxLST[TmaxLST == i] = solweig_parameters["TmaxLST"]["Value"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ]
+        TgK[TgK == i] = solweig_parameters["Ts_deg"]["Value"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ]
 
-    TgK_wall = solweig_parameters['Ts_deg']['Value']['Walls']
-    Tstart_wall = solweig_parameters['Tstart']['Value']['Walls']
-    TmaxLST_wall = solweig_parameters['TmaxLST']['Value']['Walls']
+    TgK_wall = solweig_parameters["Ts_deg"]["Value"]["Walls"]
+    Tstart_wall = solweig_parameters["Tstart"]["Value"]["Walls"]
+    TmaxLST_wall = solweig_parameters["TmaxLST"]["Value"]["Walls"]
 
-    return TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST, TmaxLST_wall
+    return (
+        TgK,
+        Tstart,
+        alb_grid,
+        emis_grid,
+        TgK_wall,
+        Tstart_wall,
+        TmaxLST,
+        TmaxLST_wall,
+    )

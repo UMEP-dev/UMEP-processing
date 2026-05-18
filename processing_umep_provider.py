@@ -22,47 +22,76 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.core import QgsProcessingProvider
 
-from .preprocessor.wall_heightaspect_algorithm import ProcessingWallHeightAscpetAlgorithm
-from .preprocessor.skyviewfactor_algorithm import ProcessingSkyViewFactorAlgorithm
-from .preprocessor.copernicusera5_algorithm import ProcessingCopernicusERA5Algorithm
-from .preprocessor.imagemorphparmspoint_algorithm import ProcessingImageMorphParmsPointAlgorithm
-from .preprocessor.imagemorphparms_algorithm import ProcessingImageMorphParmsAlgorithm
-from .preprocessor.landcoverfractionpoint_algorithm import ProcessingLandCoverFractionPointAlgorithm
-from .preprocessor.landcoverfraction_algorithm import ProcessingLandCoverFractionAlgorithm
-from .preprocessor.dsm_generator_algorithm import ProcessingDSMGeneratorAlgorithm
-from .preprocessor.treegenerator_algorithm import ProcessingTreeGeneratorAlgorithm
+from .preprocessor.wall_heightaspect_algorithm import (
+    ProcessingWallHeightAscpetAlgorithm,
+)
+from .preprocessor.skyviewfactor_algorithm import (
+    ProcessingSkyViewFactorAlgorithm,
+)
+from .preprocessor.copernicusera5_algorithm import (
+    ProcessingCopernicusERA5Algorithm,
+)
+from .preprocessor.imagemorphparmspoint_algorithm import (
+    ProcessingImageMorphParmsPointAlgorithm,
+)
+from .preprocessor.imagemorphparms_algorithm import (
+    ProcessingImageMorphParmsAlgorithm,
+)
+from .preprocessor.landcoverfractionpoint_algorithm import (
+    ProcessingLandCoverFractionPointAlgorithm,
+)
+from .preprocessor.landcoverfraction_algorithm import (
+    ProcessingLandCoverFractionAlgorithm,
+)
+from .preprocessor.dsm_generator_algorithm import (
+    ProcessingDSMGeneratorAlgorithm,
+)
+from .preprocessor.treegenerator_algorithm import (
+    ProcessingTreeGeneratorAlgorithm,
+)
 from .preprocessor.uwgprepare_algorithm import ProcessingUWGPrepareAlgorithm
-from .preprocessor.targetprepare_algorithm import ProcessingTARGETPrepareAlgorithm
+from .preprocessor.targetprepare_algorithm import (
+    ProcessingTARGETPrepareAlgorithm,
+)
 from .preprocessor.urock_prepare_algorithm import URockPrepareAlgorithm
 
 from .processor.suews_algorithm import ProcessingSuewsAlgorithm
-from .processor.shadow_generator_algorithm import ProcessingShadowGeneratorAlgorithm
+from .processor.shadow_generator_algorithm import (
+    ProcessingShadowGeneratorAlgorithm,
+)
 from .processor.sebe_algorithm import ProcessingSEBEAlgorithm
 from .processor.solweig_algorithm import ProcessingSOLWEIGAlgorithm
 from .processor.uwg_algorithm import ProcessingUWGProcessorAlgorithm
 from .processor.urock_processing_algorithm import URockAlgorithm
 from .processor.target_algorithm import ProcessingTargetProcessorAlgorithm
 
-from .postprocessor.solwieganalyzer_algorithm import ProcessingSolweigAnalyzerAlgorithm
-from .postprocessor.suewsanalyzer_algorithm import ProcessingSuewsAnalyzerAlgorithm
+from .postprocessor.solwieganalyzer_algorithm import (
+    ProcessingSolweigAnalyzerAlgorithm,
+)
+from .postprocessor.suewsanalyzer_algorithm import (
+    ProcessingSuewsAnalyzerAlgorithm,
+)
 from .postprocessor.treeplanter_algorithm import ProcessingTreePlanterAlgorithm
 from .postprocessor.uwganalyzer_algorithm import ProcessingUWGAnalyzerAlgorithm
 from .postprocessor.spatialtc_algorithm import ProcessingSpatialTCAlgorithm
 from .postprocessor.urock_analyser_algorithm import URockAnalyserAlgorithm
-from .postprocessor.targetanalyzer_algorithm import ProcessingTARGETAnalyzerAlgorithm
+from .postprocessor.targetanalyzer_algorithm import (
+    ProcessingTARGETAnalyzerAlgorithm,
+)
 
 import os.path
 from qgis.PyQt.QtGui import QIcon
+
 
 class ProcessingUMEPProvider(QgsProcessingProvider):
 
@@ -72,22 +101,21 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         """
         self.plugin_dir = os.path.dirname(__file__)
         QgsProcessingProvider.__init__(self)
-        
-        if not (os.path.isdir(self.plugin_dir + '/temp')):
-                os.mkdir(self.plugin_dir + '/temp')
+
+        if not (os.path.isdir(self.plugin_dir + "/temp")):
+            os.mkdir(self.plugin_dir + "/temp")
 
     def unload(self):
         """
         Unloads the provider. Any tear-down steps required by the provider
         should be implemented here.
         """
-        pass
 
     def loadAlgorithms(self):
         """
         Loads all algorithms belonging to this provider.
         """
-        #Preprocessor
+        # Preprocessor
         self.addAlgorithm(ProcessingSkyViewFactorAlgorithm())
         self.addAlgorithm(ProcessingWallHeightAscpetAlgorithm())
         self.addAlgorithm(ProcessingImageMorphParmsPointAlgorithm())
@@ -100,8 +128,8 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingUWGPrepareAlgorithm())
         self.addAlgorithm(ProcessingTARGETPrepareAlgorithm())
         self.addAlgorithm(URockPrepareAlgorithm())
-        
-        #Processor
+
+        # Processor
         self.addAlgorithm(ProcessingSEBEAlgorithm())
         self.addAlgorithm(ProcessingShadowGeneratorAlgorithm())
         self.addAlgorithm(ProcessingSOLWEIGAlgorithm())
@@ -111,7 +139,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         self.addAlgorithm(ProcessingTargetProcessorAlgorithm())
         self.addAlgorithm(URockAlgorithm())
 
-        #Postprocessor
+        # Postprocessor
         self.addAlgorithm(ProcessingSolweigAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingSuewsAnalyzerAlgorithm())
         self.addAlgorithm(ProcessingUWGAnalyzerAlgorithm())
@@ -125,7 +153,7 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         string should be a unique, short, character only string, eg "qgis" or
         "gdal". This string should not be localised.
         """
-        return 'umep'
+        return "umep"
 
     def name(self):
         """
@@ -134,14 +162,14 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
 
         This string should be short (e.g. "Lastools") and localised.
         """
-        return 'UMEP'
-        
+        return "UMEP"
+
     def icon(self):
         """
         Should return a QIcon which is used for your provider inside
         the Processing toolbox.
         """
-        icon = QIcon(os.path.dirname(__file__) + '/icons/icon_umep.png')
+        icon = QIcon(os.path.dirname(__file__) + "/icons/icon_umep.png")
         return icon
 
     def longName(self):
@@ -151,4 +179,4 @@ class ProcessingUMEPProvider(QgsProcessingProvider):
         (version 2.2.1)". This string should be localised. The default
         implementation returns the same string as name().
         """
-        return 'UMEP for Processing, Version 3.0'
+        return "UMEP for Processing, Version 3.0"

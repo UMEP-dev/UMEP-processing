@@ -22,35 +22,40 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
+
 # from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.core import (QgsProcessingAlgorithm,
-                       QgsProcessingParameterFile,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterDefinition,
-                       QgsProcessingException)
+from qgis.core import (
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterFile,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterDefinition,
+    QgsProcessingException,
+)
 
 try:
     from supy import SUEWSSimulation
-    from supy.data_model import init_config_from_yaml 
+    from supy.data_model import init_config_from_yaml
 #     import supy as sp
 #     from supy import __version__ as ver_supy
-except:
+except BaseException:
     pass
 from pathlib import Path
+
 # from ..util import f90nml
-import sys, os
+import sys
+import os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
@@ -63,152 +68,414 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
     This is a processing algorithm for the SUEWS model
     """
 
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    INPUT_FILE = 'INPUT_FILE'
+    OUTPUT_DIR = "OUTPUT_DIR"
+    INPUT_FILE = "INPUT_FILE"
 
-    NET = 'NET'
-    ANTHRO = 'ANTHRO'
-    STORAGE = 'STORAGE'
-    OHM = 'OHM'
-    Z0M = 'Z0M'
-    Z0H = 'Z0H'
-    STAB = 'STAB'
-    SMD = 'SMD'
-    WU = 'WU'
-    RSLMETHOD = 'RSLMETHOD'
-    RSLLEVEL = 'RSLLEVEL'
+    NET = "NET"
+    ANTHRO = "ANTHRO"
+    STORAGE = "STORAGE"
+    OHM = "OHM"
+    Z0M = "Z0M"
+    Z0H = "Z0H"
+    STAB = "STAB"
+    SMD = "SMD"
+    WU = "WU"
+    RSLMETHOD = "RSLMETHOD"
+    RSLLEVEL = "RSLLEVEL"
     # AERO = 'AERO' new Z0H
-    SNOW = 'SNOW'
-    
-    SPINUP = 'SPINUP'
-    CHUNKBOOL = 'CHUNKBOOL'
-    CHUNK = 'CHUNK'
+    SNOW = "SNOW"
+
+    SPINUP = "SPINUP"
+    CHUNKBOOL = "CHUNKBOOL"
+    CHUNK = "CHUNK"
     # TIMERESOUT = 'TIMERESOUT'
 
     def initAlgorithm(self, config):
-        self.net = ((self.tr('0. (OBSERVED) from forcing file'), '0'),
-                   (self.tr('1. (LDOWN_OBSERVED) Modelled (NARP) but Ldown observed'), '1'),
-                   (self.tr('2.  (LDOWN_CLOUD) Modelled (NARP), Ldown from cloud cover'), '2'),
-                   (self.tr('3. (LDOWN_AIR) Modelled (NARP), Ldown from Ta and RH (Default)'), '3'),)
-        self.anthro = ((self.tr('0. (NO_EMISSIONS) = Observed QF from forcing file'), '0'),
-                      (self.tr('1. (L11) = Loridan et al. 2011 linear temp relation'), '1'),
-                      (self.tr('2. (J11) = Järvi et al. 2011 with HDD/CDD (Default)'), '2'),
-                      (self.tr('4. (J19) = Järvi et al. 2019 including metabolism and traffic'), '4'))
-        self.storage = ((self.tr('0. (OBSERVED) = Uses observed ΔQS from forcing file'), '0'),
-                        (self.tr('1. (OHM_WITHOUT_QF) = Objective Hysteresis Model using Q* only (Default)'), '1'),
-                       (self.tr('5. (EHC) = Explicit Heat Conduction model with separate roof/wall/ground temperatures'), '5'),
-                       (self.tr('6. (DyOHM) = Dynamic Objective Hysteresis Model (Liu et al., 2025) with dynamic coefficients'), '6'),
-                       (self.tr('7. (STEBBS) = use STEBBS storage heat flux for building, others use OHM'), '6'))
-        self.ohm = ((self.tr('0. (EXCLUDE) = Use Q* only (required when StorageHeatMethod=1) (Default)'), '0'),
-                   (self.tr('1. (INCLUDE) = Use Q*+QF'), '1'))
-        self.z0m = ((self.tr('1. (FIXED) = Fixed from site parameters'), '1'),
-                  (self.tr('2. (VARIABLE) = Varies with vegetation LAI (Default)'), '2'),
-                  (self.tr('3. (MACDONALD) = MacDonald et al. 1998 morphometric method'), '3'),
-                  (self.tr('4. (LAMBDAP_DEPENDENT) = Varies with plan area fraction'), '4'))
-        self.z0h = ((self.tr('1. (BRUTSAERT) = Brutsaert (1982) z0h = z0m/10 (see Grimmond & Oke 1986)'), '1'),
-                  (self.tr('2. (KAWAI) = Kawai et al. (2009) formulation (Default)'), '2'),
-                  (self.tr('3. (VOOGT_GRIMMOND) = Voogt and Grimmond (2000) formulation'), '3'),
-                  (self.tr('4. (KANDA) = Kanda et al. (2007) formulation'), '4'),
-                  (self.tr('5. (ADAPTIVE) = Adaptively using z0m based on pervious coverage: if fully pervious, use method 1)'),'5'))
-        self.stab = ((self.tr('2. Dyer 1974 etc.'), '2'),
-                      (self.tr('3. (CAMPBELL_NORMAN) = Campbell & Norman 1998 formulations (Default)'), '3'),
-                      (self.tr('4. Businger et al. 1971'), '4'))
-        self.smd = ((self.tr('0. (MODELLED) = Calculated from water balance using soil parameters (Default)'), '0'),
-                   (self.tr('1. (OBSERVED_VOLUMETRIC) = Uses observed volumetric soil moisture (m³/m³) from forcing file'), '1'),
-                   (self.tr('2. (OBSERVED_GRAVIMETRIC) = Uses observed gravimetric soil moisture (kg/kg) from forcing file'), '2'))
-        self.wu = ((self.tr('0. (MODELLED) = Calculated based on soil moisture deficit and irrigation parameters (Default)'), '0'),
-                      (self.tr('1. (OBSERVED) = Uses observed water use values from forcing file'), '1'))
-        self.rslmethod = ((self.tr('0. (MOST) = Monin-Obukhov Similarity Theory for homogeneous surfaces'), '0'),
-                   (self.tr('1. (RST) = Roughness Sublayer Theory for heterogeneous urban surfaces'), '1'),
-                   (self.tr('2. (VARIABLE) = Automatic selection based on surface morphology (Default)'), '2'))
-        self.rsllevel = ((self.tr('0. (NONE) = No local climate adjustments, use forcing file meteorology directly (Default)'), '0'),
-                   (self.tr('1. (BASIC) = Simple adjustments for urban temperature effects on leaf area index and growing degree days'), '1'),
-                   (self.tr('2. ((DETAILED) = Comprehensive feedbacks including moisture stress, urban CO2 dome effects, and modified phenology cycles'), '2'))
-        
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_FILE,
-            self.tr('Input yaml file (.yml)'), extension='yml'))
-    
-        self.addParameter(QgsProcessingParameterEnum(self.NET,
-                                                     self.tr('Method for calculating net all-wave radiation (Q*)'),
-                                                     options=[i[0] for i in self.net],
-                                                     defaultValue=3))
-        self.addParameter(QgsProcessingParameterEnum(self.ANTHRO,
-                                                     self.tr('Method for calculating anthropogenic heat flux (QF) and CO2 emissions'),
-                                                     options=[i[0] for i in self.anthro],
-                                                     defaultValue=2))
-        self.addParameter(QgsProcessingParameterEnum(self.STORAGE,
-                                                     self.tr('Method for calculating storage heat flux (ΔQS)'),
-                                                     options=[i[0] for i in self.storage],
-                                                     defaultValue=1))
-        self.addParameter(QgsProcessingParameterEnum(self.OHM,
-                                                     self.tr('Controls inclusion of anthropogenic heat flux in OHM storage heat calculations'),
-                                                     options=[i[0] for i in self.ohm],
-                                                     defaultValue=0))
-        self.addParameter(QgsProcessingParameterEnum(self.Z0M,
-                                                     self.tr('Method for calculating momentum roughness length (z0m)'),
-                                                     options=[i[0] for i in self.z0m],
-                                                     defaultValue=1))
-        self.addParameter(QgsProcessingParameterEnum(self.Z0H,
-                                                     self.tr('Method for calculating thermal roughness length (z0h)'),
-                                                     options=[i[0] for i in self.z0h],
-                                                     defaultValue=1))
-        self.addParameter(QgsProcessingParameterEnum(self.STAB,
-                                                     self.tr('Atmospheric stability correction functions for momentum and heat fluxes'),
-                                                     options=[i[0] for i in self.stab],
-                                                     defaultValue=1))
-        self.addParameter(QgsProcessingParameterEnum(self.SMD,
-                                                     self.tr('Method for determining soil moisture deficit (SMD)'),
-                                                     options=[i[0] for i in self.smd],
-                                                     defaultValue=0))
-        self.addParameter(QgsProcessingParameterEnum(self.WU,
-                                                     self.tr('Method for determining external water use (irrigation)'),
-                                                     options=[i[0] for i in self.wu],
-                                                     defaultValue=0))
-        self.addParameter(QgsProcessingParameterEnum(self.RSLMETHOD,
-                                                     self.tr('Method for calculating near-surface meteorological diagnostics'),
-                                                     options=[i[0] for i in self.rslmethod],
-                                                     defaultValue=2))
-        self.addParameter(QgsProcessingParameterEnum(self.RSLLEVEL,
-                                                     self.tr('Method for incorporating urban microclimate feedbacks on vegetation and evapotranspiration'),
-                                                     options=[i[0] for i in self.rsllevel],
-                                                     defaultValue=0))
-        self.addParameter(QgsProcessingParameterBoolean(self.SNOW,
-                                                        self.tr("Use snow module"),
-                                                        defaultValue=False))                                                                                      
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
-                                                     'Output folder'))
-        
-        #Advanced parameters
-        chunkBool = QgsProcessingParameterBoolean(self.CHUNKBOOL,
-                                                    self.tr("Devide calculation in chunks to reduce issues with memory running low on your computer. (CURRENTLY NOT ACTIVE)"),
-                                                    defaultValue=False)
-        chunkBool.setFlags(chunkBool.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        self.net = (
+            (self.tr("0. (OBSERVED) from forcing file"), "0"),
+            (
+                self.tr(
+                    "1. (LDOWN_OBSERVED) Modelled (NARP) but Ldown observed"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "2.  (LDOWN_CLOUD) Modelled (NARP), Ldown from cloud cover"
+                ),
+                "2",
+            ),
+            (
+                self.tr(
+                    "3. (LDOWN_AIR) Modelled (NARP), Ldown from Ta and RH (Default)"
+                ),
+                "3",
+            ),
+        )
+        self.anthro = (
+            (
+                self.tr("0. (NO_EMISSIONS) = Observed QF from forcing file"),
+                "0",
+            ),
+            (
+                self.tr("1. (L11) = Loridan et al. 2011 linear temp relation"),
+                "1",
+            ),
+            (
+                self.tr("2. (J11) = Järvi et al. 2011 with HDD/CDD (Default)"),
+                "2",
+            ),
+            (
+                self.tr(
+                    "4. (J19) = Järvi et al. 2019 including metabolism and traffic"
+                ),
+                "4",
+            ),
+        )
+        self.storage = (
+            (
+                self.tr("0. (OBSERVED) = Uses observed ΔQS from forcing file"),
+                "0",
+            ),
+            (
+                self.tr(
+                    "1. (OHM_WITHOUT_QF) = Objective Hysteresis Model using Q* only (Default)"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "5. (EHC) = Explicit Heat Conduction model with separate roof/wall/ground temperatures"
+                ),
+                "5",
+            ),
+            (
+                self.tr(
+                    "6. (DyOHM) = Dynamic Objective Hysteresis Model (Liu et al., 2025) with dynamic coefficients"
+                ),
+                "6",
+            ),
+            (
+                self.tr(
+                    "7. (STEBBS) = use STEBBS storage heat flux for building, others use OHM"
+                ),
+                "6",
+            ),
+        )
+        self.ohm = (
+            (
+                self.tr(
+                    "0. (EXCLUDE) = Use Q* only (required when StorageHeatMethod=1) (Default)"
+                ),
+                "0",
+            ),
+            (self.tr("1. (INCLUDE) = Use Q*+QF"), "1"),
+        )
+        self.z0m = (
+            (self.tr("1. (FIXED) = Fixed from site parameters"), "1"),
+            (
+                self.tr(
+                    "2. (VARIABLE) = Varies with vegetation LAI (Default)"
+                ),
+                "2",
+            ),
+            (
+                self.tr(
+                    "3. (MACDONALD) = MacDonald et al. 1998 morphometric method"
+                ),
+                "3",
+            ),
+            (
+                self.tr(
+                    "4. (LAMBDAP_DEPENDENT) = Varies with plan area fraction"
+                ),
+                "4",
+            ),
+        )
+        self.z0h = (
+            (
+                self.tr(
+                    "1. (BRUTSAERT) = Brutsaert (1982) z0h = z0m/10 (see Grimmond & Oke 1986)"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "2. (KAWAI) = Kawai et al. (2009) formulation (Default)"
+                ),
+                "2",
+            ),
+            (
+                self.tr(
+                    "3. (VOOGT_GRIMMOND) = Voogt and Grimmond (2000) formulation"
+                ),
+                "3",
+            ),
+            (self.tr("4. (KANDA) = Kanda et al. (2007) formulation"), "4"),
+            (
+                self.tr(
+                    "5. (ADAPTIVE) = Adaptively using z0m based on pervious coverage: if fully pervious, use method 1)"
+                ),
+                "5",
+            ),
+        )
+        self.stab = (
+            (self.tr("2. Dyer 1974 etc."), "2"),
+            (
+                self.tr(
+                    "3. (CAMPBELL_NORMAN) = Campbell & Norman 1998 formulations (Default)"
+                ),
+                "3",
+            ),
+            (self.tr("4. Businger et al. 1971"), "4"),
+        )
+        self.smd = (
+            (
+                self.tr(
+                    "0. (MODELLED) = Calculated from water balance using soil parameters (Default)"
+                ),
+                "0",
+            ),
+            (
+                self.tr(
+                    "1. (OBSERVED_VOLUMETRIC) = Uses observed volumetric soil moisture (m³/m³) from forcing file"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "2. (OBSERVED_GRAVIMETRIC) = Uses observed gravimetric soil moisture (kg/kg) from forcing file"
+                ),
+                "2",
+            ),
+        )
+        self.wu = (
+            (
+                self.tr(
+                    "0. (MODELLED) = Calculated based on soil moisture deficit and irrigation parameters (Default)"
+                ),
+                "0",
+            ),
+            (
+                self.tr(
+                    "1. (OBSERVED) = Uses observed water use values from forcing file"
+                ),
+                "1",
+            ),
+        )
+        self.rslmethod = (
+            (
+                self.tr(
+                    "0. (MOST) = Monin-Obukhov Similarity Theory for homogeneous surfaces"
+                ),
+                "0",
+            ),
+            (
+                self.tr(
+                    "1. (RST) = Roughness Sublayer Theory for heterogeneous urban surfaces"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "2. (VARIABLE) = Automatic selection based on surface morphology (Default)"
+                ),
+                "2",
+            ),
+        )
+        self.rsllevel = (
+            (
+                self.tr(
+                    "0. (NONE) = No local climate adjustments, use forcing file meteorology directly (Default)"
+                ),
+                "0",
+            ),
+            (
+                self.tr(
+                    "1. (BASIC) = Simple adjustments for urban temperature effects on leaf area index and growing degree days"
+                ),
+                "1",
+            ),
+            (
+                self.tr(
+                    "2. ((DETAILED) = Comprehensive feedbacks including moisture stress, urban CO2 dome effects, and modified phenology cycles"
+                ),
+                "2",
+            ),
+        )
+
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_FILE,
+                self.tr("Input yaml file (.yml)"),
+                extension="yml",
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.NET,
+                self.tr("Method for calculating net all-wave radiation (Q*)"),
+                options=[i[0] for i in self.net],
+                defaultValue=3,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.ANTHRO,
+                self.tr(
+                    "Method for calculating anthropogenic heat flux (QF) and CO2 emissions"
+                ),
+                options=[i[0] for i in self.anthro],
+                defaultValue=2,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.STORAGE,
+                self.tr("Method for calculating storage heat flux (ΔQS)"),
+                options=[i[0] for i in self.storage],
+                defaultValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.OHM,
+                self.tr(
+                    "Controls inclusion of anthropogenic heat flux in OHM storage heat calculations"
+                ),
+                options=[i[0] for i in self.ohm],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.Z0M,
+                self.tr(
+                    "Method for calculating momentum roughness length (z0m)"
+                ),
+                options=[i[0] for i in self.z0m],
+                defaultValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.Z0H,
+                self.tr(
+                    "Method for calculating thermal roughness length (z0h)"
+                ),
+                options=[i[0] for i in self.z0h],
+                defaultValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.STAB,
+                self.tr(
+                    "Atmospheric stability correction functions for momentum and heat fluxes"
+                ),
+                options=[i[0] for i in self.stab],
+                defaultValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.SMD,
+                self.tr("Method for determining soil moisture deficit (SMD)"),
+                options=[i[0] for i in self.smd],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.WU,
+                self.tr(
+                    "Method for determining external water use (irrigation)"
+                ),
+                options=[i[0] for i in self.wu],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.RSLMETHOD,
+                self.tr(
+                    "Method for calculating near-surface meteorological diagnostics"
+                ),
+                options=[i[0] for i in self.rslmethod],
+                defaultValue=2,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.RSLLEVEL,
+                self.tr(
+                    "Method for incorporating urban microclimate feedbacks on vegetation and evapotranspiration"
+                ),
+                options=[i[0] for i in self.rsllevel],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.SNOW, self.tr("Use snow module"), defaultValue=False
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder"
+            )
+        )
+
+        # Advanced parameters
+        chunkBool = QgsProcessingParameterBoolean(
+            self.CHUNKBOOL,
+            self.tr(
+                "Devide calculation in chunks to reduce issues with memory running low on your computer. (CURRENTLY NOT ACTIVE)"
+            ),
+            defaultValue=False,
+        )
+        chunkBool.setFlags(
+            chunkBool.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(chunkBool)
 
-        chunk = QgsProcessingParameterNumber(self.CHUNK, self.tr('Number of chunks'),
-                QgsProcessingParameterNumber.Type.Integer,
-                QVariant(2), optional=True, minValue=0, maxValue=1000)
-        chunk.setFlags(chunk.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        chunk = QgsProcessingParameterNumber(
+            self.CHUNK,
+            self.tr("Number of chunks"),
+            QgsProcessingParameterNumber.Type.Integer,
+            QVariant(2),
+            optional=True,
+            minValue=0,
+            maxValue=1000,
+        )
+        chunk.setFlags(
+            chunk.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(chunk)
-
 
     def processAlgorithm(self, parameters, context, feedback):
         try:
             import supy as sp
             from supy import __version__ as ver_supy
-        except:
-            raise QgsProcessingException('This plugin requires the supy package '
-                        'to be installed OR upgraded. Please consult the FAQ in the manual '
-                        'for further information on how to install missing python packages.')
+        except BaseException:
+            raise QgsProcessingException(
+                "This plugin requires the supy package "
+                "to be installed OR upgraded. Please consult the FAQ in the manual "
+                "for further information on how to install missing python packages."
+            )
             # QMessageBox.critical(None, 'Error', 'This plugin requires the supy package '
             #             'to be installed OR upgraded. Please consult the FAQ in the manual '
             #             'for further information on how to install missing python packages.')
             # return
-        feedback.setProgressText('SuPy version: ' + ver_supy)
+        feedback.setProgressText("SuPy version: " + ver_supy)
         self.supylib = sys.modules["supy"].__path__[0]
         feedback.setProgressText(self.supylib)
         infile = self.parameterAsString(parameters, self.INPUT_FILE, context)
-        outfolder = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outfolder = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
         net = self.parameterAsString(parameters, self.NET, context)
         qf = self.parameterAsString(parameters, self.ANTHRO, context)
@@ -231,54 +498,80 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         noOfChunks = self.parameterAsInt(parameters, self.CHUNK, context)
 
         feedback.setProgressText("Reading and updating YAML input file")
-        with open(infile, 'r') as f:
+        with open(infile, "r") as f:
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
-        
-        yaml_dict['model']['physics']['snowuse']['value'] = int(usesnow)
-        yaml_dict['model']['physics']['netradiationmethod']['value'] = int(self.net[int(net)][1])
-        yaml_dict['model']['physics']['emissionsmethod']['value'] = int(self.anthro[int(qf)][1])
-        yaml_dict['model']['physics']['ohmincqf']['value'] = int(self.ohm[int(ohm)][1])
-        yaml_dict['model']['physics']['stabilitymethod']['value'] = int(self.stab[int(stab)][1])
-        yaml_dict['model']['physics']['storageheatmethod']['value'] = int(self.storage[int(qs)][1])
-        yaml_dict['model']['physics']['roughlenmommethod']['value'] = int(self.z0m[int(z0m)][1])
-        yaml_dict['model']['physics']['roughlenheatmethod']['value'] = int(self.z0h[int(z0h)][1])
-        yaml_dict['model']['physics']['smdmethod']['value'] = int(self.smd[int(smd)][1])
-        yaml_dict['model']['physics']['waterusemethod']['value'] = int(self.wu[int(wu)][1])
-        yaml_dict['model']['physics']['rslmethod'] = int(self.rslmethod[int(rslmethod)][1])
-        yaml_dict['model']['physics']['rsllevel'] = int(self.rsllevel[int(rsllevel)][1])
-        yaml_dict['model']['control']['output_file']['path'] = str(outfolder) + "/"
-                
 
-        with open(infile, 'w') as file:
-            yaml.dump(yaml_dict, file, sort_keys = False)
+        yaml_dict["model"]["physics"]["snowuse"]["value"] = int(usesnow)
+        yaml_dict["model"]["physics"]["netradiationmethod"]["value"] = int(
+            self.net[int(net)][1]
+        )
+        yaml_dict["model"]["physics"]["emissionsmethod"]["value"] = int(
+            self.anthro[int(qf)][1]
+        )
+        yaml_dict["model"]["physics"]["ohmincqf"]["value"] = int(
+            self.ohm[int(ohm)][1]
+        )
+        yaml_dict["model"]["physics"]["stabilitymethod"]["value"] = int(
+            self.stab[int(stab)][1]
+        )
+        yaml_dict["model"]["physics"]["storageheatmethod"]["value"] = int(
+            self.storage[int(qs)][1]
+        )
+        yaml_dict["model"]["physics"]["roughlenmommethod"]["value"] = int(
+            self.z0m[int(z0m)][1]
+        )
+        yaml_dict["model"]["physics"]["roughlenheatmethod"]["value"] = int(
+            self.z0h[int(z0h)][1]
+        )
+        yaml_dict["model"]["physics"]["smdmethod"]["value"] = int(
+            self.smd[int(smd)][1]
+        )
+        yaml_dict["model"]["physics"]["waterusemethod"]["value"] = int(
+            self.wu[int(wu)][1]
+        )
+        yaml_dict["model"]["physics"]["rslmethod"] = int(
+            self.rslmethod[int(rslmethod)][1]
+        )
+        yaml_dict["model"]["physics"]["rsllevel"] = int(
+            self.rsllevel[int(rsllevel)][1]
+        )
+        yaml_dict["model"]["control"]["output_file"]["path"] = (
+            str(outfolder) + "/"
+        )
 
-        #####################################################################################
+        with open(infile, "w") as file:
+            yaml.dump(yaml_dict, file, sort_keys=False)
+
+        #######################################################################
         # SuPy
         feedback.setProgressText("Initiating model")
-        
-        #config = sp.data_model.init_config_from_yaml(infile)
+
+        # config = sp.data_model.init_config_from_yaml(infile)
         config = init_config_from_yaml(infile)
         df_state_init = config.to_df_state()
-        
+
         feedback.setProgressText("Loading forcing data")
-        
+
         grid = df_state_init.index[0]
-        df_forcing = sp.load_forcing_grid(infile, grid, df_state_init=df_state_init)
+        df_forcing = sp.load_forcing_grid(
+            infile, grid, df_state_init=df_state_init
+        )
 
         if chunkBool:
             noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
             chunkDay = np.ceil(noOfDays / noOfChunks)
-            feedback.setProgressText("Model run divided into " + str(int(chunkDay)) + ' day period')
+            feedback.setProgressText(
+                "Model run divided into " + str(int(chunkDay)) + " day period"
+            )
         else:
             chunkDay = 3660
-       
 
-    #####################################################################################
+        #######################################################################
         # SuPy initialisation
-        yaml_path = infile # Path(pathtoplugin + f'/Input/{filecode}_suews_simple.yml')
-        #from supy.data_model import init_config_from_yaml 
-        #from supy import SUEWSKernelError
-        
+        # Path(pathtoplugin + f'/Input/{filecode}_suews_simple.yml')
+        yaml_path = infile
+        # from supy.data_model import init_config_from_yaml
+        # from supy import SUEWSKernelError
 
         # Create simulation from YAML configuration
         sim = SUEWSSimulation(yaml_path)
@@ -290,11 +583,11 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         sim.run()
 
         # use SuPy function to save results
-        with open(yaml_path, 'r') as f:
+        with open(yaml_path, "r") as f:
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
         feedback.setProgressText("Saving to disk")
-        sim.save(yaml_dict['model']['control']['output_file'])
+        sim.save(yaml_dict["model"]["control"]["output_file"])
 
         # # SuPy simulation OLD
         # feedback.setProgressText("Running model (QGIS not responsive)")
@@ -309,48 +602,52 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         #     df_output,
         #     df_state_final,
         #     path_dir_save = yaml_dict['model']['control']['output_file']['path'])
-        #####################################################################################
+        #######################################################################
 
-        feedback.setProgressText('Model finished')
+        feedback.setProgressText("Model finished")
 
         return {self.OUTPUT_DIR: outfolder}
-    
+
     def name(self):
-        return 'Urban Energy Balance: SUEWS'
+        return "Urban Energy Balance: SUEWS"
 
     def displayName(self):
-        return self.tr('Urban Energy Balance: SUEWS v2026.1.28rc1')
+        return self.tr("Urban Energy Balance: SUEWS v2026.1.28rc1")
 
     def group(self):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Processor'
+        return "Processor"
 
     def shortHelpString(self):
-        return self.tr('SUEWS - Surface Urban Energy and Water Balance Scheme (Järvi et al. 2011, Ward et al. 2016) simulates the urban radiation, '
-                       'energy and water balances using commonly measured/modeled meteorological variables and '
-                       'information about the surface cover. It utilizes an evaporation-interception approach '
-                       '(Grimmond et al. 1991), similar to that used in forests, to model evaporation from urban surfaces.<br>'
-                       '---------------\n'
-                       'Järvi, L., Grimmond, C.S.B., and Christen, A. The surface urban energy and water balance scheme (SUEWS): Evaluation in Los Angeles and Vancouver. J. Hydrol., 411(3-4):219-237, December 2011. doi:10.1016/j.jhydrol.2011.10.001.'
-                        '\n'
-                        'Ward, H.C., Kotthaus, S., Järvi, L., and Grimmond, C.S.B. Surface urban energy and water balance scheme (SUEWS): Development and evaluation at two UK sites. Urban Clim., 18:1-32, December 2016. doi:10.1016/j.uclim.2016.05.001.'
-                        '\n'
-                        'Grimmond, C. S. B. and Oke, T. R. An evapotranspiration-interception model for urban areas. Water Resour. Res., 27(7):1739-1755, July 1991. doi:10.1029/91wr00557.'
-                        '\n'
-                       '---------------\n'
-                       'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "SUEWS - Surface Urban Energy and Water Balance Scheme (Järvi et al. 2011, Ward et al. 2016) simulates the urban radiation, "
+            "energy and water balances using commonly measured/modeled meteorological variables and "
+            "information about the surface cover. It utilizes an evaporation-interception approach "
+            "(Grimmond et al. 1991), similar to that used in forests, to model evaporation from urban surfaces.<br>"
+            "---------------\n"
+            "Järvi, L., Grimmond, C.S.B., and Christen, A. The surface urban energy and water balance scheme (SUEWS): Evaluation in Los Angeles and Vancouver. J. Hydrol., 411(3-4):219-237, December 2011. doi:10.1016/j.jhydrol.2011.10.001."
+            "\n"
+            "Ward, H.C., Kotthaus, S., Järvi, L., and Grimmond, C.S.B. Surface urban energy and water balance scheme (SUEWS): Development and evaluation at two UK sites. Urban Clim., 18:1-32, December 2016. doi:10.1016/j.uclim.2016.05.001."
+            "\n"
+            "Grimmond, C. S. B. and Oke, T. R. An evapotranspiration-interception model for urban areas. Water Resour. Res., 27(7):1739-1755, July 1991. doi:10.1029/91wr00557."
+            "\n"
+            "---------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Urban%20Energy%20Balance%20Urban%20Energy%20Balance%20(SUEWS.BLUEWS,%20advanced).html"
         return url
-    
+
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/SuewsLogo.png")
         return icon
 
