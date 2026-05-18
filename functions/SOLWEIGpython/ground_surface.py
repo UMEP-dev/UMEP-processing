@@ -3,12 +3,11 @@
 """
 
 import numpy as np
-import math 
+import math
 import matplotlib.pyplot as plt
 
 # Stefan-Boltzmann s constant
-SBC = 5.67e-8  
-
+SBC = 5.67e-8
 
 
 def saturated_vp(T):
@@ -23,22 +22,20 @@ def saturated_vp(T):
     :slope: the slope of the tangent to the saturated vapor pressure-temperature curve
     """
 
-    L = 2.260e6             # Latent heat of vaporisation
-    R = 8.314               # Gas constant
+    L = 2.260e6  # Latent heat of vaporisation
+    R = 8.314  # Gas constant
 
     # August-Roche-Magnus approx. in Pa
-    qs = 6109.4 * np.exp(17.625*T / (T + 243.04))
+    qs = 6109.4 * np.exp(17.625 * T / (T + 243.04))
 
     # Clausius-Clapeyron equation
-    slope = L * qs / R / (T+273.15)**2
+    slope = L * qs / R / (T + 273.15) ** 2
 
     return slope, qs
 
 
-
-
 def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location):
-    '''
+    """
     Setup the maps used in the ground scheme calculations depending on the landcover
 
     :Parameters:
@@ -49,7 +46,7 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location):
     :location: Dict containing latitude and longitude
 
     :Return: Array for the surface temperature, radiation flux and physical parameters
-    '''
+    """
 
     # Get the landcover data from lc_grid array
     lc_grid[lc_grid >= 100] = 2
@@ -57,85 +54,198 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location):
     id = id.astype(int)
 
     # Physical parameters grids
-    cap_grid = np.copy(lc_grid)                 # Heat capacity
-    diff_grid = np.copy(lc_grid)                # Thermal diffusivity
+    cap_grid = np.copy(lc_grid)  # Heat capacity
+    diff_grid = np.copy(lc_grid)  # Thermal diffusivity
     a1_grid = np.copy(lc_grid)
     a2_grid = np.copy(lc_grid)
-    a3_grid = np.copy(lc_grid)                  # The 3 OHM coefficients
-    
+    a3_grid = np.copy(lc_grid)  # The 3 OHM coefficients
+
     # Initial fluxes and temperature grids
-    Rn = np.zeros_like(lc_grid)                 # Net radiation
-    Rn_past = np.zeros_like(lc_grid)            # Stored net radiation
-    G = np.zeros_like(lc_grid)                  # Ground heat flux
-    Tg = np.copy(lc_grid)                       # Surface temperature
-    Tm = np.copy(lc_grid)                       # Mean daily surface temperature
+    Rn = np.zeros_like(lc_grid)  # Net radiation
+    Rn_past = np.zeros_like(lc_grid)  # Stored net radiation
+    G = np.zeros_like(lc_grid)  # Ground heat flux
+    Tg = np.copy(lc_grid)  # Surface temperature
+    Tm = np.copy(lc_grid)  # Mean daily surface temperature
 
     for i in id:
-        cap_grid[cap_grid == i] = solweig_parameters['Heat capacity']['Value'][solweig_parameters['Names']['Value'][str(i)]]
-        diff_grid[diff_grid == i] = solweig_parameters['Thermal_diffusivity']['Value'][solweig_parameters['Names']['Value'][str(i)]]
+        cap_grid[cap_grid == i] = solweig_parameters["Heat capacity"]["Value"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ]
+        diff_grid[diff_grid == i] = solweig_parameters["Thermal_diffusivity"][
+            "Value"
+        ][solweig_parameters["Names"]["Value"][str(i)]]
 
         # Coefficients of the OHM per land cover
-        mean_a1 = solweig_parameters['OHM_coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][0]
-        phi_a1 = solweig_parameters['OHM_coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
-        a1_grid[a1_grid == i] = mean_a1 * (1 + 0.33 * np.sin(2*np.pi/365.25 * day + phi_a1) * np.sign(location['latitude']))
-        a2_grid[a2_grid == i] = solweig_parameters['OHM_coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
-        a3_grid[a3_grid == i] = solweig_parameters['OHM_coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][3]
+        mean_a1 = solweig_parameters["OHM_coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][0]
+        phi_a1 = solweig_parameters["OHM_coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][1]
+        a1_grid[a1_grid == i] = mean_a1 * (
+            1
+            + 0.33
+            * np.sin(2 * np.pi / 365.25 * day + phi_a1)
+            * np.sign(location["latitude"])
+        )
+        a2_grid[a2_grid == i] = solweig_parameters["OHM_coefficients"][
+            "Values"
+        ][solweig_parameters["Names"]["Value"][str(i)]][2]
+        a3_grid[a3_grid == i] = solweig_parameters["OHM_coefficients"][
+            "Values"
+        ][solweig_parameters["Names"]["Value"][str(i)]][3]
 
         # Initial ground surface temperature parameters
-        offset_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][0]
-        slope_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
-        ratio_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
+        offset_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][0]
+        slope_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][1]
+        ratio_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][2]
         phi_Tg = 1.6
 
-        # Correct the offset value given the latitude 
-        offset_Tg += slope_Tg * location['latitude']
+        # Correct the offset value given the latitude
+        offset_Tg += slope_Tg * location["latitude"]
 
         # Mean daily soil temperature parameters
-        ampl_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][0]
-        slope_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
-        offset_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
+        ampl_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][0]
         phi_Tm = 1.7
+        slope_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][1]
+        offset_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
+            solweig_parameters["Names"]["Value"][str(i)]
+        ][2]
 
-        # Correct the offset value given the latitude 
-        offset_Tm += slope_Tm * location['latitude']
+        # Correct the offset value given the latitude
+        offset_Tm += slope_Tm * location["latitude"]
 
-        if i==0 or i==1:
+        if i == 0 or i == 1:
             # For paved and asphalt landcover
-            Tg[Tg==i] = Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
-            Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm + 4
+            Tg[Tg == i] = (
+                Ta[0]
+                + offset_Tg
+                * (
+                    1
+                    + ratio_Tg
+                    * np.sin(2 * np.pi / 365.25 * day + phi_Tg)
+                    * np.sign(location["latitude"])
+                )
+                + 4
+            )
+            Tm[Tm == i] = (
+                np.mean(Ta)
+                + ampl_Tm
+                * np.sin(2 * np.pi / 365.25 * day + phi_Tm)
+                * np.sign(location["latitude"])
+                + offset_Tm
+                + 4
+            )
 
-        elif i==2:
+        elif i == 2:
             # For roofs
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
-            Tm[Tm==i] = np.mean(Ta) + offset_Tm
+            Tg[Tg == i] = (
+                Ta[0]
+                + offset_Tg
+                * (
+                    1
+                    + ratio_Tg
+                    * np.sin(2 * np.pi / 365.25 * day + phi_Tg)
+                    * np.sign(location["latitude"])
+                )
+                + 4
+            )
+            Tm[Tm == i] = np.mean(Ta) + offset_Tm
 
-        elif i==5:
+        elif i == 5:
             # For grass surfaces
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude']))
-            Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm
+            Tg[Tg == i] = Ta[0] + offset_Tg * (
+                1
+                + ratio_Tg
+                * np.sin(2 * np.pi / 365.25 * day + phi_Tg)
+                * np.sign(location["latitude"])
+            )
+            Tm[Tm == i] = (
+                np.mean(Ta)
+                + ampl_Tm
+                * np.sin(2 * np.pi / 365.25 * day + phi_Tm)
+                * np.sign(location["latitude"])
+                + offset_Tm
+            )
 
-        elif i==6:
+        elif i == 6:
             # For bare soil landcover
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 2
-            Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm + 2
+            Tg[Tg == i] = (
+                Ta[0]
+                + offset_Tg
+                * (
+                    1
+                    + ratio_Tg
+                    * np.sin(2 * np.pi / 365.25 * day + phi_Tg)
+                    * np.sign(location["latitude"])
+                )
+                + 2
+            )
+            Tm[Tm == i] = (
+                np.mean(Ta)
+                + ampl_Tm
+                * np.sin(2 * np.pi / 365.25 * day + phi_Tm)
+                * np.sign(location["latitude"])
+                + offset_Tm
+                + 2
+            )
 
-        elif i==7:
+        elif i == 7:
             # For water bodies
-            Tg[Tg==i] = Ta[0]
-            
-    return Tg, Tm, Rn, Rn_past, G, cap_grid, diff_grid, a1_grid, a2_grid, a3_grid
+            Tg[Tg == i] = Ta[0]
+
+    return (
+        Tg,
+        Tm,
+        Rn,
+        Rn_past,
+        G,
+        cap_grid,
+        diff_grid,
+        a1_grid,
+        a2_grid,
+        a3_grid,
+    )
 
 
+def surfaceTemperature_calc(
+    Kdown,
+    Ldown,
+    Rn,
+    Rn_past,
+    G,
+    Tg,
+    Tm,
+    alb,
+    emis,
+    cap,
+    diff,
+    lc_grid,
+    a1,
+    a2,
+    a3,
+    timestep,
+    RH,
+    shadow,
+    shadow_past,
+):
+    """
+    Calculation of the ground surface temperature
 
-
-def surfaceTemperature_calc(Kdown, Ldown, Rn, Rn_past, G, Tg, Tm, alb, emis, cap, diff, lc_grid, a1, a2, a3, timestep, RH, shadow, shadow_past):
-    '''
-    Calculation of the ground surface temperature 
-
-    Based on the force restore method with the ground heat flux modeled according to the heat storage flux formulation depicted in the OHM (Grimmond 1991). 
-    A simple model is implemented to assess the surface temperature for water landcover (lc==7) since the OHM fails to model the corresponding ground heat 
+    Based on the force restore method with the ground heat flux modeled according to the heat storage flux formulation depicted in the OHM (Grimmond 1991).
+    A simple model is implemented to assess the surface temperature for water landcover (lc==7) since the OHM fails to model the corresponding ground heat
     flux. The temporal integration is done using the Runge-Kutta 2nd order scheme
-    
+
     :Parameters:
     :Kdown: the downwelling shortwave radiation
     :Ldown: the downwelling longwave radiation
@@ -143,9 +253,9 @@ def surfaceTemperature_calc(Kdown, Ldown, Rn, Rn_past, G, Tg, Tm, alb, emis, cap
     :G: ground heat flux stored from the previous timestep
     :Tg: ground surface temperature grid
     :Tm: Temperature of the deep soil
-    :alb: albedo grid of the ground surface 
-    :emis: emissivity grid of the surface 
-    :cap: heat capacity grid of the material 
+    :alb: albedo grid of the ground surface
+    :emis: emissivity grid of the surface
+    :cap: heat capacity grid of the material
     :diff: thermal diffusivity grid of the material
     :lc_grid: landcover grid to identify the water bodies
     :a: coefficient grids related to the OHM
@@ -156,7 +266,7 @@ def surfaceTemperature_calc(Kdown, Ldown, Rn, Rn_past, G, Tg, Tm, alb, emis, cap
     :Rn: Net radiation for the current timestep
     :Rn_past: Stored net radiation for upcoming radiation rate calc
     :G: Ground heat flux for the current timestep
-    '''
+    """
 
     # Store the past ground surface temperature
     Tg_stored = Tg
@@ -164,67 +274,96 @@ def surfaceTemperature_calc(Kdown, Ldown, Rn, Rn_past, G, Tg, Tm, alb, emis, cap
     # Damping depths of the daily surface temperature wave
     D = np.sqrt((2 * diff) / (2 * math.pi / 86400))
 
-
-    ### Runge Kutta method for the surface temperature calc 
+    ### Runge Kutta method for the surface temperature calc
     # First estimate of the surface temperature and of the deep soil temperature given past ground heat flux
-    k1 = 2 * G / cap / D - 2*math.pi/86400 * (Tg - Tm)
+    k1 = 2 * G / cap / D - 2 * math.pi / 86400 * (Tg - Tm)
     Tg_temp = Tg + k1 * timestep
-
 
     ### Estimate k2 the surface temperature step based on updated heat fluxes
     # The fluxes involved are calculated using the estimated Ts
-    Lup_temp = SBC * emis * (Tg_temp + 273.15)**4 + Ldown * (1-emis)                # Temporary outgoing longwave rad (W.m-2)
-    Rn_temp = Kdown * (1 - alb) + Ldown - Lup_temp                                  # Temporary net rad (W.m-2)
-    RnStar_temp = (Rn_temp - Rn) / 1                                                # Temporary radiation rate (W.m-2.h-1)
-    G_temp = a1 * Rn_temp + a2 * RnStar_temp + a3                                   # Temporary ground heat flux (W.m-2)
+    Lup_temp = SBC * emis * (Tg_temp + 273.15) ** 4 + Ldown * (
+        1 - emis
+    )  # Temporary outgoing longwave rad (W.m-2)
+    Rn_temp = Kdown * (1 - alb) + Ldown - Lup_temp  # Temporary net rad (W.m-2)
+    RnStar_temp = (Rn_temp - Rn) / 1  # Temporary radiation rate (W.m-2.h-1)
+    G_temp = (
+        a1 * Rn_temp + a2 * RnStar_temp + a3
+    )  # Temporary ground heat flux (W.m-2)
 
     # Damping of the ground heat flux if it increases (or drops) too quickly
     deltaG = abs(G_temp - G)
-    radCriterion = abs(a1 * (Rn_temp - Rn_past))                                    # Criterion regarding the radiation step
-    mask = np.logical_and(deltaG > radCriterion, abs(shadow - shadow_past) > 0.5)   # Grid of the pixels where the ground heat flux spikes
+    radCriterion = abs(
+        a1 * (Rn_temp - Rn_past)
+    )  # Criterion regarding the radiation step
+    mask = np.logical_and(
+        deltaG > radCriterion, abs(shadow - shadow_past) > 0.5
+    )  # Grid of the pixels where the ground heat flux spikes
     G_temp[mask] = G[mask] + np.sign(G_temp - G)[mask] * radCriterion[mask]
 
     # Correction of the temperature estimates
-    k2 = 2 * G_temp / cap / D - 2*math.pi/86400 * (Tg_temp - Tm)
-    Tg += (k1 + k2)/2 * timestep
-
+    k2 = 2 * G_temp / cap / D - 2 * math.pi / 86400 * (Tg_temp - Tm)
+    Tg += (k1 + k2) / 2 * timestep
 
     ### Finally calculation of the updated heat fluxes
     Rn_past = Rn
     G_past = G
-    Lup = SBC * emis * (Tg + 273.15)**4 + (1 - emis) * Ldown
+    Lup = SBC * emis * (Tg + 273.15) ** 4 + (1 - emis) * Ldown
     Rn = (1 - alb) * Kdown + Ldown - Lup
     Rn_star = (Rn - Rn_past) / 1
     G = a1 * Rn + a2 * Rn_star + a3
 
     # Damping of the ground heat flux if it increases (or decreases) too quickly
     deltaG = abs(G - G_past)
-    radCriterion = abs(a1 * (Rn - Rn_past))                                         # Criterion regarding the radiation step
-    mask = np.logical_and(deltaG > radCriterion, abs(shadow - shadow_past) > 0.5)   # Grid of the pixels where the ground heat flux spikes
+    radCriterion = abs(
+        a1 * (Rn - Rn_past)
+    )  # Criterion regarding the radiation step
+    mask = np.logical_and(
+        deltaG > radCriterion, abs(shadow - shadow_past) > 0.5
+    )  # Grid of the pixels where the ground heat flux spikes
     G[mask] = G_past[mask] + np.sign(G - G_past)[mask] * radCriterion[mask]
-    
 
     ### Water bodies surface temperature estimate
-    beta = 0.45                                                                     # Amount of shortwave rad absorbed by the water surface layer
-    thickness = 1                                                                   # Depth of the water layer
-    lamb = 2.260e6                                                                  # Latent heat of vaporisation
-    rho = 1000                                                                      # Density of water (kg.m-3)
-    Rn_water = Kdown * (1 - alb) * (beta + (1-beta)*(1-np.exp(-1))) + Ldown - Lup   # Net radiation for the top water layer beta described the transmitted rad
+    beta = 0.45  # Amount of shortwave rad absorbed by the water surface layer
+    thickness = 1  # Depth of the water layer
+    lamb = 2.260e6  # Latent heat of vaporisation
+    rho = 1000  # Density of water (kg.m-3)
+    Rn_water = (
+        Kdown * (1 - alb) * (beta + (1 - beta) * (1 - np.exp(-1)))
+        + Ldown
+        - Lup
+    )  # Net radiation for the top water layer beta described the transmitted rad
     _, es = saturated_vp(Tg)
-    E = 0.0858 * (es/1000) * (1-RH/100) / 3600 / 1000 * rho * lamb
+    E = 0.0858 * (es / 1000) * (1 - RH / 100) / 3600 / 1000 * rho * lamb
     deltaTg = np.copy(lc_grid)
-    deltaTg = timestep / cap / thickness * (Rn_water - E - diff*cap/thickness * (Tg - Tm))
-    Tg[lc_grid==7] = Tg_stored[lc_grid==7] + deltaTg[lc_grid==7]
+    deltaTg = (
+        timestep
+        / cap
+        / thickness
+        * (Rn_water - E - diff * cap / thickness * (Tg - Tm))
+    )
+    Tg[lc_grid == 7] = Tg_stored[lc_grid == 7] + deltaTg[lc_grid == 7]
 
     return Tg, Rn, Rn_past, G
 
 
-
-
-def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, sunwall, walls, rows, cols, sizepx):
-    '''
+def outgoingLongwave_calc(
+    Tg,
+    Tgwall,
+    Ta,
+    Ldown,
+    emis,
+    alb,
+    buildings,
+    shadow,
+    sunwall,
+    walls,
+    rows,
+    cols,
+    sizepx,
+):
+    """
     Calculation of the outgoing longwave radiation from the ground,
-    
+
     :Parameters:
     :Tg: ground surface temperature grid
     :Tgwall: wall surface temperature grid
@@ -242,12 +381,14 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
     :sizepx: size of a pixel in m (1/scale)
 
     :Return:
-    '''
+    """
 
     # Assessment of the distance from a pixel at which most of the radiation are received (cf view factor Lambert)
-    factor = 0.99                                   # Percentage of radiation accounted for
-    zs = 1.1                                        # in m
-    r_max = zs * np.sqrt(factor / (1-factor))       # in m, maximum radius for the radiation calc
+    factor = 0.99  # Percentage of radiation accounted for
+    zs = 1.1  # in m
+    r_max = zs * np.sqrt(
+        factor / (1 - factor)
+    )  # in m, maximum radius for the radiation calc
 
     # Emissivity of the wall
     emis_wall = 0.9
@@ -264,8 +405,7 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
     wallbol = (walls > 0) * 1
 
     # step in meters between every iteration
-    step = 1                                    
-
+    step = 1
 
     ### Initialize the ground view factor grids as np.zeros()
     # Upwelling longwave radiation
@@ -297,15 +437,16 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
 
     # Add the radiation from the pixel directly below, only for the total gvf
     # Do not take the roofs into account for now
-    view_factor = (sizepx/2) **2 / ((sizepx/2) **2 + zs**2)
-    gvfLup = gvfLup + (SBC * emis * (Tg + 273.15) ** 4) * view_factor * buildings
+    view_factor = (sizepx / 2) ** 2 / ((sizepx / 2) ** 2 + zs**2)
+    gvfLup = (
+        gvfLup + (SBC * emis * (Tg + 273.15) ** 4) * view_factor * buildings
+    )
     gvfalbsun = gvfalbsun + albsunlit * view_factor * buildings
     gvfalbtot = gvfalbtot + alb * view_factor * buildings
 
     # Division of the 360° field of view in 20 and convert the array in radian
     azimuths = np.linspace(18, 360, num=20, endpoint=True)
-    azimuths = azimuths * (np.pi/180)
-    
+    azimuths = azimuths * (np.pi / 180)
 
     ### Loop for the number of azimuth values
     for azimuth in azimuths:
@@ -319,9 +460,9 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
         Lwall_temp = np.zeros((rows, cols))
         albsun_temp = np.zeros((rows, cols))
         albtot_temp = np.zeros((rows, cols))
-        sunlitwall_temp = np.zeros((rows, cols))   
+        sunlitwall_temp = np.zeros((rows, cols))
 
-        # Then the tables containing the sum of the radiations (or albedo) for this azimuth    
+        # Then the tables containing the sum of the radiations (or albedo) for this azimuth
         Lup_sum = np.zeros((rows, cols))
         LsideE_sum = np.zeros((rows, cols))
         LsideN_sum = np.zeros((rows, cols))
@@ -330,13 +471,16 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
         albsun_sum = np.zeros((rows, cols))
         albtot_sum = np.zeros((rows, cols))
 
-
         ### Shadow casting algorithm
         # Translation ranges from 1/2 a pixel to the max radius r_max
-        for r in np.arange(sizepx/2, r_max, step=step):
+        for r in np.arange(sizepx / 2, r_max, step=step):
             # Longwave radiation grids both at the ground level and from the walls
-            Lup = (SBC * emis * (Tg + 273.15)**4 + Ldown * (1-emis)) * building_copy
-            Lwall = SBC * emis_wall * (Tgwall + Ta + 273.15)**4 * building_copy
+            Lup = (
+                SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)
+            ) * building_copy
+            Lwall = (
+                SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * building_copy
+            )
 
             # Step of the raster translation
             dx = -np.cos(azimuth)
@@ -344,11 +488,11 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
 
             # Scale so that the grid is at least translated from 1px
             if abs(dx) > abs(dy):
-                dx = - r * np.sign(np.cos(azimuth))
-                dy = - r * abs(np.tan(azimuth)) * np.sign(np.sin(azimuth))
+                dx = -r * np.sign(np.cos(azimuth))
+                dy = -r * abs(np.tan(azimuth)) * np.sign(np.sin(azimuth))
             else:
-                dx = - r / abs(np.tan(azimuth)) * np.sign(np.cos(azimuth))
-                dy = - r * np.sign(np.sin(azimuth))
+                dx = -r / abs(np.tan(azimuth)) * np.sign(np.cos(azimuth))
+                dy = -r * np.sign(np.sin(azimuth))
 
             # Select the interested part of the initial raster and the translated one from their four corners and
             # translating toward the direction azimuth = 0° for dx > 0
@@ -361,10 +505,10 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
                 x_select_start = 0
                 x_select_end = rows + dx
                 x_transl_start = -dx
-                x_transl_end = rows 
-    
-            # translating toward the direction azimuth = 90° for dy > 0       
-            if dy > 0:            
+                x_transl_end = rows
+
+            # translating toward the direction azimuth = 90° for dy > 0
+            if dy > 0:
                 y_select_start = dy
                 y_select_end = cols
                 y_transl_start = 0
@@ -374,55 +518,69 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
                 y_select_end = cols + dy
                 y_transl_start = -dy
                 y_transl_end = cols
-                
+
             # Copy the initial rasters and input inside translated raster temporary and changing every iteration
             # Building grid
             building_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                ] = buildings[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = buildings[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Ground longwave radiation grid
             Lup_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                    ] = Lup[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = Lup[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Wall longwave radiation grid
             Lwall_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                ] = Lwall[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = Lwall[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Albedo grid for the sunlit area
             albsun_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                ] = albsunlit[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = albsunlit[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Albedo grid for all the area
             albtot_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                ] = alb[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = alb[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Sunlit wall grid
             sunlitwall_temp[
-                int(x_transl_start):math.ceil(x_transl_end), int(y_transl_start):math.ceil(y_transl_end)
-                ] = sunlitwall[
-                int(x_select_start):math.ceil(x_select_end), int(y_select_start):math.ceil(y_select_end)
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = sunlitwall[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
             ]
 
             # Change the boolean building grid, if the px was already a building it remains one (px value = 0)
             building_copy = np.min([building_copy, building_temp], axis=0)
-            
+
             # For each pixel add the translated Lup to the received rad if there where there is no building
-            view_factor = ( (r+step)**2 / (zs**2 + (r+step)**2) ) - ( r**2 / (zs**2 + r**2) )
+            view_factor = ((r + step) ** 2 / (zs**2 + (r + step) ** 2)) - (
+                r**2 / (zs**2 + r**2)
+            )
             Lup_sum += Lup_temp * view_factor * building_copy / 20
             albsun_sum += albsun_temp * view_factor * building_copy / 20
             albtot_sum += albtot_temp * view_factor * building_copy / 20
@@ -432,30 +590,44 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
             onlysunwall_temp = sunlitwall_temp * building_copy
 
             # Then add the radiation incoming from those walls
-            Lup_sum += wall_temp * Lwall_temp * zs**2 / ((r+step)**2 + zs**2) / 20
-            albsun_sum += onlysunwall_temp * alb_wall * zs**2 / ((r+step)**2 + zs**2) / 20
-            albtot_sum += wall_temp * alb_wall * zs**2 / ((r+step)**2 + zs**2) / 20
+            Lup_sum += (
+                wall_temp * Lwall_temp * zs**2 / ((r + step) ** 2 + zs**2) / 20
+            )
+            albsun_sum += (
+                onlysunwall_temp
+                * alb_wall
+                * zs**2
+                / ((r + step) ** 2 + zs**2)
+                / 20
+            )
+            albtot_sum += (
+                wall_temp * alb_wall * zs**2 / ((r + step) ** 2 + zs**2) / 20
+            )
 
             # Finally add the radiation received from the side
             dphi = np.arctan((r + step) / zs) - np.arctan(r / zs)
-            dtrigo = zs / np.sqrt(r**2 + zs**2) * r / np.sqrt(r**2 + zs**2) - zs / np.sqrt((r+step)**2 + zs**2) * (r+step) / np.sqrt((r+step)**2 + zs**2) 
-            
+            dtrigo = zs / np.sqrt(r**2 + zs**2) * r / np.sqrt(
+                r**2 + zs**2
+            ) - zs / np.sqrt((r + step) ** 2 + zs**2) * (r + step) / np.sqrt(
+                (r + step) ** 2 + zs**2
+            )
+
             # Calculation of the solid angle for each of the cardinal points
             steradiansW, steradiansS, steradiansE, steradiansN = 0, 0, 0, 0
             if (azimuth >= 0) and (azimuth < np.pi):
-                dthetaW = 2*np.pi/20
+                dthetaW = 2 * np.pi / 20
                 steradiansW += dthetaW * (dphi + dtrigo) / 2
 
-            if (azimuth >= np.pi/2) and (azimuth < 3*np.pi/2):
-                dthetaS = 2*np.pi/20
+            if (azimuth >= np.pi / 2) and (azimuth < 3 * np.pi / 2):
+                dthetaS = 2 * np.pi / 20
                 steradiansS += dthetaS * (dphi + dtrigo) / 2
 
-            if (azimuth >= np.pi) and (azimuth < 2*np.pi):
-                dthetaE = 2*np.pi/20
+            if (azimuth >= np.pi) and (azimuth < 2 * np.pi):
+                dthetaE = 2 * np.pi / 20
                 steradiansE += dthetaE * (dphi + dtrigo) / 2
 
-            if (azimuth >= 3*np.pi/2) or (azimuth < np.pi/2):
-                dthetaN = 2*np.pi/20
+            if (azimuth >= 3 * np.pi / 2) or (azimuth < np.pi / 2):
+                dthetaN = 2 * np.pi / 20
                 steradiansN += dthetaN * (dphi + dtrigo) / 2
 
             LsideW_sum += Lup_temp / np.pi * steradiansW * building_copy
@@ -475,19 +647,19 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
             gvfalbtotW += albtot_sum
             gvfLsideW += LsideW_sum
 
-        if (azimuth >= np.pi/2) and (azimuth < 3*np.pi/2):
+        if (azimuth >= np.pi / 2) and (azimuth < 3 * np.pi / 2):
             gvfLupS += Lup_sum
             gvfalbsunS += albsun_sum
             gvfalbtotS += albtot_sum
             gvfLsideS += LsideS_sum
 
-        if (azimuth >= np.pi) and (azimuth < 2*np.pi):
+        if (azimuth >= np.pi) and (azimuth < 2 * np.pi):
             gvfLupE += Lup_sum
             gvfalbsunE += albsun_sum
             gvfalbtotE += albtot_sum
             gvfLsideE += LsideE_sum
 
-        if (azimuth >= 3*np.pi/2) or (azimuth < np.pi/2):
+        if (azimuth >= 3 * np.pi / 2) or (azimuth < np.pi / 2):
             gvfLupN += Lup_sum
             gvfalbsunN += albsun_sum
             gvfalbtotN += albtot_sum
@@ -495,10 +667,29 @@ def outgoingLongwave_calc(Tg, Tgwall, Ta, Ldown, emis, alb, buildings, shadow, s
 
     # If the px is associated with a roof landcover, for now Lup = 0
     # Here their Lup value is allocated to those px
-    gvfLup += (SBC * emis * (Tg + 273.15) ** 4) * (buildings * -1 + 1) 
+    gvfLup += (SBC * emis * (Tg + 273.15) ** 4) * (buildings * -1 + 1)
 
     # # Finally add the reflection from the downwelling longwave radiation
     # gvfLup += Ldown * (1-emis)
 
-    return gvfLup, gvfalbsun, gvfalbtot, gvfLupE, gvfalbsunE, gvfalbtotE, gvfLupS, gvfalbsunS, gvfalbtotS, \
-        gvfLupW, gvfalbsunW, gvfalbtotW, gvfLupN, gvfalbsunN, gvfalbtotN, gvfLsideW, gvfLsideS, gvfLsideE, gvfLsideN
+    return (
+        gvfLup,
+        gvfalbsun,
+        gvfalbtot,
+        gvfLupE,
+        gvfalbsunE,
+        gvfalbtotE,
+        gvfLupS,
+        gvfalbsunS,
+        gvfalbtotS,
+        gvfLupW,
+        gvfalbsunW,
+        gvfalbtotW,
+        gvfLupN,
+        gvfalbsunN,
+        gvfalbtotN,
+        gvfLsideW,
+        gvfLsideS,
+        gvfLsideE,
+        gvfLsideN,
+    )
