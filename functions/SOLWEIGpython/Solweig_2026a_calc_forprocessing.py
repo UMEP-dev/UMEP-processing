@@ -3,7 +3,6 @@
 """
 
 from __future__ import absolute_import
-
 import numpy as np
 import matplotlib.pyplot as plt
 from .daylen import daylen
@@ -35,6 +34,7 @@ from .anisotropic_sky import anisotropic_sky as ani_sky
 from .patch_radiation import patch_steradians
 from copy import deepcopy
 import time
+import torch
 
 # Wall surface temperature scheme
 from .wall_surface_temperature import wall_surface_temperature
@@ -208,6 +208,7 @@ def Solweig_2026a_calc(
     TgOut1 = old Ts model
     diffsh, ani = Used in anisotrpic models (Wallenberg et al. 2019, 2022)
     """
+    
 
     # # # Core program start # # #
     # Instrument offset in degrees
@@ -217,7 +218,14 @@ def Solweig_2026a_calc(
     SBC = 5.67051e-8
 
     # Degrees to radians
-    deg2rad = np.pi / 180
+    deg2rad = torch.pi / 180
+    device = (
+        Tg.device
+        if isinstance(Tg, torch.Tensor)
+        else Ta.device
+        if isinstance(Ta, torch.Tensor)
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    )
 
     # Find sunrise decimal hour - new from 2014a
     _, _, _, SNUP = daylen(jday, location["latitude"])
@@ -228,7 +236,7 @@ def Solweig_2026a_calc(
     # Determination of clear-sky emissivity from Prata (1996)
     msteg = 46.5 * (ea / (Ta + 273.15))
     esky = (
-        1 - (1 + msteg) * np.exp(-((1.2 + 3.0 * msteg) ** 0.5))
+        1 - (1 + msteg) * torch.exp(-((1.2 + 3.0 * msteg) ** 0.5))
     ) + elvis  # -0.04 old error from Jonsson et al.2006
 
     if altitude > 0:  # # # # # # DAYTIME # # # # # #
@@ -237,7 +245,7 @@ def Solweig_2026a_calc(
         I0, CI, Kt, I0et, CIuncorr = clearnessindex_2013b(
             zen, jday, Ta, RH / 100.0, radG, location, P
         )
-        if (CI > 1) or (CI == np.inf):
+        if (CI > 1) or (CI == torch.inf):
             CI = 1
 
         # Estimation of radD and radI if not measured after Reindl et al.(1990)
@@ -245,7 +253,7 @@ def Solweig_2026a_calc(
             I0, CI, Kt, I0et, CIuncorr = clearnessindex_2013b(
                 zen, jday, Ta, RH / 100.0, radG, location, P
             )
-            if (CI > 1) or (CI == np.inf):
+            if (CI > 1) or (CI == torch.inf):
                 CI = 1
 
             radI, radD = diffusefraction(radG, altitude, Kt, Ta, RH)
@@ -254,13 +262,13 @@ def Solweig_2026a_calc(
         # Anisotropic Diffuse Radiation after Perez et al. 1993
         if anisotropic_sky == 1:
             patchchoice = 1
-            zenDeg = zen * (180 / np.pi)
+            zenDeg = zen * (180 / torch.pi)
             # Relative luminance
             lv, pc_, pb_ = Perez_v3(
                 zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option
             )
             # Total relative luminance from sky, i.e. from each patch, into each cell
-            aniLum = np.zeros((rows, cols))
+            aniLum = torch.zeros((rows, cols), device=device)
             for idx in range(lv.shape[0]):
                 aniLum += diffsh[:, :, idx] * lv[idx, 2]
 
@@ -285,9 +293,9 @@ def Solweig_2026a_calc(
                     amaxvalue,
                     bush,
                     walls,
-                    dirwalls * np.pi / 180.0,
+                    dirwalls * torch.pi / 180.0,
                     walls_scheme,
-                    dirwalls_scheme * np.pi / 180.0,
+                    dirwalls_scheme * torch.pi / 180.0,
                 )
             )
             shadow = sh - (1 - vegsh) * (1 - psi)
@@ -299,9 +307,9 @@ def Solweig_2026a_calc(
                     altitude,
                     scale,
                     walls,
-                    dirwalls * np.pi / 180.0,
+                    dirwalls * torch.pi / 180.0,
                     walls_scheme,
-                    dirwalls_scheme * np.pi / 180.0,
+                    dirwalls_scheme * torch.pi / 180.0,
                 )
             )
             shadow = sh
@@ -310,25 +318,25 @@ def Solweig_2026a_calc(
         F_sh = cylindric_wedge(
             zen, svfalfa, rows, cols
         )  # Fraction shadow on building walls based on sun alt and svf
-        F_sh[np.isnan(F_sh)] = 0.5
+        F_sh[torch.isnan(F_sh)] = 0.5
 
         # New estimation of Tgwall with reduction for non-clear situation based on Reindl et al. 1990
         radI0, _ = diffusefraction(I0, altitude, 1.0, Ta, RH)
-        radG0 = radI0 * (np.sin(altitude * deg2rad)) + _
+        radG0 = radI0 * (torch.sin(altitude * deg2rad)) + _
         corr = (
-            0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
+            0.1473 * torch.log(90 - (zen / torch.pi * 180)) + 0.3454
         )  # 20070329 correction of lat, Lindberg et al. 2008
         CI_TgG = (radG / radG0) + (1 - corr)
-        if (CI_TgG > 1) or (CI_TgG == np.inf):
+        if (CI_TgG > 1) or (CI_TgG == torch.inf):
             CI_TgG = 1
 
         Tgampwall = TgK_wall * altmax + Tstart_wall
-        Tgwall = Tgampwall * np.sin(
+        Tgwall = Tgampwall * torch.sin(
             (
-                ((dectime - np.floor(dectime)) - SNUP / 24)
+                ((dectime - torch.floor(dectime)) - SNUP / 24)
                 / (TmaxLST_wall / 24 - SNUP / 24)
             )
-            * np.pi
+            * torch.pi
             / 2
         )  # 2015a, based on max sun altitude
         if Tgwall < 0:  # temporary for removing low Tg during morning 20130205
@@ -337,7 +345,7 @@ def Solweig_2026a_calc(
 
         # # # # Kdown # # # #
         Kdown = (
-            radI * shadow * np.sin(altitude * (np.pi / 180))
+            radI * shadow * torch.sin(altitude * (torch.pi / 180))
             + dRad
             + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
         )  # *sin(altitude(i) * (pi / 180))
@@ -428,12 +436,12 @@ def Solweig_2026a_calc(
         else:
             # using max sun alt instead of dfm
             Tgamp = TgK * altmax + Tstart  # Fixed 2021
-            Tgdiff = Tgamp * np.sin(
+            Tgdiff = Tgamp * torch.sin(
                 (
-                    ((dectime - np.floor(dectime)) - SNUP / 24)
+                    ((dectime - torch.floor(dectime)) - SNUP / 24)
                     / (TmaxLST / 24 - SNUP / 24)
                 )
-                * np.pi
+                * torch.pi
                 / 2
             )  # 2015 a, based on max sun altitude
 
@@ -531,7 +539,7 @@ def Solweig_2026a_calc(
             gvfalbnoshW,
             gvfalbnoshN,
         )
-
+        
         Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside = Kside_veg_v2022a(
             radI,
             radD,
@@ -571,21 +579,21 @@ def Solweig_2026a_calc(
 
     else:  # # # # # # # NIGHTTIME # # # # # # # #
         # Nocturnal K fluxes set to 0
-        Knight = np.zeros((rows, cols))
-        Kdown = np.zeros((rows, cols))
-        Kwest = np.zeros((rows, cols))
-        Kup = np.zeros((rows, cols))
-        Keast = np.zeros((rows, cols))
-        Ksouth = np.zeros((rows, cols))
-        Knorth = np.zeros((rows, cols))
-        KsideI = np.zeros((rows, cols))
-        KsideD = np.zeros((rows, cols))
-        F_sh = np.zeros((rows, cols))
-        shadow = np.zeros((rows, cols))
+        Knight = torch.zeros((rows, cols), device=device)
+        Kdown = torch.zeros((rows, cols), device=device)
+        Kwest = torch.zeros((rows, cols), device=device)
+        Kup = torch.zeros((rows, cols), device=device)
+        Keast = torch.zeros((rows, cols), device=device)
+        Ksouth = torch.zeros((rows, cols), device=device)
+        Knorth = torch.zeros((rows, cols), device=device)
+        KsideI = torch.zeros((rows, cols), device=device)
+        KsideD = torch.zeros((rows, cols), device=device)
+        F_sh = torch.zeros((rows, cols), device=device)
+        shadow = torch.zeros((rows, cols), device=device)
         CI_TgG = deepcopy(CI)
-        dRad = np.zeros((rows, cols))
-        Kside = np.zeros((rows, cols))
-        wallsun = np.zeros((rows, cols))
+        dRad = torch.zeros((rows, cols), device=device)
+        Kside = torch.zeros((rows, cols), device=device)
+        wallsun = torch.zeros((rows, cols), device=device)
 
         Tgwall = 0
 
@@ -675,7 +683,7 @@ def Solweig_2026a_calc(
 
         else:
             # In the old scheme the ground surface temperature is equal to the air temperature during nighttime
-            Tg = np.ones((rows, cols)) * Ta
+            Tg = torch.ones((rows, cols), device=device) * Ta
 
             # # # # Lup, nighttime # # # #
             Lup = SBC * emis_grid * ((Knight + Tg + 273.15) ** 4)
@@ -690,10 +698,10 @@ def Solweig_2026a_calc(
 
     # # # # Lside # # # #
     if groundScheme == 1:
-        Least = np.copy(gvfLsideE)
-        Lsouth = np.copy(gvfLsideS)
-        Lwest = np.copy(gvfLsideW)
-        Lnorth = np.copy(gvfLsideN)
+        Least = torch.clone(gvfLsideE)
+        Lsouth = torch.clone(gvfLsideS)
+        Lwest = torch.clone(gvfLsideW)
+        Lnorth = torch.clone(gvfLsideN)
         Least_, Lsouth_, Lwest_, Lnorth_ = Lside_veg_v2026(
             svfS,
             svfW,
@@ -721,10 +729,10 @@ def Solweig_2026a_calc(
             anisotropic_sky,
         )
     else:
-        Least = np.zeros_like(Ldown)
-        Lnorth = np.zeros_like(Ldown)
-        Lwest = np.zeros_like(Ldown)
-        Lsouth = np.zeros_like(Ldown)
+        Least = torch.zeros_like(Ldown)
+        Lnorth = torch.zeros_like(Ldown)
+        Lwest = torch.zeros_like(Ldown)
+        Lsouth = torch.zeros_like(Ldown)
         Least_, Lsouth_, Lwest_, Lnorth_ = Lside_veg_v2022a(
             svfS,
             svfW,
@@ -770,13 +778,13 @@ def Solweig_2026a_calc(
                 patch_option
             )
 
-            patch_emissivities = np.zeros(skyvaultalt.shape[0])
+            patch_emissivities = torch.zeros(skyvaultalt.shape[0], device=device)
 
-            x = np.transpose(np.atleast_2d(skyvaultalt))
-            y = np.transpose(np.atleast_2d(skyvaultazi))
-            z = np.transpose(np.atleast_2d(patch_emissivities))
+            x = torch.transpose(torch.atleast_2d(skyvaultalt))
+            y = torch.transpose(torch.atleast_2d(skyvaultazi))
+            z = torch.transpose(torch.atleast_2d(patch_emissivities))
 
-            L_patches = np.append(np.append(x, y, axis=1), z, axis=1)
+            L_patches = torch.append(torch.append(x, y, axis=1), z, axis=1)
 
         else:
             L_patches = deepcopy(lv)
@@ -854,7 +862,7 @@ def Solweig_2026a_calc(
         )
         Lside += Lside_
     else:
-        Lside_ = np.zeros((rows, cols))
+        Lside_ = torch.zeros((rows, cols), device=device)
         L_patches = None
 
     # Box and anisotropic longwave
@@ -895,7 +903,7 @@ def Solweig_2026a_calc(
         )
 
     # # # # Tmrt # # # #
-    Tmrt = np.sqrt(np.sqrt((Sstr / (absL * SBC)))) - 273.2
+    Tmrt = torch.sqrt(torch.sqrt((Sstr / (absL * SBC)))) - 273.2
 
     # Add longwave to cardinal directions for output in POI
     if (cyl == 1) and (anisotropic_sky == 1):

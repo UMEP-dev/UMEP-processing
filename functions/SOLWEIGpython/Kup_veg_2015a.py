@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 
 def Kup_veg_2015a(
     radI,
@@ -21,27 +21,27 @@ def Kup_veg_2015a(
     gvfalbnoshN,
 ):
 
-    Kup = (gvfalb * radI * np.sin(altitude * (np.pi / 180.0))) + (
+    Kup = (gvfalb * radI * torch.sin(altitude * (torch.pi / 180.0))) + (
         radD * svfbuveg
         + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
     ) * gvfalbnosh
 
-    KupE = (gvfalbE * radI * np.sin(altitude * (np.pi / 180.0))) + (
+    KupE = (gvfalbE * radI * torch.sin(altitude * (torch.pi / 180.0))) + (
         radD * svfbuveg
         + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
     ) * gvfalbnoshE
 
-    KupS = (gvfalbS * radI * np.sin(altitude * (np.pi / 180.0))) + (
+    KupS = (gvfalbS * radI * torch.sin(altitude * (torch.pi / 180.0))) + (
         radD * svfbuveg
         + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
     ) * gvfalbnoshS
 
-    KupW = (gvfalbW * radI * np.sin(altitude * (np.pi / 180.0))) + (
+    KupW = (gvfalbW * radI * torch.sin(altitude * (torch.pi / 180.0))) + (
         radD * svfbuveg
         + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
     ) * gvfalbnoshW
 
-    KupN = (gvfalbN * radI * np.sin(altitude * (np.pi / 180.0))) + (
+    KupN = (gvfalbN * radI * torch.sin(altitude * (torch.pi / 180.0))) + (
         radD * svfbuveg
         + albedo_b * (1 - svfbuveg) * (radG * (1 - F_sh) + radD * F_sh)
     ) * gvfalbnoshN

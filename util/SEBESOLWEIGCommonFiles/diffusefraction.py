@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+import torch
 
 
 def diffusefraction(radG, altitude, Kt, Ta, RH):
@@ -15,9 +16,9 @@ def diffusefraction(radG, altitude, Kt, Ta, RH):
     :return:
     """
 
-    alfa = altitude * (np.pi / 180)
+    alfa = altitude * (torch.pi / 180)
 
-    if Ta <= -999.00 or RH <= -999.00 or np.isnan(Ta) or np.isnan(RH):
+    if Ta <= -999.00 or RH <= -999.00 or torch.isnan(Ta) or torch.isnan(RH):
         if Kt <= 0.3:
             radD = radG * (1.020 - 0.248 * Kt)
         elif Kt > 0.3 and Kt < 0.78:
@@ -30,7 +31,7 @@ def diffusefraction(radG, altitude, Kt, Ta, RH):
             radD = radG * (
                 1
                 - 0.232 * Kt
-                + 0.0239 * np.sin(alfa)
+                + 0.0239 * torch.sin(alfa)
                 - 0.000682 * Ta
                 + 0.0195 * RH
             )
@@ -38,16 +39,16 @@ def diffusefraction(radG, altitude, Kt, Ta, RH):
             radD = radG * (
                 1.329
                 - 1.716 * Kt
-                + 0.267 * np.sin(alfa)
+                + 0.267 * torch.sin(alfa)
                 - 0.00357 * Ta
                 + 0.106 * RH
             )
         else:
             radD = radG * (
-                0.426 * Kt - 0.256 * np.sin(alfa) + 0.00349 * Ta + 0.0734 * RH
+                0.426 * Kt - 0.256 * torch.sin(alfa) + 0.00349 * Ta + 0.0734 * RH
             )
 
-    radI = (radG - radD) / (np.sin(alfa))
+    radI = (radG - radD) / (torch.sin(alfa))
 
     # Corrections for low sun altitudes (20130307)
     if radI < 0:

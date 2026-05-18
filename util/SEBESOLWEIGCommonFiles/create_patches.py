@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def create_patches(patch_option):
 
     deg2rad = np.pi / 180

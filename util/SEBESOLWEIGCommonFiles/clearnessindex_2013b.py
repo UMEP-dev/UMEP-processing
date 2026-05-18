@@ -5,6 +5,7 @@ author = "xlinfr"
 from . import sun_distance
 import numpy as np
 import math
+import torch
 
 
 def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
@@ -30,7 +31,7 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
         jday
     )  # irradiance differences due to Sun-Earth distances
     m = (
-        35.0 * np.cos(zen) * ((1224.0 * (np.cos(zen) ** 2) + 1) ** (-1 / 2.0))
+        35.0 * torch.cos(zen) * ((1224.0 * (torch.cos(zen) ** 2) + 1) ** (-1 / 2.0))
     )  # optical air mass at p=1013
     Trpg = (
         1.021 - 0.084 * (m * (0.000949 * p + 0.051)) ** 0.5
@@ -64,34 +65,36 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
         G = G[2]
     elif jday > 244 and jday <= 335:
         G = G[3]
+    device = zen.device if isinstance(zen, torch.Tensor) else torch.device("cpu")
+    G = torch.tensor(G, device=device)
 
     # dewpoint calculation
     a2 = 17.27
     b2 = 237.7
-    Td = (b2 * (((a2 * Ta) / (b2 + Ta)) + np.log(RH))) / (
-        a2 - (((a2 * Ta) / (b2 + Ta)) + np.log(RH))
+    Td = (b2 * (((a2 * Ta) / (b2 + Ta)) + torch.log(RH))) / (
+        a2 - (((a2 * Ta) / (b2 + Ta)) + torch.log(RH))
     )
     Td = (Td * 1.8) + 32  # Dewpoint (F)
-    u = np.exp(0.1133 - np.log(G + 1) + 0.0393 * Td)  # Precipitable water
+    u = torch.exp(0.1133 - torch.log(G + 1) + 0.0393 * Td)  # Precipitable water
     Tw = 1 - 0.077 * (
         (u * m) ** 0.3
     )  # Transmission coefficient for water vapor
     Tar = 0.935**m  # Transmission coefficient for aerosols
 
-    I0 = Itoa * np.cos(zen) * Trpg * Tw * D * Tar
-    if abs(zen) > np.pi / 2:
+    I0 = Itoa * torch.cos(zen) * Trpg * Tw * D * Tar
+    if abs(zen) > torch.pi / 2:
         I0 = 0
-    # b=I0==abs(zen)>np.pi/2
+    # b=I0==abs(zen)>torch.pi/2
     # I0(b==1)=0
     # clear b;
-    if not (np.isreal(I0)):
+    if not (torch.isreal(I0)):
         I0 = 0
 
-    corr = 0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454  # 20070329
+    corr = 0.1473 * torch.log(90 - (zen / torch.pi * 180)) + 0.3454  # 20070329
 
     CIuncorr = radG / I0
     CI = CIuncorr + (1 - corr)
-    I0et = Itoa * np.cos(zen) * D  # extra terrestial solar radiation
+    I0et = Itoa * torch.cos(zen) * D  # extra terrestial solar radiation
     Kt = radG / I0et
     if math.isnan(CI):
         CI = float("Inf")

@@ -1,4 +1,19 @@
+import torch
+
 def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
+    device = None
+    if isinstance(svf, torch.Tensor):
+        device = svf.device
+    elif isinstance(svfveg, torch.Tensor):
+        device = svfveg.device
+    elif isinstance(svfaveg, torch.Tensor):
+        device = svfaveg.device
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    svf = torch.as_tensor(svf, device=device)
+    svfveg = torch.as_tensor(svfveg, device=device)
+    svfaveg = torch.as_tensor(svfaveg, device=device)
 
     # Least
     viktonlywall = (

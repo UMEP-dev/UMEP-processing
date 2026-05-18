@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
 from .Lvikt_veg import Lvikt_veg
+import torch
 
 
 def Lside_veg_v2015a(
@@ -32,14 +33,21 @@ def Lside_veg_v2015a(
     LupW,
     LupN,
 ):
-
+    # Load device
+    device = (
+        Ldown.device
+        if isinstance(Ldown, torch.Tensor)
+        else Ta.device
+        if isinstance(Ta, torch.Tensor)
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    )
     # This m-file is the current one that estimates L from the four cardinal points 20100414
 
     # Building height angle from svf
-    svfalfaE = np.arcsin(np.exp((np.log(1 - svfE)) / 2))
-    svfalfaS = np.arcsin(np.exp((np.log(1 - svfS)) / 2))
-    svfalfaW = np.arcsin(np.exp((np.log(1 - svfW)) / 2))
-    svfalfaN = np.arcsin(np.exp((np.log(1 - svfN)) / 2))
+    svfalfaE = torch.arcsin(torch.exp((torch.log(1 - svfE)) / 2))
+    svfalfaS = torch.arcsin(torch.exp((torch.log(1 - svfS)) / 2))
+    svfalfaW = torch.arcsin(torch.exp((torch.log(1 - svfW)) / 2))
+    svfalfaN = torch.arcsin(torch.exp((torch.log(1 - svfN)) / 2))
 
     vikttot = 4.4897
     aziW = azimuth + t
@@ -60,18 +68,18 @@ def Lside_veg_v2015a(
     )
 
     if altitude > 0:  # daytime
-        alfaB = np.arctan(svfalfaE)
-        betaB = np.arctan(np.tan((svfalfaE) * F_sh))
+        alfaB = torch.arctan(svfalfaE)
+        betaB = torch.arctan(torch.tan((svfalfaE) * F_sh))
         betasun = ((alfaB - betaB) / 2) + betaB
-        # betasun = np.arctan(0.5*np.tan(svfalfaE)*(1+F_sh)) #TODO This should be considered in future versions
+        # betasun = torch.arctan(0.5*torch.tan(svfalfaE)*(1+F_sh)) #TODO This should be considered in future versions
         if (azimuth > (180 - t)) and (azimuth <= (360 - t)):
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * np.sin(aziE * (np.pi / 180))) ** 4)
+                * ((Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180))) ** 4)
                 * viktwall
                 * (1 - F_sh)
-                * np.cos(betasun)
+                * torch.cos(betasun)
                 * 0.5
             )
             Lwallsh = (
@@ -98,18 +106,18 @@ def Lside_veg_v2015a(
     )
 
     if altitude > 0:  # daytime
-        alfaB = np.arctan(svfalfaS)
-        betaB = np.arctan(np.tan((svfalfaS) * F_sh))
+        alfaB = torch.arctan(svfalfaS)
+        betaB = torch.arctan(torch.tan((svfalfaS) * F_sh))
         betasun = ((alfaB - betaB) / 2) + betaB
-        # betasun = np.arctan(0.5*np.tan(svfalfaS)*(1+F_sh))
+        # betasun = torch.arctan(0.5*torch.tan(svfalfaS)*(1+F_sh))
         if (azimuth <= (90 - t)) or (azimuth > (270 - t)):
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * np.sin(aziS * (np.pi / 180))) ** 4)
+                * ((Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180))) ** 4)
                 * viktwall
                 * (1 - F_sh)
-                * np.cos(betasun)
+                * torch.cos(betasun)
                 * 0.5
             )
             Lwallsh = (
@@ -136,18 +144,18 @@ def Lside_veg_v2015a(
     )
 
     if altitude > 0:  # daytime
-        alfaB = np.arctan(svfalfaW)
-        betaB = np.arctan(np.tan((svfalfaW) * F_sh))
+        alfaB = torch.arctan(svfalfaW)
+        betaB = torch.arctan(torch.tan((svfalfaW) * F_sh))
         betasun = ((alfaB - betaB) / 2) + betaB
-        # betasun = np.arctan(0.5*np.tan(svfalfaW)*(1+F_sh))
+        # betasun = torch.arctan(0.5*torch.tan(svfalfaW)*(1+F_sh))
         if (azimuth > (360 - t)) or (azimuth <= (180 - t)):
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * np.sin(aziW * (np.pi / 180))) ** 4)
+                * ((Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180))) ** 4)
                 * viktwall
                 * (1 - F_sh)
-                * np.cos(betasun)
+                * torch.cos(betasun)
                 * 0.5
             )
             Lwallsh = (
@@ -174,18 +182,18 @@ def Lside_veg_v2015a(
     )
 
     if altitude > 0:  # daytime
-        alfaB = np.arctan(svfalfaN)
-        betaB = np.arctan(np.tan((svfalfaN) * F_sh))
+        alfaB = torch.arctan(svfalfaN)
+        betaB = torch.arctan(torch.tan((svfalfaN) * F_sh))
         betasun = ((alfaB - betaB) / 2) + betaB
-        # betasun = np.arctan(0.5*np.tan(svfalfaN)*(1+F_sh))
+        # betasun = torch.arctan(0.5*torch.tan(svfalfaN)*(1+F_sh))
         if (azimuth > (90 - t)) and (azimuth <= (270 - t)):
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * np.sin(aziN * (np.pi / 180))) ** 4)
+                * ((Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180))) ** 4)
                 * viktwall
                 * (1 - F_sh)
-                * np.cos(betasun)
+                * torch.cos(betasun)
                 * 0.5
             )
             Lwallsh = (

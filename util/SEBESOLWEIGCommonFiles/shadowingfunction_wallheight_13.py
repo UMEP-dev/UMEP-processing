@@ -2,6 +2,7 @@
 from __future__ import division
 import numpy as np
 from math import radians
+import torch
 
 # from scipy.ndimage.filters import median_filter
 
