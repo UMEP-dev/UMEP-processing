@@ -33,7 +33,7 @@ import time
 from .wall_surface_temperature import wall_surface_temperature
 
 # Ground surface temperature
-from .ground_surface_final import surfaceTemperature_calc, outgoingLongwave_calc
+from .ground_surface import surfaceTemperature_calc, outgoingLongwave_calc
 
 def Solweig_2026a_calc(i, dsm, scale, rows, cols, svf, svfN, svfW, svfE, svfS, svfveg, svfNveg, svfEveg, svfSveg,
                        svfWveg, svfaveg, svfEaveg, svfSaveg, svfWaveg, svfNaveg, vegdem, vegdem2, albedo_b, absK, absL,
