@@ -40,7 +40,7 @@ import time
 from .wall_surface_temperature import wall_surface_temperature
 
 # Ground surface temperature
-from .ground_surface_final import (
+from .ground_surface import (
     surfaceTemperature_calc,
     outgoingLongwave_calc,
 )
