@@ -22,26 +22,29 @@
  ***************************************************************************/
 """
 
-__author__ = 'Jérémy Bernard, University of Gothenburg'
-__date__ = '2022-01-19'
-__copyright__ = '(C) 2022 by Jérémy Bernard, University of Gothenburg'
+__author__ = "Jérémy Bernard, University of Gothenburg"
+__date__ = "2022-01-19"
+__copyright__ = "(C) 2022 by Jérémy Bernard, University of Gothenburg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication
 import processing
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterField,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterFile,
-                       QgsProcessingException)
-#from qgis.utils import iface
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterField,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterString,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterFile,
+    QgsProcessingException,
+)
+
+# from qgis.utils import iface
 import os
 from pathlib import Path
 import struct
@@ -49,9 +52,16 @@ from qgis.PyQt.QtGui import QIcon
 import inspect
 import xarray as xr
 
-from ..functions.URock.H2gisConnection import getJavaDir, setJavaDir, saveJavaDir
+from ..functions.URock.H2gisConnection import (
+    getJavaDir,
+    setJavaDir,
+    saveJavaDir,
+)
 from ..functions.URock.urock_analyser_functions import plotSectionalViews
-from ..functions.URock.GlobalVariables import TEMPO_DIRECTORY, OUTPUT_VECTOR_EXTENSION
+from ..functions.URock.GlobalVariables import (
+    TEMPO_DIRECTORY,
+    OUTPUT_VECTOR_EXTENSION,
+)
 
 
 class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
@@ -74,15 +84,14 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
 
     # Input variables
     # JAVA_PATH = "JAVA_PATH"
-    INPUT_LINES = 'INPUT_LINES'
-    INPUT_POLYGONS = 'INPUT_POLYGONS'
+    INPUT_LINES = "INPUT_LINES"
+    INPUT_POLYGONS = "INPUT_POLYGONS"
     ID_FIELD_LINES = "ID_FIELD_LINES"
     ID_FIELD_POLYGONS = "ID_FIELD_POLYGONS"
-    INPUT_WIND_FILE = 'INPUT_WIND_FILE'
-    IS_STREAM = 'IS_STREAM'
-    OUTPUT_DIRECTORY = 'OUTPUT_DIRECTORY'
+    INPUT_WIND_FILE = "INPUT_WIND_FILE"
+    IS_STREAM = "IS_STREAM"
+    OUTPUT_DIRECTORY = "OUTPUT_DIRECTORY"
     SIMULATION_NAME = "SIMULATION_NAME"
-
 
     def initAlgorithm(self, config):
         """
@@ -94,67 +103,81 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT_LINES,
-                self.tr('Input line layer for vertical sectional plot(s)'),
+                self.tr("Input line layer for vertical sectional plot(s)"),
                 [QgsProcessing.SourceType.TypeVectorLine],
-                optional = True
+                optional=True,
             )
         )
         # Booleans to let the user decide the type of plotting (stream or arrows)
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.IS_STREAM,
-                self.tr("Plot streams instead of arrows (works only for cubic voxels"),
-                defaultValue=False))
-        
+                self.tr(
+                    "Plot streams instead of arrows (works only for cubic voxels"
+                ),
+                defaultValue=False,
+            )
+        )
+
         self.addParameter(
             QgsProcessingParameterField(
                 self.ID_FIELD_LINES,
-                self.tr('Lines ID field (used if mutiple lines is present)'),
+                self.tr("Lines ID field (used if mutiple lines is present)"),
                 None,
                 self.INPUT_LINES,
                 QgsProcessingParameterField.DataType.Numeric,
-                optional = True))
-        
+                optional=True,
+            )
+        )
 
-        
         # We add the input vector features source (polygon layer)
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT_POLYGONS,
-                self.tr('Input polygons layer for average wind profile'),
+                self.tr("Input polygons layer for average wind profile"),
                 [QgsProcessing.SourceType.TypeVectorPolygon],
-                optional = True
+                optional=True,
             )
         )
         self.addParameter(
             QgsProcessingParameterField(
                 self.ID_FIELD_POLYGONS,
-                self.tr('Polygons ID field (used if mutiple polygons is present)'),
+                self.tr(
+                    "Polygons ID field (used if mutiple polygons is present)"
+                ),
                 None,
                 self.INPUT_POLYGONS,
                 QgsProcessingParameterField.DataType.Numeric,
-                optional = True))
+                optional=True,
+            )
+        )
         # We add the input wind speed saved in a NetCDF format
         self.addParameter(
             QgsProcessingParameterFile(
                 self.INPUT_WIND_FILE,
-                self.tr('Input wind data file (.nc)'),
-                extension='nc'))
+                self.tr("Input wind data file (.nc)"),
+                extension="nc",
+            )
+        )
 
         # Output directory and file names
         self.addParameter(
             QgsProcessingParameterString(
                 self.SIMULATION_NAME,
-                self.tr('Name of the simulation used for saving figure(s)'),
+                self.tr("Name of the simulation used for saving figure(s)"),
                 "",
                 False,
-                True)) 
+                True,
+            )
+        )
         self.addParameter(
             QgsProcessingParameterFolderDestination(
                 self.OUTPUT_DIRECTORY,
-                self.tr('Directory to save the figure(s)'),
-                optional = True))
-        
+                self.tr("Directory to save the figure(s)"),
+                optional=True,
+            )
+        )
+
         # Optional parameter
         # self.addParameter(
         #     QgsProcessingParameterString(
@@ -162,67 +185,95 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         #         self.tr('Java environment path (should be set automatically'),
         #         javaDirDefault,
         #         False,
-        #         False)) 
+        #         False))
 
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
-        
+
         # Get the plugin directory to save some useful files
         plugin_directory = self.plugin_dir = os.path.dirname(__file__)
 
         # Get the default value of the Java environment path if already exists
         javaDirDefault = getJavaDir(plugin_directory)
-        
-        if not javaDirDefault:  # Raise an error if could not find a Java installation
-            raise QgsProcessingException("No Java installation found")            
-        elif ("Program Files (x86)" in javaDirDefault) and (struct.calcsize("P") * 8 != 32):
+
+        if (
+            not javaDirDefault
+        ):  # Raise an error if could not find a Java installation
+            raise QgsProcessingException("No Java installation found")
+        elif ("Program Files (x86)" in javaDirDefault) and (
+            struct.calcsize("P") * 8 != 32
+        ):
             # Raise an error if Java is 32 bits but Python 64 bits
-            raise QgsProcessingException('Only a 32 bits version of Java has been'+
-                                         'found while your Python installation is 64 bits.'+
-                                         'Consider installing a 64 bits Java version.')
-        else:   # Set a Java dir if not exist and save it into a file in the plugin repository
+            raise QgsProcessingException(
+                "Only a 32 bits version of Java has been"
+                + "found while your Python installation is 64 bits."
+                + "Consider installing a 64 bits Java version."
+            )
+        else:  # Set a Java dir if not exist and save it into a file in the plugin repository
             setJavaDir(javaDirDefault)
-            saveJavaDir(javaPath = javaDirDefault,
-                        pluginDirectory = plugin_directory)
+            saveJavaDir(
+                javaPath=javaDirDefault, pluginDirectory=plugin_directory
+            )
 
         # Defines java environmenet variable
         javaEnvVar = javaDirDefault
-                
+
         # Defines path of the NetCDF file
-        inputWindFile = self.parameterAsString(parameters, self.INPUT_WIND_FILE, context)
-        
+        inputWindFile = self.parameterAsString(
+            parameters, self.INPUT_WIND_FILE, context
+        )
+
         # Get line layer, id field name and then file directory and crs
-        inputLines = self.parameterAsVectorLayer(parameters, self.INPUT_LINES, context)
-        idLines = self.parameterAsString(parameters, self.ID_FIELD_LINES, context)
+        inputLines = self.parameterAsVectorLayer(
+            parameters, self.INPUT_LINES, context
+        )
+        idLines = self.parameterAsString(
+            parameters, self.ID_FIELD_LINES, context
+        )
         if inputLines:
             # Test the number of vertices (points) per line
             features = inputLines.getFeatures()
             for feature in features:
                 if len(feature.geometry().asMultiPolyline()[0]) > 2:
-                    raise QgsProcessingException("Only 2 vertices (point) lines are accepted. "+
-                                                 "One of your lines contains more than 2 vertices,"+
-                                                 " please explode it into several 2 vertices lines.")  
-                    
+                    raise QgsProcessingException(
+                        "Only 2 vertices (point) lines are accepted. "
+                        + "One of your lines contains more than 2 vertices,"
+                        + " please explode it into several 2 vertices lines."
+                    )
+
             lines_file = str(inputLines.dataProvider().dataSourceUri())
             if lines_file.count("|") > 0:
                 lines_file = lines_file.split("|")[0]
             srid_lines = inputLines.crs().authid()[5:]
             # Save the file as geojson in case of .gpkg format
             if lines_file.split(".")[-1].lower() == "gpkg":
-                new_lines_file = os.path.join(TEMPO_DIRECTORY, "LINES" + OUTPUT_VECTOR_EXTENSION)
-                processing.run("native:savefeatures", 
-                               {'INPUT': lines_file,
-                                'OUTPUT': new_lines_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                new_lines_file = os.path.join(
+                    TEMPO_DIRECTORY, "LINES" + OUTPUT_VECTOR_EXTENSION
+                )
+                processing.run(
+                    "native:savefeatures",
+                    {
+                        "INPUT": lines_file,
+                        "OUTPUT": new_lines_file,
+                        "LAYER_NAME": "",
+                        "DATASOURCE_OPTIONS": "",
+                        "LAYER_OPTIONS": "",
+                    },
+                )
                 lines_file = new_lines_file
         else:
-            lines_file = ''
+            lines_file = ""
             srid_lines = None
-        
+
         # Get polygon layer, id field name and then file directory and crs
-        inputPolygons = self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONS, context)
-        idPolygons = self.parameterAsString(parameters, self.ID_FIELD_POLYGONS, context)
+        inputPolygons = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POLYGONS, context
+        )
+        idPolygons = self.parameterAsString(
+            parameters, self.ID_FIELD_POLYGONS, context
+        )
         if inputPolygons:
             polygons_file = str(inputPolygons.dataProvider().dataSourceUri())
             if polygons_file.count("|") > 0:
@@ -230,54 +281,74 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             srid_polygons = inputPolygons.crs().authid()[5:]
             # Save the file as geojson in case of .gpkg format
             if polygons_file.split(".")[-1].lower() == "gpkg":
-                new_polygons_file = os.path.join(TEMPO_DIRECTORY, "POLYGONS" + OUTPUT_VECTOR_EXTENSION)
-                processing.run("native:savefeatures", 
-                               {'INPUT': polygons_file,
-                                'OUTPUT': new_polygons_file,'LAYER_NAME':'','DATASOURCE_OPTIONS':'','LAYER_OPTIONS':''})
+                new_polygons_file = os.path.join(
+                    TEMPO_DIRECTORY, "POLYGONS" + OUTPUT_VECTOR_EXTENSION
+                )
+                processing.run(
+                    "native:savefeatures",
+                    {
+                        "INPUT": polygons_file,
+                        "OUTPUT": new_polygons_file,
+                        "LAYER_NAME": "",
+                        "DATASOURCE_OPTIONS": "",
+                        "LAYER_OPTIONS": "",
+                    },
+                )
                 polygons_file = new_polygons_file
         else:
-            polygons_file = ''
+            polygons_file = ""
             srid_polygons = None
 
         if inputLines and inputPolygons:
             if srid_polygons != srid_lines:
-                feedback.pushWarning('Coordinate system of input building layer and vegetation layer differ!')
-            
+                feedback.pushWarning(
+                    "Coordinate system of input building layer and vegetation layer differ!"
+                )
+
         # Defines outputs
         isStream = self.parameterAsBool(parameters, self.IS_STREAM, context)
-        simulationName = self.parameterAsString(parameters, self.SIMULATION_NAME, context)
-        outputDirectory = self.parameterAsString(parameters, self.OUTPUT_DIRECTORY, context)
+        simulationName = self.parameterAsString(
+            parameters, self.SIMULATION_NAME, context
+        )
+        outputDirectory = self.parameterAsString(
+            parameters, self.OUTPUT_DIRECTORY, context
+        )
 
         # Creates the output folder if it does not exist
-        if not os.path.exists(outputDirectory) and outputDirectory != '':
+        if not os.path.exists(outputDirectory) and outputDirectory != "":
             if os.path.exists(Path(outputDirectory).parent.absolute()):
                 os.mkdir(outputDirectory)
             else:
-                raise QgsProcessingException('The output directory does not exist, neither its parent directory')
-        
+                raise QgsProcessingException(
+                    "The output directory does not exist, neither its parent directory"
+                )
+
         # Check that conditions are fullfilled for stream calculation
         if isStream:
             horizontal_res = xr.open_dataset(inputWindFile).horizontal_res
             vertical_res = xr.open_dataset(inputWindFile).vertical_res
             if horizontal_res != vertical_res:
-                raise QgsProcessingException('For stream plots, your netCDF file should contain cubic voxels')
-        
+                raise QgsProcessingException(
+                    "For stream plots, your netCDF file should contain cubic voxels"
+                )
+
         # Start the analyser
-        fig, ax, scale, fig_poly, ax_poly =\
-            plotSectionalViews(pluginDirectory = plugin_directory, 
-                               inputWindFile = inputWindFile,
-                               lines_file = lines_file,
-                               srid_lines = srid_lines,
-                               idLines = idLines, 
-                               polygons_file = polygons_file,
-                               srid_polygons = srid_polygons,
-                               idPolygons = idPolygons, 
-                               isStream = isStream,
-                               savePlot = True,
-                               outputDirectory = outputDirectory,
-                               simulationName = simulationName,
-                               feedback = feedback)
-        
+        fig, ax, scale, fig_poly, ax_poly = plotSectionalViews(
+            pluginDirectory=plugin_directory,
+            inputWindFile=inputWindFile,
+            lines_file=lines_file,
+            srid_lines=srid_lines,
+            idLines=idLines,
+            polygons_file=polygons_file,
+            srid_polygons=srid_polygons,
+            idPolygons=idPolygons,
+            isStream=isStream,
+            savePlot=True,
+            outputDirectory=outputDirectory,
+            simulationName=simulationName,
+            feedback=feedback,
+        )
+
         # Return the results of the algorithm.
         return {self.OUTPUT_DIRECTORY: outputDirectory}
 
@@ -289,14 +360,14 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Urban Wind Field: URock analyzer'
+        return "Urban Wind Field: URock analyzer"
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Urban Wind Field: URock AnalyZer')
+        return self.tr("Urban Wind Field: URock AnalyZer")
 
     def group(self):
         """
@@ -313,34 +384,38 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Post-Processor'
+        return "Post-Processor"
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def shortHelpString(self):
-        return self.tr('The URock Analyser plugin can be used to plot the results '+
-                       'obtained using the URock model along the vertical axis.'+
-                       ' This plugin is available only from UMEP for processing <UMEPforProcessing>.\n\n'
-                       'Rem: The plug-in performance is far from optimum since the '+
-                       'NetCDF file is loaded in Java AND in Python. '+
-                       'Thus it could take some time if the NetCDF file is large.'
-        '\n'
-        '\n'
-        'This tools requires Java. If Java is not installed on your system,'+ 
-        'visit www.java.com and install the latest version. Make sure to install correct version '+
-        'based on your system architecture (32- or 64-bit).'
-        '\n'
-        '\n'
-        '---------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "The URock Analyser plugin can be used to plot the results "
+            + "obtained using the URock model along the vertical axis."
+            + " This plugin is available only from UMEP for processing <UMEPforProcessing>.\n\n"
+            "Rem: The plug-in performance is far from optimum since the "
+            + "NetCDF file is loaded in Java AND in Python. "
+            + "Thus it could take some time if the NetCDF file is large."
+            "\n"
+            "\n"
+            "This tools requires Java. If Java is not installed on your system,"
+            + "visit www.java.com and install the latest version. Make sure to install correct version "
+            + "based on your system architecture (32- or 64-bit)."
+            "\n"
+            "\n"
+            "---------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/post_processor/Urban%20Wind%20Fields%20URock%20Analyzer.html"
         return url
-    
+
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/urock.png")
         return icon
 

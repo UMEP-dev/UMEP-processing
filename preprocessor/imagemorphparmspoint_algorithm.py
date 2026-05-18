@@ -22,32 +22,34 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterPoint,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterVectorDestination,
-                       QgsProcessingException,
-                       QgsVectorLayer,
-                       QgsFeature,
-                       QgsGeometry,
-                       QgsPointXY,
-                       QgsVectorFileWriter)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterPoint,
+    QgsProcessingParameterString,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterRasterLayer,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterVectorDestination,
+    QgsProcessingException,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsPointXY,
+    QgsVectorFileWriter,
+)
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
@@ -66,93 +68,176 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
     This algorithm is a processing version of Image Morphometric Calculator Point
     """
 
-    USE_POINTLAYER = 'USE_POINTLAYER'
-    INPUT_POINT = 'INPUT_POINT'
-    INPUT_POINTLAYER = 'INPUT_POINTLAYER'
-    INPUT_DISTANCE = 'INPUT_DISTANCE'
-    INPUT_INTERVAL = 'INPUT_INTERVAL'
-    INPUT_DSM = 'INPUT_DSM'
-    INPUT_DEM = 'INPUT_DEM'
-    INPUT_DSMBUILD = 'INPUT_DSMBUILD'
-    USE_DSMBUILD = 'USE_DSM_BUILD'
-    ROUGH = 'ROUGH'
-    FILE_PREFIX = 'FILE_PREFIX'
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    OUTPUT_POLYGON = 'OUTPUT_POLYGON'
-    #SAVE_POINT = 'SAVE_POINT'
-    OUTPUT_POINT = 'OUTPUT_POINT'
-    
+    USE_POINTLAYER = "USE_POINTLAYER"
+    INPUT_POINT = "INPUT_POINT"
+    INPUT_POINTLAYER = "INPUT_POINTLAYER"
+    INPUT_DISTANCE = "INPUT_DISTANCE"
+    INPUT_INTERVAL = "INPUT_INTERVAL"
+    INPUT_DSM = "INPUT_DSM"
+    INPUT_DEM = "INPUT_DEM"
+    INPUT_DSMBUILD = "INPUT_DSMBUILD"
+    USE_DSMBUILD = "USE_DSM_BUILD"
+    ROUGH = "ROUGH"
+    FILE_PREFIX = "FILE_PREFIX"
+    OUTPUT_DIR = "OUTPUT_DIR"
+    OUTPUT_POLYGON = "OUTPUT_POLYGON"
+    # SAVE_POINT = 'SAVE_POINT'
+    OUTPUT_POINT = "OUTPUT_POINT"
+
     def initAlgorithm(self, config):
-        
-        self.rough = ((self.tr('Rule of thumb'), '0'),
-                        (self.tr('Raupach (1994/95)'), '1'),
-                        (self.tr('Simplified Bottema (1995)'), '2'),
-                        (self.tr('MacDonald et al. (1998)'), '3'),
-                        (self.tr('Millward-Hopkins et al. (2011)'), '4'),
-                        (self.tr('Kanda et al. (2013)'), '5'))
-        self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
-            self.tr('Point of interest'), optional=True))
+
+        self.rough = (
+            (self.tr("Rule of thumb"), "0"),
+            (self.tr("Raupach (1994/95)"), "1"),
+            (self.tr("Simplified Bottema (1995)"), "2"),
+            (self.tr("MacDonald et al. (1998)"), "3"),
+            (self.tr("Millward-Hopkins et al. (2011)"), "4"),
+            (self.tr("Kanda et al. (2013)"), "5"),
+        )
+        self.addParameter(
+            QgsProcessingParameterPoint(
+                self.INPUT_POINT, self.tr("Point of interest"), optional=True
+            )
+        )
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
-            # self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT_POINTLAYER,
-            self.tr('Point vector layer'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_DISTANCE,
-            self.tr('Search distance (meter)'),
-            QgsProcessingParameterNumber.Type.Integer,
-            QVariant(200), False, minValue=0))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_INTERVAL,
-            self.tr('Wind direction search interval (degree)'),
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(5), False, minValue=0.1, maxValue=360.))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
-            self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
+        # self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT_POINTLAYER,
+                self.tr("Point vector layer"),
+                [QgsProcessing.SourceType.TypeVectorPoint],
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_DISTANCE,
+                self.tr("Search distance (meter)"),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(200),
+                False,
+                minValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_INTERVAL,
+                self.tr("Wind direction search interval (degree)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(5),
+                False,
+                minValue=0.1,
+                maxValue=360.0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_DSMBUILD,
+                self.tr(
+                    "Raster DSM (only 3D building or vegetation objects) exist"
+                ),
+                defaultValue=False,
+            )
+        )
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
         #     self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-            self.tr('Raster DSM (3D objects and ground)'), '', True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-            self.tr('Raster DEM (only ground)'), '', True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSMBUILD,
-            self.tr('Raster DSM (only 3D objects)'), '', True))
-        self.addParameter(QgsProcessingParameterEnum(self.ROUGH,
-            self.tr('Roughness calculation method'),
-            options=[i[0] for i in self.rough], defaultValue=0))
-        self.addParameter(QgsProcessingParameterString(self.FILE_PREFIX,
-            self.tr('File prefix')))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DSM,
+                self.tr("Raster DSM (3D objects and ground)"),
+                "",
+                True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DEM, self.tr("Raster DEM (only ground)"), "", True
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DSMBUILD,
+                self.tr("Raster DSM (only 3D objects)"),
+                "",
+                True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.ROUGH,
+                self.tr("Roughness calculation method"),
+                options=[i[0] for i in self.rough],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File prefix")
+            )
+        )
         # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
         #     self.tr("Save point of interest as new vector layer"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POINT,
-            self.tr("Output point layer (point of interest)"), optional=True,
-                createByDefault=False))
-        self.addParameter(QgsProcessingParameterVectorDestination(self.OUTPUT_POLYGON,
-            self.tr("Output polygon layer (area of interest)"), optional=True,
-                createByDefault=False))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
-            self.tr('Output folder')))
+        self.addParameter(
+            QgsProcessingParameterVectorDestination(
+                self.OUTPUT_POINT,
+                self.tr("Output point layer (point of interest)"),
+                optional=True,
+                createByDefault=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterVectorDestination(
+                self.OUTPUT_POLYGON,
+                self.tr("Output polygon layer (area of interest)"),
+                optional=True,
+                createByDefault=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, self.tr("Output folder")
+            )
+        )
 
         self.plugin_dir = os.path.dirname(__file__)
-        if not (os.path.isdir(self.plugin_dir + '/data')):
-            os.mkdir(self.plugin_dir + '/data')
+        if not (os.path.isdir(self.plugin_dir + "/data")):
+            os.mkdir(self.plugin_dir + "/data")
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        usePointlayer = self. parameterAsBool(parameters, self.USE_POINTLAYER, context)
+        usePointlayer = self.parameterAsBool(
+            parameters, self.USE_POINTLAYER, context
+        )
         inputPoint = None
-        inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
-        useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
+        inputPointLayer = self.parameterAsVectorLayer(
+            parameters, self.INPUT_POINTLAYER, context
+        )
+        inputDistance = self.parameterAsDouble(
+            parameters, self.INPUT_DISTANCE, context
+        )
+        inputInterval = self.parameterAsDouble(
+            parameters, self.INPUT_INTERVAL, context
+        )
+        useDsmBuild = self.parameterAsBool(
+            parameters, self.USE_DSMBUILD, context
+        )
         dsmlayer = None
         demlayer = None
         # dsm_build = None
         ro = self.parameterAsString(parameters, self.ROUGH, context)
-        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputPolygon = self.parameterAsOutputLayer(parameters, self.OUTPUT_POLYGON, context)
-        #savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
+        filePrefix = self.parameterAsString(
+            parameters, self.FILE_PREFIX, context
+        )
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        outputPolygon = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_POLYGON, context
+        )
+        # savePoint = self.parameterAsBool(parameters, self.SAVE_POINT, context)
         outputPoint = None
-        
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
@@ -160,22 +245,30 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         # if lcgrid is not None:
         if inputPointLayer is None:
             feedback.setProgressText("Point location obtained manually")
-            inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
+            inputPoint = self.parameterAsPoint(
+                parameters, self.INPUT_POINT, context
+            )
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
             # inputPointLayer = self.parameterAsVectorLayer(parameters, self.INPUT_POINTLAYER, context)
-            feedback.setProgressText("Point location obtained from point in vector layer")
+            feedback.setProgressText(
+                "Point location obtained from point in vector layer"
+            )
             if not inputPointLayer.selectedFeatures():
                 if inputPointLayer.featureCount() == 0:
-                    raise QgsProcessingException("No point found in the vector layer. Add one point in the your layer of manually choose one.")
+                    raise QgsProcessingException(
+                        "No point found in the vector layer. Add one point in the your layer of manually choose one."
+                    )
                 else:
                     for poi in inputPointLayer.getFeatures():
                         y = poi.geometry().centroid().asPoint().y()
                         x = poi.geometry().centroid().asPoint().x()
             else:
                 if inputPointLayer.selectedFeatureCount() != 1:
-                    raise QgsProcessingException("More than one point of interest is selected. Select only one feature point and try again.")
+                    raise QgsProcessingException(
+                        "More than one point of interest is selected. Select only one feature point and try again."
+                    )
                 for poi in inputPointLayer.selectedFeatures():
                     y = poi.geometry().centroid().asPoint().y()
                     x = poi.geometry().centroid().asPoint().x()
@@ -184,34 +277,48 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("x = " + str(x))
         feedback.setProgressText("y = " + str(y))
-                    
+
         r = inputDistance
-        
-        if useDsmBuild: # Only building heights
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSMBUILD, context)
+
+        if useDsmBuild:  # Only building heights
+            dsmlayer = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DSMBUILD, context
+            )
             if dsmlayer is None:
-                raise QgsProcessingException("No valid building DSM raster layer is selected")
+                raise QgsProcessingException(
+                    "No valid building DSM raster layer is selected"
+                )
 
             provider = dsmlayer.dataProvider()
             filePath_dsm_build = str(provider.dataSourceUri())
             bigraster = gdal.Open(filePath_dsm_build)
             bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+            gdal.Translate(
+                self.plugin_dir + "/data/clipdsm.tif", bigraster, projWin=bbox
+            )
             bigraster = None
-            dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
+            dataset = gdal.Open(self.plugin_dir + "/data/clipdsm.tif")
             dsm = dataset.ReadAsArray().astype(float)
             sizex = dsm.shape[0]
             sizey = dsm.shape[1]
             dem = np.zeros((sizex, sizey))
 
         else:  # Both building ground heights
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context) 
-            demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context) 
+            dsmlayer = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DSM, context
+            )
+            demlayer = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DEM, context
+            )
 
             if dsmlayer is None:
-                raise QgsProcessingException("No valid ground and building DSM raster layer is selected")
+                raise QgsProcessingException(
+                    "No valid ground and building DSM raster layer is selected"
+                )
             if demlayer is None:
-                raise QgsProcessingException("No valid ground DEM raster layer is selected")
+                raise QgsProcessingException(
+                    "No valid ground DEM raster layer is selected"
+                )
 
             provider = dsmlayer.dataProvider()
             filePath_dsm = str(provider.dataSourceUri())
@@ -219,44 +326,57 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             filePath_dem = str(provider.dataSourceUri())
             bigraster = gdal.Open(filePath_dsm)
             bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdsm.tif', bigraster, projWin=bbox)
+            gdal.Translate(
+                self.plugin_dir + "/data/clipdsm.tif", bigraster, projWin=bbox
+            )
             bigraster = gdal.Open(filePath_dem)
             bbox = (x - r, y + r, x + r, y - r)
-            gdal.Translate(self.plugin_dir + '/data/clipdem.tif', bigraster, projWin=bbox)
+            gdal.Translate(
+                self.plugin_dir + "/data/clipdem.tif", bigraster, projWin=bbox
+            )
 
-            dataset = gdal.Open(self.plugin_dir + '/data/clipdsm.tif')
+            dataset = gdal.Open(self.plugin_dir + "/data/clipdsm.tif")
             dsm = dataset.ReadAsArray().astype(float)
-            dataset2 = gdal.Open(self.plugin_dir + '/data/clipdem.tif')
+            dataset2 = gdal.Open(self.plugin_dir + "/data/clipdem.tif")
             dem = dataset2.ReadAsArray().astype(float)
 
-            if not (dsm.shape[0] == dem.shape[0]) & (dsm.shape[1] == dem.shape[1]):
-                raise QgsProcessingException("All grids must be of same extent and resolution")
+            if not (dsm.shape[0] == dem.shape[0]) & (
+                dsm.shape[1] == dem.shape[1]
+            ):
+                raise QgsProcessingException(
+                    "All grids must be of same extent and resolution"
+                )
 
         geotransform = dataset.GetGeoTransform()
         scale = 1 / geotransform[1]
         degree = float(inputInterval)
         nd = dataset.GetRasterBand(1).GetNoDataValue()
-        nodata_test = (dsm == nd)
-        
+        nodata_test = dsm == nd
+
         if nodata_test.any():
-            raise QgsProcessingException("NoData values present within the radius (" + str(int(r)) + 
-                                " m) from point of interest. Extend your raster(s) or move point.")
+            raise QgsProcessingException(
+                "NoData values present within the radius ("
+                + str(int(r))
+                + " m) from point of interest. Extend your raster(s) or move point."
+            )
         else:
-            immorphresult = morph.imagemorphparam_v2(dsm, dem, scale, 1, degree, feedback, 1)
+            immorphresult = morph.imagemorphparam_v2(
+                dsm, dem, scale, 1, degree, feedback, 1
+            )
 
         # #Calculate Z0m and Zdm depending on the Z0 method
         if int(ro) == 0:
-            Roughnessmethod = 'RT'
+            Roughnessmethod = "RT"
         elif int(ro) == 1:
-            Roughnessmethod = 'Rau'
+            Roughnessmethod = "Rau"
         elif int(ro) == 2:
-            Roughnessmethod = 'Bot'
+            Roughnessmethod = "Bot"
         elif int(ro) == 3:
-            Roughnessmethod = 'Mac'
+            Roughnessmethod = "Mac"
         elif int(ro) == 4:
-            Roughnessmethod = 'Mho'
+            Roughnessmethod = "Mho"
         else:
-            Roughnessmethod = 'Kan'
+            Roughnessmethod = "Kan"
 
         zH = immorphresult["zH"]
         fai = immorphresult["fai"]
@@ -264,63 +384,111 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         zMax = immorphresult["zHmax"]
         zSdev = immorphresult["zH_sd"]
 
-        zd, z0 = rg.RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev)
+        zd, z0 = rg.RoughnessCalcMany(
+            Roughnessmethod, zH, fai, pai, zMax, zSdev
+        )
 
         # save to file
         pre = filePrefix
-        header = ' Wd pai   fai   zH  zHmax   zHstd zd z0'
-        numformat = '%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        arr = np.concatenate((immorphresult["deg"], immorphresult["pai"], immorphresult["fai"],
-                            immorphresult["zH"], immorphresult["zHmax"], immorphresult["zH_sd"], zd, z0), axis=1)
-        np.savetxt(outputDir + '/' + pre + '_' + 'IMPPoint_anisotropic.txt', arr,
-                   fmt=numformat, delimiter=' ', header=header, comments='')
+        header = " Wd pai   fai   zH  zHmax   zHstd zd z0"
+        numformat = "%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+        arr = np.concatenate(
+            (
+                immorphresult["deg"],
+                immorphresult["pai"],
+                immorphresult["fai"],
+                immorphresult["zH"],
+                immorphresult["zHmax"],
+                immorphresult["zH_sd"],
+                zd,
+                z0,
+            ),
+            axis=1,
+        )
+        np.savetxt(
+            outputDir + "/" + pre + "_" + "IMPPoint_anisotropic.txt",
+            arr,
+            fmt=numformat,
+            delimiter=" ",
+            header=header,
+            comments="",
+        )
 
         zHall = immorphresult["zH_all"]
         faiall = immorphresult["fai_all"]
         paiall = immorphresult["pai_all"]
         zMaxall = immorphresult["zHmax_all"]
         zSdevall = immorphresult["zH_sd_all"]
-        zdall, z0all = rg.RoughnessCalc(Roughnessmethod, zHall, faiall, paiall, zMaxall, zSdevall)
+        zdall, z0all = rg.RoughnessCalc(
+            Roughnessmethod, zHall, faiall, paiall, zMaxall, zSdevall
+        )
         # If zd and z0 are lower than open country, set to open country
         if zdall < 0.2:
             zdall = 0.2
         if z0all < 0.03:
             z0all = 0.03
-            
+
         # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
-        if paiall > 0.:
-            if faiall == 0.:
+        if paiall > 0.0:
+            if faiall == 0.0:
                 faiall = 0.001
 
         # adding wai area to isotrophic (wall area index)
-        total = 100. / (int(dsm.shape[0] * dsm.shape[1]))
-        wallarea = np.sum(wa.findwalls(dsm, 2., feedback, total))
-        gridArea = (abs(bbox[2]-bbox[0]))*(abs(bbox[1]-bbox[3]))
+        total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
+        wallarea = np.sum(wa.findwalls(dsm, 2.0, feedback, total))
+        gridArea = (abs(bbox[2] - bbox[0])) * (abs(bbox[1] - bbox[3]))
         wai = wallarea / gridArea
-                
-        header = ' pai  fai   zH    zHmax    zHstd zd z0 wai'
-        numformat = '%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f'
-        arr2 = np.array([[immorphresult["pai_all"], immorphresult["fai_all"], immorphresult["zH_all"],
-                          immorphresult["zHmax_all"], immorphresult["zH_sd_all"], zdall, z0all, wai]])
-        np.savetxt(outputDir + '/' + pre + '_' + 'IMPPoint_isotropic.txt', arr2,
-                   fmt=numformat, delimiter=' ', header=header, comments='')
+
+        header = " pai  fai   zH    zHmax    zHstd zd z0 wai"
+        numformat = "%4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+        arr2 = np.array(
+            [
+                [
+                    immorphresult["pai_all"],
+                    immorphresult["fai_all"],
+                    immorphresult["zH_all"],
+                    immorphresult["zHmax_all"],
+                    immorphresult["zH_sd_all"],
+                    zdall,
+                    z0all,
+                    wai,
+                ]
+            ]
+        )
+        np.savetxt(
+            outputDir + "/" + pre + "_" + "IMPPoint_isotropic.txt",
+            arr2,
+            fmt=numformat,
+            delimiter=" ",
+            header=header,
+            comments="",
+        )
 
         dataset = None
         dataset2 = None
-        
+
         crs = str(dsmlayer.crs().authid())
         self.create_poly_layer(outputPolygon, x, y, r, crs)
-        #if savePoint:
-        outputPoint = self.parameterAsOutputLayer(parameters, self.OUTPUT_POINT, context)
+        # if savePoint:
+        outputPoint = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_POINT, context
+        )
         self.create_point_layer(outputPoint, x, y, crs)
-        results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon, self.OUTPUT_POINT: outputPoint}
-        #else:
+        results = {
+            self.OUTPUT_DIR: outputDir,
+            self.OUTPUT_POLYGON: outputPolygon,
+            self.OUTPUT_POINT: outputPoint,
+        }
+        # else:
         #    results = {self.OUTPUT_DIR: outputDir, self.OUTPUT_POLYGON: outputPolygon}
 
         return results
 
     def create_point_layer(self, outputPoint, x, y, crs):
-        uri = "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs=" + crs
+        uri = (
+            "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs="
+            + crs
+        )
         self.poiLayer = QgsVectorLayer(uri, "Point of Interest", "memory")
         self.provider = self.poiLayer.dataProvider()
         # create the feature
@@ -334,15 +502,21 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
         fields = self.poiLayer.fields()
 
-        writer = QgsVectorFileWriter(outputPoint, "CP1250", fields, self.provider.wkbType(),
-                                     self.provider.crs(), "ESRI shapefile")
+        writer = QgsVectorFileWriter(
+            outputPoint,
+            "CP1250",
+            fields,
+            self.provider.wkbType(),
+            self.provider.crs(),
+            "ESRI shapefile",
+        )
         self.poiLayer.selectAll()
         selection = self.poiLayer.selectedFeatures()
 
         for feature in selection:
             writer.addFeature(feature)
         del writer
-    
+
     def create_poly_layer(self, outputPolygon, x, y, r, crs):
         uri = "Polygon?field=id:integer&index=yes&crs=" + crs
         self.polyLayer = QgsVectorLayer(uri, "Study area", "memory")
@@ -354,7 +528,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
         # Assign feature the buffered geometry
         radius = r
-        featurepoly.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)).buffer(radius, 1000)) # fix issue #400
+        featurepoly.setGeometry(
+            QgsGeometry.fromPointXY(QgsPointXY(x, y)).buffer(radius, 1000)
+        )  # fix issue #400
         featurepoly.setAttributes([fc])
         self.polyLayer.startEditing()
         self.polyLayer.addFeature(featurepoly)
@@ -362,17 +538,23 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         prov = self.provider
         fields = self.polyLayer.fields()
 
-        writer = QgsVectorFileWriter(outputPolygon, "CP1250", fields, prov.wkbType(),
-                                     prov.crs(), "ESRI shapefile")
+        writer = QgsVectorFileWriter(
+            outputPolygon,
+            "CP1250",
+            fields,
+            prov.wkbType(),
+            prov.crs(),
+            "ESRI shapefile",
+        )
         self.polyLayer.selectAll()
         selection = self.polyLayer.selectedFeatures()
 
         for feature in selection:
             writer.addFeature(feature)
         del writer
-    
+
     def name(self):
-        return 'Urban Morphology: Morphometric Calculator (Point)'
+        return "Urban Morphology: Morphometric Calculator (Point)"
 
     def displayName(self):
         return self.tr(self.name())
@@ -381,23 +563,28 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
     def shortHelpString(self):
-        return self.tr('The Morphometric Calculator (Point) plugin calculates various morphometric parameters based on digital surface models. These morphometric parameters are used to describe the roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D vegetation (i.e. trees and bushes). It is also possible to derive the parameters from a 3D object DSM with no ground heights.\n'
-        '-------------\n'
-        'Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292<br>'
-        '---------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "The Morphometric Calculator (Point) plugin calculates various morphometric parameters based on digital surface models. These morphometric parameters are used to describe the roughness of a surface and are included in various local and mesoscale climate models (e.g. Grimmond and Oke 1999). They may vary depending on what angle (wind direction) you are interested in. Thus, this plugin is able to derive the parameters for different directions. Preferably, a ground and 3D-object DSM and DEM should be used as input data. The 3D objects are usually buildings but can also be 3D vegetation (i.e. trees and bushes). It is also possible to derive the parameters from a 3D object DSM with no ground heights.\n"
+            "-------------\n"
+            "Grimmond CSB and Oke TR (1999) Aerodynamic properties of urban areas derived from analysis of surface form. J Appl Meteorol 38: 1262-1292<br>"
+            "---------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
+
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Morphology%20Morphometric%20Calculator%20(Point).html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/ImageMorphIconPoint.png")
         return icon
 

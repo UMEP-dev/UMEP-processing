@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
 
+
 # Creating trees at random positions
 def random_start(pos, trees, tree_pos_all, r_iters):
 
@@ -12,14 +13,25 @@ def random_start(pos, trees, tree_pos_all, r_iters):
         tree_pos = np.random.choice(pos, trees)
         tp_c += 1
         # print('re-random')
-        if (tp_c == 100):
+        if tp_c == 100:
             break_loop = r_iters + 1
             break
 
     return tree_pos, tp_c, break_loop
 
+
 # Creating trees evolutionary from previous starting position. First population is random.
-def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos_all, r_iters, counter, dia):
+def genetic_start(
+    tree_pos_x,
+    tree_pos_y,
+    tree_pos_c,
+    positions,
+    trees,
+    tree_pos_all,
+    r_iters,
+    counter,
+    dia,
+):
     pos = positions.pos[:, 0]
     pos_y = positions.pos[:, 2]
     pos_x = positions.pos[:, 1]
@@ -32,7 +44,9 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
 
     # Random for first run
     if counter == 0:
-        tree_pos, tp_c, break_loop = random_start(pos, trees, tree_pos_all, r_iters)
+        tree_pos, tp_c, break_loop = random_start(
+            pos, trees, tree_pos_all, r_iters
+        )
 
     # Take either x or y position from previous local optimum for each tree, make the other coordinate random
     else:
@@ -40,14 +54,16 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
         tries = np.zeros((trees))
         while distance < 1:
             exists = np.zeros((trees))
-            ti = itertools.cycle(range(trees))  # Iterator to move between trees moving around in the study area
+            ti = itertools.cycle(
+                range(trees)
+            )  # Iterator to move between trees moving around in the study area
             new_y = np.zeros((trees))
             new_x = np.zeros((trees))
             tree_pos_c_temp = tree_pos_c.copy()
             while np.sum(exists) < trees:
                 i = ti.__next__()
                 # Random y or x coordinate i.e. mutation
-                if ((tree_pos_c[i] > 3) or (tries[i] > 50)):
+                if (tree_pos_c[i] > 3) or (tries[i] > 50):
                     # Decide which coordinate will be random; 0 = y, 1 = x
                     xy_random = np.random.choice([0, 1], 1)
                     # Random y-position
@@ -61,7 +77,12 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
                         pos_x_temp = pos_x[pos_y == new_y[i]]
                         new_x[i] = np.random.choice(pos_x_temp, 1)
                     tree_pos[i] = positions.pos[
-                        ((positions.pos[:, 1] == new_x[i]) & (positions.pos[:, 2] == new_y[i])), 0]
+                        (
+                            (positions.pos[:, 1] == new_x[i])
+                            & (positions.pos[:, 2] == new_y[i])
+                        ),
+                        0,
+                    ]
                     exists[i] = 1
                     tree_pos_c_temp[i] = 0
                     tries[i] = 0
@@ -69,15 +90,30 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
                 elif exists[i] == 0:
                     y_temp = np.random.choice(tree_pos_y, 1)
                     x_temp = np.random.choice(tree_pos_x, 1)
-                    if np.any(positions.pos[((positions.pos[:, 1] == x_temp) & (positions.pos[:, 2] == y_temp)), 0]):
+                    if np.any(
+                        positions.pos[
+                            (
+                                (positions.pos[:, 1] == x_temp)
+                                & (positions.pos[:, 2] == y_temp)
+                            ),
+                            0,
+                        ]
+                    ):
                         tree_pos[i] = positions.pos[
-                            ((positions.pos[:, 1] == x_temp) & (positions.pos[:, 2] == y_temp)), 0]
+                            (
+                                (positions.pos[:, 1] == x_temp)
+                                & (positions.pos[:, 2] == y_temp)
+                            ),
+                            0,
+                        ]
                         new_y[i] = y_temp
                         new_x[i] = x_temp
                         exists[i] = 1
 
             # Euclidean distance between random positions so that trees are not too close to each other
-            yxp = tuple(itertools.combinations(np.arange(tree_pos.shape[0]), 2))
+            yxp = tuple(
+                itertools.combinations(np.arange(tree_pos.shape[0]), 2)
+            )
             eucl_dist = np.zeros((yxp.__len__()))
 
             for j in range(yxp.__len__()):
@@ -89,7 +125,7 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
                 b = np.array(([by, bx]))
                 eucl_dist[j] = np.linalg.norm(a - b)
 
-            if (np.min(eucl_dist) >= dia):
+            if np.min(eucl_dist) >= dia:
                 distance = 1
 
             tries[i] += 1
@@ -102,6 +138,7 @@ def genetic_start(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos
     tree_pos_x = np.int_(tree_pos_x)
 
     return tree_pos_y, tree_pos_x, tree_pos, tree_pos_c, tp_c, break_loop
+
 
 ### Creating trees evolutionary from previous starting position. First population is random.
 ##def geneticstart(tree_pos_x, tree_pos_y, tree_pos_c, positions, trees, tree_pos_all, r_iters, counter):

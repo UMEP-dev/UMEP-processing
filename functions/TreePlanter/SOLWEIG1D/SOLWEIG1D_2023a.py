@@ -1,18 +1,26 @@
 import numpy as np
 import os
-from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-from ....util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+from ....util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
+    clearnessindex_2013b,
+)
+from ....util.SEBESOLWEIGCommonFiles import (
+    Solweig_v2015_metdata_noload as metload,
+)
+
 # from ..SOLWEIG1D import Solweig1D_2019a_calc as so
 from ..SOLWEIG1D import Solweig1D_2023a_calc as so
 from ....util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 from ...SOLWEIGpython.CirclePlotBar import PolarBarPlot
 
-def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
-    
+
+def tmrt_1d_fun(metfilepath, infolder, tau, lon, lat, dsm, r_range, outputDir):
+
     # Load settings from SOLWEIG
     # settingsHeader = 'UTC, posture, onlyglobal, landcover, anisotropic, cylinder, albedo_walls, albedo_ground, emissivity_walls, emissivity_ground, absK, absL, elevation'
-    settingsSolweig = np.loadtxt(infolder + '/treeplantersettings.txt', skiprows=1, delimiter=' ')
+    settingsSolweig = np.loadtxt(
+        infolder + "/treeplantersettings.txt", skiprows=1, delimiter=" "
+    )
     UTC = int(settingsSolweig[0])
     pos = int(settingsSolweig[1])
     onlyglobal = int(settingsSolweig[2])
@@ -37,20 +45,20 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
     cyl = 1
 
     # Degrees to radians
-    deg2rad = np.pi/180
+    deg2rad = np.pi / 180
 
     useveg = 1  # 1 if vegetation should be considered
-    sh = 1.  # 0 if shadowed by building
-    vegsh = 0.  # 0 if shadowed by tree
+    sh = 1.0  # 0 if shadowed by building
+    vegsh = 0.0  # 0 if shadowed by tree
     svf = 0.7
     if useveg == 1:
         svfveg = 0.4
         svfaveg = 0.5
         trans = tau
     else:
-        svfveg = 1.
-        svfaveg = 1.
-        trans = 1.
+        svfveg = 1.0
+        svfaveg = 1.0
+        trans = 1.0
 
     # program start
     if pos == 0:
@@ -65,9 +73,9 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
         Fcyl = 0.20
 
     if metfile == 1:
-        met = np.loadtxt(metfilepath, skiprows=1, delimiter=' ')
+        met = np.loadtxt(metfilepath, skiprows=1, delimiter=" ")
     else:
-        met = np.zeros((1, 24)) - 999.
+        met = np.zeros((1, 24)) - 999.0
         year = 2011
         month = 6
         day = 6
@@ -90,13 +98,13 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
         else:
             dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-        doy = np.sum(dayspermonth[0:month - 1]) + day
+        doy = np.sum(dayspermonth[0 : month - 1]) + day
 
-        Ta = 25.
-        RH = 50.
-        radG = 880.
-        radD = 150.
-        radI = 950.
+        Ta = 25.0
+        RH = 50.0
+        radG = 880.0
+        radD = 150.0
+        radI = 950.0
 
         met[0, 0] = year
         met[0, 1] = doy
@@ -108,11 +116,12 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
         met[0, 21] = radD
         met[0, 22] = radI
 
-    location = {'longitude': lon, 'latitude': lat, 'altitude': alt}
-    YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = metload.Solweig_2015a_metdata_noload(met, location,
-                                                                                                       UTC)
+    location = {"longitude": lon, "latitude": lat, "altitude": alt}
+    YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = (
+        metload.Solweig_2015a_metdata_noload(met, location, UTC)
+    )
 
-    svfalfa = np.arcsin(np.exp((np.log((1. - svf)) / 2.)))
+    svfalfa = np.arcsin(np.exp((np.log((1.0 - svf)) / 2.0)))
 
     dectime_new = np.zeros((dectime.shape[0], 1))
     dec_doy = int(dectime[0])
@@ -134,7 +143,10 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
     amaxvalue = dsm.max() - dsm.min()
 
     # load landcover file
-    sitein = os.path.dirname(os.path.abspath(__file__)) + "/landcoverclasses_2018a_orig.txt"
+    sitein = (
+        os.path.dirname(os.path.abspath(__file__))
+        + "/landcoverclasses_2018a_orig.txt"
+    )
     f = open(sitein)
     lin = f.readlines()
     lc_class = np.zeros((lin.__len__() - 1, 6))
@@ -161,7 +173,7 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
     TmaxLST_wall = lc_class[wall_pos, 5]
 
     # If metfile starts at night
-    CI = 1.
+    CI = 1.0
 
     if ani == 1:
         # Always use 153 patches
@@ -178,12 +190,20 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
         for i in range(skyvaultalt.shape[0]):
             # If there are more than one patch in a band
             if skyalt_c[skyalt == skyvaultalt[i]] > 1:
-                steradian[i] = ((360 / skyalt_c[skyalt == skyvaultalt[i]]) * deg2rad) * (np.sin((skyvaultalt[i] + skyvaultalt[0]) * deg2rad) \
-                - np.sin((skyvaultalt[i] - skyvaultalt[0]) * deg2rad))
+                steradian[i] = (
+                    (360 / skyalt_c[skyalt == skyvaultalt[i]]) * deg2rad
+                ) * (
+                    np.sin((skyvaultalt[i] + skyvaultalt[0]) * deg2rad)
+                    - np.sin((skyvaultalt[i] - skyvaultalt[0]) * deg2rad)
+                )
             # If there is only one patch in band, i.e. 90 degrees
             else:
-                steradian[i] = ((360 / skyalt_c[skyalt == skyvaultalt[i]]) * deg2rad) * (np.sin((skyvaultalt[i]) * deg2rad) \
-                    - np.sin((skyvaultalt[i-1] + skyvaultalt[0]) * deg2rad))
+                steradian[i] = (
+                    (360 / skyalt_c[skyalt == skyvaultalt[i]]) * deg2rad
+                ) * (
+                    np.sin((skyvaultalt[i]) * deg2rad)
+                    - np.sin((skyvaultalt[i - 1] + skyvaultalt[0]) * deg2rad)
+                )
 
         diffsh = np.zeros((skyvaultalt.shape[0]))
 
@@ -198,22 +218,22 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
         vegp = np.bool_(vegp)
         buip = np.bool_(buip)
 
-        skyp = ((vegp == False) & (buip == False))
+        skyp = (vegp == False) & (buip == False)
         skyp = np.bool_(skyp)
 
-        patch_svf = (np.sum(steradian[skyp]) / np.sum(steradian))
+        patch_svf = np.sum(steradian[skyp]) / np.sum(steradian)
 
         svf = patch_svf.copy()
 
         # asvf to calculate sunlit and shaded patches
         asvf = np.arccos(np.sqrt(patch_svf))
 
-        svfalfa = np.arcsin(np.exp((np.log((1. - svf)) / 2.)))
+        svfalfa = np.arcsin(np.exp((np.log((1.0 - svf)) / 2.0)))
 
         # Create a "sky view image" from patches
         Lsky_patch_characteristics = np.zeros((skyvaultalt.shape[0], 3))
-        Lsky_patch_characteristics[:,0] = skyvaultalt
-        Lsky_patch_characteristics[:,1] = skyvaultazi
+        Lsky_patch_characteristics[:, 0] = skyvaultalt
+        Lsky_patch_characteristics[:, 1] = skyvaultazi
         Lsky_patch_characteristics[vegp, 2] = 2.5
         Lsky_patch_characteristics[buip, 2] = 4.5
         Lsky_patch_characteristics[skyp, 2] = 1.8
@@ -243,26 +263,92 @@ def tmrt_1d_fun(metfilepath,infolder,tau,lon,lat,dsm,r_range,outputDir):
             alt = altitude[0][daylines]
             alt2 = np.where(alt > 1)
             rise = alt2[0][0]
-            [_, CI, _, _, _] = clearnessindex_2013b(zen[0, i + rise + 1], jday[0, i + rise + 1],
-                                                    Ta[i + rise + 1],
-                                                    RH[i + rise + 1] / 100., radG[i + rise + 1], location,
-                                                    P[i + rise + 1])
+            [_, CI, _, _, _] = clearnessindex_2013b(
+                zen[0, i + rise + 1],
+                jday[0, i + rise + 1],
+                Ta[i + rise + 1],
+                RH[i + rise + 1] / 100.0,
+                radG[i + rise + 1],
+                location,
+                P[i + rise + 1],
+            )
             if (CI > 1) or (CI == np.inf):
                 CI = 1
 
-        Tmrt, Kdown, Kup, Ldown, Lup, Tg, ea, esky, I0, CI, Keast, Ksouth, Kwest, Knorth, Least, Lsouth, Lwest, \
-        Lnorth, KsideI, radIo, radDo, shadow1d = so.Solweig1D_2019a_calc(svf, svfveg, svfaveg, sh, vegsh, albedo_b,
-                                                                         absK, absL, ewall,
-                                                                         Fside, Fup, Fcyl,
-                                                                         altitude[0][i], azimuth[0][i], zen[0][i],
-                                                                         jday[0][i],
-                                                                         onlyglobal, location, dectime[i], altmax[0][i],
-                                                                         cyl, elvis,
-                                                                         Ta[i], RH[i], radG[i], radD[i], radI[i], P[i],
-                                                                         Twater, TgK, Tstart, albedo_g, eground,
-                                                                         TgK_wall, Tstart_wall,
-                                                                         TmaxLST, TmaxLST_wall, svfalfa, CI, ani,
-                                                                         diffsh, trans, patch_option, skyp, buip, vegp, asvf, np.copy(Lsky_patch_characteristics), steradian)
+        (
+            Tmrt,
+            Kdown,
+            Kup,
+            Ldown,
+            Lup,
+            Tg,
+            ea,
+            esky,
+            I0,
+            CI,
+            Keast,
+            Ksouth,
+            Kwest,
+            Knorth,
+            Least,
+            Lsouth,
+            Lwest,
+            Lnorth,
+            KsideI,
+            radIo,
+            radDo,
+            shadow1d,
+        ) = so.Solweig1D_2019a_calc(
+            svf,
+            svfveg,
+            svfaveg,
+            sh,
+            vegsh,
+            albedo_b,
+            absK,
+            absL,
+            ewall,
+            Fside,
+            Fup,
+            Fcyl,
+            altitude[0][i],
+            azimuth[0][i],
+            zen[0][i],
+            jday[0][i],
+            onlyglobal,
+            location,
+            dectime[i],
+            altmax[0][i],
+            cyl,
+            elvis,
+            Ta[i],
+            RH[i],
+            radG[i],
+            radD[i],
+            radI[i],
+            P[i],
+            Twater,
+            TgK,
+            Tstart,
+            albedo_g,
+            eground,
+            TgK_wall,
+            Tstart_wall,
+            TmaxLST,
+            TmaxLST_wall,
+            svfalfa,
+            CI,
+            ani,
+            diffsh,
+            trans,
+            patch_option,
+            skyp,
+            buip,
+            vegp,
+            asvf,
+            np.copy(Lsky_patch_characteristics),
+            steradian,
+        )
 
         tmrt_1d[i_c, 0] = Tmrt
         tmrt_1d[i_c, 1] = hours[i]

@@ -22,27 +22,29 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessing,
-                       QgsProcessingAlgorithm,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterFile,
-                       QgsProcessingException,
-                       QgsProcessingParameterDefinition,
-                       QgsProcessingParameterEnum,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterField,
-                       QgsProcessingParameterRasterLayer)
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterFile,
+    QgsProcessingException,
+    QgsProcessingParameterDefinition,
+    QgsProcessingParameterEnum,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
+    QgsProcessingParameterRasterLayer,
+)
 
 import numpy as np
 from osgeo import gdal
@@ -53,7 +55,10 @@ import inspect
 from pathlib import Path
 from ..util.misc import xy2latlon_fromraster
 import zipfile
-from ..util.umep_solweig_export_component import read_solweig_config, write_solweig_config
+from ..util.umep_solweig_export_component import (
+    read_solweig_config,
+    write_solweig_config,
+)
 from ..functions.SOLWEIGpython import Solweig_run as sr
 import json
 
@@ -66,264 +71,627 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     # Constants used to refer to parameters and outputs. They will be
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
-    
-    #Spatial data
-    INPUT_DSM = 'INPUT_DSM'
-    INPUT_SVF = 'INPUT_SVF'
-    INPUT_CDSM = 'INPUT_CDSM'
-    INPUT_TDSM = 'INPUT_TDSM'
-    INPUT_HEIGHT = 'INPUT_HEIGHT'
-    INPUT_ASPECT = 'INPUT_ASPECT'
-    TRANS_VEG = 'TRANS_VEG'
-    LEAF_START = 'LEAF_START'
-    LEAF_END = 'LEAF_END'
-    CONIFER_TREES = 'CONIFER_TREES'
-    INPUT_THEIGHT = 'INPUT_THEIGHT'
-    INPUT_LC = 'INPUT_LC'
-    USE_LC_BUILD = 'USE_LC_BUILD'
-    INPUT_DEM = 'INPUT_DEM'
-    SAVE_BUILD = 'SAVE_BUILD'
-    INPUT_ANISO = 'INPUT_ANISO'
-    INPUT_WALLSCHEME = 'INPUT_WALLSCHEME'
-    WALLTEMP_NETCDF = 'WALLTEMP_NETCDF'
 
-    #Enivornmental parameters
-    ALBEDO_WALLS = 'ALBEDO_WALLS'
-    ALBEDO_GROUND = 'ALBEDO_GROUND'
-    EMIS_WALLS = 'EMIS_WALLS'
-    EMIS_GROUND = 'EMIS_GROUND'
-    WALL_TYPE = 'WALL_TYPE'
+    # Spatial data
+    INPUT_DSM = "INPUT_DSM"
+    INPUT_SVF = "INPUT_SVF"
+    INPUT_CDSM = "INPUT_CDSM"
+    INPUT_TDSM = "INPUT_TDSM"
+    INPUT_HEIGHT = "INPUT_HEIGHT"
+    INPUT_ASPECT = "INPUT_ASPECT"
+    TRANS_VEG = "TRANS_VEG"
+    LEAF_START = "LEAF_START"
+    LEAF_END = "LEAF_END"
+    CONIFER_TREES = "CONIFER_TREES"
+    INPUT_THEIGHT = "INPUT_THEIGHT"
+    INPUT_LC = "INPUT_LC"
+    USE_LC_BUILD = "USE_LC_BUILD"
+    INPUT_DEM = "INPUT_DEM"
+    SAVE_BUILD = "SAVE_BUILD"
+    INPUT_ANISO = "INPUT_ANISO"
+    INPUT_WALLSCHEME = "INPUT_WALLSCHEME"
+    WALLTEMP_NETCDF = "WALLTEMP_NETCDF"
 
-    #Tmrt parameters
-    ABS_S = 'ABS_S'
-    ABS_L = 'ABS_L'
-    POSTURE = 'POSTURE'
+    # Enivornmental parameters
+    ALBEDO_WALLS = "ALBEDO_WALLS"
+    ALBEDO_GROUND = "ALBEDO_GROUND"
+    EMIS_WALLS = "EMIS_WALLS"
+    EMIS_GROUND = "EMIS_GROUND"
+    WALL_TYPE = "WALL_TYPE"
 
-    #Meteorology
-    INPUT_MET = 'INPUTMET'
-    ONLYGLOBAL = 'ONLYGLOBAL'
-    UTC = 'UTC'
+    # Tmrt parameters
+    ABS_S = "ABS_S"
+    ABS_L = "ABS_L"
+    POSTURE = "POSTURE"
 
-    #PET parameters
-    AGE = 'AGE'
-    ACTIVITY = 'ACTIVITY'
-    CLO = 'CLO'
-    WEIGHT = 'WEIGHT'
-    HEIGHT = 'HEIGHT'
-    SEX = 'SEX'
-    SENSOR_HEIGHT = 'SENSOR_HEIGHT'
+    # Meteorology
+    INPUT_MET = "INPUTMET"
+    ONLYGLOBAL = "ONLYGLOBAL"
+    UTC = "UTC"
 
-    #Optional settings
-    WOI_FILE = 'WOI_FILE'
-    WOI_FIELD = 'WOI_FIELD'
+    # PET parameters
+    AGE = "AGE"
+    ACTIVITY = "ACTIVITY"
+    CLO = "CLO"
+    WEIGHT = "WEIGHT"
+    HEIGHT = "HEIGHT"
+    SEX = "SEX"
+    SENSOR_HEIGHT = "SENSOR_HEIGHT"
+
+    # Optional settings
+    WOI_FILE = "WOI_FILE"
+    WOI_FIELD = "WOI_FIELD"
     # POI = 'POI'
-    POI_FILE = 'POI_FILE'
-    POI_FIELD = 'POI_FIELD'
-    CYL = 'CYL'
+    POI_FILE = "POI_FILE"
+    POI_FIELD = "POI_FIELD"
+    CYL = "CYL"
 
-    #Output
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    OUTPUT_TMRT = 'OUTPUT_TMRT'
-    OUTPUT_LUP = 'OUTPUT_LUP'
-    OUTPUT_KUP = 'OUTPUT_KUP'
-    OUTPUT_KDOWN = 'OUTPUT_KDOWN'
-    OUTPUT_LDOWN = 'OUTPUT_LDOWN'
-    OUTPUT_SH = 'OUTPUT_SH'
-    OUTPUT_TREEPLANTER = 'OUTPUT_TREEPLANTER'
+    # solweig
+    groundmodel = "groundmodel"
 
+    # Output
+    OUTPUT_DIR = "OUTPUT_DIR"
+    OUTPUT_TMRT = "OUTPUT_TMRT"
+    OUTPUT_LUP = "OUTPUT_LUP"
+    OUTPUT_KUP = "OUTPUT_KUP"
+    OUTPUT_KDOWN = "OUTPUT_KDOWN"
+    OUTPUT_LDOWN = "OUTPUT_LDOWN"
+    OUTPUT_SH = "OUTPUT_SH"
+    OUTPUT_TREEPLANTER = "OUTPUT_TREEPLANTER"
 
     def initAlgorithm(self, config):
-        #spatial
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-            self.tr('Building and ground Digital Surface Model (DSM)'), None, optional=False))
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_SVF,
-            self.tr('Sky View Factor grids (.zip)'), extension='zip'))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_HEIGHT,
-            self.tr('Wall height raster'), '', optional=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_ASPECT,
-            self.tr('Wall aspect raster'), '', optional=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-            self.tr('Vegetation Canopy DSM'), '', optional=True))
-        self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
-            self.tr('Transmissivity of light through vegetation (%):'),
-            QgsProcessingParameterNumber.Type.Integer,
-            QVariant(3), True, minValue=0, maxValue=100))
-        
-        self.addParameter(QgsProcessingParameterNumber(self.LEAF_START,
-            self.tr('First day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Type.Integer,
-            QVariant(97), False, minValue=0, maxValue=366))
+        # spatial
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DSM,
+                self.tr("Building and ground Digital Surface Model (DSM)"),
+                None,
+                optional=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_SVF,
+                self.tr("Sky View Factor grids (.zip)"),
+                extension="zip",
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_HEIGHT,
+                self.tr("Wall height raster"),
+                "",
+                optional=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_ASPECT,
+                self.tr("Wall aspect raster"),
+                "",
+                optional=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_CDSM,
+                self.tr("Vegetation Canopy DSM"),
+                "",
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.TRANS_VEG,
+                self.tr("Transmissivity of light through vegetation (%):"),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(3),
+                True,
+                minValue=0,
+                maxValue=100,
+            )
+        )
 
-        self.addParameter(QgsProcessingParameterNumber(self.LEAF_END,
-            self.tr('Last day of year with leaves on trees (if deciduous)'), QgsProcessingParameterNumber.Type.Integer,
-            QVariant(300), False, minValue=0, maxValue=366))
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.LEAF_START,
+                self.tr(
+                    "First day of year with leaves on trees (if deciduous)"
+                ),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(97),
+                False,
+                minValue=0,
+                maxValue=366,
+            )
+        )
 
-        self.addParameter(QgsProcessingParameterBoolean(self.CONIFER_TREES,
-            self.tr("Coniferous trees (deciduous default)"), defaultValue=False))
-        
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
-            self.tr('Vegetation Trunk-zone DSM'), '', optional=True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
-            self.tr("Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"),
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(25.0), optional=True, minValue=0.1, maxValue=99.9))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_LC,
-            self.tr('UMEP land cover grid'), '', optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.USE_LC_BUILD,
-            self.tr("Use land cover grid to derive building grid"), defaultValue=False, optional=True))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-            self.tr('Digital Elevation Model (DEM)'), '', optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.SAVE_BUILD,
-            self.tr("Save generated building grid"), defaultValue=False, optional=True))
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_ANISO,
-            self.tr('Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)'), extension='npz', optional=True))
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_WALLSCHEME,
-            self.tr('Voxel data for wall temperature parameterization (.npz)'), extension='npz', optional=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.WALLTEMP_NETCDF,
-            self.tr("Save wall temperatures as NetCDF"), defaultValue=False, optional=True))        
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.LEAF_END,
+                self.tr(
+                    "Last day of year with leaves on trees (if deciduous)"
+                ),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(300),
+                False,
+                minValue=0,
+                maxValue=366,
+            )
+        )
 
-        #Environmental parameters
-        self.wallType = ((self.tr('Brick'), '0'),
-                   (self.tr('Concrete'), '1'),
-                   (self.tr('Wood'), '2'))
-        self.addParameter(QgsProcessingParameterEnum(self.WALL_TYPE,
-                                                self.tr('Wall type (only with wall scheme)'),
-                                                options=[i[0] for i in self.wallType],
-                                                defaultValue=0))
-        self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_WALLS,
-            self.tr('Albedo (walls)'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.20), False, minValue=0, maxValue=1))
-        self.addParameter(QgsProcessingParameterNumber(self.ALBEDO_GROUND,
-            self.tr('Albedo (ground)'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.15), False, minValue=0, maxValue=1))        
-        self.addParameter(QgsProcessingParameterNumber(self.EMIS_WALLS,
-            self.tr('Emissivity (walls)'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.90), False, minValue=0, maxValue=1)) 
-        self.addParameter(QgsProcessingParameterNumber(self.EMIS_GROUND,
-            self.tr('Emissivity (ground)'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.95), False, minValue=0, maxValue=1))
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.CONIFER_TREES,
+                self.tr("Coniferous trees (deciduous default)"),
+                defaultValue=False,
+            )
+        )
 
-        #Tmrt parameters
-        self.addParameter(QgsProcessingParameterNumber(self.ABS_S,
-            self.tr('Absorption of shortwave radiation of human body'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.70), False, minValue=0, maxValue=1))
-        self.addParameter(QgsProcessingParameterNumber(self.ABS_L,
-            self.tr('Absorption of longwave radiation of human body'), QgsProcessingParameterNumber.Type.Double,
-            QVariant(0.95), False, minValue=0, maxValue=1))
-        self.addParameter(QgsProcessingParameterEnum(
-            self.POSTURE, self.tr('Posture of human body'), ['Standing', 'Sitting'], defaultValue=0))
-        self.addParameter(QgsProcessingParameterBoolean(self.CYL,
-            self.tr("Consider human as cylinder instead of box"), defaultValue=True))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_TDSM,
+                self.tr("Vegetation Trunk-zone DSM"),
+                "",
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_THEIGHT,
+                self.tr(
+                    "Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"
+                ),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(25.0),
+                optional=True,
+                minValue=0.1,
+                maxValue=99.9,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_LC,
+                self.tr("UMEP land cover grid"),
+                "",
+                optional=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_LC_BUILD,
+                self.tr("Use land cover grid to derive building grid"),
+                defaultValue=False,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DEM,
+                self.tr("Digital Elevation Model (DEM)"),
+                "",
+                optional=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.SAVE_BUILD,
+                self.tr("Save generated building grid"),
+                defaultValue=False,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_ANISO,
+                self.tr(
+                    "Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)"
+                ),
+                extension="npz",
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_WALLSCHEME,
+                self.tr(
+                    "Voxel data for wall temperature parameterization (.npz)"
+                ),
+                extension="npz",
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.WALLTEMP_NETCDF,
+                self.tr("Save wall temperatures as NetCDF"),
+                defaultValue=False,
+                optional=True,
+            )
+        )
 
-        #Meteorology
-        self.addParameter(QgsProcessingParameterFile(self.INPUT_MET,
-            self.tr('Input meteorological file (.txt)'), extension='txt'))
-        self.addParameter(QgsProcessingParameterBoolean(self.ONLYGLOBAL,
-            self.tr("Estimate diffuse and direct shortwave radiation from global radiation"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterNumber(self.UTC,
-            self.tr('Coordinated Universal Time (UTC) '),
-            QgsProcessingParameterNumber.Type.Integer,
-            QVariant(0), False, minValue=-12, maxValue=12)) 
+        # Environmental parameters
+        self.wallType = (
+            (self.tr("Brick"), "0"),
+            (self.tr("Concrete"), "1"),
+            (self.tr("Wood"), "2"),
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.WALL_TYPE,
+                self.tr("Wall type (only with wall scheme)"),
+                options=[i[0] for i in self.wallType],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ALBEDO_WALLS,
+                self.tr("Albedo (walls)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.20),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ALBEDO_GROUND,
+                self.tr("Albedo (ground)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.15),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.EMIS_WALLS,
+                self.tr("Emissivity (walls)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.90),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.EMIS_GROUND,
+                self.tr("Emissivity (ground)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.95),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+
+        # Tmrt parameters
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ABS_S,
+                self.tr("Absorption of shortwave radiation of human body"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.70),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ABS_L,
+                self.tr("Absorption of longwave radiation of human body"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(0.95),
+                False,
+                minValue=0,
+                maxValue=1,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.POSTURE,
+                self.tr("Posture of human body"),
+                ["Standing", "Sitting"],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.CYL,
+                self.tr("Consider human as cylinder instead of box"),
+                defaultValue=True,
+            )
+        )
+
+        # Meteorology
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_MET,
+                self.tr("Input meteorological file (.txt)"),
+                extension="txt",
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ONLYGLOBAL,
+                self.tr(
+                    "Estimate diffuse and direct shortwave radiation from global radiation"
+                ),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.UTC,
+                self.tr("Coordinated Universal Time (UTC) "),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(0),
+                False,
+                minValue=-12,
+                maxValue=12,
+            )
+        )
 
         # ADVANCED PARAMETERS
-        woifile = QgsProcessingParameterFeatureSource(self.WOI_FILE,
-            self.tr('Vector point file including Wall of Interest(s) for output with wall surface temperatures'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True)
-        woifile.setFlags(woifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        woifile = QgsProcessingParameterFeatureSource(
+            self.WOI_FILE,
+            self.tr(
+                "Vector point file including Wall of Interest(s) for output with wall surface temperatures"
+            ),
+            [QgsProcessing.SourceType.TypeVectorPoint],
+            optional=True,
+        )
+        woifile.setFlags(
+            woifile.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(woifile)
-        woi_field = QgsProcessingParameterField(self.WOI_FIELD,
-            self.tr('Wall ID field'),'', self.WOI_FILE, QgsProcessingParameterField.DataType.Numeric, optional=True)
-        woi_field.setFlags(woi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
-        self.addParameter(woi_field)       
-        
-        #POIs for thermal comfort estimations
-        poifile = QgsProcessingParameterFeatureSource(self.POI_FILE,
-            self.tr('Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)'), [QgsProcessing.SourceType.TypeVectorPoint], optional=True)
-        poifile.setFlags(poifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        woi_field = QgsProcessingParameterField(
+            self.WOI_FIELD,
+            self.tr("Wall ID field"),
+            "",
+            self.WOI_FILE,
+            QgsProcessingParameterField.DataType.Numeric,
+            optional=True,
+        )
+        woi_field.setFlags(
+            woi_field.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
+        self.addParameter(woi_field)
+
+        # POIs for thermal comfort estimations
+        poifile = QgsProcessingParameterFeatureSource(
+            self.POI_FILE,
+            self.tr(
+                "Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)"
+            ),
+            [QgsProcessing.SourceType.TypeVectorPoint],
+            optional=True,
+        )
+        poifile.setFlags(
+            poifile.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(poifile)
-        poi_field = QgsProcessingParameterField(self.POI_FIELD,
-            self.tr('ID field'),'', self.POI_FILE, QgsProcessingParameterField.DataType.Numeric, optional=True)
-        poi_field.setFlags(poi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        poi_field = QgsProcessingParameterField(
+            self.POI_FIELD,
+            self.tr("ID field"),
+            "",
+            self.POI_FILE,
+            QgsProcessingParameterField.DataType.Numeric,
+            optional=True,
+        )
+        poi_field.setFlags(
+            poi_field.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(poi_field)
 
-        #PET parameters
-        age = QgsProcessingParameterNumber(self.AGE, self.tr('Age (yy)'),
-                QgsProcessingParameterNumber.Type.Integer,
-                QVariant(35), optional=True, minValue=0, maxValue=120)
-        age.setFlags(age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        # PET parameters
+        age = QgsProcessingParameterNumber(
+            self.AGE,
+            self.tr("Age (yy)"),
+            QgsProcessingParameterNumber.Type.Integer,
+            QVariant(35),
+            optional=True,
+            minValue=0,
+            maxValue=120,
+        )
+        age.setFlags(
+            age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(age)
-        act = QgsProcessingParameterNumber(self.ACTIVITY, self.tr('Activity (W)'),
-                QgsProcessingParameterNumber.Type.Double,
-                QVariant(80), optional=True, minValue=0, maxValue=1000)
-        act.setFlags(act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        act = QgsProcessingParameterNumber(
+            self.ACTIVITY,
+            self.tr("Activity (W)"),
+            QgsProcessingParameterNumber.Type.Double,
+            QVariant(80),
+            optional=True,
+            minValue=0,
+            maxValue=1000,
+        )
+        act.setFlags(
+            act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(act)
-        clo = QgsProcessingParameterNumber(self.CLO, self.tr('Clothing (clo)'),
-                QgsProcessingParameterNumber.Type.Double,
-                QVariant(0.9), optional=True, minValue=0, maxValue=10)
-        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        clo = QgsProcessingParameterNumber(
+            self.CLO,
+            self.tr("Clothing (clo)"),
+            QgsProcessingParameterNumber.Type.Double,
+            QVariant(0.9),
+            optional=True,
+            minValue=0,
+            maxValue=10,
+        )
+        clo.setFlags(
+            clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(clo)
-        wei = QgsProcessingParameterNumber(self.WEIGHT, self.tr('Weight (kg)'),
-                QgsProcessingParameterNumber.Type.Integer,
-                QVariant(75), optional=True, minValue=0, maxValue=500) 
-        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        wei = QgsProcessingParameterNumber(
+            self.WEIGHT,
+            self.tr("Weight (kg)"),
+            QgsProcessingParameterNumber.Type.Integer,
+            QVariant(75),
+            optional=True,
+            minValue=0,
+            maxValue=500,
+        )
+        wei.setFlags(
+            wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(wei)
-        hei = QgsProcessingParameterNumber(self.HEIGHT, self.tr('Height (cm)'),
-                QgsProcessingParameterNumber.Type.Integer,
-                QVariant(180), optional=True, minValue=0, maxValue=250) 
-        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        hei = QgsProcessingParameterNumber(
+            self.HEIGHT,
+            self.tr("Height (cm)"),
+            QgsProcessingParameterNumber.Type.Integer,
+            QVariant(180),
+            optional=True,
+            minValue=0,
+            maxValue=250,
+        )
+        hei.setFlags(
+            hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
-            self.SEX, self.tr('Sex'), ['Male', 'Female'], optional=True, defaultValue=0)
-        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+            self.SEX,
+            self.tr("Sex"),
+            ["Male", "Female"],
+            optional=True,
+            defaultValue=0,
+        )
+        sex.setFlags(
+            sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(sex)
-        shei = QgsProcessingParameterNumber(self.SENSOR_HEIGHT, self.tr('Height of wind sensor (m agl)'),
-                QgsProcessingParameterNumber.Type.Double,
-                QVariant(10), optional=True, minValue=0, maxValue=250) 
-        shei.setFlags(shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+        shei = QgsProcessingParameterNumber(
+            self.SENSOR_HEIGHT,
+            self.tr("Height of wind sensor (m agl)"),
+            QgsProcessingParameterNumber.Type.Double,
+            QVariant(10),
+            optional=True,
+            minValue=0,
+            maxValue=250,
+        )
+        shei.setFlags(
+            shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(shei)
 
-        #OUTPUT
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TMRT,
-            self.tr("Save Mean Radiant Temperature raster(s)"), defaultValue=True))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_KDOWN,
-            self.tr("Save Incoming shortwave radiation raster(s)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_KUP,
-            self.tr("Save Outgoing shortwave radiation raster(s)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_LDOWN,
-            self.tr("Save Incoming longwave radiation raster(s)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_LUP,
-            self.tr("Save Outgoing longwave radiation raster(s)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_SH,
-            self.tr("Save shadow raster(s)"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterBoolean(self.OUTPUT_TREEPLANTER,
-            self.tr("Save necessary raster(s) for the TreePlanter and Spatial TC tools"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
-                                                     'Output folder'))
+        # OUTPUT
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_TMRT,
+                self.tr("Save Mean Radiant Temperature raster(s)"),
+                defaultValue=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_KDOWN,
+                self.tr("Save Incoming shortwave radiation raster(s)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_KUP,
+                self.tr("Save Outgoing shortwave radiation raster(s)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_LDOWN,
+                self.tr("Save Incoming longwave radiation raster(s)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_LUP,
+                self.tr("Save Outgoing longwave radiation raster(s)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_SH,
+                self.tr("Save shadow raster(s)"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.OUTPUT_TREEPLANTER,
+                self.tr(
+                    "Save necessary raster(s) for the TreePlanter and Spatial TC tools"
+                ),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder"
+            )
+        )
 
         self.plugin_dir = os.path.dirname(__file__)
-        self.temp_dir = os.path.dirname(self.plugin_dir) + '/temp'
+        self.temp_dir = os.path.dirname(self.plugin_dir) + "/temp"
 
     def processAlgorithm(self, parameters, context, feedback):
-        np.seterr(divide='ignore', invalid='ignore')
- 
+        np.seterr(divide="ignore", invalid="ignore")
+
         # InputParameters
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
-        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.
-        firstdayleaf = self.parameterAsInt(parameters, self.LEAF_START, context)
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DSM, context
+        )
+        transVeg = (
+            self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.0
+        )
+        firstdayleaf = self.parameterAsInt(
+            parameters, self.LEAF_START, context
+        )
         lastdayleaf = self.parameterAsInt(parameters, self.LEAF_END, context)
-        conifer_bool = self.parameterAsBool(parameters, self.CONIFER_TREES, context)
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context)
-        useLcBuild = self.parameterAsBool(parameters, self.USE_LC_BUILD, context)
+        conifer_bool = self.parameterAsBool(
+            parameters, self.CONIFER_TREES, context
+        )
+        vegdsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_CDSM, context
+        )
+        vegdsm2 = self.parameterAsRasterLayer(
+            parameters, self.INPUT_TDSM, context
+        )
+        lcgrid = self.parameterAsRasterLayer(
+            parameters, self.INPUT_LC, context
+        )
+        useLcBuild = self.parameterAsBool(
+            parameters, self.USE_LC_BUILD, context
+        )
         dem = None
         inputSVF = self.parameterAsString(parameters, self.INPUT_SVF, context)
-        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context)
-        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
+        whlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_HEIGHT, context
+        )
+        walayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_ASPECT, context
+        )
+        trunkr = self.parameterAsDouble(
+            parameters, self.INPUT_THEIGHT, context
+        )
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         # usePOI = self.parameterAsBool(parameters, self.POI, context)
-        poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context)
+        poilyr = self.parameterAsVectorLayer(
+            parameters, self.POI_FILE, context
+        )
         poi_field = None
         mbody = None
         ht = None
@@ -334,14 +702,22 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         sensorheight = None
         saveBuild = self.parameterAsBool(parameters, self.SAVE_BUILD, context)
         demforbuild = 0
-        folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
-        folderWallScheme = self.parameterAsString(parameters, self.INPUT_WALLSCHEME, context)
-        wallNetCDF = self.parameterAsBool(parameters, self.WALLTEMP_NETCDF, context)
+        folderPathPerez = self.parameterAsString(
+            parameters, self.INPUT_ANISO, context
+        )
+        folderWallScheme = self.parameterAsString(
+            parameters, self.INPUT_WALLSCHEME, context
+        )
+        wallNetCDF = self.parameterAsBool(
+            parameters, self.WALLTEMP_NETCDF, context
+        )
         poisxy = None
         poiname = None
 
         # Wall of interest
-        woilyr = self.parameterAsVectorLayer(parameters, self.WOI_FILE, context)
+        woilyr = self.parameterAsVectorLayer(
+            parameters, self.WOI_FILE, context
+        )
         woi_field = None
         woisxy = None
         woiname = None
@@ -350,7 +726,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         absK = self.parameterAsDouble(parameters, self.ABS_S, context)
         absL = self.parameterAsDouble(parameters, self.ABS_L, context)
         pos = self.parameterAsInt(parameters, self.POSTURE, context)
-        
+
         cyl = self.parameterAsBool(parameters, self.CYL, context)
 
         if pos == 0:
@@ -364,24 +740,41 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             height = 0.75
             Fcyl = 0.2
 
-        albedo_b = self.parameterAsDouble(parameters, self.ALBEDO_WALLS, context)
-        albedo_g = self.parameterAsDouble(parameters, self.ALBEDO_GROUND, context)
+        albedo_b = self.parameterAsDouble(
+            parameters, self.ALBEDO_WALLS, context
+        )
+        albedo_g = self.parameterAsDouble(
+            parameters, self.ALBEDO_GROUND, context
+        )
         ewall = self.parameterAsDouble(parameters, self.EMIS_WALLS, context)
         eground = self.parameterAsDouble(parameters, self.EMIS_GROUND, context)
-        elvis = 0 # option removed 20200907 in processing UMEP. Should be removed completely
+        elvis = 0  # option removed 20200907 in processing UMEP. Should be removed completely
         # thermal_effusivity = self.parameterAsDouble(parameters, self.EFFUS_WALL, context)
-        wall_type = str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context)))
+        wall_type = str(
+            100
+            + int(self.parameterAsString(parameters, self.WALL_TYPE, context))
+        )
 
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputTmrt = self.parameterAsBool(parameters, self.OUTPUT_TMRT, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        outputTmrt = self.parameterAsBool(
+            parameters, self.OUTPUT_TMRT, context
+        )
         outputSh = self.parameterAsBool(parameters, self.OUTPUT_SH, context)
         outputKup = self.parameterAsBool(parameters, self.OUTPUT_KUP, context)
-        outputKdown = self.parameterAsBool(parameters, self.OUTPUT_KDOWN, context)
+        outputKdown = self.parameterAsBool(
+            parameters, self.OUTPUT_KDOWN, context
+        )
         outputLup = self.parameterAsBool(parameters, self.OUTPUT_LUP, context)
-        outputLdown = self.parameterAsBool(parameters, self.OUTPUT_LDOWN, context)
-        outputTreeplanter = self.parameterAsBool(parameters, self.OUTPUT_TREEPLANTER, context)
+        outputLdown = self.parameterAsBool(
+            parameters, self.OUTPUT_LDOWN, context
+        )
+        outputTreeplanter = self.parameterAsBool(
+            parameters, self.OUTPUT_TREEPLANTER, context
+        )
         outputKdiff = False
-        #outputSstr = False
+        # outputSstr = False
 
         # If "Save necessary rasters for TreePlanter tool" is ticked, save the following raster for TreePlanter or Spatial TC
         if outputTreeplanter:
@@ -393,72 +786,92 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             outputSh = True
             saveBuild = True
             outputKdiff = True
-            #outputSstr = True
+            # outputSstr = True
 
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
         # Load parameters and config settings for SOLWEIG
-        with open(self.plugin_dir + '/parametersforsolweig.json', "r") as jsn:
+        with open(self.plugin_dir + "/parametersforsolweig.json", "r") as jsn:
             solweig_parameters = json.load(jsn)
-        configDict = read_solweig_config(self.plugin_dir + '/configsolweig.ini')
+        configDict = read_solweig_config(
+            self.plugin_dir + "/configsolweig.ini"
+        )
 
         # Add GUI Tmrt settings to SOLWEIG parameter file
-        solweig_parameters['Tmrt_params']['Value']['absK'] = absK
-        solweig_parameters['Tmrt_params']['Value']['absL'] = absL
+        solweig_parameters["Tmrt_params"]["Value"]["absK"] = absK
+        solweig_parameters["Tmrt_params"]["Value"]["absL"] = absL
         if pos == 0:
-            solweig_parameters['Tmrt_params']['Value']['posture'] = 'Standing'
+            solweig_parameters["Tmrt_params"]["Value"]["posture"] = "Standing"
         else:
-            solweig_parameters['Tmrt_params']['Value']['posture'] = 'Sitting'
+            solweig_parameters["Tmrt_params"]["Value"]["posture"] = "Sitting"
 
-        solweig_parameters['Albedo']['Effective']['Value']['Cobble_stone_2014a'] = albedo_g
-        solweig_parameters['Albedo']['Effective']['Value']['Walls'] = albedo_b
-        solweig_parameters['Emissivity']['Value']['Cobble_stone_2014a'] = eground
-        solweig_parameters['Emissivity']['Value']['Walls'] = ewall
+        solweig_parameters["Albedo"]["Effective"]["Value"][
+            "Cobble_stone_2014a"
+        ] = albedo_g
+        solweig_parameters["Albedo"]["Effective"]["Value"]["Walls"] = albedo_b
+        solweig_parameters["Emissivity"]["Value"][
+            "Cobble_stone_2014a"
+        ] = eground
+        solweig_parameters["Emissivity"]["Value"]["Walls"] = ewall
 
         # Load dsm layer
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
         gdal_dsm = gdal.Open(filepath_dsm)
         dsm = gdal_dsm.ReadAsArray().astype(float)
-        rows = dsmlayer.height() # new way to get x and y pixels
+        rows = dsmlayer.height()  # new way to get x and y pixels
         cols = dsmlayer.width()
         # rows = dsm.shape[0]
         # cols = dsm.shape[1]
-        
+
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
         if dsm.min() < 0:
             dsmraise = np.abs(dsm.min())
             # dsm = dsm + dsmraise #moved to Solweig_run
-            feedback.setProgressText('Digital Surface Model (DSM) included negative values. DSM raised with ' + str(dsmraise) + 'm.')
+            feedback.setProgressText(
+                "Digital Surface Model (DSM) included negative values. DSM raised with "
+                + str(dsmraise)
+                + "m."
+            )
         else:
             dsmraise = 0
 
         # Get latlon from grid coordinate system
         dsm_wkt = dsmlayer.crs().toWkt()
-        lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm) # new funciton in misc
-     
-        feedback.setProgressText('Longitude derived from DSM: ' + str(lon))
-        feedback.setProgressText('Latitude derived from DSM: ' + str(lat))
+        lat, lon, scale, minx, miny = xy2latlon_fromraster(
+            dsm_wkt, gdal_dsm
+        )  # new funciton in misc
+
+        feedback.setProgressText("Longitude derived from DSM: " + str(lon))
+        feedback.setProgressText("Latitude derived from DSM: " + str(lat))
 
         # if useVegdem:
         if vegdsm is not None:
             usevegdem = 1
-            feedback.setProgressText('Vegetation scheme activated')
+            feedback.setProgressText("Vegetation scheme activated")
 
             # check cdsm raster
             filePath_cdsm = str(vegdsm.dataProvider().dataSourceUri())
             vegrows = vegdsm.height()
             vegcols = vegdsm.width()
 
-            solweig_parameters["Tree_settings"]["Value"]["Transmissivity"] = transVeg 
-            solweig_parameters["Tree_settings"]["Value"]["First_day_leaf"] = firstdayleaf 
-            solweig_parameters["Tree_settings"]["Value"]["Last_day_leaf"]  = lastdayleaf 
+            solweig_parameters["Tree_settings"]["Value"][
+                "Transmissivity"
+            ] = transVeg
+            solweig_parameters["Tree_settings"]["Value"][
+                "First_day_leaf"
+            ] = firstdayleaf
+            solweig_parameters["Tree_settings"]["Value"][
+                "Last_day_leaf"
+            ] = lastdayleaf
 
             if not (vegrows == rows) & (vegcols == cols):
-                raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
+                raise QgsProcessingException(
+                    "Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution"
+                )
 
             if vegdsm2 is not None:
                 filePath_tdsm = str(vegdsm2.dataProvider().dataSourceUri())
@@ -466,19 +879,23 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 vegcols = vegdsm2.width()
 
                 if not (vegrows == rows) & (vegcols == cols):  # &
-                    raise QgsProcessingException("Error in Trunk Zone DSM: All rasters must be of same extent and resolution")
+                    raise QgsProcessingException(
+                        "Error in Trunk Zone DSM: All rasters must be of same extent and resolution"
+                    )
             else:
-                solweig_parameters["Tree_settings"]["Value"]["Trunk_ratio"] = trunkr / 100.
-                filePath_tdsm = ''
+                solweig_parameters["Tree_settings"]["Value"]["Trunk_ratio"] = (
+                    trunkr / 100.0
+                )
+                filePath_tdsm = ""
         else:
             usevegdem = 0
-            filePath_cdsm = ''
-            filePath_tdsm = ''
+            filePath_cdsm = ""
+            filePath_tdsm = ""
 
         # Land cover
         if lcgrid is not None:
             landcover = 1
-            feedback.setProgressText('Land cover scheme activated')
+            feedback.setProgressText("Land cover scheme activated")
 
             # load raster
             gdal.AllRegister()
@@ -491,25 +908,35 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             lccols = lcgrid.shape[1]
 
             if not (lcrows == rows) & (lccols == cols):
-                raise QgsProcessingException("Error in land cover grid: All grids must be of same extent and resolution")
+                raise QgsProcessingException(
+                    "Error in land cover grid: All grids must be of same extent and resolution"
+                )
 
-            baddataConifer = (lcgrid == 3)
-            baddataDecid = (lcgrid == 4)
+            baddataConifer = lcgrid == 3
+            baddataDecid = lcgrid == 4
             if baddataConifer.any():
-                raise QgsProcessingException("Error in land cover grid: Land cover grid includes Confier land cover class. Ground cover information (underneath canopy) is required.")
+                raise QgsProcessingException(
+                    "Error in land cover grid: Land cover grid includes Confier land cover class. Ground cover information (underneath canopy) is required."
+                )
             if baddataDecid.any():
-                raise QgsProcessingException("Error in land cover grid: Land cover grid includes Decidiuous land cover class. Ground cover information (underneath canopy) is required.")
+                raise QgsProcessingException(
+                    "Error in land cover grid: Land cover grid includes Decidiuous land cover class. Ground cover information (underneath canopy) is required."
+                )
             if np.isnan(lcgrid).any():
-                raise QgsProcessingException("Error in land cover grid: Land cover grid includes NaN values. Use the QGIS Fill NoData cells tool to remove NaN values.")
+                raise QgsProcessingException(
+                    "Error in land cover grid: Land cover grid includes NaN values. Use the QGIS Fill NoData cells tool to remove NaN values."
+                )
         else:
-            filepath_lc = ''
+            filepath_lc = ""
             landcover = 0
             lcgrid = 0
 
         # DEM #
         if not useLcBuild:
             demforbuild = 1
-            dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
+            dem = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DEM, context
+            )
 
             if dem is None:
                 raise QgsProcessingException("Error: No valid DEM selected")
@@ -525,221 +952,302 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             demcols = dem.shape[1]
 
             if not (demrows == rows) & (demcols == cols):
-                raise QgsProcessingException( "Error in DEM: All grids must be of same extent and resolution")
+                raise QgsProcessingException(
+                    "Error in DEM: All grids must be of same extent and resolution"
+                )
 
             # response to issue and #230
             nd = dataSet.GetRasterBand(1).GetNoDataValue()
-            dem[dem == nd] = 0.
+            dem[dem == nd] = 0.0
             if dem.min() < 0:
                 demraise = np.abs(dem.min())
                 dem = dem + demraise
-                feedback.setProgressText('Digital Evevation Model (DEM) included negative values. DEM raised with ' + str(demraise) + 'm.')
+                feedback.setProgressText(
+                    "Digital Evevation Model (DEM) included negative values. DEM raised with "
+                    + str(demraise)
+                    + "m."
+                )
             else:
                 demraise = 0
 
             if (dsmraise != demraise) and (dsmraise - demraise > 0.5):
-                feedback.setProgressText('WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!')
+                feedback.setProgressText(
+                    "WARNiNG! DEM and DSM was raised unequally (difference > 0.5 m). Check your input data!"
+                )
         else:
             demforbuild = 0
-            filepath_dem = ''
+            filepath_dem = ""
 
-        #SVFs
-        zip = zipfile.ZipFile(inputSVF, 'r')
-        zip.extract('svf.tif',self.temp_dir)
+        # SVFs
+        zip = zipfile.ZipFile(inputSVF, "r")
+        zip.extract("svf.tif", self.temp_dir)
         zip.close()
 
         try:
             dataSet = gdal.Open(self.temp_dir + "/svf.tif")
             svf = dataSet.ReadAsArray().astype(float)
         except:
-            raise QgsProcessingException("SVF import error: The zipfile including the SVFs seems corrupt. Retry calcualting the SVFs in the Pre-processor or choose another file.")
+            raise QgsProcessingException(
+                "SVF import error: The zipfile including the SVFs seems corrupt. Retry calcualting the SVFs in the Pre-processor or choose another file."
+            )
 
         if not (svf.shape[0] == rows) & (svf.shape[1] == cols):  # &
-            raise QgsProcessingException("Error in svf rasters: All grids must be of same extent and resolution")
+            raise QgsProcessingException(
+                "Error in svf rasters: All grids must be of same extent and resolution"
+            )
 
-        feedback.setProgressText('Loading Sky View Factor rasters')
+        feedback.setProgressText("Loading Sky View Factor rasters")
 
         # wall height layer
         if whlayer is None:
-            raise QgsProcessingException("Error: No valid wall height raster layer is selected")
+            raise QgsProcessingException(
+                "Error: No valid wall height raster layer is selected"
+            )
 
         filepath_wh = str(whlayer.dataProvider().dataSourceUri())
 
         if not (whlayer.height() == rows) & (whlayer.width() == cols):
-            raise QgsProcessingException("Error in Wall height raster: All rasters must be of same extent and resolution")
+            raise QgsProcessingException(
+                "Error in Wall height raster: All rasters must be of same extent and resolution"
+            )
 
         # wall aspectlayer
         if walayer is None:
-            raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
+            raise QgsProcessingException(
+                "Error: No valid wall aspect raster layer is selected"
+            )
         filepath_wa = str(walayer.dataProvider().dataSourceUri())
 
         if not (walayer.height() == rows) & (walayer.width() == cols):
-            raise QgsProcessingException("Error in Wall aspect raster: All rasters must be of same extent and resolution")
+            raise QgsProcessingException(
+                "Error in Wall aspect raster: All rasters must be of same extent and resolution"
+            )
 
         # Metdata
         headernum = 1
-        delim = ' '
+        delim = " "
 
         try:
-            self.metdata = np.loadtxt(inputMet,skiprows=headernum, delimiter=delim)
+            self.metdata = np.loadtxt(
+                inputMet, skiprows=headernum, delimiter=delim
+            )
         except:
-            raise QgsProcessingException("Error: Make sure format of meteorological file is correct. You can"
-                                                        "prepare your data by using 'Prepare Existing Data' in "
-                                                        "the Pre-processor")
+            raise QgsProcessingException(
+                "Error: Make sure format of meteorological file is correct. You can"
+                "prepare your data by using 'Prepare Existing Data' in "
+                "the Pre-processor"
+            )
 
-        testwhere = np.where((self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0))
+        testwhere = np.where(
+            (self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0)
+        )
         if testwhere[0].__len__() > 0:
-             raise QgsProcessingException("Error: Kdown - beyond what is expected at line: " + str(testwhere[0] + 1))
+            raise QgsProcessingException(
+                "Error: Kdown - beyond what is expected at line: "
+                + str(testwhere[0] + 1)
+            )
 
         if self.metdata.shape[1] == 24:
             feedback.setProgressText("Meteorological data successfully loaded")
         else:
-            raise QgsProcessingException("Error: Wrong number of columns in meteorological data. You can "
-                                                        "prepare your data by using 'Prepare Existing Data' in "
-                                                        "the Pre-processor")
+            raise QgsProcessingException(
+                "Error: Wrong number of columns in meteorological data. You can "
+                "prepare your data by using 'Prepare Existing Data' in "
+                "the Pre-processor"
+            )
 
         # Check if diffuse and direct radiation exist
         if onlyglobal == 0:
             if np.min(self.metdata[:, 21]) == -999:
-                raise QgsProcessingException("Diffuse radiation include NoData values",
-                                        'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
-                                        'observed values from external data sources.')
+                raise QgsProcessingException(
+                    "Diffuse radiation include NoData values",
+                    'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
+                    "observed values from external data sources.",
+                )
             if np.min(self.metdata[:, 22]) == -999:
-                raise QgsProcessingException("Direct radiation include NoData values",
-                                        'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
-                                        'observed values from external data sources.')
+                raise QgsProcessingException(
+                    "Direct radiation include NoData values",
+                    'Tick in the box "Estimate diffuse and direct shortwave..." or aqcuire '
+                    "observed values from external data sources.",
+                )
 
         # POIs check
-        if poilyr is not None: # usePOI:
-                           
+        if poilyr is not None:  # usePOI:
+
             poi_file = str(poilyr.dataProvider().dataSourceUri())
-            poi_field = self.parameterAsString(parameters, self.POI_FIELD, context)
+            poi_field = self.parameterAsString(
+                parameters, self.POI_FIELD, context
+            )
 
             # Other PET variables
-            solweig_parameters['PET_settings']['Value']['Age'] = self.parameterAsDouble(parameters, self.AGE, context)
-            solweig_parameters['PET_settings']['Value']['Weight'] = self.parameterAsDouble(parameters, self.WEIGHT, context)
-            solweig_parameters['PET_settings']['Value']['Height'] = self.parameterAsDouble(parameters, self.HEIGHT, context) / 100.
-            solweig_parameters['PET_settings']['Value']['clo'] = self.parameterAsDouble(parameters, self.CLO, context)
-            solweig_parameters['PET_settings']['Value']['Activity'] = self.parameterAsDouble(parameters, self.WEIGHT, context)
+            solweig_parameters["PET_settings"]["Value"]["Age"] = (
+                self.parameterAsDouble(parameters, self.AGE, context)
+            )
+            solweig_parameters["PET_settings"]["Value"]["Weight"] = (
+                self.parameterAsDouble(parameters, self.WEIGHT, context)
+            )
+            solweig_parameters["PET_settings"]["Value"]["Height"] = (
+                self.parameterAsDouble(parameters, self.HEIGHT, context)
+                / 100.0
+            )
+            solweig_parameters["PET_settings"]["Value"]["clo"] = (
+                self.parameterAsDouble(parameters, self.CLO, context)
+            )
+            solweig_parameters["PET_settings"]["Value"]["Activity"] = (
+                self.parameterAsDouble(parameters, self.WEIGHT, context)
+            )
             if (self.parameterAsInt(parameters, self.SEX, context) + 1) == 1:
-                solweig_parameters['PET_settings']['Value']['Sex'] = 'Male'
+                solweig_parameters["PET_settings"]["Value"]["Sex"] = "Male"
             else:
-                solweig_parameters['PET_settings']['Value']['Sex'] = 'Female'
+                solweig_parameters["PET_settings"]["Value"]["Sex"] = "Female"
 
-            solweig_parameters['Wind_Height']['Value']['magl'] = self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
+            solweig_parameters["Wind_Height"]["Value"]["magl"] = (
+                self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
+            )
 
-            feedback.setProgressText("Point of interest (POI) vector data identified")
+            feedback.setProgressText(
+                "Point of interest (POI) vector data identified"
+            )
         else:
-            poi_file = ''
-            poi_field = '' 
+            poi_file = ""
+            poi_field = ""
 
         # Import shadow matrices (Anisotropic sky)
-        if folderPathPerez:  #UseAniso
+        if folderPathPerez:  # UseAniso
             anisotropic_sky = 1
-            feedback.setProgressText("Anisotropic sky for diffuse shortwave radiation (Perez et al., 1993) and longwave radiation (Martin & Berdahl, 1984)")
+            feedback.setProgressText(
+                "Anisotropic sky for diffuse shortwave radiation (Perez et al., 1993) and longwave radiation (Martin & Berdahl, 1984)"
+            )
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
 
         # % Ts parameterisation maps
-        if landcover == 1.:
+        if landcover == 1.0:
             if folderWallScheme:
                 unique_landcover = np.unique(lcgrid)
                 unique_landcover = unique_landcover[unique_landcover < 100]
-                if np.max(unique_landcover) > 7 or np.min(unique_landcover) < 1:
-                    feedback.pushWarning("The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. " \
-                    "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
+                if (
+                    np.max(unique_landcover) > 7
+                    or np.min(unique_landcover) < 1
+                ):
+                    feedback.pushWarning(
+                        "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
+                        "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
+                    )
             else:
                 if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
-                    feedback.pushWarning("The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. " \
-                    "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt")
+                    feedback.pushWarning(
+                        "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
+                        "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
+                    )
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
-                raise QgsProcessingException("The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4).")
+                raise QgsProcessingException(
+                    "The land cover grid includes values (decidouos and/or conifer) not appropriate for SOLWEIG-formatted land cover grid (should not include 3 or 4)."
+                )
 
         # Import data for wall temperature parameterization
         if folderWallScheme:
             wallScheme = 1
-            feedback.setProgressText("Wall surface temperature scheme activated")
+            feedback.setProgressText(
+                "Wall surface temperature scheme activated"
+            )
 
             # Use wall of interest
             if woilyr is not None:
                 woi_file = str(woilyr.dataProvider().dataSourceUri())
-                woi_field = self.parameterAsString(parameters, self.WOI_FIELD, context)
+                woi_field = self.parameterAsString(
+                    parameters, self.WOI_FIELD, context
+                )
             else:
-                woi_file = ''
-                woi_field = ''
+                woi_file = ""
+                woi_field = ""
         else:
             wallScheme = 0
-            woi_file = ''
-            woi_field = ''
+            woi_file = ""
+            woi_field = ""
 
         feedback.setProgressText("Writing settings to solweigconfig.ini")
         # Code to dump setting into configfile
         configDict = {
-        'output_dir': outputDir, 
-        'working_dir': self.temp_dir, 
-        'para_json_path': outputDir + '/solweig_parameters.json', 
-        'filepath_dsm': filepath_dsm, 
-        'filepath_cdsm': filePath_cdsm, #vegdsm.dataProvider().dataSourceUri() if vegdsm.dataProvider().dataSourceUri() is not None else '', # if vegdsm is None: str(vegdsm.dataProvider().dataSourceUri()), 
-        'filepath_tdsm': filePath_tdsm, #str(vegdsm.dataProvider().dataSourceUri()) if vegdsm is None else '', #str(vegdsm2.dataProvider().dataSourceUri()), 
-        'filepath_dem': filepath_dem, 
-        'filepath_lc': filepath_lc, # 'C:/Users/xlinfr/Documents/PythonScripts/SOLWEIG/SOLWEIGdata/landcover.tif', 
-        'filepath_wh': filepath_wh, #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallheight.tif', 
-        'filepath_wa': filepath_wa, #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallaspect.tif', 
-        'input_svf': inputSVF, 
-        'input_aniso': folderPathPerez, # 'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\shadowmats.npz', 
-        'poi_file': poi_file, 
-        'poi_field': poi_field, 
-        'input_wall': folderWallScheme, 
-        'woi_file': woi_file,
-        'woi_field': woi_field, 
-        'input_met': inputMet, 
-        'standalone': '0', # used in standalone
-        'onlyglobal': int(onlyglobal), 
-        'usevegdem': int(usevegdem), 
-        'conifer_bool': int(conifer_bool), 
-        'cyl': int(cyl), 
-        'posture': solweig_parameters['Tmrt_params']['Value']['posture'], 
-        'lat': lat,
-        'lon': lon,
-        'utc': int(utc),
-        'scale': scale, 
-        'useepwfile': '0', # used in standalone
-        'landcover': int(landcover), 
-        'demforbuild': int(demforbuild), 
-        'aniso': int(anisotropic_sky), 
-        'wallscheme': wallScheme, 
-        'walltype': wall_type, #'Brick_wall', #:TODO 
-        'outputtmrt': int(outputTmrt), 
-        'outputkup': int(outputKup), 
-        'outputkdown': int(outputKdown), 
-        'outputlup': int(outputLup), 
-        'outputldown': int(outputLdown), 
-        'outputsh': int(outputSh), 
-        'savebuild': int(saveBuild), 
-        'outputkdiff': int(outputKdiff), 
-        'outputtreeplanter': int(outputTreeplanter), 
-        'wallnetcdf': int(wallNetCDF), 
-        'date1': '2018,5,1,0', # used in standalone
-        'date2': '2018,8,1,18' # used in standalone
-         }
+            "output_dir": outputDir,
+            "working_dir": self.temp_dir,
+            "para_json_path": outputDir + "/solweig_parameters.json",
+            "filepath_dsm": filepath_dsm,
+            "filepath_cdsm": (
+                filePath_cdsm
+            ),  # vegdsm.dataProvider().dataSourceUri() if vegdsm.dataProvider().dataSourceUri() is not None else '', # if vegdsm is None: str(vegdsm.dataProvider().dataSourceUri()),
+            "filepath_tdsm": (
+                filePath_tdsm
+            ),  # str(vegdsm.dataProvider().dataSourceUri()) if vegdsm is None else '', #str(vegdsm2.dataProvider().dataSourceUri()),
+            "filepath_dem": filepath_dem,
+            "filepath_lc": (
+                filepath_lc
+            ),  # 'C:/Users/xlinfr/Documents/PythonScripts/SOLWEIG/SOLWEIGdata/landcover.tif',
+            "filepath_wh": (
+                filepath_wh
+            ),  #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallheight.tif',
+            "filepath_wa": (
+                filepath_wa
+            ),  #'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\wallaspect.tif',
+            "input_svf": inputSVF,
+            "input_aniso": (
+                folderPathPerez
+            ),  # 'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\shadowmats.npz',
+            "poi_file": poi_file,
+            "poi_field": poi_field,
+            "input_wall": folderWallScheme,
+            "woi_file": woi_file,
+            "woi_field": woi_field,
+            "input_met": inputMet,
+            "standalone": "0",  # used in standalone
+            "onlyglobal": int(onlyglobal),
+            "usevegdem": int(usevegdem),
+            "conifer_bool": int(conifer_bool),
+            "cyl": int(cyl),
+            "posture": solweig_parameters["Tmrt_params"]["Value"]["posture"],
+            "lat": lat,
+            "lon": lon,
+            "utc": int(utc),
+            "scale": scale,
+            "useepwfile": "0",  # used in standalone
+            "landcover": int(landcover),
+            "demforbuild": int(demforbuild),
+            "aniso": int(anisotropic_sky),
+            "wallscheme": wallScheme,
+            "walltype": wall_type,  #'Brick_wall', #:TODO
+            "groundmodel": 1,
+            "input_surf": "",
+            "outputtmrt": int(outputTmrt),
+            "outputkup": int(outputKup),
+            "outputkdown": int(outputKdown),
+            "outputlup": int(outputLup),
+            "outputldown": int(outputLdown),
+            "outputsh": int(outputSh),
+            "savebuild": int(saveBuild),
+            "outputkdiff": int(outputKdiff),
+            "outputtreeplanter": int(outputTreeplanter),
+            "wallnetcdf": int(wallNetCDF),
+            "date1": "2018,5,1,0",  # used in standalone
+            "date2": "2018,8,1,18",  # used in standalone
+        }
 
         # Save configfile
-        write_solweig_config(configDict, outputDir + '/configsolweig.ini')
+        write_solweig_config(configDict, outputDir + "/configsolweig.ini")
 
         # Save solweig_parameters in output folder
-        with open(outputDir + '/solweig_parameters.json', 'w') as f:
+        with open(outputDir + "/solweig_parameters.json", "w") as f:
             json.dump(solweig_parameters, f, indent=2)
 
         # Main function
         feedback.setProgressText("Executing main model")
 
-        sr.solweig_run(outputDir + '/configsolweig.ini', feedback)
+        sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
 
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
 
         return {self.OUTPUT_DIR: outputDir}
-    
+
     def name(self):
         """
         Returns the algorithm name, used for identifying the algorithm. This
@@ -748,14 +1256,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Outdoor Thermal Comfort: SOLWEIG'
+        return "Outdoor Thermal Comfort: SOLWEIG"
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Outdoor Thermal Comfort: SOLWEIG v2025a')
+        return self.tr("Outdoor Thermal Comfort: SOLWEIG v2026a")
 
     def group(self):
         """
@@ -772,40 +1280,43 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Processor'
+        return "Processor"
 
     def shortHelpString(self):
-        return self.tr('SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and '
-                       'mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model originally followed the '
-                       'approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  '
-                       'six directions being individually calculated to derive Tmrt. The model can also consider a person as a '
-                       'standing cylinder. The model requires a limited number '
-                       'of inputs, such as global shortwave radiation, air temperature, relative '
-                       'humidity, urban geometry and geographical information (latitude, longitude and elevation). '
-                       'Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n'
-                       '\n'
-                       'Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing section in UMEP\n'
-                       '\n'
-                       
-                       'NOTE:\n'
-                       '- Anisotrophic sky models for long- and diffuse shortwave are automatically activated when the *.npz file '
-                       'for shadow maps are included.\n'
-                       '- Wall scheme model is automatically activated when the .npz-file for wall voxels are included. This will '
-                       'slow down the model consideraby as SOLWEIG become a near 3D-model.\n'
-                       '\n' 
-                       '------------\n'
-                       '\n'
-                       'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and "
+            "mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model originally followed the "
+            "approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  "
+            "six directions being individually calculated to derive Tmrt. The model can also consider a person as a "
+            "standing cylinder. The model requires a limited number "
+            "of inputs, such as global shortwave radiation, air temperature, relative "
+            "humidity, urban geometry and geographical information (latitude, longitude and elevation). "
+            "Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n"
+            "\n"
+            "Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing section in UMEP\n"
+            "\n"
+            "NOTE:\n"
+            "- Anisotrophic sky models for long- and diffuse shortwave are automatically activated when the *.npz file "
+            "for shadow maps are included.\n"
+            "- Wall scheme model is automatically activated when the .npz-file for wall voxels are included. This will "
+            "slow down the model consideraby as SOLWEIG become a near 3D-model.\n"
+            "\n"
+            "------------\n"
+            "\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/processor/Outdoor%20Thermal%20Comfort%20SOLWEIG.html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/icon_solweig.png")
         return icon
 

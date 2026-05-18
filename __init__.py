@@ -28,17 +28,18 @@
 # This works around https://github.com/qgis/QGIS/issues/55258
 import site
 import sys
-import supy as sp  
+import supy as sp
 import numba
 import jaydebeapi
 import rioxarray
 import yaml
 import pydantic
+
 sys.path.insert(0, site.getusersitepackages())
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 
 # noinspection PyPep8Naming
@@ -50,4 +51,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .processing_umep import ProcessingUMEPPlugin
+
     return ProcessingUMEPPlugin()

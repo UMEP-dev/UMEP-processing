@@ -22,24 +22,27 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QDate, Qt, QVariant
-from qgis.core import (QgsProcessingAlgorithm,
-                       QgsProcessingParameterPoint,
-                       QgsProcessingParameterString,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterCrs,
-                       QgsProcessingException)
+from qgis.core import (
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterPoint,
+    QgsProcessingParameterString,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterCrs,
+    QgsProcessingException,
+)
 
 from processing.gui.wrappers import WidgetWrapper
+
 # from qgis.PyQt.QtWidgets import QDateEdit
 
 # from processing.gui.wrappers import WidgetWrapper
@@ -73,52 +76,78 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
     This algorithm is a processing version of Image Morphometric Calculator Point
     """
 
-    INPUT_POINT = 'INPUT_POINT'
-    CRS = 'CRS'
-    DATEINISTART = 'DATEINISTART'
-    DATEINIEND = 'DATEINIEND'
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    DIAG_HEIGHT = 'DIAG_HEIGHT'
+    INPUT_POINT = "INPUT_POINT"
+    CRS = "CRS"
+    DATEINISTART = "DATEINISTART"
+    DATEINIEND = "DATEINIEND"
+    OUTPUT_DIR = "OUTPUT_DIR"
+    DIAG_HEIGHT = "DIAG_HEIGHT"
 
-    
     def initAlgorithm(self, config):
-        self.addParameter(QgsProcessingParameterPoint(self.INPUT_POINT,
-                                                      self.tr('Point of interest')))
-        self.addParameter(QgsProcessingParameterCrs(self.CRS,
-                                                    self.tr('Coordinate reference system for point of interest'), 
-                                                    'ProjectCrs'))
-        paramS = QgsProcessingParameterString(self.DATEINISTART, 'Start date')
-        paramS.setMetadata({'widget_wrapper': {'class': DateWidgetStart}})
+        self.addParameter(
+            QgsProcessingParameterPoint(
+                self.INPUT_POINT, self.tr("Point of interest")
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterCrs(
+                self.CRS,
+                self.tr("Coordinate reference system for point of interest"),
+                "ProjectCrs",
+            )
+        )
+        paramS = QgsProcessingParameterString(self.DATEINISTART, "Start date")
+        paramS.setMetadata({"widget_wrapper": {"class": DateWidgetStart}})
         self.addParameter(paramS)
-        paramE = QgsProcessingParameterString(self.DATEINIEND, 'End date')
-        paramE.setMetadata({'widget_wrapper': {'class': DateWidgetEnd}})
+        paramE = QgsProcessingParameterString(self.DATEINIEND, "End date")
+        paramE.setMetadata({"widget_wrapper": {"class": DateWidgetEnd}})
         self.addParameter(paramE)
-        self.addParameter(QgsProcessingParameterNumber(self.DIAG_HEIGHT,
-            self.tr("Height above ground level to diagnose forcing variables (m)"), 
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(100), minValue=2, maxValue=500))
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR,
-            self.tr('Output folder')))
-
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.DIAG_HEIGHT,
+                self.tr(
+                    "Height above ground level to diagnose forcing variables (m)"
+                ),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(100),
+                minValue=2,
+                maxValue=500,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, self.tr("Output folder")
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         try:
             import supy as sp
             from supy import __version__ as ver_supy
         except:
-            raise QgsProcessingException('This plugin requires the supy package '
-                        'to be installed OR upgraded. Please consult the FAQ in the manual '
-                        'for further information on how to install missing python packages.')
+            raise QgsProcessingException(
+                "This plugin requires the supy package "
+                "to be installed OR upgraded. Please consult the FAQ in the manual "
+                "for further information on how to install missing python packages."
+            )
 
         # InputParameters
-        inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
+        inputPoint = self.parameterAsPoint(
+            parameters, self.INPUT_POINT, context
+        )
         inputCRS = self.parameterAsCrs(parameters, self.CRS, context)
-        startDate = self.parameterAsString(parameters, self.DATEINISTART, context)
+        startDate = self.parameterAsString(
+            parameters, self.DATEINISTART, context
+        )
         endDate = self.parameterAsString(parameters, self.DATEINIEND, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        diagHeight = self.parameterAsDouble(parameters, self.DIAG_HEIGHT, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        diagHeight = self.parameterAsDouble(
+            parameters, self.DIAG_HEIGHT, context
+        )
 
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
@@ -144,46 +173,56 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
         new_cs = osr.SpatialReference()
         new_cs.ImportFromWkt(wgs84_wkt)
-    
+
         transform = osr.CoordinateTransformation(old_cs, new_cs)
 
         latlon = ogr.CreateGeometryFromWkt(
-            'POINT (' + str(x) + ' ' + str(y) + ')')
+            "POINT (" + str(x) + " " + str(y) + ")"
+        )
         latlon.Transform(transform)
 
         gdalver = float(gdal.__version__[0])
-        if gdalver == 3.:
+        if gdalver == 3.0:
             lon = latlon.GetY()
             lat = latlon.GetX()
         else:
             lat = latlon.GetY()
             lon = latlon.GetX()
 
-        feedback.setProgressText('SuPy version: ' + ver_supy)
-        feedback.setProgressText('INPUT PARAMETERS:')    
-        feedback.setProgressText('lat = ' + str(lat))
-        feedback.setProgressText('lon = ' + str(lon))
-        feedback.setProgressText('Start = ' + str(startDate))
-        feedback.setProgressText('End = ' + str(endDate))
-        feedback.setProgressText('Diagnostic height = ' + str(diagHeight))
-        feedback.setProgressText('Output folder = ' + str(outputDir))
+        feedback.setProgressText("SuPy version: " + ver_supy)
+        feedback.setProgressText("INPUT PARAMETERS:")
+        feedback.setProgressText("lat = " + str(lat))
+        feedback.setProgressText("lon = " + str(lon))
+        feedback.setProgressText("Start = " + str(startDate))
+        feedback.setProgressText("End = " + str(endDate))
+        feedback.setProgressText("Diagnostic height = " + str(diagHeight))
+        feedback.setProgressText("Output folder = " + str(outputDir))
 
         if startDate >= endDate:
-            raise QgsProcessingException('Start date is greater or equal than end date')
-       
-        logger_sp = logging.getLogger('SuPy')
+            raise QgsProcessingException(
+                "Start date is greater or equal than end date"
+            )
+
+        logger_sp = logging.getLogger("SuPy")
         logger_sp.disabled = True
 
-        feedback.setProgressText('Downloading and processing in progress...')
+        feedback.setProgressText("Downloading and processing in progress...")
 
-        sp.util.gen_forcing_era5(lat, lon, startDate, endDate, hgt_agl_diag=diagHeight, dir_save=Path(outputDir))
+        sp.util.gen_forcing_era5(
+            lat,
+            lon,
+            startDate,
+            endDate,
+            hgt_agl_diag=diagHeight,
+            dir_save=Path(outputDir),
+        )
 
         results = {self.OUTPUT_DIR: outputDir}
 
         return results
-    
+
     def name(self):
-        return 'Meteorological Data: Download data (ERA5)'
+        return "Meteorological Data: Download data (ERA5)"
 
     def displayName(self):
         return self.tr(self.name())
@@ -192,36 +231,40 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
     def shortHelpString(self):
-        return self.tr('Basic meteorological variables are required for most applications in the UMEP processor. ' \
-        'If observed data are not available for a particular location, hourly data can be retrieved from the global ' \
-        'the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be ' \
-        'extracted for a specific location and period of interest (1940-today), and automatiecally transformed into formatted ' \
-        'forcing files suitable for models within UMEP.'
-        '\n'
-        'Remember to adjust the diagnistic height depending on application. For thermal comfort modelling, set a height close ' \
-        'to ground level (e.g. 2m) and for urban energy balance modelling, set it to 3 times the height of the roughness elements '
-        '(e.g. buildings and vegetataion).'
-        '\n'
-        'If your computer is not configured for downloading data from the Climate Data Store, follow the instructions here: '
-        'https://cds.climate.copernicus.eu/how-to-api.'
-        '\n'
-        'Another tip is to visit https://www.shinyweatherdata.com/ where ERA5 data also can be downloaded.'
-        '\n'
-        '---------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "Basic meteorological variables are required for most applications in the UMEP processor. "
+            "If observed data are not available for a particular location, hourly data can be retrieved from the global "
+            "the Coopernicus programme and thier Climate Data Store. This plugin allows climate reanalysis data to be "
+            "extracted for a specific location and period of interest (1940-today), and automatiecally transformed into formatted "
+            "forcing files suitable for models within UMEP."
+            "\n"
+            "Remember to adjust the diagnistic height depending on application. For thermal comfort modelling, set a height close "
+            "to ground level (e.g. 2m) and for urban energy balance modelling, set it to 3 times the height of the roughness elements "
+            "(e.g. buildings and vegetataion)."
+            "\n"
+            "If your computer is not configured for downloading data from the Climate Data Store, follow the instructions here: "
+            "https://cds.climate.copernicus.eu/how-to-api."
+            "\n"
+            "Another tip is to visit https://www.shinyweatherdata.com/ where ERA5 data also can be downloaded."
+            "\n"
+            "---------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Meteorological%20Data%20Download%20data%20(ERA5).html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/watch.png")
         return icon
 
@@ -242,6 +285,7 @@ class DateWidgetStart(WidgetWrapper):
     def value(self):
         date_chosen = self._combo.dateTime()
         return date_chosen.toString(Qt.DateFormat.ISODate)
+
 
 class DateWidgetEnd(WidgetWrapper):
     def createWidget(self):

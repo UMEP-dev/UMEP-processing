@@ -22,13 +22,13 @@
  ***************************************************************************/
 """
 
-__author__ = 'Jérémy Bernard / University of Gothenburg'
-__date__ = '2021-10-04'
-__copyright__ = '(C) 2021 by Jérémy Bernard / University of Gothenburg'
+__author__ = "Jérémy Bernard / University of Gothenburg"
+__date__ = "2021-10-04"
+__copyright__ = "(C) 2021 by Jérémy Bernard / University of Gothenburg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.core import QgsProcessingProvider
 from .urock_processing_algorithm import URockAlgorithm
@@ -63,7 +63,7 @@ class URockProvider(QgsProcessingProvider):
         string should be a unique, short, character only string, eg "qgis" or
         "gdal". This string should not be localised.
         """
-        return 'urock'
+        return "urock"
 
     def name(self):
         """
@@ -72,7 +72,7 @@ class URockProvider(QgsProcessingProvider):
 
         This string should be short (e.g. "Lastools") and localised.
         """
-        return self.tr('URock')
+        return self.tr("URock")
 
     def icon(self):
         """

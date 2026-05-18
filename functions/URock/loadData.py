@@ -11,49 +11,58 @@ from . import DataUtil
 from .DataUtil import safe
 import os
 
-def loadData(fromCad                        , prefix,
-             idFieldBuild                   , buildingHeightField,
-             vegetationBaseHeight           , vegetationTopHeight,
-             idVegetation                   , vegetationAttenuationFactor,
-             cursor                         , buildingFilePath,
-             vegetationFilePath             , srid):
-    """ Load the input files into the database (could be converted if from CAD)
-    
-		Parameters
-		_ _ _ _ _ _ _ _ _ _ 
-        
-            fromCad: boolean
-                Whether or not the data has to be converted from a CAD file
-            prefix: String
-                Name of the case to run. Also the name of the subdirectory containing
-                the geometry files.
-            idFieldBuild: String
-                Name of the ID field from the input building data
-            buildingHeightField: String
-                Name of the height field from the input building data
-            vegetationBaseHeight: String
-                Name of the base height field from the input vegetation data
-            vegetationTopHeight: String
-                Name of the top height field from the input vegetation data
-            idVegetation: String
-                Name of the ID field from the input vegetation data
-            vegetationAttenuationFactor: String
-                Name of the attenuatiojn factor field from the input vegetation data
-            cursor: conn.cursor
-                A cursor object, used to perform spatial SQL queries
-            buildingFilePath: String
-                The path of the file where are saved buildings data
-            vegetationFilePath: String
-                The path of the file where are saved vegetation data
-            srid: int
-                The SRID of the data
-            
-		Returns
-		_ _ _ _ _ _ _ _ _ _ 
 
-            None"""
+def loadData(
+    fromCad,
+    prefix,
+    idFieldBuild,
+    buildingHeightField,
+    vegetationBaseHeight,
+    vegetationTopHeight,
+    idVegetation,
+    vegetationAttenuationFactor,
+    cursor,
+    buildingFilePath,
+    vegetationFilePath,
+    srid,
+):
+    """Load the input files into the database (could be converted if from CAD)
+
+        Parameters
+        _ _ _ _ _ _ _ _ _ _
+
+    fromCad: boolean
+        Whether or not the data has to be converted from a CAD file
+    prefix: String
+        Name of the case to run. Also the name of the subdirectory containing
+        the geometry files.
+    idFieldBuild: String
+        Name of the ID field from the input building data
+    buildingHeightField: String
+        Name of the height field from the input building data
+    vegetationBaseHeight: String
+        Name of the base height field from the input vegetation data
+    vegetationTopHeight: String
+        Name of the top height field from the input vegetation data
+    idVegetation: String
+        Name of the ID field from the input vegetation data
+    vegetationAttenuationFactor: String
+        Name of the attenuatiojn factor field from the input vegetation data
+    cursor: conn.cursor
+        A cursor object, used to perform spatial SQL queries
+    buildingFilePath: String
+        The path of the file where are saved buildings data
+    vegetationFilePath: String
+        The path of the file where are saved vegetation data
+    srid: int
+        The SRID of the data
+
+        Returns
+        _ _ _ _ _ _ _ _ _ _
+
+    None"""
     print("Load input data")
-    
+
     # Create temporary table names (for tables that will be removed at the end of the IProcess)
     buildTablePreSrid = DataUtil.postfix("build_pre_srid")
     vegTablePreSrid = DataUtil.postfix("veg_pre_srid")
@@ -63,184 +72,240 @@ def loadData(fromCad                        , prefix,
     # Check if the input comes from CAD file
     if fromCad:
         # IMPORT TRIANGLES AND CONVERT TO BUILDINGS AND VEGETATION GEOMETRIES
-        inputDataRel["cadTriangles"] = os.path.join(inputDirectory, prefix, 
-                                                    inputGeometries["cadTriangles"])
-        inputDataAbs["cadTriangles"] = os.path.abspath(inputDataRel["cadTriangles"])        
-        
+        inputDataRel["cadTriangles"] = os.path.join(
+            inputDirectory, prefix, inputGeometries["cadTriangles"]
+        )
+        inputDataAbs["cadTriangles"] = os.path.abspath(
+            inputDataRel["cadTriangles"]
+        )
+
         # Load CAD triangles into H2GIS DB
-        loadFile(cursor = cursor,
-                 filePath = inputDataAbs["cadTriangles"], 
-                 tableName = CAD_TRIANGLE_NAME)
-        
+        loadFile(
+            cursor=cursor,
+            filePath=inputDataAbs["cadTriangles"],
+            tableName=CAD_TRIANGLE_NAME,
+        )
+
         if inputGeometries["cadTreesIntersection"]:
-            inputDataRel["cadTreesIntersection"] = os.path.join(inputDirectory, prefix, 
-                                                                inputGeometries["cadTreesIntersection"])
-            inputDataAbs["cadTreesIntersection"] = os.path.abspath(inputDataRel["cadTreesIntersection"])        
-            
+            inputDataRel["cadTreesIntersection"] = os.path.join(
+                inputDirectory, prefix, inputGeometries["cadTreesIntersection"]
+            )
+            inputDataAbs["cadTreesIntersection"] = os.path.abspath(
+                inputDataRel["cadTreesIntersection"]
+            )
+
             # Load vegetation intersection into H2GIS DB
-            loadFile(cursor = cursor,
-                     filePath = inputDataAbs["cadTreesIntersection"], 
-                     tableName = CAD_VEG_INTERSECTION)
+            loadFile(
+                cursor=cursor,
+                filePath=inputDataAbs["cadTreesIntersection"],
+                tableName=CAD_VEG_INTERSECTION,
+            )
             treesZone = CAD_VEG_INTERSECTION
         else:
-            cursor.execute(safe("""
+            cursor.execute(
+                safe("""
                 DROP TABLE IF EXISTS {0};
                 CREATE TABLE {0}(PK INTEGER, {1} GEOMETRY,
                                  {2} DOUBLE, {3} DOUBLE,
                                  {4} INTEGER, {5} DOUBLE)
-                """).format( vegTablePreSrid,
-                            GEOM_FIELD,
-                            VEGETATION_CROWN_BASE_HEIGHT,
-                            VEGETATION_CROWN_TOP_HEIGHT,
-                            ID_VEGETATION,
-                            VEGETATION_ATTENUATION_FACTOR))
+                """).format(
+                    vegTablePreSrid,
+                    GEOM_FIELD,
+                    VEGETATION_CROWN_BASE_HEIGHT,
+                    VEGETATION_CROWN_TOP_HEIGHT,
+                    ID_VEGETATION,
+                    VEGETATION_ATTENUATION_FACTOR,
+                )
+            )
             treesZone = None
-        
+
         # Convert 3D triangles to 2.5 d buildings and tree patches
-        fromShp3dTo2_5(cursor = cursor                  , triangles3d = CAD_TRIANGLE_NAME,
-                       TreesZone = treesZone            , buildTableName = buildTablePreSrid,
-                       vegTableName = vegTablePreSrid   , prefix = PREFIX_NAME)
-        
+        fromShp3dTo2_5(
+            cursor=cursor,
+            triangles3d=CAD_TRIANGLE_NAME,
+            TreesZone=treesZone,
+            buildTableName=buildTablePreSrid,
+            vegTableName=vegTablePreSrid,
+            prefix=PREFIX_NAME,
+        )
+
         # Save the building and vegetation layers ready to be used in URock
-        DataUtil.saveTable(cursor = cursor,
-                           tableName = buildTablePreSrid,
-                           filedir = os.path.join(buildingFilePath),
-                           delete=True)
-        DataUtil.saveTable(cursor = cursor,
-                           tableName = vegTablePreSrid,
-                           filedir = os.path.join(vegetationFilePath),
-                           delete=True)
-        
+        DataUtil.saveTable(
+            cursor=cursor,
+            tableName=buildTablePreSrid,
+            filedir=os.path.join(buildingFilePath),
+            delete=True,
+        )
+        DataUtil.saveTable(
+            cursor=cursor,
+            tableName=vegTablePreSrid,
+            filedir=os.path.join(vegetationFilePath),
+            delete=True,
+        )
+
     else:
         importQuery = ""
         h2gisBuildSrid = 0
         h2gisVegSrid = 0
-        # 1. IMPORT BUILDING GEOMETRIES   
+        # 1. IMPORT BUILDING GEOMETRIES
         if buildingFilePath:
             # Load buildings into H2GIS DB
-            loadFile(cursor = cursor,
-                     filePath = os.path.abspath(buildingFilePath), 
-                     tableName = buildTablePreSrid)
-            
+            loadFile(
+                cursor=cursor,
+                filePath=os.path.abspath(buildingFilePath),
+                tableName=buildTablePreSrid,
+            )
+
             # Get the building SRID
             cursor.execute(safe("""
                            SELECT ST_SRID({0}) AS SRID FROM {1} LIMIT 1
-                           """).format(GEOM_FIELD                , buildTablePreSrid))
+                           """).format(GEOM_FIELD, buildTablePreSrid))
             h2gisBuildSrid = cursor.fetchall()[0][0]
-            
+
             # Create an ID FIELD if None.
             if idFieldBuild is None or idFieldBuild == "":
                 cursor.execute(safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
-                   """).format( buildTablePreSrid     , ID_FIELD_BUILD))
+                   """).format(buildTablePreSrid, ID_FIELD_BUILD))
                 idFieldBuild = ID_FIELD_BUILD
-            
+
             # Rename building fields to generic names
             if idFieldBuild.upper() != ID_FIELD_BUILD.upper():
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( buildTablePreSrid,
-                                idFieldBuild, ID_FIELD_BUILD)
+                    """.format(buildTablePreSrid, idFieldBuild, ID_FIELD_BUILD)
             if buildingHeightField.upper() != HEIGHT_FIELD.upper():
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( buildTablePreSrid,
-                                buildingHeightField, HEIGHT_FIELD)
-                
+                    """.format(
+                    buildTablePreSrid, buildingHeightField, HEIGHT_FIELD
+                )
+
         else:
             importQuery += """ DROP TABLE IF EXISTS {0};
                                CREATE TABLE {0}({1} INTEGER, {2} GEOMETRY,
                                                 {3} INTEGER);
-                            """.format( buildTablePreSrid,
-                                        ID_FIELD_BUILD,
-                                        GEOM_FIELD,
-                                        HEIGHT_FIELD)        
-        
+                            """.format(
+                buildTablePreSrid, ID_FIELD_BUILD, GEOM_FIELD, HEIGHT_FIELD
+            )
+
         # 2. IMPORT VEGETATION GEOMETRIES
         if vegetationFilePath:
             # Load vegetation into H2GIS DB
-            loadFile(cursor = cursor,
-                     filePath = os.path.abspath(vegetationFilePath),
-                     tableName = vegTablePreSrid)
-            
+            loadFile(
+                cursor=cursor,
+                filePath=os.path.abspath(vegetationFilePath),
+                tableName=vegTablePreSrid,
+            )
+
             # Get the vegetation SRID
             cursor.execute(safe("""
                            SELECT ST_SRID({0}) AS SRID FROM {1} LIMIT 1
-                           """).format(GEOM_FIELD                , vegTablePreSrid))
+                           """).format(GEOM_FIELD, vegTablePreSrid))
             h2gisVegSrid = cursor.fetchall()[0][0]
-            
+
             # Create an ID FIELD if None.
             if idVegetation is None or idVegetation == "":
                 cursor.execute(safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
-                   """).format( vegTablePreSrid     , ID_VEGETATION))
+                   """).format(vegTablePreSrid, ID_VEGETATION))
                 idVegetation = ID_VEGETATION
             # Create an attenuation attribute with default 'DEFAULT_VEG_ATTEN_FACT'
             # if no column
-            if vegetationAttenuationFactor is None or vegetationAttenuationFactor == "":
-                cursor.execute(safe(""" 
+            if (
+                vegetationAttenuationFactor is None
+                or vegetationAttenuationFactor == ""
+            ):
+                cursor.execute(
+                    safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE DEFAULT {2};
-                   """).format( vegTablePreSrid     , VEGETATION_ATTENUATION_FACTOR,
-                               DEFAULT_VEG_ATTEN_FACT))
+                   """).format(
+                        vegTablePreSrid,
+                        VEGETATION_ATTENUATION_FACTOR,
+                        DEFAULT_VEG_ATTEN_FACT,
+                    )
+                )
                 vegetationAttenuationFactor = VEGETATION_ATTENUATION_FACTOR
             # Create a base height attribute with default 'DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC'
             # of the maximum height if no attribute for base height
             if vegetationBaseHeight is None or vegetationBaseHeight == "":
-                cursor.execute(safe(""" 
+                cursor.execute(
+                    safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE;
                    UPDATE {0} SET {1} = {2} * {3};
-                   """).format( vegTablePreSrid,
-                               VEGETATION_CROWN_BASE_HEIGHT,
-                               DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC,
-                               vegetationTopHeight))
+                   """).format(
+                        vegTablePreSrid,
+                        VEGETATION_CROWN_BASE_HEIGHT,
+                        DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC,
+                        vegetationTopHeight,
+                    )
+                )
                 vegetationBaseHeight = VEGETATION_CROWN_BASE_HEIGHT
-    
+
             # Load vegetation data and rename fields to generic names
-            if vegetationBaseHeight.upper() != VEGETATION_CROWN_BASE_HEIGHT.upper():
+            if (
+                vegetationBaseHeight.upper()
+                != VEGETATION_CROWN_BASE_HEIGHT.upper()
+            ):
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( vegTablePreSrid,
-                                vegetationBaseHeight, VEGETATION_CROWN_BASE_HEIGHT)
-            if vegetationTopHeight.upper() != VEGETATION_CROWN_TOP_HEIGHT.upper():
+                    """.format(
+                    vegTablePreSrid,
+                    vegetationBaseHeight,
+                    VEGETATION_CROWN_BASE_HEIGHT,
+                )
+            if (
+                vegetationTopHeight.upper()
+                != VEGETATION_CROWN_TOP_HEIGHT.upper()
+            ):
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( vegTablePreSrid,
-                                vegetationTopHeight, VEGETATION_CROWN_TOP_HEIGHT)
+                    """.format(
+                    vegTablePreSrid,
+                    vegetationTopHeight,
+                    VEGETATION_CROWN_TOP_HEIGHT,
+                )
             if idVegetation.upper() != ID_VEGETATION.upper():
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( vegTablePreSrid,
-                                idVegetation, ID_VEGETATION)
-            if vegetationAttenuationFactor.upper() != VEGETATION_ATTENUATION_FACTOR.upper():
+                    """.format(vegTablePreSrid, idVegetation, ID_VEGETATION)
+            if (
+                vegetationAttenuationFactor.upper()
+                != VEGETATION_ATTENUATION_FACTOR.upper()
+            ):
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format( vegTablePreSrid,
-                                vegetationAttenuationFactor, VEGETATION_ATTENUATION_FACTOR)
+                    """.format(
+                    vegTablePreSrid,
+                    vegetationAttenuationFactor,
+                    VEGETATION_ATTENUATION_FACTOR,
+                )
         else:
             importQuery += """ DROP TABLE IF EXISTS {0};
                                CREATE TABLE {0}(PK INTEGER, {1} GEOMETRY,
                                                 {2} DOUBLE, {3} DOUBLE,
                                                 {4} INTEGER, {5} DOUBLE);
-                            """.format( vegTablePreSrid,
-                                        GEOM_FIELD,
-                                        VEGETATION_CROWN_BASE_HEIGHT,
-                                        VEGETATION_CROWN_TOP_HEIGHT,
-                                        ID_VEGETATION,
-                                        VEGETATION_ATTENUATION_FACTOR)
+                            """.format(
+                vegTablePreSrid,
+                GEOM_FIELD,
+                VEGETATION_CROWN_BASE_HEIGHT,
+                VEGETATION_CROWN_TOP_HEIGHT,
+                ID_VEGETATION,
+                VEGETATION_ATTENUATION_FACTOR,
+            )
         cursor.execute(importQuery)
-    
 
-    # 3. SET VEGETATION AND BUILDING TABLE SRID AND REMOVE SMALL OBSTACLES 
+    # 3. SET VEGETATION AND BUILDING TABLE SRID AND REMOVE SMALL OBSTACLES
     # If H2GIS does not identify any SRID for the tables, set the ones identied by GDAL
     if h2gisBuildSrid == 0 and h2gisVegSrid == 0:
         buildSrid = srid
@@ -254,8 +319,9 @@ def loadData(fromCad                        , prefix,
     else:
         vegSrid = h2gisVegSrid
         buildSrid = h2gisBuildSrid
-    
-    cursor.execute(safe("""
+
+    cursor.execute(
+        safe("""
        DROP TABLE IF EXISTS {0};
        CREATE TABLE {0}
            AS SELECT ST_COLLECTIONEXTRACT(ST_SETSRID({1}, {2}), 3) AS {1},
@@ -269,97 +335,121 @@ def loadData(fromCad                        , prefix,
                      ROW_NUMBER() OVER (ORDER by {7}) AS {7}, {8}, {9}, {10}
            FROM ST_EXPLODE('{11}')
            WHERE {9} > 0.5;
-       """).format(BUILDING_TABLE_NAME           , GEOM_FIELD,
-                  buildSrid                     , ID_FIELD_BUILD,
-                  HEIGHT_FIELD                  , buildTablePreSrid,
-                  VEGETATION_TABLE_NAME         , ID_VEGETATION,
-                  VEGETATION_CROWN_BASE_HEIGHT  , VEGETATION_CROWN_TOP_HEIGHT,
-                  VEGETATION_ATTENUATION_FACTOR , vegTablePreSrid,
-                  vegSrid))
-         
-        
+       """).format(
+            BUILDING_TABLE_NAME,
+            GEOM_FIELD,
+            buildSrid,
+            ID_FIELD_BUILD,
+            HEIGHT_FIELD,
+            buildTablePreSrid,
+            VEGETATION_TABLE_NAME,
+            ID_VEGETATION,
+            VEGETATION_CROWN_BASE_HEIGHT,
+            VEGETATION_CROWN_TOP_HEIGHT,
+            VEGETATION_ATTENUATION_FACTOR,
+            vegTablePreSrid,
+            vegSrid,
+        )
+    )
+
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([vegTablePreSrid, buildTablePreSrid])))
-    
-def loadFile(cursor, filePath, tableName, srid = None, srid_repro = None):
-    """ Load a file in the database according to its extension
-    
-		Parameters
-		_ _ _ _ _ _ _ _ _ _ 
+        cursor.execute(
+            "DROP TABLE IF EXISTS {0}".format(
+                ",".join([vegTablePreSrid, buildTablePreSrid])
+            )
+        )
 
-            cursor: conn.cursor
-                A cursor object, used to perform spatial SQL queries
-            filePath: String
-                Path of the file to load
-            tableName: String
-                Name of the table for the loaded file
-            srid: int, default None
-                SRID of the loaded file (if known)
-            srid_repro: int, default None
-                SRID if you want to reproject the data
-            
-		Returns
-		_ _ _ _ _ _ _ _ _ _ 
 
-            None"""
-    print("Load table '{0}'".format(tableName))    
+def loadFile(cursor, filePath, tableName, srid=None, srid_repro=None):
+    """Load a file in the database according to its extension
+
+        Parameters
+        _ _ _ _ _ _ _ _ _ _
+
+    cursor: conn.cursor
+        A cursor object, used to perform spatial SQL queries
+    filePath: String
+        Path of the file to load
+    tableName: String
+        Name of the table for the loaded file
+    srid: int, default None
+        SRID of the loaded file (if known)
+    srid_repro: int, default None
+        SRID if you want to reproject the data
+
+        Returns
+        _ _ _ _ _ _ _ _ _ _
+
+    None"""
+    print("Load table '{0}'".format(tableName))
 
     # Get the input building file extension and the appropriate h2gis read function name
     fileExtension = filePath.split(".")[-1]
     readFunction = DataUtil.readFunction(fileExtension)
-    
+
     if readFunction == "CSVREAD":
         cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0} 
                AS SELECT * FROM {2}('{1}');
-            """).format( tableName, filePath, readFunction))
-    else: # Import and then copy into a new table to remove all constraints (primary keys...)
+            """).format(tableName, filePath, readFunction))
+    else:  # Import and then copy into a new table to remove all constraints (primary keys...)
         cursor.execute(safe("""
            DROP TABLE IF EXISTS TEMPO, {0};
             CALL {2}('{1}','TEMPO');
             CREATE TABLE {0}
                 AS SELECT *
                 FROM TEMPO;
-            """).format( tableName, filePath, readFunction))
-    
+            """).format(tableName, filePath, readFunction))
+
     if srid_repro:
         reproject_function = "ST_TRANSFORM("
         reproject_srid = ", {0})".format(srid_repro)
     else:
         reproject_function = ""
         reproject_srid = ""
-    
+
     if srid:
         listCols = DataUtil.getColumns(cursor, tableName)
         listCols.remove(GEOM_FIELD)
         listCols_sql = ",".join(listCols)
         if listCols_sql != "":
             listCols_sql += ","
-        
-        cursor.execute(safe("""
+
+        cursor.execute(
+            safe("""
            DROP TABLE IF EXISTS TEMPO_LOAD;
            CREATE TABLE TEMPO_LOAD
                AS SELECT {0} {4}ST_SETSRID({1}, {2}){5} AS {1}
                FROM {3};
            DROP TABLE {3};
            ALTER TABLE TEMPO_LOAD RENAME TO {3}
-           """).format(listCols_sql, 
-                       GEOM_FIELD, 
-                       srid,
-                       tableName,
-                       reproject_function,
-                       reproject_srid))
-        
+           """).format(
+                listCols_sql,
+                GEOM_FIELD,
+                srid,
+                tableName,
+                reproject_function,
+                reproject_srid,
+            )
+        )
 
-def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
-                   vegTableName, prefix = PREFIX_NAME, save = True):
-    """ Convert 3D shapefile to 2.5 D shapefiles distinguishing
+
+def fromShp3dTo2_5(
+    cursor,
+    triangles3d,
+    TreesZone,
+    buildTableName,
+    vegTableName,
+    prefix=PREFIX_NAME,
+    save=True,
+):
+    """Convert 3D shapefile to 2.5 D shapefiles distinguishing
     buildings from trees if the surface intersecting trees is passed
-    
-		Parameters
-		_ _ _ _ _ _ _ _ _ _ 
+
+                Parameters
+                _ _ _ _ _ _ _ _ _ _
 
             cursor: conn.cursor
                 A cursor object, used to perform spatial SQL queries
@@ -375,13 +465,13 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                 Prefix to add to the output table name
             save: boolean, default True
                 Whether or not the resulting 2.5 layers are saved
-            
-		Returns
-		_ _ _ _ _ _ _ _ _ _ 
+
+                Returns
+                _ _ _ _ _ _ _ _ _ _
 
             None"""
     print("From 3D to 2.5D geometries")
-    
+
     # Create temporary table names (for tables that will be removed at the end of the IProcess)
     trianglesWithId = DataUtil.postfix("triangles_with_id")
     trees2d = DataUtil.postfix("trees_2d")
@@ -396,10 +486,11 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
             AS (SELECT CAST((row_number() over()) as Integer) AS ID, {1} 
                 FROM ST_EXPLODE('(SELECT * FROM {2} WHERE ST_AREA({1})>0)'))
             """).format(trianglesWithId, GEOM_FIELD, triangles3d))
-    
+
     if TreesZone:
         # Identify triangles being trees and convert them to 2D polygons
-        cursor.execute(safe("""
+        cursor.execute(
+            safe("""
            {6};
            {7};
            DROP TABLE IF EXISTS {0};
@@ -409,18 +500,27 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                             CAST(ST_ZMIN(a.{1}) AS INT) AS {3}
                 FROM    {4} AS a, {5} AS b
                 WHERE   a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1})
-                """).format( trees2d                             , GEOM_FIELD,
-                            VEGETATION_CROWN_TOP_HEIGHT         , VEGETATION_CROWN_BASE_HEIGHT,
-                            trianglesWithId                     , TreesZone,
-                            DataUtil.createIndex(tableName=trianglesWithId, 
-                                                fieldName=GEOM_FIELD,
-                                                isSpatial=True),
-                            DataUtil.createIndex(tableName=TreesZone, 
-                                                fieldName=GEOM_FIELD,
-                                                isSpatial=True)))
-        
+                """).format(
+                trees2d,
+                GEOM_FIELD,
+                VEGETATION_CROWN_TOP_HEIGHT,
+                VEGETATION_CROWN_BASE_HEIGHT,
+                trianglesWithId,
+                TreesZone,
+                DataUtil.createIndex(
+                    tableName=trianglesWithId,
+                    fieldName=GEOM_FIELD,
+                    isSpatial=True,
+                ),
+                DataUtil.createIndex(
+                    tableName=TreesZone, fieldName=GEOM_FIELD, isSpatial=True
+                ),
+            )
+        )
+
         # Identify triangles being buildings and convert them to 2D polygons
-        cursor.execute(safe("""
+        cursor.execute(
+            safe("""
             {5};
             {6};
             DROP TABLE IF EXISTS {0};
@@ -430,18 +530,25 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                 FROM    {3} AS a LEFT JOIN {4} AS b
                 ON      a.ID = b.ID
                 WHERE   b.ID IS NULL
-                """).format( buildings2d         , GEOM_FIELD,
-                            HEIGHT_FIELD        , trianglesWithId,
-                            trees2d             , DataUtil.createIndex( tableName=trianglesWithId, 
-                                                                        fieldName="ID",
-                                                                        isSpatial=False),
-                            DataUtil.createIndex(tableName=trees2d, 
-                                                 fieldName="ID",
-                                                 isSpatial=False)))
+                """).format(
+                buildings2d,
+                GEOM_FIELD,
+                HEIGHT_FIELD,
+                trianglesWithId,
+                trees2d,
+                DataUtil.createIndex(
+                    tableName=trianglesWithId, fieldName="ID", isSpatial=False
+                ),
+                DataUtil.createIndex(
+                    tableName=trees2d, fieldName="ID", isSpatial=False
+                ),
+            )
+        )
 
-        # Identify unique trees triangles keeping only the highest one whenever 
+        # Identify unique trees triangles keeping only the highest one whenever
         # 2 triangles are superimposed
-        cursor.execute(safe("""
+        cursor.execute(
+            safe("""
             {9};
             {10};
             {11};
@@ -460,34 +567,48 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
                FROM         {3} AS a LEFT JOIN {0} AS b
                             ON a.ID = b.ID
            WHERE    b.ID IS NULL
-            """).format( treesCovered                    , GEOM_FIELD,
-                        VEGETATION_CROWN_TOP_HEIGHT     , trees2d,
-                        vegTableName                    , ID_VEGETATION,
-                        VEGETATION_CROWN_BASE_HEIGHT    , DEFAULT_VEG_ATTEN_FACT,
-                        VEGETATION_ATTENUATION_FACTOR   , DataUtil.createIndex(tableName=trees2d, 
-                                                                               fieldName=GEOM_FIELD,
-                                                                               isSpatial=True),
-                        DataUtil.createIndex(tableName=trees2d, 
-                                             fieldName=VEGETATION_CROWN_TOP_HEIGHT,
-                                             isSpatial=False),
-                        DataUtil.createIndex(tableName=trees2d, 
-                                             fieldName="ID",
-                                             isSpatial=False)))
-    
+            """).format(
+                treesCovered,
+                GEOM_FIELD,
+                VEGETATION_CROWN_TOP_HEIGHT,
+                trees2d,
+                vegTableName,
+                ID_VEGETATION,
+                VEGETATION_CROWN_BASE_HEIGHT,
+                DEFAULT_VEG_ATTEN_FACT,
+                VEGETATION_ATTENUATION_FACTOR,
+                DataUtil.createIndex(
+                    tableName=trees2d, fieldName=GEOM_FIELD, isSpatial=True
+                ),
+                DataUtil.createIndex(
+                    tableName=trees2d,
+                    fieldName=VEGETATION_CROWN_TOP_HEIGHT,
+                    isSpatial=False,
+                ),
+                DataUtil.createIndex(
+                    tableName=trees2d, fieldName="ID", isSpatial=False
+                ),
+            )
+        )
+
     else:
         # Convert building triangles to to 2.5D polygons
-        cursor.execute(safe("""
+        cursor.execute(
+            safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0} 
                 AS SELECT   ID, ST_FORCE2D({1}) AS {1}, 
                             CAST(ST_ZMAX({1}) AS INT) AS {2}
                 FROM    {3}
-                """).format( buildings2d         , GEOM_FIELD,
-                            HEIGHT_FIELD        , trianglesWithId))
-    
-    # Identify unique building triangles keeping only the highest one whenever 
+                """).format(
+                buildings2d, GEOM_FIELD, HEIGHT_FIELD, trianglesWithId
+            )
+        )
+
+    # Identify unique building triangles keeping only the highest one whenever
     # 2 triangles are superimposed
-    cursor.execute(safe("""
+    cursor.execute(
+        safe("""
         {6};
         {7};
         {8};
@@ -506,24 +627,32 @@ def fromShp3dTo2_5(cursor, triangles3d, TreesZone, buildTableName,
             FROM         {3} AS a LEFT JOIN {0} AS b
                          ON a.ID = b.ID
         WHERE    b.ID IS NULL
-            """).format( buildingsCovered        , GEOM_FIELD,
-                        HEIGHT_FIELD            , buildings2d,
-                        buildTableName          , ID_FIELD_BUILD,
-                        DataUtil.createIndex(tableName=buildings2d, 
-                                             fieldName="ID",
-                                             isSpatial=False),
-                        DataUtil.createIndex(tableName=buildings2d, 
-                                             fieldName=GEOM_FIELD,
-                                             isSpatial=True),
-                        DataUtil.createIndex(tableName=buildings2d, 
-                                             fieldName=HEIGHT_FIELD,
-                                             isSpatial=False),
-                        DataUtil.createIndex(tableName=buildingsCovered, 
-                                             fieldName="ID",
-                                             isSpatial=False)))
+            """).format(
+            buildingsCovered,
+            GEOM_FIELD,
+            HEIGHT_FIELD,
+            buildings2d,
+            buildTableName,
+            ID_FIELD_BUILD,
+            DataUtil.createIndex(
+                tableName=buildings2d, fieldName="ID", isSpatial=False
+            ),
+            DataUtil.createIndex(
+                tableName=buildings2d, fieldName=GEOM_FIELD, isSpatial=True
+            ),
+            DataUtil.createIndex(
+                tableName=buildings2d, fieldName=HEIGHT_FIELD, isSpatial=False
+            ),
+            DataUtil.createIndex(
+                tableName=buildingsCovered, fieldName="ID", isSpatial=False
+            ),
+        )
+    )
 
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute(safe("DROP TABLE IF EXISTS {0}").format(",".join([trianglesWithId,
-                                                                   trees2d,
-                                                                   buildings2d])))
+        cursor.execute(
+            safe("DROP TABLE IF EXISTS {0}").format(
+                ",".join([trianglesWithId, trees2d, buildings2d])
+            )
+        )

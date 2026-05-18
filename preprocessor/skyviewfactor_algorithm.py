@@ -22,23 +22,26 @@
  ***************************************************************************/
 """
 
-__author__ = 'Fredrik Lindberg'
-__date__ = '2020-04-02'
-__copyright__ = '(C) 2020 by Fredrik Lindberg'
+__author__ = "Fredrik Lindberg"
+__date__ = "2020-04-02"
+__copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.core import (QgsProcessingAlgorithm,
-                       QgsProcessingParameterBoolean,
-                       QgsProcessingParameterNumber,
-                       QgsProcessingParameterFolderDestination,
-                       QgsProcessingParameterRasterDestination,
-                       QgsProcessingException,
-                       QgsProcessingParameterRasterLayer,
-                       QgsProcessingParameterDefinition)
+from qgis.core import (
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterRasterDestination,
+    QgsProcessingException,
+    QgsProcessingParameterRasterLayer,
+    QgsProcessingParameterDefinition,
+)
+
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr
@@ -54,115 +57,217 @@ from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 from ..functions import svf_functions as svf
 from ..functions import svf_for_voxels as svfv
 
+
 class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of SkyViewFactor
     """
 
-    INPUT_DSM = 'INPUT_DSM'
-    INPUT_CDSM = 'INPUT_CDSM'
-    INPUT_TDSM = 'INPUT_TDSM'
+    INPUT_DSM = "INPUT_DSM"
+    INPUT_CDSM = "INPUT_CDSM"
+    INPUT_TDSM = "INPUT_TDSM"
     # USE_VEG = 'USE_VEG'
-    TRANS_VEG = 'TRANS_VEG'
+    TRANS_VEG = "TRANS_VEG"
     # TSDM_EXIST = 'TSDM_EXIST'
-    INPUT_THEIGHT = 'INPUT_THEIGHT'
-    ANISO = 'ANISO'
-    KMEANS = 'KMEANS'
-    CLUSTERS = 'CLUSTERS'
-    WALL_SCHEME = 'WALL_SCHEME'
-    INPUT_DEM = 'INPUT_DEM'
-    INPUT_SVFHEIGHT = 'INPUT_SVFHEIGHT'
-    OUTPUT_DIR = 'OUTPUT_DIR'
-    OUTPUT_FILE = 'OUTPUT_FILE'
-    
+    INPUT_THEIGHT = "INPUT_THEIGHT"
+    ANISO = "ANISO"
+    KMEANS = "KMEANS"
+    CLUSTERS = "CLUSTERS"
+    WALL_SCHEME = "WALL_SCHEME"
+    INPUT_DEM = "INPUT_DEM"
+    INPUT_SVFHEIGHT = "INPUT_SVFHEIGHT"
+    OUTPUT_DIR = "OUTPUT_DIR"
+    OUTPUT_FILE = "OUTPUT_FILE"
+
     def initAlgorithm(self, config):
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_DSM,
-                self.tr('Input building and ground DSM'), None, False))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_DSM,
+                self.tr("Input building and ground DSM"),
+                None,
+                False,
+            )
+        )
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_VEG,
         #     self.tr("Use vegetation DSMs"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_CDSM,
-                self.tr('Vegetation canopy DSM'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.TRANS_VEG,
-            self.tr('Transmissivity of light through vegetation (%):'),
-            QgsProcessingParameterNumber.Type.Integer,
-            QVariant(3), True, minValue=0, maxValue=100))
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_CDSM, self.tr("Vegetation canopy DSM"), "", True
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.TRANS_VEG,
+                self.tr("Transmissivity of light through vegetation (%):"),
+                QgsProcessingParameterNumber.Type.Integer,
+                QVariant(3),
+                True,
+                minValue=0,
+                maxValue=100,
+            )
+        )
         # self.addParameter(QgsProcessingParameterBoolean(self.TSDM_EXIST,
         #     self.tr("Trunk zone DSM exist"), defaultValue=False))
-        self.addParameter(QgsProcessingParameterRasterLayer(self.INPUT_TDSM,
-                self.tr('Vegetation trunk zone DSM'), '', True))
-        self.addParameter(QgsProcessingParameterNumber(self.INPUT_THEIGHT,
-            self.tr("Trunk zone height (percent of canopy height)"),
-            QgsProcessingParameterNumber.Type.Double,
-            QVariant(25.0),
-            True, minValue=0.1, maxValue=99.9))
-        self.addParameter(QgsProcessingParameterBoolean(self.ANISO,
-            self.tr("Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG v2022a)\nand wall surface temperature scheme (SOLWEIG v2025a)"),
-            defaultValue=True))
-        
-        # Wall parameterization
-        wall_scheme = QgsProcessingParameterBoolean(self.WALL_SCHEME,
-            self.tr("Use parameterization scheme for wall surface temperatures (Wallenberg et al. 2025)"),
-            defaultValue=False)
-        wall_scheme.setFlags(wall_scheme.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
-        self.addParameter(wall_scheme)        
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                self.INPUT_TDSM, self.tr("Vegetation trunk zone DSM"), "", True
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.INPUT_THEIGHT,
+                self.tr("Trunk zone height (percent of canopy height)"),
+                QgsProcessingParameterNumber.Type.Double,
+                QVariant(25.0),
+                True,
+                minValue=0.1,
+                maxValue=99.9,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.ANISO,
+                self.tr(
+                    "Use method with 153 shadow images instead of 655. Required for anisotropic sky scheme (SOLWEIG v2022a)\nand wall surface temperature scheme (SOLWEIG v2025a)"
+                ),
+                defaultValue=True,
+            )
+        )
 
-        wall_kmeans = QgsProcessingParameterBoolean(self.KMEANS,
+        # Wall parameterization
+        wall_scheme = QgsProcessingParameterBoolean(
+            self.WALL_SCHEME,
+            self.tr(
+                "Use parameterization scheme for wall surface temperatures (Wallenberg et al. 2025)"
+            ),
+            defaultValue=False,
+        )
+        wall_scheme.setFlags(
+            wall_scheme.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
+        self.addParameter(wall_scheme)
+
+        wall_kmeans = QgsProcessingParameterBoolean(
+            self.KMEANS,
             self.tr("Use K-Means to calculate SVF for walls (SOLWEIG v2025a)"),
-            defaultValue=True)
-        wall_kmeans.setFlags(wall_kmeans.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
+            defaultValue=True,
+        )
+        wall_kmeans.setFlags(
+            wall_kmeans.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
         self.addParameter(wall_kmeans)
-        
-        wall_clusters = QgsProcessingParameterNumber(self.CLUSTERS,
-            self.tr("Number of clusters used in K-Means (number of elevations)"),
+
+        wall_clusters = QgsProcessingParameterNumber(
+            self.CLUSTERS,
+            self.tr(
+                "Number of clusters used in K-Means (number of elevations)"
+            ),
             QgsProcessingParameterNumber.Type.Integer,
             QVariant(5),
-            True, minValue=1, maxValue=100)
-        wall_clusters.setFlags(wall_clusters.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
-        self.addParameter(wall_clusters)        
-        
-        wall_dem = QgsProcessingParameterRasterLayer(self.INPUT_DEM,
-                self.tr('Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2025a)'), '', True)
-        wall_dem.setFlags(wall_dem.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
-        self.addParameter(wall_dem) 
+            True,
+            minValue=1,
+            maxValue=100,
+        )
+        wall_clusters.setFlags(
+            wall_clusters.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
+        self.addParameter(wall_clusters)
 
-        wall_svfheight = QgsProcessingParameterNumber(self.INPUT_SVFHEIGHT,
-            self.tr("Elevation steps (m) used in SVF calculations for wall surface temperature parameterization scheme\nInterpolation will performed if steps are larger than horizontal pixel resolution"),
+        wall_dem = QgsProcessingParameterRasterLayer(
+            self.INPUT_DEM,
+            self.tr(
+                "Input DEM used to calculate exact SVFs for wall surface temperature parameterization (SOLWEIG v2025a)"
+            ),
+            "",
+            True,
+        )
+        wall_dem.setFlags(
+            wall_dem.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
+        self.addParameter(wall_dem)
+
+        wall_svfheight = QgsProcessingParameterNumber(
+            self.INPUT_SVFHEIGHT,
+            self.tr(
+                "Elevation steps (m) used in SVF calculations for wall surface temperature parameterization scheme\nInterpolation will performed if steps are larger than horizontal pixel resolution"
+            ),
             QgsProcessingParameterNumber.Type.Double,
             QVariant(1.0),
-            True, minValue=0.5, maxValue=10)
-        wall_svfheight.setFlags(wall_svfheight.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
-        self.addParameter(wall_svfheight) 
+            True,
+            minValue=0.5,
+            maxValue=10,
+        )
+        wall_svfheight.setFlags(
+            wall_svfheight.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+        )
+        self.addParameter(wall_svfheight)
 
         # Output
-        self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 
-        'Output folder for individual raster files'))
-        self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_FILE,
-            self.tr("Output sky view factor raster"), None, False))
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder for individual raster files"
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterDestination(
+                self.OUTPUT_FILE,
+                self.tr("Output sky view factor raster"),
+                None,
+                False,
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        outputFile = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_FILE, context
+        )
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DSM, context
+        )
         # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+        vegdsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_CDSM, context
+        )
+        vegdsm2 = self.parameterAsRasterLayer(
+            parameters, self.INPUT_TDSM, context
+        )
         # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
+        trunkr = self.parameterAsDouble(
+            parameters, self.INPUT_THEIGHT, context
+        )
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
-        
+
         # Wall parameterization settings
-        demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-        svf_height = self.parameterAsDouble(parameters, self.INPUT_SVFHEIGHT, context)
+        demlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DEM, context
+        )
+        svf_height = self.parameterAsDouble(
+            parameters, self.INPUT_SVFHEIGHT, context
+        )
 
-        kmeans = self.parameterAsBool(parameters, self.KMEANS, context) # If K-means will be used or not (true or false)
-        clusters = self.parameterAsInt(parameters, self.CLUSTERS, context) + 1 # + 1 because ground areas will be one cluster when dsm - dem
-        wallScheme = self.parameterAsBool(parameters, self.WALL_SCHEME, context)
+        kmeans = self.parameterAsBool(
+            parameters, self.KMEANS, context
+        )  # If K-means will be used or not (true or false)
+        clusters = (
+            self.parameterAsInt(parameters, self.CLUSTERS, context) + 1
+        )  # + 1 because ground areas will be one cluster when dsm - dem
+        wallScheme = self.parameterAsBool(
+            parameters, self.WALL_SCHEME, context
+        )
 
-        feedback.setProgressText('Initiating algorithm')
+        feedback.setProgressText("Initiating algorithm")
 
-        if parameters['OUTPUT_DIR'] == 'TEMPORARY_OUTPUT':
+        if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
@@ -173,7 +278,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
-        dsm[dsm == nd] = 0.
+        dsm[dsm == nd] = 0.0
         if dsm.min() < 0:
             dsm = dsm + np.abs(dsm.min())
 
@@ -190,26 +295,30 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 provider = demlayer.dataProvider()
                 filepath_dem = str(provider.dataSourceUri())
                 gdal_dem = gdal.Open(filepath_dem)
-                dem = gdal_dem.ReadAsArray().astype(float)            
-                
+                dem = gdal_dem.ReadAsArray().astype(float)
+
                 demsizex = dem.shape[0]
                 demsizey = dem.shape[1]
 
-                if not (demsizex == sizex) & (demsizey == sizey):  
-                    raise QgsProcessingException("Error in DEM: All rasters must be of same extent and resolution")
+                if not (demsizex == sizex) & (demsizey == sizey):
+                    raise QgsProcessingException(
+                        "Error in DEM: All rasters must be of same extent and resolution"
+                    )
             else:
-                raise QgsProcessingException("DEM layer required for wall surface scheme!")
+                raise QgsProcessingException(
+                    "DEM layer required for wall surface scheme!"
+                )
         else:
-            dem = None            
+            dem = None
 
         trans = transVeg / 100.0
 
         if vegdsm:
             usevegdem = 1
-            feedback.setProgressText('Vegetation scheme activated')
+            feedback.setProgressText("Vegetation scheme activated")
             # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
             # if vegdsm is None:
-                # raise QgsProcessingException("Error: No valid vegetation DSM selected")
+            # raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -222,12 +331,14 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             vegsizey = vegdsm.shape[1]
 
             if not (vegsizex == sizex) & (vegsizey == sizey):
-                raise QgsProcessingException("Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution")
+                raise QgsProcessingException(
+                    "Error in Vegetation Canopy DSM: All rasters must be of same extent and resolution"
+                )
 
             if vegdsm2:
                 # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
                 # if vegdsm2 is None:
-                    # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
+                # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -242,37 +353,53 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             vegsizex = vegdsm2.shape[0]
             vegsizey = vegdsm2.shape[1]
 
-            if not (vegsizex == sizex) & (vegsizey == sizey):  
-                raise QgsProcessingException("Error in Trunk Zone DSM: All rasters must be of same extent and resolution")
+            if not (vegsizex == sizex) & (vegsizey == sizey):
+                raise QgsProcessingException(
+                    "Error in Trunk Zone DSM: All rasters must be of same extent and resolution"
+                )
         else:
             rows = dsm.shape[0]
             cols = dsm.shape[1]
             vegdsm = np.zeros([rows, cols])
-            vegdsm2 = 0.
+            vegdsm2 = 0.0
             usevegdem = 0
 
         if aniso == 1:
-            feedback.setProgressText('Calculating SVF using 153 iterations')
-            ret = svf.svfForProcessing153(dsm, vegdsm, vegdsm2, scale, usevegdem, pixel_resolution, wallScheme, dem, feedback)
+            feedback.setProgressText("Calculating SVF using 153 iterations")
+            ret = svf.svfForProcessing153(
+                dsm,
+                vegdsm,
+                vegdsm2,
+                scale,
+                usevegdem,
+                pixel_resolution,
+                wallScheme,
+                dem,
+                feedback,
+            )
         else:
-            feedback.setProgressText('Calculating SVF using 655 iterations')
-            ret = svf.svfForProcessing655(dsm, vegdsm, vegdsm2, scale, usevegdem, feedback)
+            feedback.setProgressText("Calculating SVF using 655 iterations")
+            ret = svf.svfForProcessing655(
+                dsm, vegdsm, vegdsm2, scale, usevegdem, feedback
+            )
 
         # print('Time to finish first SVF calculation = ' + str(run_time))
         if wallScheme == 1:
-            voxelTable = ret['voxelTable']
-            voxelTable = voxelTable[voxelTable[:, 2] != 0, :] # Remove where wall height is zero, i.e. there is no wall...
-            wallHeights = ret['walls']
+            voxelTable = ret["voxelTable"]
+            voxelTable = voxelTable[
+                voxelTable[:, 2] != 0, :
+            ]  # Remove where wall height is zero, i.e. there is no wall...
+            wallHeights = ret["walls"]
             svfbu = ret["svf"]
             if usevegdem == 0:
                 svftotal = svfbu
-                svfveg = ret['svfveg']
-                svfaveg = ret['svfaveg']
+                svfveg = ret["svfveg"]
+                svfaveg = ret["svfaveg"]
             else:
                 svfveg = ret["svfveg"]
                 svfaveg = ret["svfaveg"]
                 trans = transVeg / 100.0
-                svftotal = (svfbu - (1 - svfveg) * (1 - trans))                   
+                svftotal = svfbu - (1 - svfveg) * (1 - trans)
             # Lägg till loop för att lägga till i tabellen
             svf_array = np.zeros((voxelTable.shape[0]))
             svf_height_array = np.zeros((voxelTable.shape[0]))
@@ -281,40 +408,93 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfaveg_array = np.zeros((voxelTable.shape[0]))
             voxel_y = np.where(voxelTable[:, 1] == svf_height)
             for temp_y in voxel_y[0]:
-                svf_array[temp_y] = svftotal[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
-                svfbu_array[temp_y] = svfbu[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
-                svfveg_array[temp_y] = svfveg[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
-                svfaveg_array[temp_y] = svfaveg[int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])]
-                svf_height_array[temp_y] = svf_height            
+                svf_array[temp_y] = svftotal[
+                    int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                ]
+                svfbu_array[temp_y] = svfbu[
+                    int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                ]
+                svfveg_array[temp_y] = svfveg[
+                    int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                ]
+                svfaveg_array[temp_y] = svfaveg[
+                    int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                ]
+                svf_height_array[temp_y] = svf_height
 
             if kmeans:
-                voxelTable, cluster_heights = svfv.svf_kmeans(dsm, dem, vegdsm, vegdsm2, wallHeights, transVeg, scale, usevegdem, pixel_resolution, voxelTable, clusters,
-                                                svf_height, svf_array, svfbu_array, svfveg_array, svfaveg_array, svf_height_array, feedback)
+                voxelTable, cluster_heights = svfv.svf_kmeans(
+                    dsm,
+                    dem,
+                    vegdsm,
+                    vegdsm2,
+                    wallHeights,
+                    transVeg,
+                    scale,
+                    usevegdem,
+                    pixel_resolution,
+                    voxelTable,
+                    clusters,
+                    svf_height,
+                    svf_array,
+                    svfbu_array,
+                    svfveg_array,
+                    svfaveg_array,
+                    svf_height_array,
+                    feedback,
+                )
 
                 # Interpolate for voxels where SVF has not been calculated
-                voxelTable = svfv.interpolate_svf(voxelTable, cluster_heights, kmeans)
+                voxelTable = svfv.interpolate_svf(
+                    voxelTable, cluster_heights, kmeans
+                )
 
             # Loop for exact SVF at heights (increase DEM)
             # if demlayer:
             else:
-                feedback.setProgressText('Calculating SVF for wall surface temperature parameterization')
-                voxelTable = svfv.svf_for_voxels(dsm, dem, vegdsm, vegdsm2, transVeg, scale, usevegdem, pixel_resolution, voxelTable,
-                                                svf_height, svf_array, svfbu_array, svfveg_array, svfaveg_array, svf_height_array, feedback)
+                feedback.setProgressText(
+                    "Calculating SVF for wall surface temperature parameterization"
+                )
+                voxelTable = svfv.svf_for_voxels(
+                    dsm,
+                    dem,
+                    vegdsm,
+                    vegdsm2,
+                    transVeg,
+                    scale,
+                    usevegdem,
+                    pixel_resolution,
+                    voxelTable,
+                    svf_height,
+                    svf_array,
+                    svfbu_array,
+                    svfveg_array,
+                    svfaveg_array,
+                    svf_height_array,
+                    feedback,
+                )
 
                 # Remove rows where svfbu, sfveg and svfaveg is zero
                 if usevegdem == 1:
-                    voxelTable = voxelTable[((voxelTable[:,-3] > 0.) & (voxelTable[:,-2] > 0.) & (voxelTable[:,-1] > 0.)), :]
+                    voxelTable = voxelTable[
+                        (
+                            (voxelTable[:, -3] > 0.0)
+                            & (voxelTable[:, -2] > 0.0)
+                            & (voxelTable[:, -1] > 0.0)
+                        ),
+                        :,
+                    ]
                 else:
-                    voxelTable = voxelTable[((voxelTable[:,-3] > 0.)), :]
-            
+                    voxelTable = voxelTable[((voxelTable[:, -3] > 0.0)), :]
+
             # Store voxelTable, necessary?
-            ret['voxelTable'] = voxelTable
+            ret["voxelTable"] = voxelTable
 
         filename = outputFile
 
         # temporary fix for mac, ISSUE #15
         pf = sys.platform
-        if pf == 'darwin' or pf == 'linux2' or pf == 'linux':
+        if pf == "darwin" or pf == "linux2" or pf == "linux":
             if not os.path.exists(outputDir):
                 os.makedirs(outputDir)
 
@@ -324,29 +504,29 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfbuS = ret["svfS"]
             svfbuW = ret["svfW"]
             svfbuN = ret["svfN"]
-            
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svf.tif', svfbu)
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svfE.tif', svfbuE)
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svfS.tif', svfbuS)
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svfW.tif', svfbuW)
-            misc.saveraster(gdal_dsm, outputDir + '/' + 'svfN.tif', svfbuN)
 
-            if os.path.isfile(outputDir + '/' + 'svfs.zip'):
-                os.remove(outputDir + '/' + 'svfs.zip')
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svf.tif", svfbu)
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfE.tif", svfbuE)
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfS.tif", svfbuS)
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfW.tif", svfbuW)
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfN.tif", svfbuN)
 
-            zippo = zipfile.ZipFile(outputDir + '/' + 'svfs.zip', 'a')
-            zippo.write(outputDir + '/' + 'svf.tif', 'svf.tif')
-            zippo.write(outputDir + '/' + 'svfE.tif', 'svfE.tif')
-            zippo.write(outputDir + '/' + 'svfS.tif', 'svfS.tif')
-            zippo.write(outputDir + '/' + 'svfW.tif', 'svfW.tif')
-            zippo.write(outputDir + '/' + 'svfN.tif', 'svfN.tif')
+            if os.path.isfile(outputDir + "/" + "svfs.zip"):
+                os.remove(outputDir + "/" + "svfs.zip")
+
+            zippo = zipfile.ZipFile(outputDir + "/" + "svfs.zip", "a")
+            zippo.write(outputDir + "/" + "svf.tif", "svf.tif")
+            zippo.write(outputDir + "/" + "svfE.tif", "svfE.tif")
+            zippo.write(outputDir + "/" + "svfS.tif", "svfS.tif")
+            zippo.write(outputDir + "/" + "svfW.tif", "svfW.tif")
+            zippo.write(outputDir + "/" + "svfN.tif", "svfN.tif")
             zippo.close()
 
-            os.remove(outputDir + '/' + 'svf.tif')
-            os.remove(outputDir + '/' + 'svfE.tif')
-            os.remove(outputDir + '/' + 'svfS.tif')
-            os.remove(outputDir + '/' + 'svfW.tif')
-            os.remove(outputDir + '/' + 'svfN.tif')
+            os.remove(outputDir + "/" + "svf.tif")
+            os.remove(outputDir + "/" + "svfE.tif")
+            os.remove(outputDir + "/" + "svfS.tif")
+            os.remove(outputDir + "/" + "svfW.tif")
+            os.remove(outputDir + "/" + "svfN.tif")
 
             if usevegdem == 0:
                 svftotal = svfbu
@@ -363,43 +543,63 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svfWaveg = ret["svfWaveg"]
                 svfNaveg = ret["svfNaveg"]
 
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfveg.tif', svfveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfEveg.tif', svfEveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfSveg.tif', svfSveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfWveg.tif', svfWveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfNveg.tif', svfNveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfaveg.tif', svfaveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfEaveg.tif', svfEaveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfSaveg.tif', svfSaveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfWaveg.tif', svfWaveg)
-                misc.saveraster(gdal_dsm, outputDir + '/' + 'svfNaveg.tif', svfNaveg)
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfveg.tif", svfveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfEveg.tif", svfEveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfSveg.tif", svfSveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfWveg.tif", svfWveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfNveg.tif", svfNveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfaveg.tif", svfaveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfEaveg.tif", svfEaveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfSaveg.tif", svfSaveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfWaveg.tif", svfWaveg
+                )
+                misc.saveraster(
+                    gdal_dsm, outputDir + "/" + "svfNaveg.tif", svfNaveg
+                )
 
-                zippo = zipfile.ZipFile(outputDir + '/' + 'svfs.zip', 'a')
-                zippo.write(outputDir + '/' + 'svfveg.tif', 'svfveg.tif')
-                zippo.write(outputDir + '/' + 'svfEveg.tif', 'svfEveg.tif')
-                zippo.write(outputDir + '/' + 'svfSveg.tif', 'svfSveg.tif')
-                zippo.write(outputDir + '/' + 'svfWveg.tif', 'svfWveg.tif')
-                zippo.write(outputDir + '/' + 'svfNveg.tif', 'svfNveg.tif')
-                zippo.write(outputDir + '/' + 'svfaveg.tif', 'svfaveg.tif')
-                zippo.write(outputDir + '/' + 'svfEaveg.tif', 'svfEaveg.tif')
-                zippo.write(outputDir + '/' + 'svfSaveg.tif', 'svfSaveg.tif')
-                zippo.write(outputDir + '/' + 'svfWaveg.tif', 'svfWaveg.tif')
-                zippo.write(outputDir + '/' + 'svfNaveg.tif', 'svfNaveg.tif')
+                zippo = zipfile.ZipFile(outputDir + "/" + "svfs.zip", "a")
+                zippo.write(outputDir + "/" + "svfveg.tif", "svfveg.tif")
+                zippo.write(outputDir + "/" + "svfEveg.tif", "svfEveg.tif")
+                zippo.write(outputDir + "/" + "svfSveg.tif", "svfSveg.tif")
+                zippo.write(outputDir + "/" + "svfWveg.tif", "svfWveg.tif")
+                zippo.write(outputDir + "/" + "svfNveg.tif", "svfNveg.tif")
+                zippo.write(outputDir + "/" + "svfaveg.tif", "svfaveg.tif")
+                zippo.write(outputDir + "/" + "svfEaveg.tif", "svfEaveg.tif")
+                zippo.write(outputDir + "/" + "svfSaveg.tif", "svfSaveg.tif")
+                zippo.write(outputDir + "/" + "svfWaveg.tif", "svfWaveg.tif")
+                zippo.write(outputDir + "/" + "svfNaveg.tif", "svfNaveg.tif")
                 zippo.close()
 
-                os.remove(outputDir + '/' + 'svfveg.tif')
-                os.remove(outputDir + '/' + 'svfEveg.tif')
-                os.remove(outputDir + '/' + 'svfSveg.tif')
-                os.remove(outputDir + '/' + 'svfWveg.tif')
-                os.remove(outputDir + '/' + 'svfNveg.tif')
-                os.remove(outputDir + '/' + 'svfaveg.tif')
-                os.remove(outputDir + '/' + 'svfEaveg.tif')
-                os.remove(outputDir + '/' + 'svfSaveg.tif')
-                os.remove(outputDir + '/' + 'svfWaveg.tif')
-                os.remove(outputDir + '/' + 'svfNaveg.tif')
+                os.remove(outputDir + "/" + "svfveg.tif")
+                os.remove(outputDir + "/" + "svfEveg.tif")
+                os.remove(outputDir + "/" + "svfSveg.tif")
+                os.remove(outputDir + "/" + "svfWveg.tif")
+                os.remove(outputDir + "/" + "svfNveg.tif")
+                os.remove(outputDir + "/" + "svfaveg.tif")
+                os.remove(outputDir + "/" + "svfEaveg.tif")
+                os.remove(outputDir + "/" + "svfSaveg.tif")
+                os.remove(outputDir + "/" + "svfWaveg.tif")
+                os.remove(outputDir + "/" + "svfNaveg.tif")
 
                 trans = transVeg / 100.0
-                svftotal = (svfbu - (1 - svfveg) * (1 - trans))
+                svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
             misc.saveraster(gdal_dsm, filename, svftotal)
 
@@ -413,22 +613,33 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 # wallshvemat = ret["wallshvemat"]
                 # facesunmat = ret["facesunmat"]
 
-                np.savez_compressed(outputDir + '/' + "shadowmats.npz", shadowmat=shmat, vegshadowmat=vegshmat, vbshmat=vbshvegshmat) #,
-                                    # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
-                                    # facesunmat=facesunmat, wallshvemat=wallshvemat)
-            
+                np.savez_compressed(
+                    outputDir + "/" + "shadowmats.npz",
+                    shadowmat=shmat,
+                    vegshadowmat=vegshmat,
+                    vbshmat=vbshvegshmat,
+                )  # ,
+                # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
+                # facesunmat=facesunmat, wallshvemat=wallshvemat)
+
             if wallScheme == 1:
-                voxelId = ret['voxelIds']
-                voxelTable = ret['voxelTable']
+                voxelId = ret["voxelIds"]
+                voxelTable = ret["voxelTable"]
 
-                np.savez_compressed(outputDir + '/' + 'wallScheme.npz', voxelId=voxelId, voxelTable=voxelTable)
+                np.savez_compressed(
+                    outputDir + "/" + "wallScheme.npz",
+                    voxelId=voxelId,
+                    voxelTable=voxelTable,
+                )
 
-        feedback.setProgressText("Sky View Factor: SVF grid(s) successfully generated")
+        feedback.setProgressText(
+            "Sky View Factor: SVF grid(s) successfully generated"
+        )
 
         return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: outputFile}
-    
+
     def name(self):
-        return 'Urban Geometry: Sky View Factor'
+        return "Urban Geometry: Sky View Factor"
 
     def displayName(self):
         return self.tr(self.name())
@@ -437,30 +648,34 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         return self.tr(self.groupId())
 
     def groupId(self):
-        return 'Pre-Processor'
+        return "Pre-Processor"
 
     def shortHelpString(self):
-        return self.tr('The Sky View Factor algorithm can be used to generate pixel wise sky view factor (SVF) '
-        'using ground and building digital surface models (DSM). Optionally, vegetation DSMs could also be used. '
-        'By definition, SVF is the ratio of the radiation received (or emitted) by a planar surface to the '
-        'radiation emitted (or received) by the entire hemispheric environment (Watson and Johnson 1987). '
-        'It is a dimensionless measure between zero and one, representing totally obstructed and free spaces, '
-        'respectively. The methodology that is used to generate SVF here is described in Lindberg and Grimmond (2010).\n'
-        '-------------\n'
-        'Lindberg F, Grimmond CSB (2010) Continuous sky view factor maps from high resolution urban digital elevation models. Clim Res 42:177–183\n'
-        'Watson ID, Johnson GT (1987) Graphical estimation of skyview-factors in urban environments. J Climatol 7: 193–197'
-        '------------\n'
-        'Full manual available via the <b>Help</b>-button.')
+        return self.tr(
+            "The Sky View Factor algorithm can be used to generate pixel wise sky view factor (SVF) "
+            "using ground and building digital surface models (DSM). Optionally, vegetation DSMs could also be used. "
+            "By definition, SVF is the ratio of the radiation received (or emitted) by a planar surface to the "
+            "radiation emitted (or received) by the entire hemispheric environment (Watson and Johnson 1987). "
+            "It is a dimensionless measure between zero and one, representing totally obstructed and free spaces, "
+            "respectively. The methodology that is used to generate SVF here is described in Lindberg and Grimmond (2010).\n"
+            "-------------\n"
+            "Lindberg F, Grimmond CSB (2010) Continuous sky view factor maps from high resolution urban digital elevation models. Clim Res 42:177–183\n"
+            "Watson ID, Johnson GT (1987) Graphical estimation of skyview-factors in urban environments. J Climatol 7: 193–197"
+            "------------\n"
+            "Full manual available via the <b>Help</b>-button."
+        )
 
     def helpUrl(self):
         url = "https://umep-docs.readthedocs.io/en/latest/pre-processor/Urban%20Geometry%20Sky%20View%20Factor%20Calculator.html"
         return url
 
     def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
+        return QCoreApplication.translate("Processing", string)
 
     def icon(self):
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0]).parent
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        ).parent
         icon = QIcon(str(cmd_folder) + "/icons/icon_svf.png")
         return icon
 
