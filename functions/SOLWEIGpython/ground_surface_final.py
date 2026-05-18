@@ -83,38 +83,46 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location):
 
         # Initial ground surface temperature parameters
         offset_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][0]
-        ratio_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
-        phi_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
+        slope_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
+        ratio_Tg = solweig_parameters['Tg_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
+        phi_Tg = 1.6
+
+        # Correct the offset value given the latitude 
+        offset_Tg += slope_Tg * location['latitude']
 
         # Mean daily soil temperature parameters
         ampl_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][0]
-        phi_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
+        slope_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][1]
         offset_Tm = solweig_parameters['Tm_ini coefficients']['Values'][solweig_parameters['Names']['Value'][str(i)]][2]
+        phi_Tm = 1.7
+
+        # Correct the offset value given the latitude 
+        offset_Tm += slope_Tm * location['latitude']
 
         if i==0 or i==1:
             # For paved and asphalt landcover
-            Tg[Tg==i] = Ta[0] + offset_Tg * (1 + 1 / ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
+            Tg[Tg==i] = Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
             Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm + 4
 
         elif i==2:
             # For roofs
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + 1 / ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
+            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 4
             Tm[Tm==i] = np.mean(Ta) + offset_Tm
 
         elif i==5:
             # For grass surfaces
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + 1 / ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude']))
+            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude']))
             Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm
 
         elif i==6:
             # For bare soil landcover
-            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + 1 / ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 2
+            Tg[Tg==i] =  Ta[0] + offset_Tg * (1 + ratio_Tg *np.sin(2*np.pi/365.25 * day + phi_Tg) * np.sign(location['latitude'])) + 2
             Tm[Tm==i] = np.mean(Ta) + ampl_Tm*np.sin(2*np.pi/365.25 * day + phi_Tm) * np.sign(location['latitude']) + offset_Tm + 2
 
         elif i==7:
             # For water bodies
             Tg[Tg==i] = Ta[0]
-        
+            
     return Tg, Tm, Rn, Rn_past, G, cap_grid, diff_grid, a1_grid, a2_grid, a3_grid
 
 
