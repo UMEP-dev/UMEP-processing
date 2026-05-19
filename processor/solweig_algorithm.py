@@ -754,6 +754,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         folderPathPerez = self.parameterAsString(
             parameters, self.INPUT_ANISO, context
         )
+        useGroundScheme = self.parameterAsString(
+            parameters, self.USE_GROUNDSCHEME, context
+        )
         groundTempFile = self.parameterAsString(
             parameters, self.INPUT_GROUNDSCHEME, context
         )
@@ -1178,6 +1181,16 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
 
+        # Ground cover scheme
+        if useGroundScheme:
+            feedback.setProgressText(
+                "The ground cover scheme from v2026 is activated"
+            )
+        else:
+            feedback.setProgressText(
+                "The ground cover scheme described in 2016 is activated"
+            )
+
         # % Ts parameterisation maps
         if landcover == 1.0:
             if folderWallScheme:
@@ -1318,7 +1331,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr("Outdoor Thermal Comfort: SOLWEIG v2025a")
+        return self.tr("Outdoor Thermal Comfort: SOLWEIG v2026a")
 
     def group(self):
         """
@@ -1339,7 +1352,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return self.tr(
-            "SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and "
+            "SOLWEIG (v2026a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and "
             "mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same "
             "approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  "
             "six directions being individually calculated to derive Tmrt. The model requires a limited number "
