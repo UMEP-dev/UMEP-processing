@@ -15,7 +15,7 @@ from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
 )
 
 from ...functions.SOLWEIGpython import (
-    Solweig_2026a_calc_forprocessing_final as so,
+    Solweig_2026a_calc_forprocessing as so,
 )
 
 # from ...functions.SOLWEIGpython import WriteMetadataSOLWEIG # Not needed anymore?
@@ -28,7 +28,7 @@ from ...functions.SOLWEIGpython.patch_characteristics import hemispheric_image
 from ...functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
 from ...functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
 from ...functions import wallalgorithms as wa
-from ...functions.SOLWEIGpython.ground_surface_final import (
+from ...functions.SOLWEIGpython.ground_surface import (
     initiate_groundScheme,
 )
 import numpy as np
