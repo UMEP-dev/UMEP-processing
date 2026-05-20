@@ -380,7 +380,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         else:
             rows = dsm.shape[0]
             cols = dsm.shape[1]
-            vegdsm = np.zeros([rows, cols])
+            vegdsm = torch.zeros([rows, cols], device=device)
             vegdsm2 = 0.0
             usevegdem = 0
             
@@ -426,12 +426,12 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 trans = transVeg / 100.0
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
             # Lägg till loop för att lägga till i tabellen
-            svf_array = np.zeros((voxelTable.shape[0]))
-            svf_height_array = np.zeros((voxelTable.shape[0]))
-            svfbu_array = np.zeros((voxelTable.shape[0]))
-            svfveg_array = np.zeros((voxelTable.shape[0]))
-            svfaveg_array = np.zeros((voxelTable.shape[0]))
-            voxel_y = np.where(voxelTable[:, 1] == svf_height)
+            svf_array = torch.zeros((voxelTable.shape[0]), device=device)
+            svf_height_array = torch.zeros((voxelTable.shape[0]), device=device)
+            svfbu_array = torch.zeros((voxelTable.shape[0]), device=device)
+            svfveg_array = torch.zeros((voxelTable.shape[0]), device=device)
+            svfaveg_array = torch.zeros((voxelTable.shape[0]), device=device)
+            voxel_y = torch.where(voxelTable[:, 1] == svf_height)
             for temp_y in voxel_y[0]:
                 svf_array[temp_y] = svftotal[
                     int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -655,7 +655,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
                 np.savez_compressed(
                     outputDir + "/" + "wallScheme.npz",
-                    voxelId=voxelId,
+                    voxelId=voxelId.cpu().detach().numpy(),
                     voxelTable=voxelTable.cpu().detach().numpy(),
                 )
 

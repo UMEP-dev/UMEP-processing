@@ -137,6 +137,7 @@ def svfForProcessing153(
 ):
     if device is None:
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    
     dsm = _to_tensor(dsm, device)
     vegdem = _to_tensor(vegdem, device)
     vegdem2 = _to_tensor(vegdem2, device)
