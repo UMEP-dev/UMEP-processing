@@ -73,10 +73,7 @@ except:
 # from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 # from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
-device = torch.device(
-    "cuda" if torch.cuda.is_available() 
-    else "cpu"
-)
+
 
 def solweig_run(configPath, feedback):
     """
@@ -84,15 +81,7 @@ def solweig_run(configPath, feedback):
     configPath : config file including geodata paths and settings.
     feedback : To communicate with qgis gui. Set to None if standalone
     """
-    # --- Load CPU OR GPU config
-    choice = input("Do you want to use the GPU ? (yes/no) : ").strip().lower()
-    selected_device = None
-    if choice == "yes" and torch.cuda.is_available():
-        selected_device = torch.device("cuda")
-        print("GPU selected")
-    else:
-        selected_device = torch.device("cpu")
-        print("CPU selected")
+
 
     # Load config file
     configDict = read_solweig_config(configPath)
@@ -100,8 +89,8 @@ def solweig_run(configPath, feedback):
     # Load parameters settings for SOLWEIG
     with open(configDict["para_json_path"], "r") as jsn:
         param = json.load(jsn)
+        
 
-    standAlone = int(configDict["standalone"])
 
     # reading variables from config and parameters that is not yet presented
     cyl = int(configDict["cyl"])
@@ -111,6 +100,19 @@ def solweig_run(configPath, feedback):
     elvis = 0.0
     absK = param["Tmrt_params"]["Value"]["absK"]
     absL = param["Tmrt_params"]["Value"]["absL"]
+    
+    # --- Load on CPU or GPU config
+    device = torch.device("cpu")
+    print("passe")
+    
+    if configDict["calculation_mode"] == "gpu" and torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("using gpu")
+
+    else:
+        print("using cpu")
+
+    standAlone = int(configDict["standalone"])
 
     # Load DSM
     if standAlone == 1:

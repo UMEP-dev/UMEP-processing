@@ -125,6 +125,8 @@ def write_solweig_config(configDict, refdir):
     f.write("outputkdiff={}\n".format(configDict["outputkdiff"]))
     f.write("outputtreeplanter={}\n".format(configDict["outputtreeplanter"]))
     f.write("wallnetcdf={}\n".format(configDict["wallnetcdf"]))
+    f.write("# calculation mode (cpu or gpu)\n")
+    f.write("calculation_mode={}\n".format(configDict["calculation_mode"]))
     f.write("#-------------------------------------------------------\n")
     f.write("# dates - used if an EPW-file is used\n")
     f.write("#-------------------------------------------------------\n")

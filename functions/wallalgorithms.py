@@ -5,45 +5,81 @@ __author__ = "xlinfr"
 
 import math
 import numpy as np
+import torch
+import torch.nn.functional as F
+
 
 # import scipy.misc as sc
 import scipy.ndimage as sc
 from scipy.ndimage import maximum_filter
 
 
-def findwalls_sp(arr_dsm, walllimit, footprint=False):
-    # This function identifies walls based on a DSM and a wall height limit.
-    # arr_dsm = DSM
-    # walllimit = wall height limit
-    # footprint = footprint for maximum filter, default = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+def findwalls_sp(arr_dsm, walllimit, footprint=None):
+    """
+    This function identifies walls based on a DSM and a wall height limit.
+    
+    Parameters:
+    arr_dsm (Tensor or array-like): Digital Surface Model
+    walllimit (float): Wall height limit
+    footprint (Tensor, optional): Structuring element for the maximum filter.
+                                  Defaults to a diamond shape (cardinal neighbors).
+    """
+    # Ensure input is a PyTorch tensor and preserve its device (CPU or GPU)
+    if isinstance(arr_dsm, torch.Tensor):
+        dsm_tensor = arr_dsm
+    else:
+        dsm_tensor = torch.tensor(arr_dsm)
 
-    # Get the shape of the input array
-    col, row = arr_dsm.shape
-    walls = np.zeros((col, row))
+    # 1. Padding: 'edge' mode in NumPy becomes 'replicate' in PyTorch
+    # PyTorch requires at least a 3D tensor for 'replicate', so we unsqueeze(0)
+    padded_a = dsm_tensor.unsqueeze(0)
+    padded_a = F.pad(padded_a, pad=(1, 1, 1, 1), mode="replicate")
+    padded_a = padded_a.squeeze(0)
 
-    # Create a padded version of the array
-    padded_a = np.pad(arr_dsm, pad_width=1, mode="edge")
+    # 2. Maximum Filter using Max Pooling
+    # Default footprint is a 3x3 diamond shape (cardinal points)
+    if footprint is None or footprint is False:
+        # For max_pool2d, we simulate the footprint by looking at a 3x3 window.
+        # To strictly replicate a diamond footprint in pure PyTorch, we can use 
+        # a 2D morphological dilation with a custom kernel:
+        kernel = torch.tensor([[0., 1., 0.],
+                               [1., 1., 1.], # Including center for max filter
+                               [0., 1., 0.]], device=dsm_tensor.device)
+        
+        # Reshape padded_a to (Batch=1, Channel=1, H, W) for 2D convolutions
+        x = padded_a.unsqueeze(0).unsqueeze(0)
+        
+        # We use unfolds or a specialized max_pool, but since your footprint has 0s,
+        # the cleanest PyTorch way is to mask the 3x3 windows:
+        windows = F.unfold(x, kernel_size=3, padding=0) # Shape: (1, 9, L)
+        # Multiply by kernel flattened, replacing 0s with -inf so they are ignored in max
+        kernel_flat = kernel.flatten().unsqueeze(1)
+        windows = windows + torch.where(kernel_flat == 1, 0.0, float('-inf'))
+        
+        # Take the maximum over the 9 neighbors
+        max_neighbors = windows.max(dim=1)[0] # Shape: (1, L)
+        
+        # Reshape back to original DSM size (col, row)
+        max_neighbors = max_neighbors.view(dsm_tensor.shape)
+    else:
+        # If a custom footprint is provided, you can apply a similar unfold method
+        x = padded_a.unsqueeze(0).unsqueeze(0)
+        windows = F.unfold(x, kernel_size=footprint.shape, padding=0)
+        footprint_flat = footprint.to(dsm_tensor.device).flatten().unsqueeze(1)
+        windows = windows + torch.where(footprint_flat == 1, 0.0, float('-inf'))
+        max_neighbors = windows.max(dim=1)[0].view(dsm_tensor.shape)
 
-    # Default footprint for cardinal points
-    if footprint is False:
-        footprint = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
-
-    # Use maximum_filter with the custom footprint
-    max_neighbors = maximum_filter(
-        padded_a, footprint=footprint, mode="constant", cval=0
-    )
-
-    # Identify wall pixels: walls are where the max neighbors are greater than the original DSM
-    walls = max_neighbors[1:-1, 1:-1] - arr_dsm
+    # 3. Identify wall pixels
+    walls = max_neighbors - dsm_tensor
 
     # Apply wall height limit
     walls[walls < walllimit] = 0
 
-    # Set the edges to zero
-    walls[0 : walls.shape[0], 0] = 0
-    walls[0 : walls.shape[0], walls.shape[1] - 1] = 0
-    walls[0, 0 : walls.shape[1]] = 0
-    walls[walls.shape[0] - 1, 0 : walls.shape[1]] = 0
+    # 4. Set the outermost boundaries to zero
+    walls[0, :] = 0
+    walls[-1, :] = 0
+    walls[:, 0] = 0
+    walls[:, -1] = 0
 
     return walls
 
@@ -58,20 +94,20 @@ def findwalls(a, walllimit, feedback, total):
 
     col = a.shape[0]
     row = a.shape[1]
-    walls = np.zeros((col, row))
-    domain = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+    walls = torch.zeros((col, row))
+    domain = torch.tensor([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
     index = 0
-    for i in np.arange(1, row - 1):
+    for i in torch.arange(1, row - 1):
         if feedback.isCanceled():
             feedback.setProgressText("Calculation cancelled")
             break
-        for j in np.arange(1, col - 1):
+        for j in torch.arange(1, col - 1):
             dom = a[j - 1 : j + 2, i - 1 : i + 2]
-            walls[j, i] = np.max(dom[np.where(domain == 1)])  # new 20171006
+            walls[j, i] = torch.max(dom[torch.where(domain == 1)])  # new 20171006
             index = index + 1
             feedback.setProgress(int(index * total))
 
-    walls = np.copy(walls - a)  # new 20171006
+    walls = torch.clone(walls - a)  # new 20171006
     walls[(walls < walllimit)] = 0
 
     walls[0 : walls.shape[0], 0] = 0
@@ -98,12 +134,12 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
     :return: dirwalls
     """
 
-    walls = walls_for_dir.copy()
+    walls = walls_for_dir.clone().to(a.device)
 
     row = a.shape[0]
     col = a.shape[1]
 
-    filtersize = np.floor((scale + 0.0000000001) * 9)
+    filtersize = torch.floor((scale + 0.0000000001) * 9)
     if filtersize <= 2:
         filtersize = 3
     else:
@@ -111,20 +147,20 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
             if filtersize % 2 == 0:
                 filtersize = filtersize + 1
 
-    filthalveceil = int(np.ceil(filtersize / 2.0))
-    filthalvefloor = int(np.floor(filtersize / 2.0))
+    filthalveceil = int(torch.ceil(filtersize / 2.0))
+    filthalvefloor = int(torch.floor(filtersize / 2.0))
 
-    filtmatrix = np.zeros((int(filtersize), int(filtersize)))
-    buildfilt = np.zeros((int(filtersize), int(filtersize)))
+    filtmatrix = torch.zeros((int(filtersize), int(filtersize)))
+    buildfilt = torch.zeros((int(filtersize), int(filtersize)))
 
     filtmatrix[:, filthalveceil - 1] = 1
     n = filtmatrix.shape[0] - 1
     buildfilt[filthalveceil - 1, 0:filthalvefloor] = 1
     buildfilt[filthalveceil - 1, filthalveceil : int(filtersize)] = 2
 
-    y = np.zeros((row, col))  # final direction
-    z = np.zeros((row, col))  # temporary direction
-    x = np.zeros((row, col))  # building side
+    y = torch.zeros((row, col), device=a.device)  # final direction
+    z = torch.zeros((row, col), device=a.device)  # temporary direction
+    x = torch.zeros((row, col), device=a.device)  # building side
     walls[walls > 0] = 1
 
     for h in range(
@@ -136,17 +172,33 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
                 feedback.setProgressText("Calculation cancelled")
                 break
         filtmatrix1temp = sc.rotate(
-            filtmatrix, h, order=1, reshape=False, mode="nearest"
+            filtmatrix.cpu().numpy()
+            if filtmatrix.device.type == "cuda"
+            else filtmatrix.numpy(),
+            h,
+            order=1,
+            reshape=False,
+            mode="nearest",
         )  # bilinear
-        filtmatrix1 = np.round(filtmatrix1temp)
+        filtmatrix1 = torch.round(
+            torch.from_numpy(filtmatrix1temp).to(walls.device)
+        )
         # filtmatrix1temp = sc.imrotate(filtmatrix, h, 'bilinear')
-        # filtmatrix1 = np.round(filtmatrix1temp / 255.)
+        # filtmatrix1 = torch.round(filtmatrix1temp / 255.)
         # filtmatrixbuildtemp = sc.imrotate(buildfilt, h, 'nearest')
         filtmatrixbuildtemp = sc.rotate(
-            buildfilt, h, order=0, reshape=False, mode="nearest"
+            buildfilt.cpu().numpy()
+            if buildfilt.device.type == "cuda"
+            else buildfilt.numpy(),
+            h,
+            order=0,
+            reshape=False,
+            mode="nearest",
         )  # Nearest neighbor
-        # filtmatrixbuild = np.round(filtmatrixbuildtemp / 127.)
-        filtmatrixbuild = np.round(filtmatrixbuildtemp)
+        # filtmatrixbuild = torch.round(filtmatrixbuildtemp / 127.)
+        filtmatrixbuild = torch.round(
+            torch.from_numpy(filtmatrixbuildtemp).to(walls.device)
+        )
         index = 270 - h
         if h == 150:
             filtmatrixbuild[:, n] = 0
@@ -181,7 +233,7 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
                     ]
                     if z[i, j] < wallscut.sum():  # sum(sum(wallscut))
                         z[i, j] = wallscut.sum()  # sum(sum(wallscut));
-                        if np.sum(dsmcut[filtmatrixbuild == 1]) > np.sum(
+                        if torch.sum(dsmcut[filtmatrixbuild == 1]) > torch.sum(
                             dsmcut[filtmatrixbuild == 2]
                         ):
                             x[i, j] = 1
@@ -203,10 +255,10 @@ def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
 
 
 def cart2pol(x, y, units="deg"):
-    radius = np.sqrt(x**2 + y**2)
-    theta = np.arctan2(y, x)
+    radius = torch.sqrt(x**2 + y**2)
+    theta = torch.arctan2(y, x)
     if units in ["deg", "degs"]:
-        theta = theta * 180 / np.pi
+        theta = theta * 180 / torch.pi
     return theta, radius
 
 
@@ -214,9 +266,9 @@ def get_ders(dsm, scale):
     # dem,_,_=read_dem_grid(dem_file)
     dx = 1 / scale
     # dx=0.5
-    fy, fx = np.gradient(dsm, dx, dx)
+    fy, fx = torch.gradient(dsm, spacing=dx)
     asp, grad = cart2pol(fy, fx, "rad")
-    grad = np.arctan(grad)
+    grad = torch.arctan(grad)
     asp = asp * -1
-    asp = asp + (asp < 0) * (np.pi * 2)
+    asp = asp + (asp < 0) * (torch.pi * 2)
     return grad, asp

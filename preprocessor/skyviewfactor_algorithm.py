@@ -49,6 +49,7 @@ from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
+import torch
 from pathlib import Path
 import zipfile
 import sys
@@ -72,6 +73,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     INPUT_THEIGHT = "INPUT_THEIGHT"
     ANISO = "ANISO"
     KMEANS = "KMEANS"
+    USE_GPU = "USE_GPU"
+
     CLUSTERS = "CLUSTERS"
     WALL_SCHEME = "WALL_SCHEME"
     INPUT_DEM = "INPUT_DEM"
@@ -124,6 +127,18 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 maxValue=99.9,
             )
         )
+        
+        # Wall parameterization
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr(
+                    "Use GPU"
+                ),
+                defaultValue=False,
+            ),
+        )
+        
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ANISO,
@@ -246,6 +261,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_THEIGHT, context
         )
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
+        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         # Wall parameterization settings
         demlayer = self.parameterAsRasterLayer(
@@ -270,6 +286,10 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
+                
+        device = torch.device("cpu")
+        if use_gpu and torch.cuda.is_available():
+            device = torch.device("cuda")
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -287,7 +307,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         geotransform = gdal_dsm.GetGeoTransform()
         pixel_resolution = geotransform[1]
-        scale = 1 / pixel_resolution
+        scale = torch.tensor(1 / pixel_resolution, device=device)
 
         if wallScheme:
             # Load DEM layer if calculating exact SVFs for wall surface temperature scheme
@@ -363,6 +383,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             vegdsm = np.zeros([rows, cols])
             vegdsm2 = 0.0
             usevegdem = 0
+            
+
 
         if aniso == 1:
             feedback.setProgressText("Calculating SVF using 153 iterations")
@@ -376,12 +398,15 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 wallScheme,
                 dem,
                 feedback,
+                device=device,
             )
+
         else:
             feedback.setProgressText("Calculating SVF using 655 iterations")
             ret = svf.svfForProcessing655(
-                dsm, vegdsm, vegdsm2, scale, usevegdem, feedback
+                dsm, vegdsm, vegdsm2, scale, usevegdem, feedback, device=device
             )
+                        
 
         # print('Time to finish first SVF calculation = ' + str(run_time))
         if wallScheme == 1:
@@ -442,6 +467,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     svfaveg_array,
                     svf_height_array,
                     feedback,
+                    device=device,
                 )
 
                 # Interpolate for voxels where SVF has not been calculated
@@ -472,6 +498,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     svfaveg_array,
                     svf_height_array,
                     feedback,
+                    device=device,
                 )
 
                 # Remove rows where svfbu, sfveg and svfaveg is zero
@@ -505,11 +532,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfbuW = ret["svfW"]
             svfbuN = ret["svfN"]
 
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svf.tif", svfbu)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfE.tif", svfbuE)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfS.tif", svfbuS)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfW.tif", svfbuW)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfN.tif", svfbuN)
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svf.tif", svfbu.cpu().detach().numpy())
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfE.tif", svfbuE.cpu().detach().numpy())
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfS.tif", svfbuS.cpu().detach().numpy())
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfW.tif", svfbuW.cpu().detach().numpy())
+            misc.saveraster(gdal_dsm, outputDir + "/" + "svfN.tif", svfbuN.cpu().detach().numpy())
 
             if os.path.isfile(outputDir + "/" + "svfs.zip"):
                 os.remove(outputDir + "/" + "svfs.zip")
@@ -544,34 +571,34 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svfNaveg = ret["svfNaveg"]
 
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfveg.tif", svfveg
+                    gdal_dsm, outputDir + "/" + "svfveg.tif", svfveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfEveg.tif", svfEveg
+                    gdal_dsm, outputDir + "/" + "svfEveg.tif", svfEveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfSveg.tif", svfSveg
+                    gdal_dsm, outputDir + "/" + "svfSveg.tif", svfSveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfWveg.tif", svfWveg
+                    gdal_dsm, outputDir + "/" + "svfWveg.tif", svfWveg.cpu().detach().numpy()   
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfNveg.tif", svfNveg
+                    gdal_dsm, outputDir + "/" + "svfNveg.tif", svfNveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfaveg.tif", svfaveg
+                    gdal_dsm, outputDir + "/" + "svfaveg.tif", svfaveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfEaveg.tif", svfEaveg
+                    gdal_dsm, outputDir + "/" + "svfEaveg.tif", svfEaveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfSaveg.tif", svfSaveg
+                    gdal_dsm, outputDir + "/" + "svfSaveg.tif", svfSaveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfWaveg.tif", svfWaveg
+                    gdal_dsm, outputDir + "/" + "svfWaveg.tif", svfWaveg.cpu().detach().numpy()
                 )
                 misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfNaveg.tif", svfNaveg
+                    gdal_dsm, outputDir + "/" + "svfNaveg.tif", svfNaveg.cpu().detach().numpy()
                 )
 
                 zippo = zipfile.ZipFile(outputDir + "/" + "svfs.zip", "a")
@@ -601,7 +628,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 trans = transVeg / 100.0
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
-            misc.saveraster(gdal_dsm, filename, svftotal)
+            misc.saveraster(gdal_dsm, filename, svftotal.cpu().detach().numpy())
 
             # Save shadow images for SOLWEIG 2019a
             if aniso == 1:
@@ -615,9 +642,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
                 np.savez_compressed(
                     outputDir + "/" + "shadowmats.npz",
-                    shadowmat=shmat,
-                    vegshadowmat=vegshmat,
-                    vbshmat=vbshvegshmat,
+                    shadowmat=shmat.cpu().detach().numpy(),
+                    vegshadowmat=vegshmat.cpu().detach().numpy(),
+                    vbshmat=vbshvegshmat.cpu().detach().numpy(),
                 )  # ,
                 # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
                 # facesunmat=facesunmat, wallshvemat=wallshvemat)
@@ -629,7 +656,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 np.savez_compressed(
                     outputDir + "/" + "wallScheme.npz",
                     voxelId=voxelId,
-                    voxelTable=voxelTable,
+                    voxelTable=voxelTable.cpu().detach().numpy(),
                 )
 
         feedback.setProgressText(

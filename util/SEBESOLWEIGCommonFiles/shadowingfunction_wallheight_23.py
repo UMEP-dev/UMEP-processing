@@ -42,7 +42,7 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg):
     wallshve = wallshve - wallsh
     wallshve[wallshve < 0] = 0
     id = torch.where(wallshve > walls)
-    wallshve[id] = walls[id].double()
+    wallshve[id] = walls[id].float()
     wallsun = wallsun - wallshve  # problem with wallshve only
     id = torch.where(wallsun < 0)
     wallshve[id] = 0

@@ -1,33 +1,43 @@
-import numpy as np
-
+import torch
 try:
     from sklearn.cluster import KMeans
 except:
+    print("passe")
     pass
-import time
+
+
+def _to_tensor(x, device, dtype=torch.float32):
+    if isinstance(x, torch.Tensor):
+        return x.to(device)
+    if x is None:
+        return None
+    return torch.tensor(x, dtype=dtype, device=device)
 from ..functions import svf_functions as svf
 from ..functions import wallalgorithms as wa
 
 
-def wallscheme_prepare(dsm, scale, pixel_resolution, feedback):
+def wallscheme_prepare(
+    dsm, scale, pixel_resolution, feedback, device=torch.device("cpu")
+):
+    dsm = _to_tensor(dsm, device)
     total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
     walls = wa.findwalls_sp(
-        dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+        dsm, 2, torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]], device=dsm.device)
     )
-    walls_copy = np.copy(walls)
+    walls_copy = torch.clone(walls)
     aspect = wa.filter1Goodwin_as_aspect_v3(
         walls_copy, scale, dsm, feedback, 100
     )
 
     # Copy to keep exact height values
-    walls_exact = walls.copy()
+    walls_exact = walls.clone()
 
     # Rounding wall heights (ceil or round?)
-    # walls_round = np.round(walls).astype(int)
-    walls_round = np.ceil(walls).astype(int)
+    # walls_round = torch.round(walls).astype(int)
+    walls_round = torch.ceil(walls).int()
 
     # create wall IDs
-    wall_rows, wall_cols = np.where(walls_round > 0)
+    wall_rows, wall_cols = torch.where(walls_round > 0)
     voxel_height = list()
     wall2d_id = list()
     wall_height = list()
@@ -35,8 +45,8 @@ def wallscheme_prepare(dsm, scale, pixel_resolution, feedback):
     y_position = list()
     x_position = list()
     index = 1
-    uniqueWallIDs = np.zeros((dsm.shape[0], dsm.shape[1]))
-    for i in np.arange(wall_rows.shape[0]):
+    uniqueWallIDs = torch.zeros((dsm.shape[0], dsm.shape[1]), device=device)
+    for i in torch.arange(wall_rows.shape[0]):
         uniqueWallIDs[wall_rows[i], wall_cols[i]] = index
         number_of_voxels = int(
             walls_round[wall_rows[i], wall_cols[i]] / pixel_resolution
@@ -71,18 +81,22 @@ def wallscheme_prepare(dsm, scale, pixel_resolution, feedback):
     # saveraster(dataSet, output_uniquewallid, uniqueWallIDs)
 
     # Unique IDs for each voxel
-    voxelId_list = np.arange(1, wall2d_id.__len__() + 1)
+    voxelId_list = torch.arange(1, wall2d_id.__len__() + 1, device=device)
 
     # Table with unique voxel ID, height of voxel, total height of wall, unique ID of wall (based on 2D-location in raster) and y and x coordinates
-    voxelTable = np.column_stack(
+    voxelTable = torch.column_stack(
+        
         [
-            voxelId_list,
-            voxel_height,
-            wall_height,
-            wall_height_exact,
-            wall2d_id,
-            y_position,
-            x_position,
+            t if isinstance(t, torch.Tensor) else torch.tensor(t, device=device)
+            for t in [
+                voxelId_list,
+                voxel_height,
+                wall_height,
+                wall_height_exact,
+                wall2d_id,
+                y_position,
+                x_position,
+            ]
         ]
     )
 
@@ -115,8 +129,20 @@ def svf_for_voxels(
     svfaveg_array,
     svf_height_array,
     feedback,
+    device=torch.device("cpu"),
 ):
     """This function calculates sky view factor at all voxel levels"""
+
+    dsm = _to_tensor(dsm, device)
+    dem = _to_tensor(dem, device)
+    vegdsm = _to_tensor(vegdsm, device)
+    vegdsm2 = _to_tensor(vegdsm2, device)
+    voxelTable = _to_tensor(voxelTable, device)
+    svf_array = _to_tensor(svf_array, device)
+    svfbu_array = _to_tensor(svfbu_array, device)
+    svfveg_array = _to_tensor(svfveg_array, device)
+    svfaveg_array = _to_tensor(svfaveg_array, device)
+    svf_height_array = _to_tensor(svf_height_array, device)
 
     # Calculate where there are buildings and not. Used to elevate dem.
     ground = dsm - dem
@@ -126,12 +152,12 @@ def svf_for_voxels(
     ground[ground >= 2] = 0.0
 
     # Find maximum wall height, used to estimate how many iterations of svf_calc that are required
-    maxWallHeight = np.max(voxelTable[:, 2]) - svf_height
+    maxWallHeight = torch.max(voxelTable[:, 2]) - svf_height
 
     # Counter to feedback current iteration
     counter = 1
     # How many iterations are required to calculate svf for all voxels
-    loop_range = np.arange(svf_height, maxWallHeight + svf_height, svf_height)
+    loop_range = torch.arange(svf_height, maxWallHeight + svf_height, svf_height)
 
     # Loop for svf calculations of all voxel heights
     for i in loop_range:
@@ -172,6 +198,7 @@ def svf_for_voxels(
             wallScheme,
             dem,
             feedback,
+            device=device,
         )
         svfbu = ret_["svf"]
 
@@ -186,7 +213,7 @@ def svf_for_voxels(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = np.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -208,11 +235,11 @@ def svf_for_voxels(
 
         counter += 1
 
-    svf_05 = svf_array.copy()
+    svf_05 = svf_array.clone()
     svf_05[svf_05 > 0.5] = 0.5
 
     # Add svf arrays as volumns to voxelTable
-    voxelTable = np.column_stack(
+    voxelTable = torch.column_stack(
         [
             voxelTable,
             svf_height_array,
@@ -246,7 +273,20 @@ def svf_kmeans(
     svfaveg_array,
     svf_height_array,
     feedback,
+    device=torch.device("cpu"),
 ):
+    dsm = _to_tensor(dsm, device)
+    dem = _to_tensor(dem, device)
+    vegdsm = _to_tensor(vegdsm, device)
+    vegdsm2 = _to_tensor(vegdsm2, device)
+    wallHeights = _to_tensor(wallHeights, device)
+    voxelTable = _to_tensor(voxelTable, device)
+    svf_array = _to_tensor(svf_array, device)
+    svfbu_array = _to_tensor(svfbu_array, device)
+    svfveg_array = _to_tensor(svfveg_array, device)
+    svfaveg_array = _to_tensor(svfaveg_array, device)
+    svf_height_array = _to_tensor(svf_height_array, device)
+
 
     # Calculate where there are buildings and not. Used to elevate dem.
     ground = dsm - dem
@@ -259,33 +299,33 @@ def svf_kmeans(
 
     # Reshape data for clustering
     # data_reshaped = building_heights.reshape(-1, 1)
-    data_reshaped = wallHeights.reshape(-1, 1)
+    data_reshaped = wallHeights.detach().cpu().numpy().reshape(-1, 1)
 
     # Apply K-means clustering
     # clusters = 3 # Number of clusters
     kmeans = KMeans(n_clusters=clusters, random_state=0)
     labels = kmeans.fit_predict(data_reshaped)
 
-    # Reshape the labels back to the original data shape
-    kmeans_clusters = labels.reshape(dsm.shape[0], dsm.shape[1])
+    # Reshape the labels back into a torch tensor on the selected device
+    kmeans_clusters = torch.from_numpy(labels.reshape(dsm.shape[0], dsm.shape[1])).to(device)
 
     # Remove cluster representing ground areas, i.e. where dsm - dem = 0
-    cluster_range = np.arange(clusters)
-    # cluster_range = cluster_range[cluster_range != np.unique(kmeans_clusters[ground == 1])]
+    cluster_range = torch.arange(clusters, device=device)
+    # cluster_range = cluster_range[cluster_range != torch.unique(kmeans_clusters[ground == 1])]
 
     # Array to store mean heights of clusters
-    cluster_heights = np.zeros((cluster_range.shape[0]))
+    cluster_heights = torch.zeros((cluster_range.shape[0]), device=device)
 
     counter = 0
     for i in cluster_range:
-        # cluster_heights[counter] = np.round(building_heights[kmeans_clusters == i].mean())
+        # cluster_heights[counter] = torch.round(building_heights[kmeans_clusters == i].mean())
         cluster_heights[counter] = (
-            np.round(wallHeights[kmeans_clusters == i].mean()) - svf_height
+            torch.round(wallHeights[kmeans_clusters == i].mean()) - svf_height
         )  # Remove svf_height which is the voxel size to be below the top of the wall
         counter += 1
 
     # Unique heights based on mean height of clusters, sorted from min to max
-    cluster_heights = np.unique(cluster_heights)
+    cluster_heights = torch.unique(cluster_heights)
     cluster_heights = cluster_heights[cluster_heights > 0]
 
     # Counter to feedback current iteration
@@ -335,7 +375,9 @@ def svf_kmeans(
             wallScheme,
             dem,
             feedback,
+            device=device,
         )
+
         svfbu = ret_["svf"]
 
         if usevegdem == 0:
@@ -349,7 +391,7 @@ def svf_kmeans(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = np.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -369,7 +411,7 @@ def svf_kmeans(
             temp_data = voxelTable[
                 voxelTable[:, 2] > i, :
             ]  # Get all walls that are taller than the mean of the lowest cluster
-            unique_walls = np.unique(
+            unique_walls = torch.unique(
                 temp_data[:, 4]
             )  # Get their unique wall ids for slicing
             for (
@@ -380,7 +422,7 @@ def svf_kmeans(
                 temp_wall = temp_data[temp_data[:, 4] == unique_wall, :][
                     :, 1
                 ].max()  # Max height of highest voxel in unique_wall
-                temp_y = np.where(
+                temp_y = torch.where(
                     (voxelTable[:, 4] == unique_wall)
                     & (voxelTable[:, 1] == temp_wall)
                 )[
@@ -414,7 +456,7 @@ def svf_kmeans(
                     & (voxelTable[:, 2] < i),
                     :,
                 ]
-            unique_walls = np.unique(
+            unique_walls = torch.unique(
                 temp_data[:, 4]
             )  # Get their unique wall ids for slicing
             for (
@@ -425,7 +467,7 @@ def svf_kmeans(
                 temp_wall = temp_data[temp_data[:, 4] == unique_wall, :][
                     :, 1
                 ].max()  # Max height of highest voxel in unique_wall
-                temp_y = np.where(
+                temp_y = torch.where(
                     (voxelTable[:, 4] == unique_wall)
                     & (voxelTable[:, 1] == temp_wall)
                 )[
@@ -459,11 +501,11 @@ def svf_kmeans(
 
         counter += 1
 
-    svf_05 = svf_array.copy()
+    svf_05 = svf_array.clone()
     svf_05[svf_05 > 0.5] = 0.5
 
     # Add svf arrays as volumns to voxelTable
-    voxelTable = np.column_stack(
+    voxelTable = torch.column_stack(
         [
             voxelTable,
             svf_height_array,
@@ -480,7 +522,7 @@ def svf_kmeans(
 
 def interpolate_svf(voxelTable, cluster_heights, kmeans):
 
-    unique_wall_pixels = np.unique(voxelTable[:, 4])
+    unique_wall_pixels = torch.unique(voxelTable[:, 4])
     unique_wall_pixels = unique_wall_pixels[unique_wall_pixels != 0]
     for unique_wall in unique_wall_pixels:
         temp_data = voxelTable[
@@ -496,7 +538,7 @@ def interpolate_svf(voxelTable, cluster_heights, kmeans):
             new_svf = temp_data[temp_data[:, -4] != 0, -4]
             new_svf[new_svf == 0] = new_svf[new_svf != 0]
         elif temp_heights.size > 1:  # Interpolate
-            new_svf = np.interp(
+            new_svf = torch.interp(
                 temp_data[:, 1], temp_heights, temp_svf
             )  # SVF for all voxels from interpolated values of calculated SVF at different heights (depend on svf_height)
 

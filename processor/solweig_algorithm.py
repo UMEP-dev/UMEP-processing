@@ -125,6 +125,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     POI_FILE = "POI_FILE"
     POI_FIELD = "POI_FIELD"
     CYL = "CYL"
+    USE_GPU = "USE_GPU"
+
 
     # solweig
     groundmodel = "groundmodel"
@@ -583,6 +585,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(shei)
+        
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr("Use GPU for calculations (if not ticked, CPU will be used)"),
+                defaultValue=False,
+                optional=False,
+            )
+        )
 
         # OUTPUT
         self.addParameter(
@@ -627,6 +638,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=False,
             )
         )
+        
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.OUTPUT_TREEPLANTER,
@@ -682,6 +694,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         walayer = self.parameterAsRasterLayer(
             parameters, self.INPUT_ASPECT, context
         )
+        
+
+                
         trunkr = self.parameterAsDouble(
             parameters, self.INPUT_THEIGHT, context
         )
@@ -770,6 +785,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         outputLdown = self.parameterAsBool(
             parameters, self.OUTPUT_LDOWN, context
         )
+        
+        gpu_bool = self.parameterAsBool(parameters, self.USE_GPU, context)
+
         outputTreeplanter = self.parameterAsBool(
             parameters, self.OUTPUT_TREEPLANTER, context
         )
@@ -787,6 +805,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             saveBuild = True
             outputKdiff = True
             # outputSstr = True
+            
+        calculation_mode = "cpu"
+        if gpu_bool:
+            calculation_mode = "gpu"
+
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -1228,6 +1251,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "outputkdiff": int(outputKdiff),
             "outputtreeplanter": int(outputTreeplanter),
             "wallnetcdf": int(wallNetCDF),
+            "calculation_mode": calculation_mode,
             "date1": "2018,5,1,0",  # used in standalone
             "date2": "2018,8,1,18",  # used in standalone
         }
