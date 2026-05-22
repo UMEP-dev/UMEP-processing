@@ -35,7 +35,9 @@ def saturated_vp(T):
     return slope, qs
 
 
-def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device):
+def initiate_groundScheme(
+    lc_grid, solweig_parameters, day, Ta, location, device
+):
     """
     Setup the maps used in the ground scheme calculations depending on the landcover
 
@@ -128,7 +130,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 4
             )
@@ -151,7 +155,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 4
             )
@@ -184,7 +190,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 2
             )
@@ -265,7 +273,6 @@ def surfaceTemperature_calc(
     :G: Ground heat flux for the current timestep
     """
 
-
     # Store the past ground surface temperature
     Tg_stored = Tg
 
@@ -326,7 +333,12 @@ def surfaceTemperature_calc(
     lamb = 2.260e6  # Latent heat of vaporisation
     rho = 1000  # Density of water (kg.m-3)
     Rn_water = (
-        Kdown * (1 - alb) * (beta + (1 - beta) * (1 - torch.exp(torch.tensor(-1, device=Tg.device))))
+        Kdown
+        * (1 - alb)
+        * (
+            beta
+            + (1 - beta) * (1 - torch.exp(torch.tensor(-1, device=Tg.device)))
+        )
         + Ldown
         - Lup
     )  # Net radiation for the top water layer beta described the transmitted rad
@@ -383,7 +395,9 @@ def outgoingLongwave_calc(
 
     # Assessment of the distance from a pixel at which most of the radiation are received (cf view factor Lambert)
     device = Tg.device
-    factor = torch.tensor(0.99, device=device)  # Percentage of radiation accounted for
+    factor = torch.tensor(
+        0.99, device=device
+    )  # Percentage of radiation accounted for
     zs = 1.1  # in m
     r_max = zs * torch.sqrt(
         factor / (1 - factor)
@@ -488,9 +502,17 @@ def outgoingLongwave_calc(
             # Scale so that the grid is at least translated from 1px
             if abs(dx) > abs(dy):
                 dx = -r * torch.sign(torch.cos(azimuth))
-                dy = -r * abs(torch.tan(azimuth)) * torch.sign(torch.sin(azimuth))
+                dy = (
+                    -r
+                    * abs(torch.tan(azimuth))
+                    * torch.sign(torch.sin(azimuth))
+                )
             else:
-                dx = -r / abs(torch.tan(azimuth)) * torch.sign(torch.cos(azimuth))
+                dx = (
+                    -r
+                    / abs(torch.tan(azimuth))
+                    * torch.sign(torch.cos(azimuth))
+                )
                 dy = -r * torch.sign(torch.sin(azimuth))
 
             # Select the interested part of the initial raster and the translated one from their four corners and
@@ -607,7 +629,9 @@ def outgoingLongwave_calc(
             dphi = torch.arctan((r + step) / zs) - torch.arctan(r / zs)
             dtrigo = zs / torch.sqrt(r**2 + zs**2) * r / torch.sqrt(
                 r**2 + zs**2
-            ) - zs / torch.sqrt((r + step) ** 2 + zs**2) * (r + step) / torch.sqrt(
+            ) - zs / torch.sqrt((r + step) ** 2 + zs**2) * (
+                r + step
+            ) / torch.sqrt(
                 (r + step) ** 2 + zs**2
             )
 

@@ -37,9 +37,11 @@ def Lside_veg_v2015a(
     device = (
         Ldown.device
         if isinstance(Ldown, torch.Tensor)
-        else Ta.device
-        if isinstance(Ta, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else (
+            Ta.device
+            if isinstance(Ta, torch.Tensor)
+            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
     )
     # This m-file is the current one that estimates L from the four cardinal points 20100414
 
@@ -76,7 +78,10 @@ def Lside_veg_v2015a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
@@ -114,7 +119,10 @@ def Lside_veg_v2015a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
@@ -152,7 +160,10 @@ def Lside_veg_v2015a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
@@ -190,7 +201,10 @@ def Lside_veg_v2015a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)

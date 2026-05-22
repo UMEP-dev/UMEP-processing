@@ -33,47 +33,32 @@ __revision__ = "$Format:%H$"
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
+    QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterRasterDestination,
 )
 
 from osgeo import gdal
-from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMessageBox
 from osgeo.gdalconst import *
-import numpy as np
+import torch
 import os
 from ..functions import wallalgorithms as wa
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
 from ..util.misc import saverasternd
+import os
 
-# def saverasternd(gdal_data, filename, raster):
-#     rows = gdal_data.RasterYSize
-#     cols = gdal_data.RasterXSize
-
-#     outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
-#     outBand = outDs.GetRasterBand(1)
-
-#     # write the data
-#     outBand.WriteArray(raster, 0, 0)
-#     # flush data to disk, set the NoData value and calculate stats
-#     outBand.FlushCache()
-#     # outBand.SetNoDataValue(-9999)
-
-#     # georeference the image and set the projection
-#     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
-#     outDs.SetProjection(gdal_data.GetProjection())
 
 
 class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
     INPUT_LIMIT = "INPUT_LIMIT"
     INPUT = "INPUT"
+    USE_GPU = "USE_GPU"
     OUTPUT_HEIGHT = "OUTPUT_HEIGHT"
     OUTPUT_ASPECT = "OUTPUT_ASPECT"
-    # ASPECT_BOOL = 'ASPECT_BOOL'
 
     def initAlgorithm(self, config):
 
@@ -85,9 +70,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 False,
             )
         )
-        # self.addParameter(QgsProcessingParameterBoolean(self.ASPECT_BOOL,
-        #     self.tr("Calculate wall aspect"),
-        #     defaultValue=True))
+
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.INPUT_LIMIT,
@@ -97,6 +80,15 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 minValue=0.0,
             )
         )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr("Use GPU if available"),
+                None,
+                False,
+            )
+        )
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_HEIGHT,
@@ -115,6 +107,8 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         )
 
     def processAlgorithm(self, parameters, context, feedback):
+        torch.set_num_threads(max(1, os.cpu_count()))
+        torch.set_num_interop_threads(max(1, os.cpu_count()))
         outputFileHeight = self.parameterAsOutputLayer(
             parameters, self.OUTPUT_HEIGHT, context
         )
@@ -126,6 +120,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         walllimit = self.parameterAsDouble(
             parameters, self.INPUT_LIMIT, context
         )
+        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         cmd_folder = Path(
             os.path.split(inspect.getfile(inspect.currentframe()))[0]
@@ -133,8 +128,10 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText(str(cmd_folder))
         feedback.setProgressText(str(cmd_folder.parent))
 
-        # feedback.setProgressText(str(parameters["INPUT"])) # this prints to the processing log tab
-        # QgsMessageLog.logMessage("Testing", "umep", level=Qgis.Info) # This prints to a umep tab
+        device = torch.device("cpu")
+        if use_gpu and torch.cuda.is_available():
+            device = torch.device("cuda")
+            feedback.setProgressText("GPU detected and will be used for calculations.")
 
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -143,21 +140,20 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Calculating wall height")
         total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
-        # walls = wa.findwalls(dsm, walllimit, feedback, total)
-        walls = wa.findwalls_sp(dsm, walllimit, False)
+        walls = wa.findwalls_sp(dsm, walllimit, device, False)
 
-        wallssave = np.copy(walls)
+        wallssave = walls
         # feedback.setProgressText(outputFileHeight)
-        saverasternd(gdal_dsm, outputFileHeight, wallssave)
+        saverasternd(gdal_dsm, outputFileHeight, wallssave.cpu().detach().numpy())
 
         if outputFileAspect:
             total = 100.0 / 180.0
             # outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
             feedback.setProgressText("Calculating wall aspect")
             dirwalls = wa.filter1Goodwin_as_aspect_v3(
-                walls, 1, dsm, feedback, total
+                walls, torch.tensor(1, device=device), torch.tensor(dsm, device=device), feedback, torch.tensor(total, device=device), device
             )
-            saverasternd(gdal_dsm, outputFileAspect, dirwalls)
+            saverasternd(gdal_dsm, outputFileAspect, dirwalls.cpu().detach().numpy())
         else:
             feedback.setProgressText("Wall aspect not calculated")
 

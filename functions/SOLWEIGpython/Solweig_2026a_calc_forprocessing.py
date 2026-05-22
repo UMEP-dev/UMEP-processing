@@ -3,8 +3,6 @@
 """
 
 from __future__ import absolute_import
-import numpy as np
-import matplotlib.pyplot as plt
 from .daylen import daylen
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
     clearnessindex_2013b,
@@ -208,7 +206,6 @@ def Solweig_2026a_calc(
     TgOut1 = old Ts model
     diffsh, ani = Used in anisotrpic models (Wallenberg et al. 2019, 2022)
     """
-    
 
     # # # Core program start # # #
     # Instrument offset in degrees
@@ -222,9 +219,11 @@ def Solweig_2026a_calc(
     device = (
         Tg.device
         if isinstance(Tg, torch.Tensor)
-        else Ta.device
-        if isinstance(Ta, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else (
+            Ta.device
+            if isinstance(Ta, torch.Tensor)
+            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
     )
 
     # Find sunrise decimal hour - new from 2014a
@@ -265,7 +264,14 @@ def Solweig_2026a_calc(
             zenDeg = zen * (180 / torch.pi)
             # Relative luminance
             lv, pc_, pb_ = Perez_v3(
-                zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option
+                zenDeg,
+                azimuth,
+                radD,
+                radI,
+                jday,
+                patchchoice,
+                patch_option,
+                device,
             )
             # Total relative luminance from sky, i.e. from each patch, into each cell
             aniLum = torch.zeros((rows, cols), device=device)
@@ -539,7 +545,7 @@ def Solweig_2026a_calc(
             gvfalbnoshW,
             gvfalbnoshN,
         )
-        
+
         Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside = Kside_veg_v2022a(
             radI,
             radD,
@@ -775,10 +781,12 @@ def Solweig_2026a_calc(
         if "lv" not in locals():
             # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
             skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(
-                patch_option
+                patch_option, device
             )
 
-            patch_emissivities = torch.zeros(skyvaultalt.shape[0], device=device)
+            patch_emissivities = torch.zeros(
+                skyvaultalt.shape[0], device=device
+            )
 
             x = torch.transpose(torch.atleast_2d(skyvaultalt))
             y = torch.transpose(torch.atleast_2d(skyvaultazi))

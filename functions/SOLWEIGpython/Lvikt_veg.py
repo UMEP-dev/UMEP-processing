@@ -1,5 +1,6 @@
 import torch
 
+
 def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
     device = None
     if isinstance(svf, torch.Tensor):

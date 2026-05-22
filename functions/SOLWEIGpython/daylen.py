@@ -7,8 +7,10 @@ def daylen(DOY, XLAT):
     # Sun angles.  SOC limited for latitudes above polar circles.
     # Calculate daylength, sunrise and sunset (Eqn. 17)
 
-    device = DOY.device if isinstance(DOY, torch.Tensor) else torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        DOY.device
+        if isinstance(DOY, torch.Tensor)
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     )
     if not isinstance(XLAT, torch.Tensor):
         XLAT = torch.tensor(XLAT, device=device)

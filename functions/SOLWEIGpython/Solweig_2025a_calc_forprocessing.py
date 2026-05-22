@@ -245,7 +245,14 @@ def Solweig_2025a_calc(
             zenDeg = zen * (180 / np.pi)
             # Relative luminance
             lv, pc_, pb_ = Perez_v3(
-                zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option
+                zenDeg,
+                azimuth,
+                radD,
+                radI,
+                jday,
+                patchchoice,
+                patch_option,
+                "cpu",
             )
             # Total relative luminance from sky, i.e. from each patch, into each cell
             aniLum = np.zeros((rows, cols))

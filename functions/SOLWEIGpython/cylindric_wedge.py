@@ -1,17 +1,17 @@
-import numpy as np
 import torch
 
 
 def cylindric_wedge(zen, svfalfa, rows, cols):
-
 
     # Fraction of sunlit walls based on sun altitude and svf wieghted building angles
     # input:
     # sun zenith angle "beta"
     # svf related angle "alfa"
 
-    device = svfalfa.device if isinstance(svfalfa, torch.Tensor) else torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        svfalfa.device
+        if isinstance(svfalfa, torch.Tensor)
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     )
     beta = zen
     # alfa=svfalfa
@@ -39,9 +39,9 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
 
     A = torch.zeros((rows, cols), device=device)
     # A(length(svfalfa),length(svfalfa))=0;
-    A[xa < 0] = (torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])) / (
-        1 - torch.cos(phi[xa < 0])
-    )
+    A[xa < 0] = (
+        torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])
+    ) / (1 - torch.cos(phi[xa < 0]))
 
     ukil = torch.zeros((rows, cols), device=device)
     # ukil(length(svfalfa),length(svfalfa))=0
@@ -75,8 +75,10 @@ def cylindric_wedge_voxel(zen, svfalfa):
     ba = 1.0 / torch.tan(svfalfa)
     hkil = 2.0 * ba * ha
 
-    device = svfalfa.device if isinstance(svfalfa, torch.Tensor) else torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        svfalfa.device
+        if isinstance(svfalfa, torch.Tensor)
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     )
 
     qa = torch.zeros((svfalfa.shape[0]), device=device)
@@ -93,9 +95,9 @@ def cylindric_wedge_voxel(zen, svfalfa):
 
     A = torch.zeros((svfalfa.shape[0]), device=device)
     # A(length(svfalfa),length(svfalfa))=0;
-    A[xa < 0] = (torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])) / (
-        1 - torch.cos(phi[xa < 0])
-    )
+    A[xa < 0] = (
+        torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])
+    ) / (1 - torch.cos(phi[xa < 0]))
 
     ukil = torch.zeros((svfalfa.shape[0]), device=device)
     # ukil(length(svfalfa),length(svfalfa))=0

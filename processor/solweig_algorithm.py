@@ -127,7 +127,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     CYL = "CYL"
     USE_GPU = "USE_GPU"
 
-
     # solweig
     groundmodel = "groundmodel"
 
@@ -585,11 +584,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(shei)
-        
+
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_GPU,
-                self.tr("Use GPU for calculations (if not ticked, CPU will be used)"),
+                self.tr(
+                    "Use GPU for calculations (if not ticked, CPU will be used)"
+                ),
                 defaultValue=False,
                 optional=False,
             )
@@ -638,7 +639,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=False,
             )
         )
-        
+
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.OUTPUT_TREEPLANTER,
@@ -694,9 +695,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         walayer = self.parameterAsRasterLayer(
             parameters, self.INPUT_ASPECT, context
         )
-        
 
-                
         trunkr = self.parameterAsDouble(
             parameters, self.INPUT_THEIGHT, context
         )
@@ -785,7 +784,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         outputLdown = self.parameterAsBool(
             parameters, self.OUTPUT_LDOWN, context
         )
-        
+
         gpu_bool = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         outputTreeplanter = self.parameterAsBool(
@@ -805,11 +804,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             saveBuild = True
             outputKdiff = True
             # outputSstr = True
-            
+
         calculation_mode = "cpu"
         if gpu_bool:
             calculation_mode = "gpu"
-
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):

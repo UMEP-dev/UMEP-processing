@@ -226,7 +226,7 @@ def createsBlocks(
                                 ON a.{ID_FIELD_BLOCK}=b.{ID_FIELD_BLOCK} WHERE a.{HEIGHT_FIELD}>={height_i}
                                 GROUP BY a.{ID_FIELD_BLOCK})')
                  WHERE ST_ISEMPTY({GEOM_FIELD}) IS FALSE
-                                """# nosec B608
+                                """  # nosec B608
             for height_i in df_listOfHeight
         ]  # nosec B608
         cursor.execute(f"""

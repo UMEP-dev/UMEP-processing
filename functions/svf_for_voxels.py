@@ -1,4 +1,5 @@
 import torch
+
 try:
     from sklearn.cluster import KMeans
 except:
@@ -12,6 +13,8 @@ def _to_tensor(x, device, dtype=torch.float32):
     if x is None:
         return None
     return torch.tensor(x, dtype=dtype, device=device)
+
+
 from ..functions import svf_functions as svf
 from ..functions import wallalgorithms as wa
 
@@ -20,86 +23,101 @@ def wallscheme_prepare(
     dsm, scale, pixel_resolution, feedback, device=torch.device("cpu")
 ):
     dsm = _to_tensor(dsm, device)
-    total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
+
+    # Existing UMEP wall and aspect calculations
     walls = wa.findwalls_sp(
-        dsm, 2, torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]], device=dsm.device)
+        dsm,
+        2,
+        torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]], device=dsm.device),
     )
     walls_copy = torch.clone(walls)
     aspect = wa.filter1Goodwin_as_aspect_v3(
         walls_copy, scale, dsm, feedback, 100
     )
 
-    # Copy to keep exact height values
     walls_exact = walls.clone()
-
-    # Rounding wall heights (ceil or round?)
-    # walls_round = torch.round(walls).astype(int)
     walls_round = torch.ceil(walls).int()
 
-    # create wall IDs
+    # 1. Vectorized identification of wall pixels
     wall_rows, wall_cols = torch.where(walls_round > 0)
-    voxel_height = list()
-    wall2d_id = list()
-    wall_height = list()
-    wall_height_exact = list()
-    y_position = list()
-    x_position = list()
-    index = 1
+    num_walls = wall_rows.shape[0]
+
+    # 2. Assign Wall IDs (1-indexed) vectorially
     uniqueWallIDs = torch.zeros((dsm.shape[0], dsm.shape[1]), device=device)
-    for i in torch.arange(wall_rows.shape[0]):
-        uniqueWallIDs[wall_rows[i], wall_cols[i]] = index
-        number_of_voxels = int(
-            walls_round[wall_rows[i], wall_cols[i]] / pixel_resolution
-        )
-        # temp_aspect = wallAspect[wall_rows[i], wall_cols[i]]
-        voxel_index = 1
-        for j in range(1, number_of_voxels + 1):
-            # wall_id.append(voxel_index)
-            wall2d_id.append(index)
-            voxel_height.append(j * pixel_resolution)
-            wall_height.append(walls_round[wall_rows[i], wall_cols[i]])
-            wall_height_exact.append(walls_exact[wall_rows[i], wall_cols[i]])
-            y_position.append(wall_rows[i])
-            x_position.append(wall_cols[i])
-            # wall_aspect.append(temp_aspect)
+    wall_indices = torch.arange(1, num_walls + 1, device=device)
+    uniqueWallIDs[wall_rows, wall_cols] = wall_indices.float()
 
-            voxel_index += 1
+    # 3. Calculate number of voxels for every wall pixel at once
+    # Extract wall attributes only for the valid wall locations
+    walls_round_extracted = walls_round[wall_rows, wall_cols]
+    walls_exact_extracted = walls_exact[wall_rows, wall_cols]
 
-        index += 1
+    number_of_voxels = (walls_round_extracted / pixel_resolution).int()
 
-    wall2d_id.append(0)
-    voxel_height.append(0)
-    wall_height.append(0)
-    wall_height_exact.append(0)
-    y_position.append(0)
-    x_position.append(0)
+    # 4. Repeat wall properties based on their respective voxel counts
+    # This replaces both the 'i' and 'j' loops entirely
+    wall2d_id_tensor = torch.repeat_interleave(wall_indices, number_of_voxels)
+    wall_height_tensor = torch.repeat_interleave(
+        walls_round_extracted, number_of_voxels
+    )
+    wall_height_exact_tensor = torch.repeat_interleave(
+        walls_exact_extracted, number_of_voxels
+    )
+    y_position_tensor = torch.repeat_interleave(wall_rows, number_of_voxels)
+    x_position_tensor = torch.repeat_interleave(wall_cols, number_of_voxels)
 
-    wall_dict = {}
-    for A, B in zip(wall2d_id, wall_height_exact):
-        wall_dict[A] = B
+    # 5. Generate voxel heights using a cumulative sequence sequence
+    # This handles the equivalent of `j * pixel_resolution` vectorially
+    # We create a 1-based local sequence for each repeated segment
+    # e.g., if number_of_voxels is [2, 3], we generate [1, 2, 1, 2, 3]
+    v_ids = torch.arange(wall2d_id_tensor.shape[0], device=device)
+    # Find the starting index of each repeated wall sequence
+    cum_voxels = torch.cumsum(number_of_voxels, dim=0)
+    start_indices = torch.cat(
+        [torch.tensor([0], device=device), cum_voxels[:-1]]
+    )
+    shift = torch.repeat_interleave(start_indices, number_of_voxels)
 
-    # saveraster(dataSet, output_uniquewallid, uniqueWallIDs)
+    local_voxel_index = v_ids - shift + 1
+    voxel_height_tensor = local_voxel_index * pixel_resolution
 
-    # Unique IDs for each voxel
-    voxelId_list = torch.arange(1, wall2d_id.__len__() + 1, device=device)
+    # 6. Append the final trailing zero-row (mimicking original code logic)
+    zero_val = torch.tensor([0], device=device)
 
-    # Table with unique voxel ID, height of voxel, total height of wall, unique ID of wall (based on 2D-location in raster) and y and x coordinates
+    wall2d_id_tensor = torch.cat([wall2d_id_tensor, zero_val])
+    voxel_height_tensor = torch.cat([voxel_height_tensor, zero_val.float()])
+    wall_height_tensor = torch.cat([wall_height_tensor, zero_val])
+    wall_height_exact_tensor = torch.cat(
+        [wall_height_exact_tensor, zero_val.float()]
+    )
+    y_position_tensor = torch.cat([y_position_tensor, zero_val])
+    x_position_tensor = torch.cat([x_position_tensor, zero_val])
+
+    # 7. Construct outputs
+    voxelId_list = torch.arange(
+        1, wall2d_id_tensor.shape[0] + 1, device=device
+    )
+
     voxelTable = torch.column_stack(
-        
         [
-            t if isinstance(t, torch.Tensor) else torch.tensor(t, device=device)
-            for t in [
-                voxelId_list,
-                voxel_height,
-                wall_height,
-                wall_height_exact,
-                wall2d_id,
-                y_position,
-                x_position,
-            ]
+            voxelId_list.float(),
+            voxel_height_tensor,
+            wall_height_tensor.float(),
+            wall_height_exact_tensor,
+            wall2d_id_tensor.float(),
+            y_position_tensor.float(),
+            x_position_tensor.float(),
         ]
     )
 
+    # 8. Construct dictionary mapping (Kept native Python as requested by return type)
+    # We do this from the extracted wall tensors to avoid looping over the voxel table
+    wall_dict = dict(
+        zip(wall_indices.tolist(), walls_exact_extracted.tolist())
+    )
+    wall_dict[0] = 0.0
+
+    # Convert specific lists to match original return signature formats if downstream requires it
     return (
         voxelTable,
         voxelId_list,
@@ -107,8 +125,8 @@ def wallscheme_prepare(
         walls,
         aspect,
         uniqueWallIDs,
-        wall2d_id,
-        voxel_height,
+        wall2d_id_tensor.tolist(),
+        voxel_height_tensor.tolist(),
     )
 
 
@@ -157,7 +175,9 @@ def svf_for_voxels(
     # Counter to feedback current iteration
     counter = 1
     # How many iterations are required to calculate svf for all voxels
-    loop_range = torch.arange(svf_height, maxWallHeight + svf_height, svf_height)
+    loop_range = torch.arange(
+        svf_height, maxWallHeight + svf_height, svf_height
+    )
 
     # Loop for svf calculations of all voxel heights
     for i in loop_range:
@@ -213,7 +233,9 @@ def svf_for_voxels(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(
+            voxelTable[:, 1] == i + svf_height
+        )  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -287,7 +309,6 @@ def svf_kmeans(
     svfaveg_array = _to_tensor(svfaveg_array, device)
     svf_height_array = _to_tensor(svf_height_array, device)
 
-
     # Calculate where there are buildings and not. Used to elevate dem.
     ground = dsm - dem
     # Ground == 1 = ground
@@ -307,7 +328,9 @@ def svf_kmeans(
     labels = kmeans.fit_predict(data_reshaped)
 
     # Reshape the labels back into a torch tensor on the selected device
-    kmeans_clusters = torch.from_numpy(labels.reshape(dsm.shape[0], dsm.shape[1])).to(device)
+    kmeans_clusters = torch.from_numpy(
+        labels.reshape(dsm.shape[0], dsm.shape[1])
+    ).to(device)
 
     # Remove cluster representing ground areas, i.e. where dsm - dem = 0
     cluster_range = torch.arange(clusters, device=device)
@@ -391,7 +414,9 @@ def svf_kmeans(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(
+            voxelTable[:, 1] == i + svf_height
+        )  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])

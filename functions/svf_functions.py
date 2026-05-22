@@ -15,6 +15,7 @@ def _sync_if_cuda(device):
     if device is not None and device.type == "cuda":
         torch.cuda.synchronize()
 
+
 # from ..functions.wallalgorithms import findwalls
 from ..functions import wallalgorithms as wa
 from ..functions import svf_for_voxels as svfv
@@ -90,7 +91,8 @@ def svf_angles_100121(device):
                 azi19,
                 azi20,
             )
-        ), device=device
+        ),
+        device=device,
     )
     aziinterval = torch.tensor(
         torch.hstack(
@@ -116,7 +118,8 @@ def svf_angles_100121(device):
                 8.0,
                 1.0,
             )
-        ), device=device
+        ),
+        device=device,
     )
     angleresult = {"iazimuth": iazimuth, "aziinterval": aziinterval}
 
@@ -136,8 +139,12 @@ def svfForProcessing153(
     device=torch.device("cpu"),
 ):
     if device is None:
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    
+        device = (
+            torch.device("cuda")
+            if torch.cuda.is_available()
+            else torch.device("cpu")
+        )
+
     dsm = _to_tensor(dsm, device)
     vegdem = _to_tensor(vegdem, device)
     vegdem2 = _to_tensor(vegdem2, device)
@@ -190,7 +197,7 @@ def svfForProcessing153(
         aziinterval,
         skyvaultaziint,
         azistart,
-    ) = create_patches(patch_option)
+    ) = create_patches(patch_option, device)
 
     skyvaultalt = _to_tensor(skyvaultalt, device)
     skyvaultazi = _to_tensor(skyvaultazi, device)
@@ -205,8 +212,12 @@ def svfForProcessing153(
     )
     iazimuth = torch.zeros(int(torch.sum(aziinterval).item()), device=device)
 
-    shmat = torch.zeros((rows, cols, int(torch.sum(aziinterval).item())), device=device)
-    vegshmat = torch.zeros((rows, cols, int(torch.sum(aziinterval).item())), device=device)
+    shmat = torch.zeros(
+        (rows, cols, int(torch.sum(aziinterval).item())), device=device
+    )
+    vegshmat = torch.zeros(
+        (rows, cols, int(torch.sum(aziinterval).item())), device=device
+    )
     vbshvegshmat = torch.zeros(
         (rows, cols, int(torch.sum(aziinterval).item())), device=device
     )
@@ -258,8 +269,12 @@ def svfForProcessing153(
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
                 break
-            altitude = torch.tensor(float(skyvaultaltint[int(i)].item()), device=device)
-            azimuth = torch.tensor(float(iazimuth[int(index)].item()), device=device)
+            altitude = torch.tensor(
+                float(skyvaultaltint[int(i)].item()), device=device
+            )
+            azimuth = torch.tensor(
+                float(iazimuth[int(index)].item()), device=device
+            )
 
             # Casting shadow
             if wallScheme:
@@ -299,10 +314,14 @@ def svfForProcessing153(
                         )
                     )
                     vegsh = torch.ones(
-                        (sh.shape[0], sh.shape[1]), device=device, dtype=torch.float32
+                        (sh.shape[0], sh.shape[1]),
+                        device=device,
+                        dtype=torch.float32,
                     )
                     vbshvegsh = torch.ones(
-                        (sh.shape[0], sh.shape[1]), device=device, dtype=torch.float32
+                        (sh.shape[0], sh.shape[1]),
+                        device=device,
+                        dtype=torch.float32,
                     )
                     vegshmat[:, :, index] = vegsh
                     vbshvegshmat[:, :, index] = vbshvegsh
@@ -323,7 +342,9 @@ def svfForProcessing153(
                     )
 
                     vegsh = torch.tensor(shadowresult["vegsh"], device=device)
-                    vbshvegsh = torch.tensor(shadowresult["vbshvegsh"], device=device)
+                    vbshvegsh = torch.tensor(
+                        shadowresult["vbshvegsh"], device=device
+                    )
                     vegshmat[:, :, index] = vegsh
                     vbshvegshmat[:, :, index] = vbshvegsh
                     sh = torch.tensor(shadowresult["sh"], device=device)
@@ -331,7 +352,6 @@ def svfForProcessing153(
                     sh = shadow.shadowingfunctionglobalradiation(
                         dsm, azimuth, altitude, scale, feedback, 1, device
                     )
-
 
             shmat[:, :, index] = sh
 
@@ -363,7 +383,7 @@ def svfForProcessing153(
                 int(annulino[int(i)].item()) + 1,
                 int(annulino[int(i + 1.0)].item()) + 1,
             ):
-                
+
                 weight = annulus_weight(k, aziinterval[i], device) * sh
                 svf = svf + weight
                 weight = annulus_weight(k, aziintervalaniso[i], device) * sh
@@ -470,7 +490,11 @@ def svfForProcessing655(
     device=torch.device("cpu"),
 ):
     if device is None:
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        device = (
+            torch.device("cuda")
+            if torch.cuda.is_available()
+            else torch.device("cpu")
+        )
     dsm = _to_tensor(dsm, device)
     vegdem = _to_tensor(vegdem, device)
     vegdem2 = _to_tensor(vegdem2, device)
@@ -548,13 +572,14 @@ def svfForProcessing655(
                 )
 
                 vegsh = torch.tensor(shadowresult["vegsh"], device=device)
-                vbshvegsh = torch.tensor(shadowresult["vbshvegsh"], device=device)
+                vbshvegsh = torch.tensor(
+                    shadowresult["vbshvegsh"], device=device
+                )
                 sh = torch.tensor(shadowresult["sh"], device=device)
             else:
                 sh = shadow.shadowingfunctionglobalradiation(
                     dsm, azimuth, altitude, scale, feedback, 1, device
                 )
-
 
             # Calculate svfs
             for k in range(

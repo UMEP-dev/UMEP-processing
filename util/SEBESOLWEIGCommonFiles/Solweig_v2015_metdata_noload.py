@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from . import sun_position as sp
 
 # import sun_position as sp
-import numpy as np
 import datetime
 import calendar
 import torch
@@ -22,9 +21,11 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
     """
 
     met = inputdata
-    device = met.device if isinstance(met, torch.Tensor) else torch.device("cpu")
+    device = (
+        met.device if isinstance(met, torch.Tensor) else torch.device("cpu")
+    )
     data_len = len(met[:, 0])
-    dectime = met[:, 1] + met[:, 2] / 24 + met[:, 3] / (60 * 24.0)
+    dectime = torch.tensor(met[:, 1] + met[:, 2] / 24 + met[:, 3] / (60 * 24.0))
     dectimemin = met[:, 3] / (60 * 24.0)
     if data_len == 1:
         halftimestepdec = 0
@@ -55,7 +56,9 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
             int(met[i, 1]) - 1
         )
         # Finding maximum altitude in 15 min intervals (20141027)
-        if (i == 0) or (torch.remainder(dectime[i], torch.floor(dectime[i])) == 0):
+        if (i == 0) or (
+            torch.remainder(dectime[i], torch.floor(dectime[i])) == 0
+        ):
             fifteen = 0.0
             sunmaximum = -90.0
             sunmax["zenith"] = 90.0
@@ -94,12 +97,18 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
 
         # day of year and check for leap year
         if calendar.isleap(time["year"]):
-            dayspermonth = torch.atleast_2d(torch.tensor(
-                [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], device=device)
+            dayspermonth = torch.atleast_2d(
+                torch.tensor(
+                    [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+                    device=device,
+                )
             )
         else:
-            dayspermonth = torch.atleast_2d(torch.tensor(
-                [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], device=device)
+            dayspermonth = torch.atleast_2d(
+                torch.tensor(
+                    [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+                    device=device,
+                )
             )
         # jday[0, i] = torch.sum(dayspermonth[0, 0:time['month']-1]) + time['day'] # bug when a new day 20191015
         YYYY[0, i] = met[i, 0]

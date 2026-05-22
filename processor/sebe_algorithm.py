@@ -30,8 +30,7 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
-from qgis.PyQt.QtCore import QDate, QTime, Qt
-from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
+
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
@@ -47,6 +46,7 @@ from qgis.core import (
 )
 from processing.gui.wrappers import WidgetWrapper
 import numpy as np
+import torch
 from osgeo import gdal, osr
 from osgeo.gdalconst import *
 import os
@@ -86,6 +86,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     IRR_FILE = "IRR_FILE"
     OUTPUT_DIR = "OUTPUT_DIR"
     OUTPUT_ROOF = "OUTPUT_ROOF"
+    USE_GPU = "USE8GPU"
 
     def initAlgorithm(self, config):
         self.addParameter(
@@ -185,6 +186,13 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr("Use GPU"),
+                defaultValue=False,
+            )
+        )
+        self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.IRR_FILE,
                 self.tr("Sky irradiance distribution"),
@@ -234,6 +242,8 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         albedo = self.parameterAsDouble(parameters, self.ALBEDO, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
+        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
+
         irrFile = self.parameterAsFileOutput(
             parameters, self.IRR_FILE, context
         )
@@ -244,6 +254,11 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
+        
+        device = torch.device("cpu")
+        if use_gpu and torch.cuda.is_available():
+            device = torch.device("cuda")
+            
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -256,7 +271,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         nd = self.gdal_dsm.GetRasterBand(1).GetNoDataValue()
         self.dsm[self.dsm == nd] = 0.0
         if self.dsm.min() < 0:
-            self.dsm = self.dsm + np.abs(self.dsm.min())
+            self.dsm = self.dsm + torch.abs(self.dsm.min())
 
         # response to issue #104
         self.sorted_utclist
@@ -402,9 +417,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         delim = " "
 
         try:
-            self.metdata = np.loadtxt(
+            self.metdata = torch.from_numpy(np.loadtxt(
                 inputMet, skiprows=headernum, delimiter=delim
-            )
+            ), device=device)
         except:
             QgsProcessingException(
                 "Error: Make sure format of meteorological file is correct. You can"
@@ -412,7 +427,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 "the Pre-processor"
             )
 
-        testwhere = np.where(
+        testwhere = torch.where(
             (self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0)
         )
         if testwhere[0].__len__() > 0:
@@ -430,7 +445,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 "the Pre-processor"
             )
 
-        alt = np.median(self.dsm)
+        alt = torch.median(self.dsm)
         if alt < 0:
             alt = 3
 
@@ -454,10 +469,11 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             albedo,
             location,
             zen,
+            device
         )
 
         if saveskyirr:
-            metout = np.zeros((145, 4))
+            metout = torch.zeros((145, 4), device=device)
             metout[:, 0] = radmatI[:, 0]
             metout[:, 1] = radmatI[:, 1]
             metout[:, 2] = radmatI[:, 2]
@@ -512,6 +528,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             usevegdem,
             feedback,
             wallmaxheight,
+            device
         )
 
         Energyyearroof = seberesult["Energyyearroof"]

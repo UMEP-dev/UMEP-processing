@@ -1,5 +1,4 @@
 from __future__ import division
-import numpy as np
 import torch
 
 
@@ -45,7 +44,10 @@ def diffusefraction(radG, altitude, Kt, Ta, RH):
             )
         else:
             radD = radG * (
-                0.426 * Kt - 0.256 * torch.sin(alfa) + 0.00349 * Ta + 0.0734 * RH
+                0.426 * Kt
+                - 0.256 * torch.sin(alfa)
+                + 0.00349 * Ta
+                + 0.0734 * RH
             )
 
     radI = (radG - radD) / (torch.sin(alfa))

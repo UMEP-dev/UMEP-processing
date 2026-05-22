@@ -4,7 +4,6 @@ from builtins import range
 __author__ = "xlinfr"
 
 import math
-import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -13,69 +12,55 @@ import torch.nn.functional as F
 import scipy.ndimage as sc
 from scipy.ndimage import maximum_filter
 
-
-def findwalls_sp(arr_dsm, walllimit, footprint=None):
+def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
     """
-    This function identifies walls based on a DSM and a wall height limit.
-    
-    Parameters:
-    arr_dsm (Tensor or array-like): Digital Surface Model
-    walllimit (float): Wall height limit
-    footprint (Tensor, optional): Structuring element for the maximum filter.
-                                  Defaults to a diamond shape (cardinal neighbors).
+    Identifie les murs de manière ultra-optimisée en mémoire (sans F.unfold).
     """
-    # Ensure input is a PyTorch tensor and preserve its device (CPU or GPU)
+    # 1. S'assurer que l'entrée est un tenseur PyTorch
     if isinstance(arr_dsm, torch.Tensor):
         dsm_tensor = arr_dsm
     else:
-        dsm_tensor = torch.tensor(arr_dsm)
+        dsm_tensor = torch.tensor(arr_dsm, device=device)
 
-    # 1. Padding: 'edge' mode in NumPy becomes 'replicate' in PyTorch
-    # PyTorch requires at least a 3D tensor for 'replicate', so we unsqueeze(0)
-    padded_a = dsm_tensor.unsqueeze(0)
-    padded_a = F.pad(padded_a, pad=(1, 1, 1, 1), mode="replicate")
-    padded_a = padded_a.squeeze(0)
-
-    # 2. Maximum Filter using Max Pooling
-    # Default footprint is a 3x3 diamond shape (cardinal points)
+    # 2. Définir le footprint par défaut (forme de diamant / points cardinaux)
     if footprint is None or footprint is False:
-        # For max_pool2d, we simulate the footprint by looking at a 3x3 window.
-        # To strictly replicate a diamond footprint in pure PyTorch, we can use 
-        # a 2D morphological dilation with a custom kernel:
-        kernel = torch.tensor([[0., 1., 0.],
-                               [1., 1., 1.], # Including center for max filter
-                               [0., 1., 0.]], device=dsm_tensor.device)
-        
-        # Reshape padded_a to (Batch=1, Channel=1, H, W) for 2D convolutions
-        x = padded_a.unsqueeze(0).unsqueeze(0)
-        
-        # We use unfolds or a specialized max_pool, but since your footprint has 0s,
-        # the cleanest PyTorch way is to mask the 3x3 windows:
-        windows = F.unfold(x, kernel_size=3, padding=0) # Shape: (1, 9, L)
-        # Multiply by kernel flattened, replacing 0s with -inf so they are ignored in max
-        kernel_flat = kernel.flatten().unsqueeze(1)
-        windows = windows + torch.where(kernel_flat == 1, 0.0, float('-inf'))
-        
-        # Take the maximum over the 9 neighbors
-        max_neighbors = windows.max(dim=1)[0] # Shape: (1, L)
-        
-        # Reshape back to original DSM size (col, row)
-        max_neighbors = max_neighbors.view(dsm_tensor.shape)
+        footprint = torch.tensor([
+            [0, 1, 0],
+            [1, 1, 1],
+            [0, 1, 0]
+        ], device=device)
     else:
-        # If a custom footprint is provided, you can apply a similar unfold method
-        x = padded_a.unsqueeze(0).unsqueeze(0)
-        windows = F.unfold(x, kernel_size=footprint.shape, padding=0)
-        footprint_flat = footprint.to(dsm_tensor.device).flatten().unsqueeze(1)
-        windows = windows + torch.where(footprint_flat == 1, 0.0, float('-inf'))
-        max_neighbors = windows.max(dim=1)[0].view(dsm_tensor.shape)
+        footprint = footprint.to(device=device)
 
-    # 3. Identify wall pixels
+    fh, fw = footprint.shape
+    pad_h, pad_w = fh // 2, fw // 2
+
+    # Padding adaptatif basé sur la taille du filtre
+    padded_a = dsm_tensor.unsqueeze(0).unsqueeze(0)
+    padded_a = F.pad(padded_a, pad=(pad_w, pad_w, pad_h, pad_h), mode="replicate")
+    padded_a = padded_a.squeeze(0).squeeze(0)
+
+    # Initialisation de la matrice des maximums avec une valeur minimale (-infini)
+    max_neighbors = torch.full_like(dsm_tensor, float('-inf'))
+
+    # Trouver les coordonnées où le filtre est actif (égal à 1)
+    y_indices, x_indices = torch.where(footprint == 1)
+
+    # Utilisation du glissement par vue (0 copie mémoire)
+    H, W = dsm_tensor.shape
+    for dy, dx in zip(y_indices, x_indices):
+        # Cette ligne crée une "vue" virtuelle sans allouer de RAM
+        shifted_view = padded_a[dy : dy + H, dx : dx + W]
+        # Comparaison élément par élément optimisée
+        max_neighbors = torch.maximum(max_neighbors, shifted_view)
+
+    # 3. Identification des pixels de murs
     walls = max_neighbors - dsm_tensor
 
-    # Apply wall height limit
+    # Appliquer la limite de hauteur des murs
     walls[walls < walllimit] = 0
 
-    # 4. Set the outermost boundaries to zero
+    # 4. Remise à zéro des bordures extérieures
     walls[0, :] = 0
     walls[-1, :] = 0
     walls[:, 0] = 0
@@ -92,8 +77,7 @@ def findwalls(a, walllimit, feedback, total):
     # fredrikl@gvc.gu.se
     # 20150625
 
-    col = a.shape[0]
-    row = a.shape[1]
+    col, row = a.shape
     walls = torch.zeros((col, row))
     domain = torch.tensor([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
     index = 0
@@ -118,141 +102,216 @@ def findwalls(a, walllimit, feedback, total):
     return walls
 
 
-def filter1Goodwin_as_aspect_v3(walls_for_dir, scale, a, feedback, total):
+def filter1Goodwin_as_aspect_v3(
+    walls_for_dir, scale, a, feedback, total, device, tile_size=2048
+):
+    """Applies the Goodwin et al.
+
+    (2010) filter processing to calculate wall aspect based on a wall pixel
+    grid, a DSM (a), and a scale factor.
+
+    Optimized for GPU using 2D Convolutions to eliminate nested pixel loops
+    and CPU-GPU transfer bottlenecks.
+
+    :param walls_for_dir: Tensor (H, W), Binary grid of walls
+    :param scale: Float, Scale factor determining filter size
+    :param a: Tensor (H, W), Digital Surface Model (DSM)
+    :param feedback: Optional, QGIS/Processing feedback object for progress
+    :param total: Float, Progress step multiplier
+    :return: Tensor (H, W), Wall aspect directions
     """
-    tThis function applies the filter processing presented in Goodwin et al (2010) but instead for removing
-    linear fetures it calculates wall aspect based on a wall pixels grid, a dsm (a) and a scale factor
-
-    Fredrik Lindberg, 2012-02-14
-    fredrikl@gvc.gu.se
-
-    Translated: 2015-09-15
-
-    :param walls:
-    :param scale:
-    :param a:
-    :return: dirwalls
-    """
-
-    walls = walls_for_dir.clone().to(a.device)
-
-    row = a.shape[0]
-    col = a.shape[1]
-
+    row, col = a.shape
+    
+    # 1. Compute kernel footprint based on scale factor
     filtersize = torch.floor((scale + 0.0000000001) * 9)
     if filtersize <= 2:
         filtersize = 3
-    else:
-        if filtersize != 9:
-            if filtersize % 2 == 0:
-                filtersize = filtersize + 1
+    elif filtersize != 9 and filtersize % 2 == 0:
+        filtersize = filtersize + 1
 
-    filthalveceil = int(torch.ceil(filtersize / 2.0))
-    filthalvefloor = int(torch.floor(filtersize / 2.0))
+    filtersize = int(filtersize)
+    filthalveceil = int(torch.ceil(torch.tensor(filtersize) / 2.0))
+    filthalvefloor = int(torch.floor(torch.tensor(filtersize) / 2.0))
+    n = filtersize - 1
 
-    filtmatrix = torch.zeros((int(filtersize), int(filtersize)))
-    buildfilt = torch.zeros((int(filtersize), int(filtersize)))
+    # Initialize base structural elements on CPU for rotation
+    filtmatrix = torch.zeros((filtersize, filtersize))
+    buildfilt = torch.zeros((filtersize, filtersize))
 
     filtmatrix[:, filthalveceil - 1] = 1
-    n = filtmatrix.shape[0] - 1
     buildfilt[filthalveceil - 1, 0:filthalvefloor] = 1
-    buildfilt[filthalveceil - 1, filthalveceil : int(filtersize)] = 2
+    buildfilt[filthalveceil - 1, filthalveceil:filtersize] = 2
 
-    y = torch.zeros((row, col), device=a.device)  # final direction
-    z = torch.zeros((row, col), device=a.device)  # temporary direction
-    x = torch.zeros((row, col), device=a.device)  # building side
-    walls[walls > 0] = 1
+    filtmatrix_list = []
+    buildfilt1_list = []
+    buildfilt2_list = []
 
-    for h in range(
-        0, 180
-    ):  # =0:1:180 #%increased resolution to 1 deg 20140911
-        if feedback is not None:
-            feedback.setProgress(int(h * total))
-            if feedback.isCanceled():
-                feedback.setProgressText("Calculation cancelled")
-                break
-        filtmatrix1temp = sc.rotate(
-            filtmatrix.cpu().numpy()
-            if filtmatrix.device.type == "cuda"
-            else filtmatrix.numpy(),
-            h,
-            order=1,
-            reshape=False,
-            mode="nearest",
-        )  # bilinear
-        filtmatrix1 = torch.round(
-            torch.from_numpy(filtmatrix1temp).to(walls.device)
-        )
-        # filtmatrix1temp = sc.imrotate(filtmatrix, h, 'bilinear')
-        # filtmatrix1 = torch.round(filtmatrix1temp / 255.)
-        # filtmatrixbuildtemp = sc.imrotate(buildfilt, h, 'nearest')
-        filtmatrixbuildtemp = sc.rotate(
-            buildfilt.cpu().numpy()
-            if buildfilt.device.type == "cuda"
-            else buildfilt.numpy(),
-            h,
-            order=0,
-            reshape=False,
-            mode="nearest",
-        )  # Nearest neighbor
-        # filtmatrixbuild = torch.round(filtmatrixbuildtemp / 127.)
-        filtmatrixbuild = torch.round(
-            torch.from_numpy(filtmatrixbuildtemp).to(walls.device)
-        )
-        index = 270 - h
-        if h == 150:
-            filtmatrixbuild[:, n] = 0
-        if h == 30:
-            filtmatrixbuild[:, n] = 0
-        if index == 225:
-            # n = filtmatrix.shape[0] - 1  # length(filtmatrix);
-            filtmatrix1[0, 0] = 1
-            filtmatrix1[n, n] = 1
-        if index == 135:
-            # n = filtmatrix.shape[0] - 1  # length(filtmatrix);
-            filtmatrix1[0, n] = 1
-            filtmatrix1[n, 0] = 1
+    # 2. Pre-calculate all 180 directional filters on CPU
+    with torch.no_grad(): 
+        for h in range(180):
+            filtmatrix1temp = sc.rotate(
+                filtmatrix.numpy(), h, order=1, reshape=False, mode="nearest"
+            )
+            filtmatrix1 = torch.round(torch.from_numpy(filtmatrix1temp))
 
-        for i in range(
-            int(filthalveceil) - 1, row - int(filthalveceil) - 1
-        ):  # i=filthalveceil:sizey-filthalveceil
-            for j in range(
-                int(filthalveceil) - 1, col - int(filthalveceil) - 1
-            ):  # (j=filthalveceil:sizex-filthalveceil
-                if walls[i, j] == 1:
-                    wallscut = (
-                        walls[
-                            i - filthalvefloor : i + filthalvefloor + 1,
-                            j - filthalvefloor : j + filthalvefloor + 1,
-                        ]
-                        * filtmatrix1
-                    )
-                    dsmcut = a[
-                        i - filthalvefloor : i + filthalvefloor + 1,
-                        j - filthalvefloor : j + filthalvefloor + 1,
-                    ]
-                    if z[i, j] < wallscut.sum():  # sum(sum(wallscut))
-                        z[i, j] = wallscut.sum()  # sum(sum(wallscut));
-                        if torch.sum(dsmcut[filtmatrixbuild == 1]) > torch.sum(
-                            dsmcut[filtmatrixbuild == 2]
-                        ):
-                            x[i, j] = 1
-                        else:
-                            x[i, j] = 2
+            filtmatrixbuildtemp = sc.rotate(
+                buildfilt.numpy(), h, order=0, reshape=False, mode="nearest"
+            )
+            filtmatrixbuild = torch.round(torch.from_numpy(filtmatrixbuildtemp))
 
-                        y[i, j] = index
+            index = 270 - h
+            if h in (150, 30):
+                filtmatrixbuild[:, n] = 0
+            if index == 225:
+                filtmatrix1[0, 0] = 1
+                filtmatrix1[n, n] = 1
+            if index == 135:
+                filtmatrix1[0, n] = 1
+                filtmatrix1[n, 0] = 1
 
-    y[(x == 1)] = y[(x == 1)] - 180
-    y[(y < 0)] = y[(y < 0)] + 360
+            filtmatrix_list.append(filtmatrix1.unsqueeze(0).unsqueeze(0))
+            buildfilt1_list.append(
+                (filtmatrixbuild == 1).float().unsqueeze(0).unsqueeze(0)
+            )
+            buildfilt2_list.append(
+                (filtmatrixbuild == 2).float().unsqueeze(0).unsqueeze(0)
+            )
 
+    # Stacking kernels on CPU first - Now perfectly defined!
+    all_kernels_walls = torch.cat(filtmatrix_list, dim=0)
+    all_kernels_dsm1 = torch.cat(buildfilt1_list, dim=0)
+    all_kernels_dsm2 = torch.cat(buildfilt2_list, dim=0)
+    
+    # 3. Setup global output allocation arrays
+    final_y = torch.zeros((row, col), device=device)
+    final_x = torch.zeros((row, col), device=device)
+    
+    walls_binary = (walls_for_dir > 0).float().to(device)
+    a_device = a.float().to(device)
+
+    # Calculate total tiles for feedback tracking
+    num_tiles_y = math.ceil(row / tile_size)
+    num_tiles_x = math.ceil(col / tile_size)
+    total_tiles = num_tiles_y * num_tiles_x
+    tile_count = 0
+
+    # 4. Loop through spatial tiles
+    for r_start in range(0, row, tile_size):
+        r_end = min(r_start + tile_size, row)
+        
+        for c_start in range(0, col, tile_size):
+            c_end = min(c_start + tile_size, col)
+            
+            if feedback is not None and feedback.isCanceled():
+                return final_y
+
+            # Determine padded coordinates (the halo zone)
+            pad_top = min(r_start, filthalvefloor)
+            pad_bottom = min(row - r_end, filthalvefloor)
+            pad_left = min(c_start, filthalvefloor)
+            pad_right = min(col - c_end, filthalvefloor)
+            
+            # Slice tile out with padding included
+            tile_a = a_device[
+                (r_start - pad_top):(r_end + pad_bottom), 
+                (c_start - pad_left):(c_end + pad_right)
+            ].unsqueeze(0).unsqueeze(0)
+            
+            tile_walls = walls_binary[
+                (r_start - pad_top):(r_end + pad_bottom), 
+                (c_start - pad_left):(c_end + pad_right)
+            ].unsqueeze(0).unsqueeze(0)
+            
+            # Local allocation sizes for this specific tile (including pads)
+            tile_rows, tile_cols = tile_a.shape[2], tile_a.shape[3]
+            
+            # Running Maximum Setup for this tile
+            z_max = torch.full((tile_rows, tile_cols), -1.0, device=device)
+            h_best = torch.zeros((tile_rows, tile_cols), dtype=torch.long, device=device)
+            dsm_best1 = torch.zeros((tile_rows, tile_cols), device=device)
+            dsm_best2 = torch.zeros((tile_rows, tile_cols), device=device)
+
+            # 5. Process angles in small chunks inside this single spatial tile
+            chunk_size = 10 
+            for idx in range(0, 180, chunk_size):
+                end_idx = min(idx + chunk_size, 180)
+                
+                k_walls = all_kernels_walls[idx:end_idx].to(device)
+                k_dsm1 = all_kernels_dsm1[idx:end_idx].to(device)
+                k_dsm2 = all_kernels_dsm2[idx:end_idx].to(device)
+
+                # Notice: padding=0 because we manually padded our spatial tiles!
+                walls_conv = F.conv2d(tile_walls, k_walls, padding=0).squeeze(0)
+                dsm_conv1 = F.conv2d(tile_a, k_dsm1, padding=0).squeeze(0)
+                dsm_conv2 = F.conv2d(tile_a, k_dsm2, padding=0).squeeze(0)
+
+                # Account for spatial shrinkage since F.conv2d with padding=0 trims edges
+                c_rows, c_cols = walls_conv.shape[1], walls_conv.shape[2]
+                
+                # Align running arrays dynamically to conv output window
+                z_max_crop = z_max[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols]
+                
+                chunk_max, chunk_h_local = torch.max(walls_conv, dim=0)
+                is_new_max = chunk_max >= z_max_crop
+                
+                if is_new_max.any():
+                    # Update local trackers
+                    z_max[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols] = torch.where(is_new_max, chunk_max, z_max_crop)
+                    
+                    chunk_h_absolute = chunk_h_local + idx
+                    h_best_crop = h_best[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols]
+                    h_best[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols] = torch.where(is_new_max, chunk_h_absolute, h_best_crop)
+
+                    h_local_unsqueeze = chunk_h_local.unsqueeze(0)
+                    chunk_dsm1 = torch.gather(dsm_conv1, dim=0, index=h_local_unsqueeze).squeeze(0)
+                    chunk_dsm2 = torch.gather(dsm_conv2, dim=0, index=h_local_unsqueeze).squeeze(0)
+
+                    dsm_best1_crop = dsm_best1[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols]
+                    dsm_best2_crop = dsm_best2[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols]
+                    
+                    dsm_best1[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols] = torch.where(is_new_max, chunk_dsm1, dsm_best1_crop)
+                    dsm_best2[filthalvefloor:filthalvefloor+c_rows, filthalvefloor:filthalvefloor+c_cols] = torch.where(is_new_max, chunk_dsm2, dsm_best2_crop)
+
+            # Un-pad results to extract the pure valid window of this tile
+            tile_y = 270.0 - h_best.float()
+            tile_x = torch.where(dsm_best1 > dsm_best2, 1, 2)
+            
+            valid_tile_y = tile_y[pad_top : tile_rows - pad_bottom, pad_left : tile_cols - pad_right]
+            valid_tile_x = tile_x[pad_top : tile_rows - pad_bottom, pad_left : tile_cols - pad_right]
+            
+            # Write back cleanly into the global array without overlap seams
+            final_y[r_start:r_end, c_start:c_end] = valid_tile_y
+            final_x[r_start:r_end, c_start:c_end] = valid_tile_x
+            
+            # Progress handling
+            tile_count += 1
+            if feedback is not None:
+                feedback.setProgress(int((tile_count / total_tiles) * total * 0.9))
+
+    # 6. Global Post-processing calculations 
+    border_mask = torch.zeros((row, col), dtype=torch.bool, device=device)
+    start = filthalveceil - 1
+    end_row = row - filthalveceil - 1
+    end_col = col - filthalveceil - 1
+    border_mask[start:end_row, start:end_col] = True
+
+    valid_mask = (walls_binary == 1) & border_mask
+    final_y = torch.where(valid_mask, final_y, torch.zeros_like(final_y))
+    final_x = torch.where(valid_mask, final_x, torch.zeros_like(final_x))
+
+    final_y[final_x == 1] = final_y[final_x == 1] - 180
+    final_y[final_y < 0] = final_y[final_y < 0] + 360
+
+    # Incorporate derivative fallback values for flat results
     grad, asp = get_ders(a, scale)
+    asp_device = torch.from_numpy(asp).to(device) if not isinstance(asp, torch.Tensor) else asp.to(device)
+    
+    final_y = final_y + ((walls_binary == 1) * 1) * ((final_y == 0) * 1) * (asp_device / (math.pi / 180.0))
 
-    y = y + ((walls == 1) * 1) * ((y == 0) * 1) * (asp / (math.pi / 180.0))
+    if feedback is not None:
+        feedback.setProgress(int(total))
 
-    dirwalls = y
-
-    return dirwalls
-
+    return final_y
 
 def cart2pol(x, y, units="deg"):
     radius = torch.sqrt(x**2 + y**2)

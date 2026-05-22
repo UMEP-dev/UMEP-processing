@@ -47,9 +47,10 @@ from builtins import str
 import os
 from PIL import Image
 import numpy as np
+import torch
 
 
-def importdata(*args):
+def importdata(*args, device):
     """
     Imports data.
 
@@ -135,7 +136,7 @@ def importdata(*args):
         delimiter = None
         headerRows = 0
         img = Image.open(fileName)
-        output["cdata"] = np.array(img)
+        output["cdata"] = torch.tensor(img, device=device)
         output["colormap"] = (
             img.mode
         )  # TODO: check if this method is euaivalent
@@ -196,9 +197,9 @@ def print_usage():
     raise IOError("Insufficient/bad arguments for importdata()")
 
 
-def importdata_ascii(fileName, delimiter, headerRows):
+def importdata_ascii(fileName, delimiter, headerRows, device):
     output = dict()
-    output["data"] = np.array([])
+    output["data"] = torch.tensor([], device=device)
     output["textdata"] = list()
 
     # Read file into string and count the number of header rows
@@ -254,7 +255,7 @@ def importdata_ascii(fileName, delimiter, headerRows):
     # print "headerRows py:", headerRows
     # Go through the data and put it in either output.data or output.textdata depending on if it is numeric or not.
     output["data"] = (
-        np.empty((len(fileContentRows) - headerRows, dataColumns)) * np.nan
+        torch.from_numpy(np.empty((len(fileContentRows) - headerRows, dataColumns)), device=device) * torch.nan
     )
     for i, line in enumerate(fileContentRows[headerRows:]):
         # Only use the row if it contains anything other than white-space characters.
