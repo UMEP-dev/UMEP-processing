@@ -1198,18 +1198,18 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if useGroundScheme:
             groundscheme = 1
             feedback.setProgressText(
-                "The ground cover scheme from v2026 is activated"
+                "The surface temperature parameterization from v2026 is activated"
             )
         else:
             groundscheme = 0
             feedback.setProgressText(
-                "The ground cover scheme described in 2016 is activated"
+                "The surface temperature scheme described in 2016 is activated"
             )
 
         # Outgoing longwave calculation
         if useOutgoingLW:
             feedback.setProgressText(
-                "The ground cover scheme from v2026 is activated"
+                "The upwelling longwave radiation from v2026 is activated"
             )
             outgoingLW = 1
         else:
