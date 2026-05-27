@@ -121,6 +121,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     SAVE_BUILD = "SAVE_BUILD"
     INPUT_ANISO = "INPUT_ANISO"
     USE_GROUNDSCHEME = "USE_GROUNDSCHEME"
+    USE_OUTGOINGLW = "USE_OUTGOINGLW"
     INPUT_GROUNDSCHEME = "INPUT_GROUNDSCHEME"
     INPUT_WALLSCHEME = "INPUT_WALLSCHEME"
     WALLTEMP_NETCDF = "WALLTEMP_NETCDF"
@@ -324,8 +325,16 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_GROUNDSCHEME,
-                self.tr("Use ground cover scheme v2026a"),
+                self.tr("Use surface temperature parameterization v2026a"),
                 defaultValue=False,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_OUTGOINGLW,
+                self.tr("Use upwelling longwave radiation from v2026a"),
+                defaultValue=True,
                 optional=True,
             )
         )
@@ -757,6 +766,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         useGroundScheme = self.parameterAsString(
             parameters, self.USE_GROUNDSCHEME, context
         )
+        useOutgoingLW = self.parameterAsString(
+            parameters, self.USE_OUTGOINGLW, context
+        )     
         groundTempFile = self.parameterAsString(
             parameters, self.INPUT_GROUNDSCHEME, context
         )
@@ -1180,16 +1192,31 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
-
-        # Ground cover scheme
+        
+        ### Ground cover scheme
+        # Surface temperature parameterization
         if useGroundScheme:
+            groundscheme = 1
             feedback.setProgressText(
                 "The ground cover scheme from v2026 is activated"
             )
         else:
+            groundscheme = 0
             feedback.setProgressText(
                 "The ground cover scheme described in 2016 is activated"
             )
+
+        # Outgoing longwave calculation
+        if useOutgoingLW:
+            feedback.setProgressText(
+                "The ground cover scheme from v2026 is activated"
+            )
+            outgoingLW = 1
+        else:
+            feedback.setProgressText(
+                "The ground cover scheme described in 2016 is activated"
+            )
+            outgoingLW = 0
 
         # % Ts parameterisation maps
         if landcover == 1.0:
@@ -1284,6 +1311,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "landcover": int(landcover),
             "demforbuild": int(demforbuild),
             "aniso": int(anisotropic_sky),
+            "groundmodel": groundscheme,
+            "outgoingLW": outgoingLW,
             "wallscheme": wallScheme,
             "walltype": wall_type,  #'Brick_wall', #:TODO
             "outputtmrt": int(outputTmrt),
