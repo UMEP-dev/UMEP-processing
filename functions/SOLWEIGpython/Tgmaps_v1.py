@@ -20,9 +20,9 @@ def Tgmaps_v1(lc_grid, solweig_parameters):
         Tstart[Tstart == i] = solweig_parameters["Tstart"]["Value"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ]
-        alb_grid[alb_grid == i] = solweig_parameters["Albedo"]["Effective"][
-            "Value"
-        ][solweig_parameters["Names"]["Value"][str((int(i.item())))]]
+        alb_grid[alb_grid == i] = solweig_parameters["Albedo"]["Effective"]["Value"][
+            solweig_parameters["Names"]["Value"][str((int(i.item())))]
+        ]
         emis_grid[emis_grid == i] = solweig_parameters["Emissivity"]["Value"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ]

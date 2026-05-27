@@ -187,27 +187,15 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         inputPointLayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POINTLAYER, context
         )
-        ttype_field = self.parameterAsFields(
-            parameters, self.TREE_TYPE, context
-        )
-        trunk_field = self.parameterAsFields(
-            parameters, self.TRUNK_HEIGHT, context
-        )
-        tot_field = self.parameterAsFields(
-            parameters, self.TOT_HEIGHT, context
-        )
+        ttype_field = self.parameterAsFields(parameters, self.TREE_TYPE, context)
+        trunk_field = self.parameterAsFields(parameters, self.TRUNK_HEIGHT, context)
+        tot_field = self.parameterAsFields(parameters, self.TOT_HEIGHT, context)
         dia_field = self.parameterAsFields(parameters, self.DIA, context)
-        build = self.parameterAsRasterLayer(
-            parameters, self.INPUT_BUILD, context
-        )
+        build = self.parameterAsRasterLayer(parameters, self.INPUT_BUILD, context)
         dsm = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
         dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-        cdsm = self.parameterAsRasterLayer(
-            parameters, self.INPUT_CDSM, context
-        )
-        tdsm = self.parameterAsRasterLayer(
-            parameters, self.INPUT_TDSM, context
-        )
+        cdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+        tdsm = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
         outputCDSM = self.parameterAsOutputLayer(
             parameters, self.CDSM_GRID_OUT, context
         )
@@ -337,11 +325,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
         width = dataset.RasterXSize
         height = dataset.RasterYSize
         minx = geotransform[0]
-        miny = (
-            geotransform[3]
-            + width * geotransform[4]
-            + height * geotransform[5]
-        )
+        miny = geotransform[3] + width * geotransform[4] + height * geotransform[5]
         rows = build_array.shape[0]
         cols = build_array.shape[1]
 

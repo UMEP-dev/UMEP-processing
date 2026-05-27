@@ -168,9 +168,7 @@ def createGrid(
 
     # Gather all tables in one
     gatherQuery = [
-        safe("""SELECT {0} AS {0} FROM {1}""").format(
-            GEOM_FIELD, dicOfInputTables[t]
-        )
+        safe("""SELECT {0} AS {0} FROM {1}""").format(GEOM_FIELD, dicOfInputTables[t])
         for t in dicOfInputTables.keys()
     ]
 
@@ -233,10 +231,8 @@ def affectsPointToBuildZone(
             verticalLineTable: String
                 Vertical lines (not along z but along the grid "north-south")
                 useful for future calculations"""
-    print(
-        """Affects each grid point to a building Rockle zone and calculates needed 
-          variables for 3D wind speed"""
-    )
+    print("""Affects each grid point to a building Rockle zone and calculates needed 
+          variables for 3D wind speed""")
 
     # Name of the output tables
     dicOfOutputTables = {
@@ -246,9 +242,7 @@ def affectsPointToBuildZone(
         )
         for t in dicOfBuildRockleZoneTable
     }
-    verticalLineTable = DataUtil.prefix(
-        tableName="VERTICAL_LINES", prefix=prefix
-    )
+    verticalLineTable = DataUtil.prefix(tableName="VERTICAL_LINES", prefix=prefix)
 
     # Temporary tables (and prefix for temporary tables)
     tempoCavity = DataUtil.postfix("TEMPO_CAVITY")
@@ -308,10 +302,8 @@ def affectsPointToBuildZone(
             ID_POINT, queryKeepY, idZone[t], HEIGHT_FIELD
         )
         if t == STREET_CANYON_NAME:
-            columnsToKeepQuery = safe(
-                """b.{0}, {1} a.{2}, a.{3}, a.{4}, a.{5}, a.{6}
-                                    """
-            ).format(
+            columnsToKeepQuery = safe("""b.{0}, {1} a.{2}, a.{3}, a.{4}, a.{5}, a.{6}
+                                    """).format(
                 ID_POINT,
                 queryKeepY,
                 idZone[t],
@@ -394,9 +386,7 @@ def affectsPointToBuildZone(
         DataUtil.createIndex(
             tableName=gridTable, fieldName=ID_POINT_Y, isSpatial=False
         ),
-        DataUtil.createIndex(
-            tableName=gridTable, fieldName=GEOM_FIELD, isSpatial=True
-        ),
+        DataUtil.createIndex(tableName=gridTable, fieldName=GEOM_FIELD, isSpatial=True),
         X,
     )
 
@@ -1031,10 +1021,8 @@ def affectsPointToVegZone(
                 Dictionary having as key the type of vegetation Rockle zone and as value
                 the name of the table containing points corresponding to the vegetation zone
     """
-    print(
-        """Affects each grid point to a vegetation Rockle zone and calculates 
-          needed variables for 3D wind speed"""
-    )
+    print("""Affects each grid point to a vegetation Rockle zone and calculates 
+          needed variables for 3D wind speed""")
 
     # Name of the output tables
     dicOfOutputTables = {
@@ -1109,9 +1097,7 @@ def affectsPointToVegZone(
     return dicOfOutputTables
 
 
-def removeBuildZonePoints(
-    cursor, dicOfInitBuildZoneGridPoint, prefix=PREFIX_NAME
-):
+def removeBuildZonePoints(cursor, dicOfInitBuildZoneGridPoint, prefix=PREFIX_NAME):
     """Remove some of the Röckle zone points when there are specific
     zone overlapping. Currently, two major deletions are implemented:
         1. downwind building zone deletion: if a part of a building is entirely
@@ -1276,9 +1262,7 @@ def removeBuildZonePoints(
                 fieldName=ID_POINT,
                 isSpatial=False,
             ),
-            DataUtil.createIndex(
-                cavityFirstPoint, fieldName=ID_POINT, isSpatial=False
-            ),
+            DataUtil.createIndex(cavityFirstPoint, fieldName=ID_POINT, isSpatial=False),
             DataUtil.createIndex(
                 cavityFirstPoint,
                 fieldName=ID_FIELD_STACKED_BLOCK,
@@ -1668,9 +1652,7 @@ def removeBuildZonePoints(
                 safe(""" 
            DROP TABLE IF EXISTS {0};
            ALTER TABLE {1} RENAME TO {0}
-           """).format(
-                    dicOfBuildZoneGridPoint[t], dicOfInitBuildZoneGridPoint[t]
-                )
+           """).format(dicOfBuildZoneGridPoint[t], dicOfInitBuildZoneGridPoint[t])
                 for t in nonModifiedTables
             ]
         )
@@ -2110,29 +2092,21 @@ def calculates3dBuildWindFactor(
 
     # Identify the maximum height where wind speed may be affected by building obstacles
     maxHeightQuery = {
-        DISPLACEMENT_NAME: "MAX({0}) AS MAX_HEIGHT".format(
-            UPPER_VERTICAL_THRESHOLD
-        ),
+        DISPLACEMENT_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
         DISPLACEMENT_VORTEX_NAME: "MAX({0}) AS MAX_HEIGHT".format(
             UPPER_VERTICAL_THRESHOLD
         ),
         CAVITY_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
         WAKE_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
-        STREET_CANYON_NAME: "MAX({0}) AS MAX_HEIGHT".format(
-            UPPER_VERTICAL_THRESHOLD
-        ),
+        STREET_CANYON_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
         ROOFTOP_PERP_NAME: "MAX({0}+{1}) AS MAX_HEIGHT".format(
             ROOFTOP_PERP_VAR_HEIGHT, HEIGHT_FIELD
         ),
         ROOFTOP_CORN_NAME: "MAX({0}+{1}) AS MAX_HEIGHT".format(
             ROOFTOP_CORNER_VAR_HEIGHT, HEIGHT_FIELD
         ),
-        CAVITY_BACKWARD_NAME: "MAX({0}) AS MAX_HEIGHT".format(
-            UPPER_VERTICAL_THRESHOLD
-        ),
-        WAKE_BACKWARD_NAME: "MAX({0}) AS MAX_HEIGHT".format(
-            UPPER_VERTICAL_THRESHOLD
-        ),
+        CAVITY_BACKWARD_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
+        WAKE_BACKWARD_NAME: "MAX({0}) AS MAX_HEIGHT".format(UPPER_VERTICAL_THRESHOLD),
     }
     cursor.execute(
         safe(""" SELECT MAX(MAX_HEIGHT) AS MAX_HEIGHT
@@ -2347,9 +2321,7 @@ def calculates3dBuildWindFactor(
     # Defines the WHERE clause (on z-axis values) for each point of each zone
     whereQuery = {
         DISPLACEMENT_NAME: "b.{0} < a.{1}".format(Z, UPPER_VERTICAL_THRESHOLD),
-        DISPLACEMENT_VORTEX_NAME: "b.{0} < a.{1}".format(
-            Z, UPPER_VERTICAL_THRESHOLD
-        ),
+        DISPLACEMENT_VORTEX_NAME: "b.{0} < a.{1}".format(Z, UPPER_VERTICAL_THRESHOLD),
         CAVITY_NAME: "b.{0} < a.{1}".format(Z, UPPER_VERTICAL_THRESHOLD),
         WAKE_NAME: "b.{0} < a.{1} AND b.{0} >= a.{2}".format(
             Z,
@@ -2368,9 +2340,7 @@ def calculates3dBuildWindFactor(
                                         AND b.{0} > a.{1}""".format(
             Z, HEIGHT_FIELD, ROOFTOP_CORNER_VAR_HEIGHT
         ),
-        CAVITY_BACKWARD_NAME: "b.{0} < a.{1}".format(
-            Z, UPPER_VERTICAL_THRESHOLD
-        ),
+        CAVITY_BACKWARD_NAME: "b.{0} < a.{1}".format(Z, UPPER_VERTICAL_THRESHOLD),
         WAKE_BACKWARD_NAME: "b.{0} < a.{1} AND b.{0} >= a.{2}".format(
             Z,
             UPPER_VERTICAL_THRESHOLD,
@@ -2464,9 +2434,7 @@ def calculates3dVegWindFactor(
     outputBaseName = "VEGETATION_WEIGHTING_FACTORS"
 
     # Name of the output table
-    vegetationWeightFactorTable = DataUtil.prefix(
-        outputBaseName, prefix=prefix
-    )
+    vegetationWeightFactorTable = DataUtil.prefix(outputBaseName, prefix=prefix)
 
     # Temporary tables (and prefix for temporary tables)
     zValueTable = DataUtil.postfix("Z_VALUES")
@@ -2485,15 +2453,11 @@ def calculates3dVegWindFactor(
             dz,
         )
     ]
-    cursor.execute(
-        safe("""
+    cursor.execute(safe("""
             DROP TABLE IF EXISTS {0};
             CREATE TABLE {0}({2} BIGINT AUTO_INCREMENT, {3} DOUBLE);
             INSERT INTO {0} VALUES (DEFAULT, {1})
-               """).format(
-            zValueTable, "), (DEFAULT, ".join(listOfZ), ID_POINT_Z, Z
-        )
-    )
+               """).format(zValueTable, "), (DEFAULT, ".join(listOfZ), ID_POINT_Z, Z))
 
     # Calculation of the wind speed depending on vegetation location (open or building zone)
     # d is actually calculated by Equation 18a from Hanna and Britter (2002)
@@ -2734,9 +2698,7 @@ def manageSuperimposition(
     # Temporary tables (and prefix for temporary tables)
     tempoPrioritiesAll = DataUtil.postfix("TEMPO_PRIORITY_ALL")
     tempoPrioritiesWeighted = DataUtil.postfix("TEMPO_PRIORITY_WEIGHTED")
-    tempoPrioritiesWeightedAll = DataUtil.postfix(
-        "TEMPO_PRIORITY_WEIGHTED_ALL"
-    )
+    tempoPrioritiesWeightedAll = DataUtil.postfix("TEMPO_PRIORITY_WEIGHTED_ALL")
     tempoBackwardWeights = DataUtil.postfix("TEMPO_BACWARD_WEIGHTS")
     dicBackwardWeighted = {
         t: DataUtil.postfix(DataUtil.prefix(t, prefix="TEMPO_WEIGHTED"))
@@ -2745,9 +2707,7 @@ def manageSuperimposition(
     tempoPrioritiesWeightedAllPlusBack = DataUtil.postfix(
         "TEMPO_PRIORITY_WEIGHTED_ALL_PLUS_BACK"
     )
-    tempoUpstreamAndDownstream = DataUtil.postfix(
-        "TEMPO_UPSTREAM_AND_DOWNSTREAM"
-    )
+    tempoUpstreamAndDownstream = DataUtil.postfix("TEMPO_UPSTREAM_AND_DOWNSTREAM")
 
     # Give feedback to user
     if feedback:
@@ -3131,9 +3091,7 @@ def manageUpstreamSuperimposition(
         cursor=cursor,
         dicAllWeightFactorsTables=dicAllWeightFactorsTables,
         tablesToConsider=upstreamPriorityTables.reindex(
-            upstreamPriorityTables.index.difference(
-                pd.Index(upstreamWeightingTables)
-            )
+            upstreamPriorityTables.index.difference(pd.Index(upstreamWeightingTables))
         ),
         prefix="TEMPO_PRIORITIES",
         upstream=upstreamPriorities,
@@ -3437,9 +3395,7 @@ def identifyUpstreamer(
         selectQueryDownstream[t] = """
                 SELECT  CAST((row_number() over()) as Integer) AS {0}, {1}, {2},
                         {3}, {4}, 
-                """.format(
-            ID_3D_POINT, ID_POINT, ID_POINT_Z, HEIGHT_FIELD, Y_WALL
-        )
+                """.format(ID_3D_POINT, ID_POINT, ID_POINT_Z, HEIGHT_FIELD, Y_WALL)
 
         # If priorities should be used, add columns to keep
         if type(tablesToConsider) == type(pd.DataFrame()):
@@ -3474,9 +3430,7 @@ def identifyUpstreamer(
                     wind_factor_names[i]
                 )
         selectQueryDownstream[t] = (
-            selectQueryDownstream[t][0:-2]
-            + " FROM "
-            + dicAllWeightFactorsTables[t]
+            selectQueryDownstream[t][0:-2] + " FROM " + dicAllWeightFactorsTables[t]
         )
 
     # Gather all data for the upstream weighting into a same table
@@ -3684,10 +3638,7 @@ def getVerticalProfile(
     verticalProfileFile = kwargs.get("verticalProfileFile", None)
     if profileType == "power":
         verticalWindProfile = pd.Series(
-            [
-                V_ref * (z / z_ref) ** (0.12 * z0 + 0.18)
-                for z in pointHeightList
-            ],
+            [V_ref * (z / z_ref) ** (0.12 * z0 + 0.18) for z in pointHeightList],
             index=pointHeightList,
         )
     elif profileType == "urban":
@@ -3697,10 +3648,7 @@ def getVerticalProfile(
         pointHeighAbove = pointHeightIndex[pointHeightIndex >= H]
         speedAtCanopyHeight = V_ref * np.log((H - d) / z0) / np.log(z_ref / z0)
         verticalProfileWithin = pd.Series(
-            [
-                speedAtCanopyHeight * np.exp(A * (z / H - 1))
-                for z in pointHeighCanopy
-            ],
+            [speedAtCanopyHeight * np.exp(A * (z / H - 1)) for z in pointHeighCanopy],
             index=pointHeighCanopy,
         )
         verticalProfileAbove = pd.Series(
@@ -3844,12 +3792,8 @@ def setInitialWindField(
 
     # Temporary tables (and prefix for temporary tables)
     tempoVerticalProfileTable = DataUtil.postfix("TEMPO_VERTICAL_PROFILE_WIND")
-    tempoBuildingHeightWindTable = DataUtil.postfix(
-        "TEMPO_BUILDING_HEIGHT_WIND"
-    )
-    tempoZoneWindSpeedFactorTable = DataUtil.postfix(
-        "TEMPO_ZONE_WIND_SPEED_FACTOR"
-    )
+    tempoBuildingHeightWindTable = DataUtil.postfix("TEMPO_BUILDING_HEIGHT_WIND")
+    tempoZoneWindSpeedFactorTable = DataUtil.postfix("TEMPO_ZONE_WIND_SPEED_FACTOR")
 
     # Set a list of the level height and get their horizontal wind speed
     levelHeightList = [
@@ -3898,9 +3842,7 @@ def setInitialWindField(
                    """).format(HEIGHT_FIELD, initializedWindFactorTable))
     buildingHeightList = cursor.fetchall()
     if len(buildingHeightList) > 0:
-        df_buildingHeightList = pd.Series(
-            pd.DataFrame(buildingHeightList)[0].values
-        )
+        df_buildingHeightList = pd.Series(pd.DataFrame(buildingHeightList)[0].values)
         buildingHeightWindSpeed = getVerticalProfile(
             cursor=cursor,
             pointHeightList=df_buildingHeightList,
@@ -3917,9 +3859,7 @@ def setInitialWindField(
         # ... and insert it into a table
         valuesForEachRowBuilding = [
             str(i) + "," + str(j)
-            for i, j in buildingHeightWindSpeed.set_index(Z)[
-                HORIZ_WIND_SPEED
-            ].items()
+            for i, j in buildingHeightWindSpeed.set_index(Z)[HORIZ_WIND_SPEED].items()
         ]
         cursor.execute(
             safe("""
@@ -3943,9 +3883,7 @@ def setInitialWindField(
         V_ref = verticalWindSpeedProfile.loc[
             verticalWindSpeedProfile.index[-1], HORIZ_WIND_SPEED
         ]
-        z_ref = verticalWindSpeedProfile.loc[
-            verticalWindSpeedProfile.index[-1], Z
-        ]
+        z_ref = verticalWindSpeedProfile.loc[verticalWindSpeedProfile.index[-1], Z]
 
     # Calculates the initial wind speed field according to each point rule
     # and join to the table x and y coordinates
@@ -4100,11 +4038,7 @@ def setInitialWindField(
             df_wind0.loc[idx[:, :, z_i], :] = (
                 df_wind0.loc[idx[:, :, z_i], :]
                 * verticalWindSpeedProfile.loc[z_i, HORIZ_WIND_SPEED]
-                / df_wind0.loc[idx[:, :, z_i], :]
-                .pow(2)
-                .sum(axis=1)
-                .pow(0.5)
-                .mean()
+                / df_wind0.loc[idx[:, :, z_i], :].pow(2).sum(axis=1).pow(0.5).mean()
             )
 
     # Set to 0 wind speed within buildings...
@@ -4308,19 +4242,9 @@ def identifyBuildPoints(
     ind2remove = (
         df_wall_left.intersection(df_wall_right)
         .intersection(df_wall_behind)
-        .union(
-            df_wall_left.intersection(df_wall_right).intersection(df_wall_face)
-        )
-        .union(
-            df_wall_left.intersection(df_wall_behind).intersection(
-                df_wall_face
-            )
-        )
-        .union(
-            df_wall_right.intersection(df_wall_behind).intersection(
-                df_wall_face
-            )
-        )
+        .union(df_wall_left.intersection(df_wall_right).intersection(df_wall_face))
+        .union(df_wall_left.intersection(df_wall_behind).intersection(df_wall_face))
+        .union(df_wall_right.intersection(df_wall_behind).intersection(df_wall_face))
         .difference(df_gridBuil.index)
     )
     df_gridBuil.index = df_gridBuil.index.append(ind2remove)

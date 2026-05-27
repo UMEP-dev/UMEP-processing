@@ -222,9 +222,7 @@ def get_resolution_from_file(folder_path):
 
     # Combine Year, DOY, Hour, Min into a datetime index
     df_suews["Datetime"] = to_datetime(
-        df_suews[["Year", "DOY", "Hour", "Min"]]
-        .astype(str)
-        .agg("-".join, axis=1),
+        df_suews[["Year", "DOY", "Hour", "Min"]].astype(str).agg("-".join, axis=1),
         format="%Y-%j-%H-%M",
     )
     df_suews.set_index("Datetime", inplace=True)
@@ -253,9 +251,7 @@ def SUEWS_txt_to_df(suews_output_path):
 def SUEWS_met_txt_to_df(suews_met_path):
     df_met_forcing = read_csv(suews_met_path, delim_whitespace=True)
     df_met_forcing["Datetime"] = to_datetime(
-        df_met_forcing[["iy", "id", "it", "imin"]]
-        .astype(str)
-        .agg("-".join, axis=1),
+        df_met_forcing[["iy", "id", "it", "imin"]].astype(str).agg("-".join, axis=1),
         format="%Y-%j-%H-%M",
     )
     df_met_forcing.set_index("Datetime", inplace=True)
@@ -302,9 +298,7 @@ def xy2latlon_fromraster(crsWtkIn, gdal_dsm):
     heightx = gdal_dsm.RasterYSize
     geotransform = gdal_dsm.GetGeoTransform()
     minx = geotransform[0]
-    miny = (
-        geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
-    )
+    miny = geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
 
     lonlat = transform.TransformPoint(minx, miny)
     gdalver = float(gdal.__version__[0])

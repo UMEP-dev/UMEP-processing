@@ -109,9 +109,7 @@ def sun_position(time, location):
 
     # 2. Calculate the Earth heliocentric longitude, latitude, and radius
     # vector (L, B, and R)
-    earth_heliocentric_position = earth_heliocentric_position_calculation(
-        julian
-    )
+    earth_heliocentric_position = earth_heliocentric_position_calculation(julian)
 
     # 3. Calculate the geocentric longitude and latitude
     sun_geocentric_position = sun_geocentric_position_calculation(
@@ -222,9 +220,7 @@ def julian_calculation(t_input):
     # In 1582, the gregorian calendar was adopted
     if time["year"] == 1582:
         if time["month"] == 10:
-            if (
-                time["day"] <= 4
-            ):  # The Julian calendar ended on October 4, 1582
+            if time["day"] <= 4:  # The Julian calendar ended on October 4, 1582
                 B = torch.tensor(0, device=device)
             elif (
                 time["day"] >= 15
@@ -502,9 +498,7 @@ def earth_heliocentric_position_calculation(julian):
         device=device,
     )
 
-    B1_terms = torch.tensor(
-        [[9, 3.9, 5507.55], [6, 1.73, 5223.69]], device=device
-    )
+    B1_terms = torch.tensor([[9, 3.9, 5507.55], [6, 1.73, 5223.69]], device=device)
 
     A0 = B0_terms[:, 0]
     B0 = B0_terms[:, 1]
@@ -667,9 +661,7 @@ def sun_geocentric_position_calculation(earth_heliocentric_position):
         sun_geocentric_position["longitude"], 0, 360
     )
 
-    sun_geocentric_position["latitude"] = -earth_heliocentric_position[
-        "latitude"
-    ]
+    sun_geocentric_position["latitude"] = -earth_heliocentric_position["latitude"]
     # Limit the range to [0,360]
     sun_geocentric_position["latitude"] = set_to_range(
         sun_geocentric_position["latitude"], 0, 360
@@ -691,9 +683,7 @@ def nutation_calculation(julian):
 
     # 1. Mean elongation of the moon from the sun
     p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 189474), -0.0019142, 445267.11148, 297.85036], device=device
-        )
+        torch.tensor([(1 / 189474), -0.0019142, 445267.11148, 297.85036], device=device)
     )
 
     # X0 = polyval(p, JCE);
@@ -706,9 +696,7 @@ def nutation_calculation(julian):
 
     # 2. Mean anomaly of the sun (earth)
     p = torch.atleast_2d(
-        torch.tensor(
-            [-(1 / 300000), -0.0001603, 35999.05034, 357.52772], device=device
-        )
+        torch.tensor([-(1 / 300000), -0.0001603, 35999.05034, 357.52772], device=device)
     )
 
     # X1 = polyval(p, JCE)
@@ -721,9 +709,7 @@ def nutation_calculation(julian):
 
     # 3. Mean anomaly of the moon
     p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 56250), 0.0086972, 477198.867398, 134.96298], device=device
-        )
+        torch.tensor([(1 / 56250), 0.0086972, 477198.867398, 134.96298], device=device)
     )
 
     # X2 = polyval(p, JCE);
@@ -736,9 +722,7 @@ def nutation_calculation(julian):
 
     # 4. Moon argument of latitude
     p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 327270), -0.0036825, 483202.017538, 93.27191], device=device
-        )
+        torch.tensor([(1 / 327270), -0.0036825, 483202.017538, 93.27191], device=device)
     )
 
     # X3 = polyval(p, JCE)
@@ -752,9 +736,7 @@ def nutation_calculation(julian):
     # 5. Longitude of the ascending node of the moon's mean orbit on the
     # ecliptic, measured from the mean equinox of the date
     p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 450000), 0.0020708, -1934.136261, 125.04452], device=device
-        )
+        torch.tensor([(1 / 450000), 0.0020708, -1934.136261, 125.04452], device=device)
     )
 
     # X4 = polyval(p, JCE);
@@ -906,18 +888,16 @@ def nutation_calculation(julian):
 
     # Using the tabulated values, compute the delta_longitude and
     # delta_obliquity.
-    Xi = torch.tensor(
-        [X0, X1, X2, X3, X4], device=device
-    )  # a col mat in octave
+    Xi = torch.tensor([X0, X1, X2, X3, X4], device=device)  # a col mat in octave
 
     tabulated_argument = torch.matmul(Y_terms.float(), Xi) * (torch.pi / 180)
 
-    delta_longitude = (
-        nutation_terms[:, 0] + (nutation_terms[:, 1] * JCE)
-    ) * torch.sin(tabulated_argument)
-    delta_obliquity = (
-        nutation_terms[:, 2] + (nutation_terms[:, 3] * JCE)
-    ) * torch.cos(tabulated_argument)
+    delta_longitude = (nutation_terms[:, 0] + (nutation_terms[:, 1] * JCE)) * torch.sin(
+        tabulated_argument
+    )
+    delta_obliquity = (nutation_terms[:, 2] + (nutation_terms[:, 3] * JCE)) * torch.cos(
+        tabulated_argument
+    )
 
     nutation = dict()  # init nutation dictionary
     # Nutation in longitude
@@ -987,9 +967,7 @@ def abberation_correction_calculation(earth_heliocentric_position):
     :param earth_heliocentric_position:
     :return:
     """
-    aberration_correction = -20.4898 / (
-        3600 * earth_heliocentric_position["radius"]
-    )
+    aberration_correction = -20.4898 / (3600 * earth_heliocentric_position["radius"])
     return aberration_correction
 
 
@@ -1063,9 +1041,7 @@ def sun_rigth_ascension_calculation(
     argument_denominator = torch.cos(apparent_sun_longitude * torch.pi / 180)
 
     sun_rigth_ascension = (
-        torch.arctan2(argument_numerator, argument_denominator)
-        * 180
-        / torch.pi
+        torch.arctan2(argument_numerator, argument_denominator) * 180 / torch.pi
     )
     # Limit the range to [0,360];
     sun_rigth_ascension = set_to_range(sun_rigth_ascension, 0, 360)
@@ -1109,9 +1085,7 @@ def observer_local_hour_calculation(
     """
 
     observer_local_hour = (
-        apparent_stime_at_greenwich
-        + location["longitude"]
-        - sun_rigth_ascension
+        apparent_stime_at_greenwich + location["longitude"] - sun_rigth_ascension
     )
     # Set the range to [0-360]
     observer_local_hour = set_to_range(observer_local_hour, 0, 360)
@@ -1138,14 +1112,11 @@ def topocentric_sun_position_calculate(
     """
 
     # Equatorial horizontal parallax of the sun in degrees
-    eq_horizontal_parallax = 8.794 / (
-        3600 * earth_heliocentric_position["radius"]
-    )
+    eq_horizontal_parallax = 8.794 / (3600 * earth_heliocentric_position["radius"])
 
     # Term u, used in the following calculations (in radians)
     u = torch.arctan(
-        0.99664719
-        * torch.tan(torch.as_tensor(location["latitude"]) * torch.pi / 180)
+        0.99664719 * torch.tan(torch.as_tensor(location["latitude"]) * torch.pi / 180)
     )
 
     # Term x, used in the following calculations
@@ -1197,9 +1168,7 @@ def topocentric_sun_position_calculate(
     return topocentric_sun_position
 
 
-def topocentric_local_hour_calculate(
-    observer_local_hour, topocentric_sun_position
-):
+def topocentric_local_hour_calculate(observer_local_hour, topocentric_sun_position):
     """
     This function compute the topocentric local jour angle in degrees
 
@@ -1209,8 +1178,7 @@ def topocentric_local_hour_calculate(
     """
 
     topocentric_local_hour = (
-        observer_local_hour
-        - topocentric_sun_position["rigth_ascension_parallax"]
+        observer_local_hour - topocentric_sun_position["rigth_ascension_parallax"]
     )
     return topocentric_local_hour
 
@@ -1233,16 +1201,12 @@ def sun_topocentric_zenith_angle_calculate(
     argument = (
         torch.sin(torch.as_tensor(location["latitude"]) * torch.pi / 180)
         * torch.sin(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
+            torch.as_tensor(topocentric_sun_position["declination"]) * torch.pi / 180
         )
     ) + (
         torch.cos(torch.as_tensor(location["latitude"]) * torch.pi / 180)
         * torch.cos(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
+            torch.as_tensor(topocentric_sun_position["declination"]) * torch.pi / 180
         )
         * torch.cos(torch.as_tensor(topocentric_local_hour) * torch.pi / 180)
     )
@@ -1265,23 +1229,17 @@ def sun_topocentric_zenith_angle_calculate(
     # Topocentric azimuth angle. The +180 conversion is to pass from astronomer
     # notation (westward from south) to navigation notation (eastward from
     # north);
-    nominator = torch.sin(
-        torch.as_tensor(topocentric_local_hour * torch.pi / 180)
-    )
+    nominator = torch.sin(torch.as_tensor(topocentric_local_hour * torch.pi / 180))
     denominator = (
         torch.cos(torch.as_tensor(topocentric_local_hour) * torch.pi / 180)
         * torch.sin(torch.as_tensor(location["latitude"]) * torch.pi / 180)
     ) - (
         torch.tan(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
+            torch.as_tensor(topocentric_sun_position["declination"]) * torch.pi / 180
         )
         * torch.cos(torch.as_tensor(location["latitude"]) * torch.pi / 180)
     )
-    sun["azimuth"] = (
-        torch.arctan2(nominator, denominator) * 180 / torch.pi
-    ) + 180
+    sun["azimuth"] = (torch.arctan2(nominator, denominator) * 180 / torch.pi) + 180
 
     # Set the range to [0-360]
     sun["azimuth"] = set_to_range(sun["azimuth"], 0, 360)

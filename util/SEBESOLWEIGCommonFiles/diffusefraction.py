@@ -28,26 +28,15 @@ def diffusefraction(radG, altitude, Kt, Ta, RH):
         RH = RH / 100
         if Kt <= 0.3:
             radD = radG * (
-                1
-                - 0.232 * Kt
-                + 0.0239 * torch.sin(alfa)
-                - 0.000682 * Ta
-                + 0.0195 * RH
+                1 - 0.232 * Kt + 0.0239 * torch.sin(alfa) - 0.000682 * Ta + 0.0195 * RH
             )
         elif Kt > 0.3 and Kt < 0.78:
             radD = radG * (
-                1.329
-                - 1.716 * Kt
-                + 0.267 * torch.sin(alfa)
-                - 0.00357 * Ta
-                + 0.106 * RH
+                1.329 - 1.716 * Kt + 0.267 * torch.sin(alfa) - 0.00357 * Ta + 0.106 * RH
             )
         else:
             radD = radG * (
-                0.426 * Kt
-                - 0.256 * torch.sin(alfa)
-                + 0.00349 * Ta
-                + 0.0734 * RH
+                0.426 * Kt - 0.256 * torch.sin(alfa) + 0.00349 * Ta + 0.0734 * RH
             )
 
     radI = (radG - radD) / (torch.sin(alfa))

@@ -128,20 +128,12 @@ def _PET(ta, RH, tmrt, v, mbody, age, ht, work, icl, sex):
     metbf = (
         3.19
         * mbody ** (3 / 4)
-        * (
-            1
-            + 0.004 * (30 - age)
-            + 0.018 * ((ht * 100 / (mbody ** (1 / 3))) - 42.1)
-        )
+        * (1 + 0.004 * (30 - age) + 0.018 * ((ht * 100 / (mbody ** (1 / 3))) - 42.1))
     )
     metbm = (
         3.45
         * mbody ** (3 / 4)
-        * (
-            1
-            + 0.004 * (30 - age)
-            + 0.010 * ((ht * 100 / (mbody ** (1 / 3))) - 43.4)
-        )
+        * (1 + 0.004 * (30 - age) + 0.010 * ((ht * 100 / (mbody ** (1 / 3))) - 43.4))
     )
     if sex == 1:
         met = metbm + work
@@ -215,12 +207,7 @@ def _PET(ta, RH, tmrt, v, mbody, age, ht, work, icl, sex):
             while (enbal * enbal2) >= 0 and count3 < 200:
                 enbal2 = enbal
                 # 20
-                rclo2 = (
-                    emcl
-                    * sigma
-                    * ((tcl + 273.2) ** 4 - (tmrt + 273.2) ** 4)
-                    * feff
-                )
+                rclo2 = emcl * sigma * ((tcl + 273.2) ** 4 - (tmrt + 273.2) ** 4) * feff
                 tsk = 1 / htcl * (hc * (tcl - ta) + rclo2) + tcl
 
                 # radiation balance
@@ -252,9 +239,7 @@ def _PET(ta, RH, tmrt, v, mbody, age, ht, work, icl, sex):
                 c_8 = -c_1 * c_3 - tsk * c_4 + tsk * c_6
                 c_9 = c_7 * c_7 - 4.0 * c_5 * c_8
                 c_10 = 5.28 * adu - c_6 - c_5 * tsk
-                c_11 = c_10 * c_10 - 4 * c_5 * (
-                    c_6 * tsk - c_1 - 5.28 * adu * tsk
-                )
+                c_11 = c_10 * c_10 - 4 * c_5 * (c_6 * tsk - c_1 - 5.28 * adu * tsk)
                 # tsk[tsk==36]=36.01
                 # print(tsk.shape)
                 if tsk == 36:
@@ -262,11 +247,7 @@ def _PET(ta, RH, tmrt, v, mbody, age, ht, work, icl, sex):
 
                 tcore[7] = c_1 / (5.28 * adu + c_2 * 6.3 / 3600) + tsk
                 tcore[3] = (
-                    c_1
-                    / (
-                        5.28 * adu
-                        + (c_2 * 6.3 / 3600) / (1 + 0.5 * (34 - tsk))
-                    )
+                    c_1 / (5.28 * adu + (c_2 * 6.3 / 3600) / (1 + 0.5 * (34 - tsk)))
                     + tsk
                 )
                 if c_11 >= 0:
@@ -403,13 +384,7 @@ def _PET(ta, RH, tmrt, v, mbody, age, ht, work, icl, sex):
                 * sigma
                 * ((tx + 273.2) ** 4 - (tsk + 273.2) ** 4)
             )
-            rclo = (
-                feff
-                * acl
-                * emcl
-                * sigma
-                * ((tx + 273.2) ** 4 - (tcl + 273.2) ** 4)
-            )
+            rclo = feff * acl * emcl * sigma * ((tx + 273.2) ** 4 - (tcl + 273.2) ** 4)
             rsum = rbare + rclo
 
             # convection

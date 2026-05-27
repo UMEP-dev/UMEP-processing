@@ -31,9 +31,7 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
         jday
     )  # irradiance differences due to Sun-Earth distances
     m = (
-        35.0
-        * torch.cos(zen)
-        * ((1224.0 * (torch.cos(zen) ** 2) + 1) ** (-1 / 2.0))
+        35.0 * torch.cos(zen) * ((1224.0 * (torch.cos(zen) ** 2) + 1) ** (-1 / 2.0))
     )  # optical air mass at p=1013
     Trpg = (
         1.021 - 0.084 * (m * (0.000949 * p + 0.051)) ** 0.5
@@ -67,9 +65,7 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
         G = G[2]
     elif jday > 244 and jday <= 335:
         G = G[3]
-    device = (
-        zen.device if isinstance(zen, torch.Tensor) else torch.device("cpu")
-    )
+    device = zen.device if isinstance(zen, torch.Tensor) else torch.device("cpu")
     G = torch.tensor(G, device=device)
 
     # dewpoint calculation
@@ -79,12 +75,8 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
         a2 - (((a2 * Ta) / (b2 + Ta)) + torch.log(RH))
     )
     Td = (Td * 1.8) + 32  # Dewpoint (F)
-    u = torch.exp(
-        0.1133 - torch.log(G + 1) + 0.0393 * Td
-    )  # Precipitable water
-    Tw = 1 - 0.077 * (
-        (u * m) ** 0.3
-    )  # Transmission coefficient for water vapor
+    u = torch.exp(0.1133 - torch.log(G + 1) + 0.0393 * Td)  # Precipitable water
+    Tw = 1 - 0.077 * ((u * m) ** 0.3)  # Transmission coefficient for water vapor
     Tar = 0.935**m  # Transmission coefficient for aerosols
 
     I0 = Itoa * torch.cos(zen) * Trpg * Tw * D * Tar

@@ -148,9 +148,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_DSMBUILD,
-                self.tr(
-                    "Raster DSM (only 3D building or vegetation objects) exist"
-                ),
+                self.tr("Raster DSM (only 3D building or vegetation objects) exist"),
                 defaultValue=False,
             )
         )
@@ -184,9 +182,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterString(
-                self.FILE_PREFIX, self.tr("File prefix")
-            )
+            QgsProcessingParameterString(self.FILE_PREFIX, self.tr("File prefix"))
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
@@ -215,9 +211,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             defaultValue=False,
             optional=True,
         )
-        ss.setFlags(
-            ss.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        ss.setFlags(ss.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(ss)
         sscdsm = QgsProcessingParameterRasterLayer(
             self.INPUT_CDSM, self.tr("Raster vegetation DSM (CDSM)"), "", True
@@ -238,31 +232,17 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        searchMethod = self.parameterAsString(
-            parameters, self.SERACH_METHOD, context
-        )
-        inputDistance = self.parameterAsDouble(
-            parameters, self.INPUT_DISTANCE, context
-        )
-        inputInterval = self.parameterAsDouble(
-            parameters, self.INPUT_INTERVAL, context
-        )
-        useDsmBuild = self.parameterAsBool(
-            parameters, self.USE_DSMBUILD, context
-        )
+        searchMethod = self.parameterAsString(parameters, self.SERACH_METHOD, context)
+        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
+        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
+        useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
         dsmlayer = None
         demlayer = None
         ro = self.parameterAsString(parameters, self.ROUGH, context)
-        filePrefix = self.parameterAsString(
-            parameters, self.FILE_PREFIX, context
-        )
+        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
         attrTable = self.parameterAsBool(parameters, self.ATTR_TABLE, context)
-        ignoreNodata = self.parameterAsBool(
-            parameters, self.IGNORE_NODATA, context
-        )
-        outputDir = self.parameterAsString(
-            parameters, self.OUTPUT_DIR, context
-        )
+        ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         calcSS = self.parameterAsBool(parameters, self.CALC_SS, context)
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
@@ -274,7 +254,9 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
         pre = filePrefix
         headerAniso = " Wd pai   fai   zH  zHmax   zHstd zd z0  noOfPixels"
         numformat = "%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.0f"
-        headerIso = " id  pai   fai   zH  zHmax   zHstd  zd  z0  wai "  # moved inside loop
+        headerIso = (
+            " id  pai   fai   zH  zHmax   zHstd  zd  z0  wai "  # moved inside loop
+        )
         numformat2 = "%3d %4.3f %4.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
 
         # adding parameters for SUEWS/SS
@@ -347,10 +329,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     prov.crs(),
                     "ESRI shapefile",
                 )
-                if (
-                    writer.hasError()
-                    != QgsVectorFileWriter.WriterError.NoError
-                ):
+                if writer.hasError() != QgsVectorFileWriter.WriterError.NoError:
                     raise QgsProcessingException(
                         "Error when creating shapefile: ",
                         str(writer.hasError()),
@@ -515,9 +494,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                             options=clip_spec,
                         )
                     bigraster = None
-                    dataseti = gdal.Open(
-                        self.plugin_dir + "/data/clipcdsm.tif"
-                    )
+                    dataseti = gdal.Open(self.plugin_dir + "/data/clipcdsm.tif")
                     ndCDSM = dataseti.GetRasterBand(1).GetNoDataValue()
                     cdsm_array = dataseti.ReadAsArray().astype(float)
 
@@ -529,14 +506,10 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     "NoData in DSM layer not set. Tick off 'Ignore NoData pixels' to make use of this tool or assign NoData value to your raster data."
                 )
             else:
-                feedback.setProgressText(
-                    "NoData-value in DSM-layer: " + str(nd)
-                )
+                feedback.setProgressText("NoData-value in DSM-layer: " + str(nd))
             nodata_test = dsm_array == nd
             if ignoreNodata:
-                if np.sum(dsm_array) == (
-                    dsm_array.shape[0] * dsm_array.shape[1] * nd
-                ):
+                if np.sum(dsm_array) == (dsm_array.shape[0] * dsm_array.shape[1] * nd):
                     feedback.setProgressText(
                         "Grid "
                         + str(f.attributes()[idx])
@@ -545,9 +518,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                     cal = 0
                 else:
                     feedback.setProgressText(
-                        "Grid "
-                        + str(f.attributes()[idx])
-                        + " being calculated."
+                        "Grid " + str(f.attributes()[idx]) + " being calculated."
                     )
                     cal = 1
             else:
@@ -561,9 +532,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 else:
                     cal = 1
                     feedback.setProgressText(
-                        "Grid "
-                        + str(f.attributes()[idx])
-                        + " being calculated."
+                        "Grid " + str(f.attributes()[idx]) + " being calculated."
                     )
 
             if cal == 1:
@@ -755,9 +724,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
             wo = np.where(f.attributes()[idx] == matdata[:, 0])
             if wo[0] >= 0:
                 for x in range(1, matdata.shape[1]):
-                    attr_dict[current_index_length + x - 1] = float(
-                        matdata[wo[0], x]
-                    )
+                    attr_dict[current_index_length + x - 1] = float(matdata[wo[0], x])
                 vlayer.dataProvider().changeAttributeValues({id: attr_dict})
 
     def name(self):

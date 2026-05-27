@@ -13,9 +13,7 @@ from .GlobalVariables import *
 import re
 
 
-def decompressZip(
-    dirPath, inputFileName, outputFileBaseName=None, deleteZip=False
-):
+def decompressZip(dirPath, inputFileName, outputFileBaseName=None, deleteZip=False):
     """
     Decompress zip file.
 
@@ -57,9 +55,7 @@ def decompressZip(
                     if err.errno != errno.EEXIST:
                         raise
                 continue
-            with open(target_path, "wb") as outfile, zfile.open(
-                member
-            ) as infile:
+            with open(target_path, "wb") as outfile, zfile.open(member) as infile:
                 shutil.copyfileobj(infile, outfile)
 
     return None
@@ -252,14 +248,11 @@ def windDirectionFromXY(windSpeedEast, windSpeedNorth):
     radAngle[windSpeedEast == 0] = 0
     if type(windSpeedEast) == type(pd.Series()):
         radAngle[windSpeedEast != 0] = np.arctan(
-            windSpeedNorth[windSpeedEast != 0].divide(
-                windSpeedEast[windSpeedEast != 0]
-            )
+            windSpeedNorth[windSpeedEast != 0].divide(windSpeedEast[windSpeedEast != 0])
         )
     else:
         radAngle[windSpeedEast != 0] = np.arctan(
-            windSpeedNorth[windSpeedEast != 0]
-            / windSpeedEast[windSpeedEast != 0]
+            windSpeedNorth[windSpeedEast != 0] / windSpeedEast[windSpeedEast != 0]
         )
 
     # Add or subtract pi.2 for left side trigonometric circle vectors
@@ -317,9 +310,7 @@ def getExtremumPoint(
             Return the table containing the expected extremum point for each polygon
     """
     # Output base name
-    outputBaseName = safe("{0}_{1}_{2}_POINTS").format(
-        pointsTable, axis, extremum
-    )
+    outputBaseName = safe("{0}_{1}_{2}_POINTS").format(pointsTable, axis, extremum)
 
     # Name of the output table
     extremumPointTable = prefix(outputBaseName, prefix=prefix_name)
@@ -355,9 +346,7 @@ def getExtremumPoint(
                 fieldName=ID_FIELD_STACKED_BLOCK,
                 isSpatial=False,
             ),
-            createIndex(
-                tableName=pointsTable, fieldName=axis, isSpatial=False
-            ),
+            createIndex(tableName=pointsTable, fieldName=axis, isSpatial=False),
             createIndex(
                 tableName=pointsTable, fieldName=extremumField, isSpatial=False
             ),
@@ -409,9 +398,7 @@ def locate_py():
     if path_pybin.exists():
         return path_pybin
     else:
-        raise RuntimeError(
-            "UMEP cannot locate the Python interpreter used by QGIS!"
-        )
+        raise RuntimeError("UMEP cannot locate the Python interpreter used by QGIS!")
 
 
 def validate_sql_inputs(
@@ -449,9 +436,7 @@ def validate_sql_inputs(
     # Validate file paths: ensure no single quotes (basic check)
     def validate_file_path(file_path, name):
         if file_path and "'" in file_path:
-            raise ValueError(
-                f"Invalid {name}: {file_path} (contains single quotes)"
-            )
+            raise ValueError(f"Invalid {name}: {file_path} (contains single quotes)")
 
     validate_file_path(lines_file, "lines_file")
     validate_file_path(polygons_file, "polygons_file")

@@ -120,9 +120,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.EXCLUDE_RURAL,
-                self.tr(
-                    "Exculde grids with very small building fractions (< 0.5%)"
-                ),
+                self.tr("Exculde grids with very small building fractions (< 0.5%)"),
                 defaultValue=False,
             )
         )
@@ -152,28 +150,18 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
             )
 
         # InputParameters
-        inputDir = self.parameterAsString(
-            parameters, self.INPUT_FOLDER, context
-        )
+        inputDir = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
         inputPolygonlayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        startDate = self.parameterAsString(
-            parameters, self.START_DATE, context
-        )
+        startDate = self.parameterAsString(parameters, self.START_DATE, context)
         nDays = self.parameterAsDouble(parameters, self.NDAYS, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
-        outputDir = self.parameterAsString(
-            parameters, self.OUTPUT_DIR, context
-        )
-        umepformat = self.parameterAsBoolean(
-            parameters, self.OUTPUT_FORMAT, context
-        )
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_FORMAT, context)
         dtSim = self.parameterAsDouble(parameters, self.DTSIM, context)
-        excludeRural = self.parameterAsBoolean(
-            parameters, self.EXCLUDE_RURAL, context
-        )
+        excludeRural = self.parameterAsBoolean(parameters, self.EXCLUDE_RURAL, context)
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -191,9 +179,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
         idx = vlayer.fields().indexFromName(poly_field[0])
         nGrids = vlayer.featureCount()
 
-        feedback.setProgressText(
-            "Number of grids to calculate: " + str(nGrids)
-        )
+        feedback.setProgressText("Number of grids to calculate: " + str(nGrids))
 
         mm = startDate[5:7]
         dd = startDate[8:10]
@@ -287,23 +273,12 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
 
                     shutil.move(
                         epw_path,
-                        Path(
-                            outputDir
-                            + "/"
-                            + prefix
-                            + "_"
-                            + str(attr)
-                            + "_UWG.epw"
-                        ),
+                        Path(outputDir + "/" + prefix + "_" + str(attr) + "_UWG.epw"),
                     )
                 else:
-                    feedback.setProgressText(
-                        "UWG calculating grid: " + str(attr)
-                    )
+                    feedback.setProgressText("UWG calculating grid: " + str(attr))
                     try:
-                        model = UWG.from_param_file(
-                            param_path, epw_path=epw_path
-                        )
+                        model = UWG.from_param_file(param_path, epw_path=epw_path)
                         model.generate()
                         model.simulate()
                         model.write_epw()
@@ -333,12 +308,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                         shutil.move(
                             uwg_path,
                             Path(
-                                outputDir
-                                + "/"
-                                + prefix
-                                + "_"
-                                + str(attr)
-                                + "_UWG.epw"
+                                outputDir + "/" + prefix + "_" + str(attr) + "_UWG.epw"
                             ),
                         )
 
@@ -346,10 +316,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
 
                     except Exception as e:
                         feedback.pushWarning(
-                            "Calculating grid "
-                            + str(attr)
-                            + " failed: "
-                            + str(e)
+                            "Calculating grid " + str(attr) + " failed: " + str(e)
                         )
                         feedback.pushWarning(
                             "To get the full traceback error message, open the Python console in QGIS and re-run the simulation."
@@ -396,12 +363,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                         shutil.move(
                             uwg_path,
                             Path(
-                                outputDir
-                                + "/"
-                                + prefix
-                                + "_"
-                                + str(attr)
-                                + "_UWG.epw"
+                                outputDir + "/" + prefix + "_" + str(attr) + "_UWG.epw"
                             ),
                         )
 
@@ -418,8 +380,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
                         "If you cannot solve the error yourself, report an issue to our code reporitory (see UMEP-Manual for details)."
                     )
                     print(
-                        "Traceback error message while caclulation grid: "
-                        + str(attr)
+                        "Traceback error message while caclulation grid: " + str(attr)
                     )
                     print(traceback.format_exc())
 

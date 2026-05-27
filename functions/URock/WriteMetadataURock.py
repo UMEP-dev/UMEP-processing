@@ -49,14 +49,10 @@ def writeRunInfo(
         if veg_file is not None:
             file.write("Vegetation layer: " + veg_file)
             file.write("\n")
-            file.write(
-                "Vegetation top height (attribute name): " + topHeightVeg
-            )
+            file.write("Vegetation top height (attribute name): " + topHeightVeg)
             file.write("\n")
             if baseHeightVeg is not None:
-                file.write(
-                    "Vegetation base height (attribute name): " + baseHeightVeg
-                )
+                file.write("Vegetation base height (attribute name): " + baseHeightVeg)
             else:
                 file.write(
                     "Vegetation base height (fraction of top height): "
@@ -65,8 +61,7 @@ def writeRunInfo(
             file.write("\n")
             if attenuationVeg is not None:
                 file.write(
-                    "Attenuation though vegetation (attribute name): "
-                    + attenuationVeg
+                    "Attenuation though vegetation (attribute name): " + attenuationVeg
                 )
             else:
                 file.write(
@@ -89,9 +84,7 @@ def writeRunInfo(
         else:
             file.write("Reference height for wind (m): " + str(z_ref))
             file.write("\n")
-            file.write(
-                "Reference wind speed at ref height (m/s): " + str(v_ref)
-            )
+            file.write("Reference wind speed at ref height (m/s): " + str(v_ref))
             file.write("\n")
             file.write("Wind direction (° from North): " + str(windDirection))
             file.write("\n")

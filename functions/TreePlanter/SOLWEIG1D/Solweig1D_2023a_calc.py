@@ -145,9 +145,7 @@ def Solweig1D_2019a_calc(
                     aniLum + skyp[idx] * lv[idx, 2]
                 )  # Total relative luminance from sky into each cell
 
-            dRad = (
-                aniLum * radD
-            )  # Total diffuse radiation from sky into each cell
+            dRad = aniLum * radD  # Total diffuse radiation from sky into each cell
 
         else:
             dRad = radD * svf
@@ -160,10 +158,7 @@ def Solweig1D_2019a_calc(
         # Tgampwall = (TgK_wall * altmax - (Tstart_wall)) + (Tstart_wall) # Old
         Tgampwall = TgK_wall * altmax + Tstart_wall
         Tg = Tgamp * np.sin(
-            (
-                ((dectime - np.floor(dectime)) - SNUP / 24)
-                / (TmaxLST / 24 - SNUP / 24)
-            )
+            (((dectime - np.floor(dectime)) - SNUP / 24) / (TmaxLST / 24 - SNUP / 24))
             * np.pi
             / 2
         )  # 2015 a, based on max sun altitude

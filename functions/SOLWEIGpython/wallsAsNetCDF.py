@@ -21,8 +21,7 @@ def walls_as_netcdf(
 
     levels = (
         voxelTable.loc[
-            voxelTable["voxelHeightMasl"]
-            == voxelTable["voxelHeightMasl"].max(),
+            voxelTable["voxelHeightMasl"] == voxelTable["voxelHeightMasl"].max(),
             "voxelHeightMasl",
         ]
         .to_numpy()[0]
@@ -66,9 +65,7 @@ def walls_as_netcdf(
             data_vars=dict(
                 wall_temperature=(["lon", "lat", "height", "time"], temp_data),
             ),
-            coords=dict(
-                lon=lon, lat=lat, height=height_levels, time=timeSlots
-            ),
+            coords=dict(lon=lon, lat=lat, height=height_levels, time=timeSlots),
             attrs={"crs": raster_file.rio.crs.to_string()},
         )
 

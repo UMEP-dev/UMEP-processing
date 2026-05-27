@@ -26,9 +26,7 @@ def pycomplex(v_str):
         # NOTE: Failed float(str) will raise ValueError
         return complex(pyfloat(v_re), pyfloat(v_im))
     else:
-        raise ValueError(
-            "{0} must be in complex number form (x, y)." "".format(v_str)
-        )
+        raise ValueError("{0} must be in complex number form (x, y)." "".format(v_str))
 
 
 def pybool(v_str):

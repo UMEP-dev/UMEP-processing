@@ -44,9 +44,7 @@ def genetic_start(
 
     # Random for first run
     if counter == 0:
-        tree_pos, tp_c, break_loop = random_start(
-            pos, trees, tree_pos_all, r_iters
-        )
+        tree_pos, tp_c, break_loop = random_start(pos, trees, tree_pos_all, r_iters)
 
     # Take either x or y position from previous local optimum for each tree, make the other coordinate random
     else:
@@ -111,9 +109,7 @@ def genetic_start(
                         exists[i] = 1
 
             # Euclidean distance between random positions so that trees are not too close to each other
-            yxp = tuple(
-                itertools.combinations(np.arange(tree_pos.shape[0]), 2)
-            )
+            yxp = tuple(itertools.combinations(np.arange(tree_pos.shape[0]), 2))
             eucl_dist = np.zeros((yxp.__len__()))
 
             for j in range(yxp.__len__()):

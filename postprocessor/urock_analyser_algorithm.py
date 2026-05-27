@@ -112,9 +112,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.IS_STREAM,
-                self.tr(
-                    "Plot streams instead of arrows (works only for cubic voxels"
-                ),
+                self.tr("Plot streams instead of arrows (works only for cubic voxels"),
                 defaultValue=False,
             )
         )
@@ -142,9 +140,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterField(
                 self.ID_FIELD_POLYGONS,
-                self.tr(
-                    "Polygons ID field (used if mutiple polygons is present)"
-                ),
+                self.tr("Polygons ID field (used if mutiple polygons is present)"),
                 None,
                 self.INPUT_POLYGONS,
                 QgsProcessingParameterField.DataType.Numeric,
@@ -198,9 +194,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         # Get the default value of the Java environment path if already exists
         javaDirDefault = getJavaDir(plugin_directory)
 
-        if (
-            not javaDirDefault
-        ):  # Raise an error if could not find a Java installation
+        if not javaDirDefault:  # Raise an error if could not find a Java installation
             raise QgsProcessingException("No Java installation found")
         elif ("Program Files (x86)" in javaDirDefault) and (
             struct.calcsize("P") * 8 != 32
@@ -213,9 +207,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
             )
         else:  # Set a Java dir if not exist and save it into a file in the plugin repository
             setJavaDir(javaDirDefault)
-            saveJavaDir(
-                javaPath=javaDirDefault, pluginDirectory=plugin_directory
-            )
+            saveJavaDir(javaPath=javaDirDefault, pluginDirectory=plugin_directory)
 
         # Defines java environmenet variable
         javaEnvVar = javaDirDefault
@@ -226,12 +218,8 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Get line layer, id field name and then file directory and crs
-        inputLines = self.parameterAsVectorLayer(
-            parameters, self.INPUT_LINES, context
-        )
-        idLines = self.parameterAsString(
-            parameters, self.ID_FIELD_LINES, context
-        )
+        inputLines = self.parameterAsVectorLayer(parameters, self.INPUT_LINES, context)
+        idLines = self.parameterAsString(parameters, self.ID_FIELD_LINES, context)
         if inputLines:
             # Test the number of vertices (points) per line
             features = inputLines.getFeatures()
@@ -271,9 +259,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
         inputPolygons = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONS, context
         )
-        idPolygons = self.parameterAsString(
-            parameters, self.ID_FIELD_POLYGONS, context
-        )
+        idPolygons = self.parameterAsString(parameters, self.ID_FIELD_POLYGONS, context)
         if inputPolygons:
             polygons_file = str(inputPolygons.dataProvider().dataSourceUri())
             if polygons_file.count("|") > 0:

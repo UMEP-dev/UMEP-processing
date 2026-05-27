@@ -19,7 +19,9 @@ from ..util.umep_suewsss_export_component import (
 
 def ss_calc(build, cdsm, walls, numPixels, feedback):
 
-    walllimit = 0.3  # 30 centimeters height variation identifies a vegetation edge pixel
+    walllimit = (
+        0.3  # 30 centimeters height variation identifies a vegetation edge pixel
+    )
     total = 100.0 / (int(build.shape[0] * build.shape[1]))
 
     if cdsm.max() > 0:
@@ -152,9 +154,7 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew):
             ssDict["building_frac"].append(
                 ssVect[0, 1]
             )  # first is plan area index of buildings
-            ssDict["veg_frac"].append(
-                ssVect[0, 3]
-            )  # first is plan area index of trees
+            ssDict["veg_frac"].append(ssVect[0, 3])  # first is plan area index of trees
         else:
             ssDict["building_frac"].append(
                 np.round(np.mean(ssVect[startH:endH, 1]), 3)

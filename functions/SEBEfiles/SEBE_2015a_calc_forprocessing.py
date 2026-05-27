@@ -29,7 +29,7 @@ def SEBE_2015a_calc(
     usevegdem,
     feedback,
     wallmaxheight,
-    device
+    device,
 ):
 
     # Parameters
@@ -66,7 +66,9 @@ def SEBE_2015a_calc(
     # feedback.setProgressText('voxel:' + str(voxelheight))
     # feedback.setProgressText('wallsections:' + str(wallsections))
     # feedback.setProgressText('torch.shape(wallrow)[0]:' + str(torch.shape(wallrow)[0]))
-    wallmatrix = torch.zeros((torch.shape(wallrow)[0], int(wallsections)), device=device)
+    wallmatrix = torch.zeros(
+        (torch.shape(wallrow)[0], int(wallsections)), device=device
+    )
     Energyyearwall = torch.clone(wallmatrix)
 
     # Main loop - Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
@@ -132,15 +134,13 @@ def SEBE_2015a_calc(
                 )
                 shadow = torch.clone(sh - (1.0 - vegsh) * (1.0 - psi))
             else:
-                sh, wallsh, wallsun, facesh, facesun = (
-                    shadowingfunction_wallheight_13(
-                        a,
-                        radmatI[index, 1],
-                        radmatI[index, 0],
-                        scale,
-                        walls,
-                        dirwalls * deg2rad,
-                    )
+                sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(
+                    a,
+                    radmatI[index, 1],
+                    radmatI[index, 0],
+                    scale,
+                    walls,
+                    dirwalls * deg2rad,
                 )
                 shadow = torch.clone(sh)
 
@@ -185,8 +185,7 @@ def SEBE_2015a_calc(
                         wallmatrix[
                             p,
                             0 : int(
-                                wallstot[int(wallrow[p]), int(wallcol[p])]
-                                / voxelheight
+                                wallstot[int(wallrow[p]), int(wallcol[p])] / voxelheight
                             ),
                         ] = (
                             Iw[wallrow[p], wallcol[p]]
@@ -203,9 +202,7 @@ def SEBE_2015a_calc(
                                 )
                                 / voxelheight
                             )
-                            - 1 : int(
-                                wallstot[wallrow[p], wallcol[p]] / voxelheight
-                            ),
+                            - 1 : int(wallstot[wallrow[p], wallcol[p]] / voxelheight),
                         ] = (
                             Iw[wallrow[p], wallcol[p]]
                             + Dw[wallrow[p], wallcol[p]]
@@ -224,13 +221,9 @@ def SEBE_2015a_calc(
                             )
                             / voxelheight
                         ),
-                    ] = (
-                        Iw[wallrow[p], wallcol[p]] + Dw[wallrow[p], wallcol[p]]
-                    ) * psi
+                    ] = (Iw[wallrow[p], wallcol[p]] + Dw[wallrow[p], wallcol[p]]) * psi
 
-                if (
-                    wallsh[wallrow[p], wallcol[p]] > 0
-                ):  # sections in building shade
+                if wallsh[wallrow[p], wallcol[p]] > 0:  # sections in building shade
                     wallmatrix[
                         p,
                         0 : int(wallsh[wallrow[p], wallcol[p]] / voxelheight),

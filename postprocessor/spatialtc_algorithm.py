@@ -47,9 +47,7 @@ def load_grid(filepath, feedback):
         feedback.setProgressText("Successfully loaded " + filepath)
     except:
         raise QgsProcessingException(
-            "Error: Could not load "
-            + filepath
-            + ". File does not exist. Check path!"
+            "Error: Could not load " + filepath + ". File does not exist. Check path!"
         )
 
     # Return gdal raster layer as numpy array, number of rows and columns in raster
@@ -85,9 +83,7 @@ def get_latlon(raster, gdal_raster):
     heightx = gdal_raster.RasterYSize
     geotransform = gdal_raster.GetGeoTransform()
     minx = geotransform[0]
-    miny = (
-        geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
-    )
+    miny = geotransform[3] + widthx * geotransform[4] + heightx * geotransform[5]
     lonlat = transform.TransformPoint(minx, miny)
     gdalver = float(gdal.__version__[0])
     if gdalver == 3.0:
@@ -184,9 +180,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=120,
         )
-        age.setFlags(
-            age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        age.setFlags(age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(age)
         act = QgsProcessingParameterNumber(
             self.ACTIVITY,
@@ -197,9 +191,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=1000,
         )
-        act.setFlags(
-            act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        act.setFlags(act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(act)
         clo = QgsProcessingParameterNumber(
             self.CLO,
@@ -210,9 +202,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=10,
         )
-        clo.setFlags(
-            clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(clo)
         wei = QgsProcessingParameterNumber(
             self.WEIGHT,
@@ -223,9 +213,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=500,
         )
-        wei.setFlags(
-            wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wei)
         hei = QgsProcessingParameterNumber(
             self.HEIGHT,
@@ -236,9 +224,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=250,
         )
-        hei.setFlags(
-            hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
             self.SEX,
@@ -247,9 +233,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             optional=True,
             defaultValue=0,
         )
-        sex.setFlags(
-            sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(sex)
 
         # COMFA or COMFA-kid
@@ -299,9 +283,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             comfa_kid = self.parameterAsBool(parameters, self.COMFA, context)
         # metdata = self.parameterAsString(parameters, self.METDATA, context)
 
-        outputRaster = self.parameterAsOutputLayer(
-            parameters, self.TC_OUT, context
-        )
+        outputRaster = self.parameterAsOutputLayer(parameters, self.TC_OUT, context)
 
         mbody = None
         ht = None
@@ -314,9 +296,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # Get SOLWEIG output folder path from Tmrt raster path
         provider = tmrt.dataProvider()
         filepath_tmrt = str(provider.dataSourceUri())  # Path for Tmrt raster
-        solweig_path = os.path.dirname(
-            os.path.abspath(filepath_tmrt)
-        )  # issue #702
+        solweig_path = os.path.dirname(os.path.abspath(filepath_tmrt))  # issue #702
         # solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
         _, solweigfile = os.path.split(filepath_tmrt)
         # solweig_path = os.path.dirname(filepath_tmrt) # issue 31
@@ -374,9 +354,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         yyyyTmrt = int(
             solweigfile.split("_")[-3]
         )  # int(filepath_tmrt[-18:-14]) #issue 571
-        doyTmrt = int(
-            solweigfile.split("_")[-2]
-        )  # int(filepath_tmrt[-13:-10])
+        doyTmrt = int(solweigfile.split("_")[-2])  # int(filepath_tmrt[-13:-10])
         hoursTmrt = int(filepath_tmrt[-9:-7])
         minuTmrt = int(filepath_tmrt[-7:-5])
 
@@ -411,9 +389,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        feedback.setProgressText(
-            "Estimating " + thermal_index + " on " + current_time
-        )
+        feedback.setProgressText("Estimating " + thermal_index + " on " + current_time)
         feedback.setProgressText(
             "Location: "
             + str(np.around(lat, decimals=2))
@@ -428,9 +404,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             + "\N{DEGREE SIGN}C"
         )
         feedback.setProgressText(
-            "Relative Humidity derived from meteorological data is: "
-            + str(RH)
-            + "%"
+            "Relative Humidity derived from meteorological data is: " + str(RH) + "%"
         )
         feedback.setProgressText(
             "Incoming shortwave radiation derived from meteorological data is: "
@@ -444,19 +418,11 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             filepath = filepath_tmrt.split("Tmrt")
             # filepath = os.path.dirname(filepath_tmrt) # issue 31  filepath_tmrt.split('Tmrt')
             # Load Kup, Kdown, Lup, Ldown grids
-            Kup, rows, cols = load_grid(
-                filepath[0] + "Kup" + filepath[1], feedback
-            )
-            Kdown, _, __ = load_grid(
-                filepath[0] + "Kdown" + filepath[1], feedback
-            )
-            Kdiff, _, __ = load_grid(
-                filepath[0] + "Kdiff" + filepath[1], feedback
-            )
+            Kup, rows, cols = load_grid(filepath[0] + "Kup" + filepath[1], feedback)
+            Kdown, _, __ = load_grid(filepath[0] + "Kdown" + filepath[1], feedback)
+            Kdiff, _, __ = load_grid(filepath[0] + "Kdiff" + filepath[1], feedback)
             Lup, _, __ = load_grid(filepath[0] + "Lup" + filepath[1], feedback)
-            Ldown, _, __ = load_grid(
-                filepath[0] + "Ldown" + filepath[1], feedback
-            )
+            Ldown, _, __ = load_grid(filepath[0] + "Ldown" + filepath[1], feedback)
             settingsSolweig = np.loadtxt(
                 filepath[0] + "/treeplantersettings.txt",
                 skiprows=1,
@@ -491,12 +457,8 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         mbody = self.parameterAsDouble(
             parameters, self.WEIGHT, context
         )  # Body weight in kg
-        clo = self.parameterAsDouble(
-            parameters, self.CLO, context
-        )  # Clothing in clo
-        age = self.parameterAsDouble(
-            parameters, self.AGE, context
-        )  # Age in years
+        clo = self.parameterAsDouble(parameters, self.CLO, context)  # Clothing in clo
+        age = self.parameterAsDouble(parameters, self.AGE, context)  # Age in years
         activity = self.parameterAsDouble(
             parameters, self.ACTIVITY, context
         )  # Activity in watt
@@ -505,13 +467,10 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         )  # Sex, #TODO CHECK SO SAME FOR PET AND COMFA
 
         if tcType == 0:
-            feedback.setProgressText(
-                "Calculating PET for all ground level pixels"
-            )
+            feedback.setProgressText("Calculating PET for all ground level pixels")
             # Other PET variables
             ht = (
-                self.parameterAsDouble(parameters, self.HEIGHT, context)
-                / 100.0
+                self.parameterAsDouble(parameters, self.HEIGHT, context) / 100.0
             )  # Body height in meters
 
             pet.mbody = mbody
@@ -524,19 +483,13 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             # Wind speed
             # WsPET = (10. / sensorheight) ** 0.2 * wsGrid
 
-            result = pet.calculate_PET_grid(
-                Ta, RH, tmrtGrid, wsGrid, pet, feedback
-            )
+            result = pet.calculate_PET_grid(Ta, RH, tmrtGrid, wsGrid, pet, feedback)
 
         elif tcType == 1:
-            feedback.setProgressText(
-                "Calculating UTCI for all ground level pixels"
-            )
+            feedback.setProgressText("Calculating UTCI for all ground level pixels")
             # Recalculating wind speed based on power law
             WsUTCI = (10.0 / sensorheight) ** 0.2 * wsGrid
-            result = utci.utci_calculator_grid(
-                Ta, RH, tmrtGrid, WsUTCI, feedback
-            )
+            result = utci.utci_calculator_grid(Ta, RH, tmrtGrid, WsUTCI, feedback)
 
         elif tcType == 2:
             # If True = COMFA-kid (Cheng & Brown, 2020), if False = regular COMFA
@@ -595,20 +548,18 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             TREMIT = np.zeros((Rabs.shape[0], Rabs.shape[1]))
             for y in np.arange(Rabs.shape[0]):
                 for x in np.arange(Rabs.shape[1]):
-                    MET[y, x], CONV[y, x], EVAP[y, x], TREMIT[y, x] = (
-                        COMFA_BUDGET(
-                            Mact,
-                            Ta,
-                            RH,
-                            WsCOMFA[y, x],
-                            va,
-                            rco,
-                            rcvo,
-                            mbody,
-                            ht,
-                            age,
-                            comfa_kid,
-                        )
+                    MET[y, x], CONV[y, x], EVAP[y, x], TREMIT[y, x] = COMFA_BUDGET(
+                        Mact,
+                        Ta,
+                        RH,
+                        WsCOMFA[y, x],
+                        va,
+                        rco,
+                        rcvo,
+                        mbody,
+                        ht,
+                        age,
+                        comfa_kid,
                     )
             result = MET + Rabs - CONV - EVAP - TREMIT
 

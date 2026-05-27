@@ -163,9 +163,7 @@ def fillWallOfInterest(
 
             # Num format for output file data
             # woi_numformat = '%d %d %d %d %.5f %.2f %.2f' + ' %.2f' * temp_wall.shape[0]
-            woi_numformat = (
-                "%d %d %d %d %.5f %.2f %.2f" + " %.2f" * temp_all.shape[0]
-            )
+            woi_numformat = "%d %d %d %d %.5f %.2f %.2f" + " %.2f" * temp_all.shape[0]
             # Open file, add data, save
             f_handle = open(data_out, "ab")
             np.savetxt(f_handle, wall_data, fmt=woi_numformat)

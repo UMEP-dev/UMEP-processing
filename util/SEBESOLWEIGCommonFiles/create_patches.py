@@ -16,9 +16,7 @@ def create_patches(patch_option, device):
     # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
     # Patch option 1, 145 patches, Original Robinson & Stone (2004) after Tregenza (1987)/Tregenza & Sharples (1993)
     if patch_option == 1:
-        annulino = torch.tensor(
-            [0, 12, 24, 36, 48, 60, 72, 84, 90], device=device
-        )
+        annulino = torch.tensor([0, 12, 24, 36, 48, 60, 72, 84, 90], device=device)
         skyvaultaltint = torch.tensor(
             [6, 18, 30, 42, 54, 66, 78, 90], device=device
         )  # Robinson & Stone (2004)
@@ -30,9 +28,7 @@ def create_patches(patch_option, device):
         )  # Robinson & Stone (2004)
     # Patch option 2, 153 patches, Wallenberg et al. (2022)
     elif patch_option == 2:
-        annulino = torch.tensor(
-            [0, 12, 24, 36, 48, 60, 72, 84, 90], device=device
-        )
+        annulino = torch.tensor([0, 12, 24, 36, 48, 60, 72, 84, 90], device=device)
         skyvaultaltint = torch.tensor(
             [6, 18, 30, 42, 54, 66, 78, 90], device=device
         )  # Robinson & Stone (2004)
@@ -44,9 +40,7 @@ def create_patches(patch_option, device):
         )  # Nils
     # Patch option 3, 306 patches, test
     elif patch_option == 3:
-        annulino = torch.tensor(
-            [0, 12, 24, 36, 48, 60, 72, 84, 90], device=device
-        )
+        annulino = torch.tensor([0, 12, 24, 36, 48, 60, 72, 84, 90], device=device)
         skyvaultaltint = torch.tensor(
             [6, 18, 30, 42, 54, 66, 78, 90], device=device
         )  # Robinson & Stone (2004)
@@ -91,9 +85,7 @@ def create_patches(patch_option, device):
             [0, 0, 4, 4, 2, 2, 5, 5, 8, 8, 0, 0, 10, 10, 0], device=device
         )  # Nils
 
-    skyvaultaziint = torch.tensor(
-        [360 / patches for patches in patches_in_band]
-    )
+    skyvaultaziint = torch.tensor([360 / patches for patches in patches_in_band])
 
     for j in range(0, skyvaultaltint.shape[0]):
         for k in range(0, patches_in_band[j]):

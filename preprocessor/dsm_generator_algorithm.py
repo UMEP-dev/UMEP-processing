@@ -141,9 +141,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        self.addParameter(
-            QgsProcessingParameterExtent(self.EXTENT, self.tr("Extent"))
-        )
+        self.addParameter(QgsProcessingParameterExtent(self.EXTENT, self.tr("Extent")))
 
         self.addParameter(
             QgsProcessingParameterDistance(
@@ -174,15 +172,11 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # Input data
-        demlayer = self.parameterAsRasterLayer(
-            parameters, self.INPUT_DEM, context
-        )
+        demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
         shapelayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
-        heightField = self.parameterAsFields(
-            parameters, self.INPUT_FIELD, context
-        )
+        heightField = self.parameterAsFields(parameters, self.INPUT_FIELD, context)
 
         # OSM switches
         useOsm = self.parameterAsBool(parameters, self.USE_OSM, context)
@@ -199,9 +193,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Output data
-        outputDSM = self.parameterAsOutputLayer(
-            parameters, self.OUTPUT_DSM, context
-        )
+        outputDSM = self.parameterAsOutputLayer(parameters, self.OUTPUT_DSM, context)
         outputShape = self.parameterAsOutputLayer(
             parameters, self.OUTPUT_POLYGON, context
         )
@@ -353,8 +345,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         temp_dir = (
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            + "/temp/"
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/temp/"
         )
 
         if useOsm:
@@ -450,9 +441,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 osmFile.write(osmXml)
                 feedback.setProgressText("Downloading OSM data from " + urlStr)
                 if os.fstat(osmFile.fileno()).st_size < 1:
-                    raise QgsProcessingException(
-                        "Error! No OSM data available."
-                    )
+                    raise QgsProcessingException("Error! No OSM data available.")
 
             osmFile.close()
 
@@ -491,9 +480,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
             # Renames attribute fields
             def renameField(srcLayer, oldFieldName, newFieldName):
-                ds = gdal.OpenEx(
-                    srcLayer.source(), gdal.OF_VECTOR | gdal.OF_UPDATE
-                )
+                ds = gdal.OpenEx(srcLayer.source(), gdal.OF_VECTOR | gdal.OF_UPDATE)
                 ds.ExecuteSQL(
                     "ALTER TABLE {} RENAME COLUMN {} TO {}".format(
                         srcLayer.name(), oldFieldName, newFieldName
@@ -521,9 +508,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             counterNone = 0
             counter = 0
             for feature in vlayer.getFeatures():
-                if feature[
-                    "height"
-                ]:  # Tries first with actual building height data
+                if feature["height"]:  # Tries first with actual building height data
                     try:
                         feature.setAttribute(
                             feature.fieldNameIndex("bld_height"),
@@ -545,13 +530,8 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                     "bld_levels"
                 ]:  # If no height or building height then make building height from stories
                     try:
-                        temp = (
-                            float(str(feature["bld_levels"]))
-                            * buildingLevelHeight
-                        )
-                        feature.setAttribute(
-                            feature.fieldNameIndex("bld_height"), temp
-                        )
+                        temp = float(str(feature["bld_levels"])) * buildingLevelHeight
+                        feature.setAttribute(feature.fieldNameIndex("bld_height"), temp)
                     except:
                         counterNone += 1
                 else:
@@ -594,9 +574,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         for f in vlayer.getFeatures():
             scope.setFeature(f)
             exp = QgsExpression("stats_mean + " + flname)
-            f.setAttribute(
-                f.fieldNameIndex("height_asl"), exp.evaluate(context)
-            )
+            f.setAttribute(f.fieldNameIndex("height_asl"), exp.evaluate(context))
             vlayer.updateFeature(f)
 
         vlayer.commitChanges()
@@ -617,9 +595,9 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 str(sortPoly), str(osmPolygonPath), options=sort_options
             )
         else:
-            query = safe(
-                'SELECT * FROM "{table}" ORDER BY height_asl ASC'
-            ).format(table=safe(str(polygon_ln)))
+            query = safe('SELECT * FROM "{table}" ORDER BY height_asl ASC').format(
+                table=safe(str(polygon_ln))
+            )
 
             sort_options = gdal.VectorTranslateOptions(
                 options=["-select", "height_asl", "-sql", safe(query)]
@@ -724,9 +702,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                     sqUnit = 1
                 elif dem_unit in possible_units_feet:
                     sqUnit = 10.76
-                if (
-                    int(geom.area()) > 50000 * sqUnit
-                ):  # Deleting large polygons
+                if int(geom.area()) > 50000 * sqUnit:  # Deleting large polygons
                     vlayer.deleteFeature(f.id())
 
                 vlayer.updateFeature(f)

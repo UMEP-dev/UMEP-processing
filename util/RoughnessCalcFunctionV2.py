@@ -41,9 +41,7 @@ def RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev):
             Cdl = 7.5
             k = 0.4
             RauZdexpW = (math.exp(-((Cdl * 2 * fai[i]) ** 0.5))) - 1
-            z_d_output[i] = (
-                1 + (RauZdexpW / ((Cdl * 2 * fai[i]) ** 0.5))
-            ) * zH[i]
+            z_d_output[i] = (1 + (RauZdexpW / ((Cdl * 2 * fai[i]) ** 0.5))) * zH[i]
             RauZoUtermW = 1 / (min(((Cs + (Cr * fai[i])) ** 0.5), UdivUmax))
             RauZoexpW = np.exp((-k * RauZoUtermW) + Stab)
             z_0_output[i] = ((1 - (z_d_output[i] / zH[i])) * RauZoexpW) * zH[i]
@@ -66,9 +64,7 @@ def RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev):
             # Alph = 3.59
             # Beet = 0.55
             if zH[i] > 0.0:
-                z_d_output[i] = (1 + ((Alph ** -pai[i]) * (pai[i] - 1))) * zH[
-                    i
-                ]
+                z_d_output[i] = (1 + ((Alph ** -pai[i]) * (pai[i] - 1))) * zH[i]
                 if z_d_output[i] != zH[i]:
                     z_0_output[i] = (
                         zH[i]
@@ -118,9 +114,7 @@ def RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev):
             # Alph = 3.59
             # Beet = 0.55
             if zH[i] > 0.0:
-                z_d_output[i] = (1 + ((Alph ** -pai[i]) * (pai[i] - 1))) * zH[
-                    i
-                ]
+                z_d_output[i] = (1 + ((Alph ** -pai[i]) * (pai[i] - 1))) * zH[i]
                 if z_d_output[i] != zH[i]:
                     z0Mac = (
                         zH[i]
@@ -172,8 +166,7 @@ def RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev):
                 ZdMho_U = (
                     (
                         (117 * pai[i])
-                        + ((187.2 * (pai[i] ** 3)) - 6.1)
-                        * (1 - np.exp(-19.2 * pai[i]))
+                        + ((187.2 * (pai[i] ** 3)) - 6.1) * (1 - np.exp(-19.2 * pai[i]))
                     )
                     / (
                         (1 + (114 * pai[i]) + (187 * pai[i] ** 3))
@@ -242,12 +235,7 @@ def RoughnessCalc(Roughnessmethod, zH, fai, pai, zMax, zSdev):
                     * ((1 - z_d_output / zH))
                     * np.exp(
                         -(
-                            (
-                                0.5
-                                * (1.2 / 0.4**2)
-                                * (1 - (z_d_output / zH))
-                                * fai
-                            )
+                            (0.5 * (1.2 / 0.4**2) * (1 - (z_d_output / zH)) * fai)
                             ** -0.5
                         )
                     )
@@ -292,12 +280,7 @@ def RoughnessCalc(Roughnessmethod, zH, fai, pai, zMax, zSdev):
                     * ((1 - z_d_output / zH))
                     * np.exp(
                         -(
-                            (
-                                0.5
-                                * (1.2 / 0.4**2)
-                                * (1 - (z_d_output / zH))
-                                * fai
-                            )
+                            (0.5 * (1.2 / 0.4**2) * (1 - (z_d_output / zH)) * fai)
                             ** -0.5
                         )
                     )
@@ -306,9 +289,7 @@ def RoughnessCalc(Roughnessmethod, zH, fai, pai, zMax, zSdev):
                 z0Mac = 0.0
             X = (zSdev + zH) / zMax
             if 0 < X <= 1:
-                z_d_output = (
-                    (Co * (X**2)) + ((((Ao * (pai**Bo)) - Co)) * X)
-                ) * zMax
+                z_d_output = ((Co * (X**2)) + ((((Ao * (pai**Bo)) - Co)) * X)) * zMax
             else:
                 z_d_output = (Ao * (pai**Bo)) * zH
             Y = (pai * zSdev) / zH
@@ -335,28 +316,18 @@ def RoughnessCalc(Roughnessmethod, zH, fai, pai, zMax, zSdev):
             ) * zH
         elif pai < 0.19:
             ZdMho_U = (
-                (
-                    (117 * pai)
-                    + ((187.2 * (pai**3)) - 6.1) * (1 - np.exp(-19.2 * pai))
-                )
-                / (
-                    (1 + (114 * pai) + (187 * pai**3))
-                    * (1 - (np.exp(-19.2 * pai)))
-                )
+                ((117 * pai) + ((187.2 * (pai**3)) - 6.1) * (1 - np.exp(-19.2 * pai)))
+                / ((1 + (114 * pai) + (187 * pai**3)) * (1 - (np.exp(-19.2 * pai))))
             ) * zH
         ZoMhoexp_U = np.exp(-((0.5 * CD * (k**-2) * fai) ** -0.5))
         if zH > 0.0:
             ZoMho_U = ((1 - (ZdMho_U / zH)) * ZoMhoexp_U) * zH
             ZdMho_UCor = zH * (
-                (ZdMho_U / zH)
-                + ((0.2375 * np.log(pai) + 1.1738) * (zSdev / zH))
+                (ZdMho_U / zH) + ((0.2375 * np.log(pai) + 1.1738) * (zSdev / zH))
             )
             ZoMho_UCor = zH * (
                 (ZoMho_U / zH)
-                + (
-                    np.exp((0.8867 * fai) - 1)
-                    * ((zSdev / zH) ** np.exp(2.3271 * fai))
-                )
+                + (np.exp((0.8867 * fai) - 1) * ((zSdev / zH) ** np.exp(2.3271 * fai)))
             )
             z_d_output = ZdMho_UCor
             z_0_output = ZoMho_UCor

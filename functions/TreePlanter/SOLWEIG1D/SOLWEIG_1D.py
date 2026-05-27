@@ -144,8 +144,7 @@ def tmrt_1d_fun(metfilepath, infolder, tau, lon, lat, dsm, r_range):
 
     # load landcover file
     sitein = (
-        os.path.dirname(os.path.abspath(__file__))
-        + "/landcoverclasses_2018a_orig.txt"
+        os.path.dirname(os.path.abspath(__file__)) + "/landcoverclasses_2018a_orig.txt"
     )
     f = open(sitein)
     lin = f.readlines()

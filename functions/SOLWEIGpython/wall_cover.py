@@ -25,14 +25,9 @@ def get_wall_cover(voxelTable, lcgrid, dsm, lc_params):
     # Loop through all wall pixels in voxel table
     for i in range(voxelTable.shape[0]):
         # Temporary lc_grid based on kernel and wall y and x position
-        temp_lc = (
-            lcgrid[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2]
-            * domain
-        )
+        temp_lc = lcgrid[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2] * domain
         # Temporary dsm based on kernel and wall y and x position
-        temp_dsm = (
-            dsm[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2] * domain
-        )
+        temp_dsm = dsm[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2] * domain
         # Temporary code based on highest pixel in temp_dsm where temp_lc is a building
         temp_code = temp_lc[((temp_lc > 99) & (temp_dsm == temp_dsm.max()))]
 

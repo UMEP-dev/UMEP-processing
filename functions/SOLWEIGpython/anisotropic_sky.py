@@ -156,9 +156,7 @@ def anisotropic_sky(
         # Radiance fraction normalization
         for i in np.arange(patch_altitude.shape[0]):
             radTot += (
-                patch_luminance[i]
-                * steradians[i]
-                * np.sin(patch_altitude[i] * deg2rad)
+                patch_luminance[i] * steradians[i] * np.sin(patch_altitude[i] * deg2rad)
             )  # Radiance fraction normalization
         lumChi = (patch_luminance * radD) / radTot
 
@@ -179,14 +177,12 @@ def anisotropic_sky(
             temp_sh_roof = temp_sh * (voxelMaps[:, :, i] == 0)
 
         # Estimate sunlit and shaded patches
-        sunlit_patches, shaded_patches = (
-            sunlit_shaded_patches.shaded_or_sunlit(
-                solar_altitude,
-                solar_azimuth,
-                patch_altitude[i],
-                patch_azimuth[i],
-                asvf,
-            )
+        sunlit_patches, shaded_patches = sunlit_shaded_patches.shaded_or_sunlit(
+            solar_altitude,
+            solar_azimuth,
+            patch_altitude[i],
+            patch_azimuth[i],
+            asvf,
         )
 
         if cyl == 1:
@@ -338,25 +334,19 @@ def anisotropic_sky(
             ### CALCULATIONS FOR SHORTWAVE RADIATION ###
             if solar_altitude > 0:
                 # Shortwave radiation from sky
-                KsideD += (
-                    temp_sky * lumChi[i] * angle_of_incidence * steradians[i]
-                )
+                KsideD += temp_sky * lumChi[i] * angle_of_incidence * steradians[i]
 
                 # Shortwave reflected on sunlit surfaces
                 # sunlit_surface = ((albedo * radG) / np.pi)
                 sunlit_surface = (
-                    albedo * (radI * np.cos(solar_altitude * deg2rad))
-                    + (radD * 0.5)
+                    albedo * (radI * np.cos(solar_altitude * deg2rad)) + (radD * 0.5)
                 ) / np.pi
                 # Shortwave reflected on shaded surfaces and vegetation
                 shaded_surface = (albedo * radD * 0.5) / np.pi
 
                 # Shortwave radiation from vegetation
                 Kref_veg += (
-                    shaded_surface
-                    * temp_vegsh
-                    * steradians[i]
-                    * angle_of_incidence
+                    shaded_surface * temp_vegsh * steradians[i] * angle_of_incidence
                 )
 
                 # Shortwave radiation from buildings

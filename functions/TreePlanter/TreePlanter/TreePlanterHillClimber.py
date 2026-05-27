@@ -53,9 +53,7 @@ def treeoptinit(
     # sa = 1  # Genetic x or y random
     # sa = 2  # Genetic parents
 
-    percentage_progress = np.array(
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    )
+    percentage_progress = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     iters_progress = np.int_(percentage_progress * r_iters)
     progress_counter = itertools.cycle(range(percentage_progress.shape[0]))
     progress = progress_counter.__next__()
@@ -240,9 +238,7 @@ def treeoptinit(
             if i_tmrt[counter] > i_tmrt_max:
                 i_tmrt_max = np.max(i_tmrt)
                 for idx in range(trees):
-                    d_tmrt_p[idx] = treerasters.d_tmrt[
-                        tree_pos_y[idx], tree_pos_x[idx]
-                    ]
+                    d_tmrt_p[idx] = treerasters.d_tmrt[tree_pos_y[idx], tree_pos_x[idx]]
             else:
                 d_tmrt_temp = np.zeros((trees))
                 for idx in range(trees):

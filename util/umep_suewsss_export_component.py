@@ -186,13 +186,9 @@ def write_GridLayout_file(ss_object, refdir, fname):
 
     f.write("&geom\n")
     f.write("height = {}\n".format(str(ss_object["height"])[1:-1]))
-    f.write(
-        "building_frac = {}\n".format(str(ss_object["building_frac"])[1:-1])
-    )
+    f.write("building_frac = {}\n".format(str(ss_object["building_frac"])[1:-1]))
     f.write("veg_frac = {}\n".format(str(ss_object["veg_frac"])[1:-1]))
-    f.write(
-        "building_scale = {}\n".format(str(ss_object["building_scale"])[1:-1])
-    )
+    f.write("building_scale = {}\n".format(str(ss_object["building_scale"])[1:-1]))
     f.write("veg_scale = {}\n".format(str(ss_object["veg_scale"])[1:-1]))
     f.write("/\n")
     f.write("\n")
@@ -203,21 +199,11 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.write("alb_roof = {}\n".format(str(ss_object["alb_roof"])[1:-1]))
     f.write("emis_roof = {}\n".format(str(ss_object["emis_roof"])[1:-1]))
     f.write("state_roof = {}\n".format(str(ss_object["state_roof"])[1:-1]))
+    f.write("statelimit_roof = {}\n".format(str(ss_object["statelimit_roof"])[1:-1]))
+    f.write("wetthresh_roof = {}\n".format(str(ss_object["wetthresh_roof"])[1:-1]))
+    f.write("soilstore_roof = {}\n".format(str(ss_object["soilstore_roof"])[1:-1]))
     f.write(
-        "statelimit_roof = {}\n".format(
-            str(ss_object["statelimit_roof"])[1:-1]
-        )
-    )
-    f.write(
-        "wetthresh_roof = {}\n".format(str(ss_object["wetthresh_roof"])[1:-1])
-    )
-    f.write(
-        "soilstore_roof = {}\n".format(str(ss_object["soilstore_roof"])[1:-1])
-    )
-    f.write(
-        "soilstorecap_roof = {}\n".format(
-            str(ss_object["soilstorecap_roof"])[1:-1]
-        )
+        "soilstorecap_roof = {}\n".format(str(ss_object["soilstorecap_roof"])[1:-1])
     )
     f.write(
         "roof_albedo_dir_mult_fact(1,:) = {}\n".format(
@@ -252,21 +238,11 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.write("alb_wall = {}\n".format(str(ss_object["alb_wall"])[1:-1]))
     f.write("emis_wall = {}\n".format(str(ss_object["emis_wall"])[1:-1]))
     f.write("state_wall = {}\n".format(str(ss_object["state_wall"])[1:-1]))
+    f.write("statelimit_wall = {}\n".format(str(ss_object["statelimit_wall"])[1:-1]))
+    f.write("wetthresh_wall = {}\n".format(str(ss_object["wetthresh_wall"])[1:-1]))
+    f.write("soilstore_wall = {}\n".format(str(ss_object["soilstore_wall"])[1:-1]))
     f.write(
-        "statelimit_wall = {}\n".format(
-            str(ss_object["statelimit_wall"])[1:-1]
-        )
-    )
-    f.write(
-        "wetthresh_wall = {}\n".format(str(ss_object["wetthresh_wall"])[1:-1])
-    )
-    f.write(
-        "soilstore_wall = {}\n".format(str(ss_object["soilstore_wall"])[1:-1])
-    )
-    f.write(
-        "soilstorecap_wall = {}\n".format(
-            str(ss_object["soilstorecap_wall"])[1:-1]
-        )
+        "soilstorecap_wall = {}\n".format(str(ss_object["soilstorecap_wall"])[1:-1])
     )
     f.write(
         "wall_specular_frac(1,:) = {}\n".format(
@@ -298,71 +274,33 @@ def write_GridLayout_file(ss_object, refdir, fname):
     f.write("&surf\n")
     f.write("tin_surf = {}\n".format(str(ss_object["tin_surf"])[1:-1]))
 
-    f.write(
-        "dz_surf(1,:) = {}\n".format(str(ss_object["dz_surf_paved"])[1:-1])
-    )
+    f.write("dz_surf(1,:) = {}\n".format(str(ss_object["dz_surf_paved"])[1:-1]))
     f.write("k_surf(1,:) = {}\n".format(str(ss_object["k_surf_paved"])[1:-1]))
-    f.write(
-        "cp_surf((1,:) = {}\n".format(str(ss_object["cp_surf_paved"])[1:-1])
-    )
+    f.write("cp_surf((1,:) = {}\n".format(str(ss_object["cp_surf_paved"])[1:-1]))
 
-    f.write(
-        "dz_surf(2,:) = {}\n".format(str(ss_object["dz_surf_buildings"])[1:-1])
-    )
-    f.write(
-        "k_surf(2,:) = {}\n".format(str(ss_object["k_surf_buildings"])[1:-1])
-    )
-    f.write(
-        "cp_surf((2,:) = {}\n".format(
-            str(ss_object["cp_surf_buildings"])[1:-1]
-        )
-    )
+    f.write("dz_surf(2,:) = {}\n".format(str(ss_object["dz_surf_buildings"])[1:-1]))
+    f.write("k_surf(2,:) = {}\n".format(str(ss_object["k_surf_buildings"])[1:-1]))
+    f.write("cp_surf((2,:) = {}\n".format(str(ss_object["cp_surf_buildings"])[1:-1]))
 
-    f.write(
-        "dz_surf(3,:) = {}\n".format(str(ss_object["dz_surf_evergreen"])[1:-1])
-    )
-    f.write(
-        "k_surf(3,:) = {}\n".format(str(ss_object["k_surf_evergreen"])[1:-1])
-    )
-    f.write(
-        "cp_surf((3,:) = {}\n".format(
-            str(ss_object["cp_surf_evergreen"])[1:-1]
-        )
-    )
+    f.write("dz_surf(3,:) = {}\n".format(str(ss_object["dz_surf_evergreen"])[1:-1]))
+    f.write("k_surf(3,:) = {}\n".format(str(ss_object["k_surf_evergreen"])[1:-1]))
+    f.write("cp_surf((3,:) = {}\n".format(str(ss_object["cp_surf_evergreen"])[1:-1]))
 
-    f.write(
-        "dz_surf(4,:) = {}\n".format(str(ss_object["dz_surf_decid"])[1:-1])
-    )
+    f.write("dz_surf(4,:) = {}\n".format(str(ss_object["dz_surf_decid"])[1:-1]))
     f.write("k_surf(4,:) = {}\n".format(str(ss_object["k_surf_decid"])[1:-1]))
-    f.write(
-        "cp_surf((4,:) = {}\n".format(str(ss_object["cp_surf_decid"])[1:-1])
-    )
+    f.write("cp_surf((4,:) = {}\n".format(str(ss_object["cp_surf_decid"])[1:-1]))
 
-    f.write(
-        "dz_surf(5,:) = {}\n".format(str(ss_object["dz_surf_grass"])[1:-1])
-    )
+    f.write("dz_surf(5,:) = {}\n".format(str(ss_object["dz_surf_grass"])[1:-1]))
     f.write("k_surf(5,:) = {}\n".format(str(ss_object["k_surf_grass"])[1:-1]))
-    f.write(
-        "cp_surf((5,:) = {}\n".format(str(ss_object["cp_surf_grass"])[1:-1])
-    )
+    f.write("cp_surf((5,:) = {}\n".format(str(ss_object["cp_surf_grass"])[1:-1]))
 
-    f.write(
-        "dz_surf(6,:) = {}\n".format(str(ss_object["dz_surf_baresoil"])[1:-1])
-    )
-    f.write(
-        "k_surf(6,:) = {}\n".format(str(ss_object["k_surf_baresoil"])[1:-1])
-    )
-    f.write(
-        "cp_surf((6,:) = {}\n".format(str(ss_object["cp_surf_baresoil"])[1:-1])
-    )
+    f.write("dz_surf(6,:) = {}\n".format(str(ss_object["dz_surf_baresoil"])[1:-1]))
+    f.write("k_surf(6,:) = {}\n".format(str(ss_object["k_surf_baresoil"])[1:-1]))
+    f.write("cp_surf((6,:) = {}\n".format(str(ss_object["cp_surf_baresoil"])[1:-1]))
 
-    f.write(
-        "dz_surf(7,:) = {}\n".format(str(ss_object["dz_surf_water"])[1:-1])
-    )
+    f.write("dz_surf(7,:) = {}\n".format(str(ss_object["dz_surf_water"])[1:-1]))
     f.write("k_surf(7,:) = {}\n".format(str(ss_object["k_surf_water"])[1:-1]))
-    f.write(
-        "cp_surf((7,:) = {}\n".format(str(ss_object["cp_surf_water"])[1:-1])
-    )
+    f.write("cp_surf((7,:) = {}\n".format(str(ss_object["cp_surf_water"])[1:-1]))
 
     f.write("/\n")
     f.write("\n")

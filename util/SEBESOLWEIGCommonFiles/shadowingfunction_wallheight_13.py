@@ -41,9 +41,7 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, device):
     # Calculate the height of the wall segment receiving direct sunlight
     wallsun = walls - sh
     wallsun = torch.clamp(wallsun, min=0.0)
-    wallsun = torch.where(
-        facesh == 1, torch.tensor(0.0, device=device), wallsun
-    )
+    wallsun = torch.where(facesh == 1, torch.tensor(0.0, device=device), wallsun)
 
     # The shadowed wall height is the total wall height minus the sunlit segment
     wallsh = walls - wallsun

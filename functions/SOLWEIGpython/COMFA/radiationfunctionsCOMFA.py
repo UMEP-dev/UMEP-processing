@@ -13,9 +13,7 @@ from ....util.SEBESOLWEIGCommonFiles import (
 from ....util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
 
 
-def CNRRabs_Total(
-    alpha, L, D, Lin, Lup, Kin, Kup, Atr, d, t, lat, A, emis, Aeff
-):
+def CNRRabs_Total(alpha, L, D, Lin, Lup, Kin, Kup, Atr, d, t, lat, A, emis, Aeff):
     # VERTICAL CYLINDER MODEL
     # Used to calculate the total radiation absorbed by a cylinder, such as the CRT, with inputs
     # alpha (albedo of cylinder), Kin (incoming shortwave measured by CNR net
@@ -58,9 +56,7 @@ def CNRRabs_Total(
     Lin_abs = LinMeas_abs(L, D, Lin, emis)
     Lup_abs = LupMeas_abs(L, D, Lup, emis)
     Acyl = CRT_Acyl(L, D)
-    Total_CNRRabs = np.dot(
-        Aeff, ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl))
-    )
+    Total_CNRRabs = np.dot(Aeff, ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl)))
 
     return Total_CNRRabs, zen, Kd
 
@@ -105,9 +101,7 @@ def COMFA_RAD_SPATIAL_TC(
     Lup_abs = LupMeas_abs(L, D, Lup, emis)
     Acyl = CRT_Acyl(L, D)
     # Total_CNRRabs_solweig = np.dot(Aeff,((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl)))
-    Total_CNRRabs_solweig = Aeff * (
-        (Kin_abs + Kup_abs + Lin_abs + Lup_abs) / Acyl
-    )
+    Total_CNRRabs_solweig = Aeff * ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / Acyl)
 
     return Total_CNRRabs_solweig
 
@@ -189,9 +183,7 @@ def Rad_Total_solweig(
     Lup_abs = LupMeas_abs(L, D, Lup, emis)
     Acyl = CRT_Acyl(L, D)
     # Total_CNRRabs_solweig = np.dot(Aeff,((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl)))
-    Total_CNRRabs_solweig = Aeff * (
-        (Kin_abs + Kup_abs + Lin_abs + Lup_abs) / Acyl
-    )
+    Total_CNRRabs_solweig = Aeff * ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / Acyl)
 
     return Total_CNRRabs_solweig, zen / (np.pi / 180), Kd
 
@@ -210,9 +202,7 @@ def CNR_Kinabs_meas(alpha, Kin, L, D, A, lat, d, t, Atr):
     Kd = Kin - Kb
     zen = solar_zenith(lat, d, t)
     Acs = CRT_Acs(L, D)
-    Kb_abs = np.dot(
-        np.dot((1 - alpha), (np.dot(Kb, np.sin(zen * deg2rad)))), Acs
-    )
+    Kb_abs = np.dot(np.dot((1 - alpha), (np.dot(Kb, np.sin(zen * deg2rad)))), Acs)
     Acyl = CRT_Acyl(L, D)
     Kd_abs = np.dot(np.dot(np.dot((1 - alpha), Kd), 0.5), Acyl)
     Kin_abs = Kb_abs + Kd_abs
@@ -270,9 +260,7 @@ def solar_zenith(lat, d, t):
     deg2rad = np.pi / 180.0
     # make sure to change latitudinal correction for whatever city you are in.
 
-    LC = (
-        -49 / 60.0
-    )  # TODO Remove since is should vary with location. What us this?
+    LC = -49 / 60.0  # TODO Remove since is should vary with location. What us this?
 
     ET = solar_ET(d)
     to = 12 - LC - ET

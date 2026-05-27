@@ -52,38 +52,22 @@ def Kside_veg_v2019a(
         KnorthI = 0
     else:  ### Kside with weights ###
         if azimuth > (360 - t) or azimuth <= (180 - t):
-            KeastI = (
-                radI
-                * shadow
-                * np.cos(altitude * deg2rad)
-                * np.sin(aziE * deg2rad)
-            )
+            KeastI = radI * shadow * np.cos(altitude * deg2rad) * np.sin(aziE * deg2rad)
         else:
             KeastI = 0
         if azimuth > (90 - t) and azimuth <= (270 - t):
             KsouthI = (
-                radI
-                * shadow
-                * np.cos(altitude * deg2rad)
-                * np.sin(aziS * deg2rad)
+                radI * shadow * np.cos(altitude * deg2rad) * np.sin(aziS * deg2rad)
             )
         else:
             KsouthI = 0
         if azimuth > (180 - t) and azimuth <= (360 - t):
-            KwestI = (
-                radI
-                * shadow
-                * np.cos(altitude * deg2rad)
-                * np.sin(aziW * deg2rad)
-            )
+            KwestI = radI * shadow * np.cos(altitude * deg2rad) * np.sin(aziW * deg2rad)
         else:
             KwestI = 0
         if azimuth <= (90 - t) or azimuth > (270 - t):
             KnorthI = (
-                radI
-                * shadow
-                * np.cos(altitude * deg2rad)
-                * np.sin(aziN * deg2rad)
+                radI * shadow * np.cos(altitude * deg2rad) * np.sin(aziN * deg2rad)
             )
         else:
             KnorthI = 0
@@ -129,8 +113,7 @@ def Kside_veg_v2019a(
                 aziDel = 360
 
             phiVar[ix] = (aziDel * deg2rad) * (
-                np.sin((aniAlt[ix] + 6) * deg2rad)
-                - np.sin((aniAlt[ix] - 6) * deg2rad)
+                np.sin((aniAlt[ix] + 6) * deg2rad) - np.sin((aniAlt[ix] - 6) * deg2rad)
             )  # Solid angle / Steradian
 
             radTot = radTot + (
@@ -147,24 +130,19 @@ def Kside_veg_v2019a(
                     np.pi / 2
                 )  # Angle of incidence, np.cos(0) because cylinder - always perpendicular
                 KsideD = (
-                    KsideD
-                    + diffsh[:, :, idx] * lumChi[idx] * anglIncC * phiVar[idx]
+                    KsideD + diffsh[:, :, idx] * lumChi[idx] * anglIncC * phiVar[idx]
                 )  # Diffuse vertical radiation
             Keast = (
-                albedo * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh))
-                + KupE
+                albedo * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh)) + KupE
             ) * 0.5
             Ksouth = (
-                albedo * (svfviktbuvegS * (radG * (1 - F_sh) + radD * F_sh))
-                + KupS
+                albedo * (svfviktbuvegS * (radG * (1 - F_sh) + radD * F_sh)) + KupS
             ) * 0.5
             Kwest = (
-                albedo * (svfviktbuvegW * (radG * (1 - F_sh) + radD * F_sh))
-                + KupW
+                albedo * (svfviktbuvegW * (radG * (1 - F_sh) + radD * F_sh)) + KupW
             ) * 0.5
             Knorth = (
-                albedo * (svfviktbuvegN * (radG * (1 - F_sh) + radD * F_sh))
-                + KupN
+                albedo * (svfviktbuvegN * (radG * (1 - F_sh) + radD * F_sh)) + KupN
             ) * 0.5
         else:  # Box
             diffRadE = np.zeros((rows, cols))
@@ -176,107 +154,71 @@ def Kside_veg_v2019a(
                 if aniAzi[idx] <= (180):
                     anglIncE = np.cos(aniAlt[idx] * deg2rad) * np.cos(
                         (90 - aniAzi[idx]) * deg2rad
-                    ) * np.sin(np.pi / 2) + np.sin(
-                        aniAlt[idx] * deg2rad
-                    ) * np.cos(
+                    ) * np.sin(np.pi / 2) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
                         np.pi / 2
                     )
                     diffRadE = (
                         diffRadE
-                        + diffsh[:, :, idx]
-                        * lumChi[idx]
-                        * anglIncE
-                        * phiVar[idx]
+                        + diffsh[:, :, idx] * lumChi[idx] * anglIncE * phiVar[idx]
                     )  # * 0.5
 
                 if aniAzi[idx] > (90) and aniAzi[idx] <= (270):
                     anglIncS = np.cos(aniAlt[idx] * deg2rad) * np.cos(
                         (180 - aniAzi[idx]) * deg2rad
-                    ) * np.sin(np.pi / 2) + np.sin(
-                        aniAlt[idx] * deg2rad
-                    ) * np.cos(
+                    ) * np.sin(np.pi / 2) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
                         np.pi / 2
                     )
                     diffRadS = (
                         diffRadS
-                        + diffsh[:, :, idx]
-                        * lumChi[idx]
-                        * anglIncS
-                        * phiVar[idx]
+                        + diffsh[:, :, idx] * lumChi[idx] * anglIncS * phiVar[idx]
                     )  # * 0.5
 
                 if aniAzi[idx] > (180) and aniAzi[idx] <= (360):
                     anglIncW = np.cos(aniAlt[idx] * deg2rad) * np.cos(
                         (270 - aniAzi[idx]) * deg2rad
-                    ) * np.sin(np.pi / 2) + np.sin(
-                        aniAlt[idx] * deg2rad
-                    ) * np.cos(
+                    ) * np.sin(np.pi / 2) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
                         np.pi / 2
                     )
                     diffRadW = (
                         diffRadW
-                        + diffsh[:, :, idx]
-                        * lumChi[idx]
-                        * anglIncW
-                        * phiVar[idx]
+                        + diffsh[:, :, idx] * lumChi[idx] * anglIncW * phiVar[idx]
                     )  # * 0.5
 
                 if aniAzi[idx] > (270) or aniAzi[idx] <= (90):
                     anglIncN = np.cos(aniAlt[idx] * deg2rad) * np.cos(
                         (0 - aniAzi[idx]) * deg2rad
-                    ) * np.sin(np.pi / 2) + np.sin(
-                        aniAlt[idx] * deg2rad
-                    ) * np.cos(
+                    ) * np.sin(np.pi / 2) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
                         np.pi / 2
                     )
                     diffRadN = (
                         diffRadN
-                        + diffsh[:, :, idx]
-                        * lumChi[idx]
-                        * anglIncN
-                        * phiVar[idx]
+                        + diffsh[:, :, idx] * lumChi[idx] * anglIncN * phiVar[idx]
                     )  # * 0.5
 
             KeastDG = (
                 diffRadE
-                + (
-                    albedo
-                    * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh))
-                    + KupE
-                )
+                + (albedo * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh)) + KupE)
                 * 0.5
             )
             Keast = KeastI + KeastDG
 
             KsouthDG = (
                 diffRadS
-                + (
-                    albedo
-                    * (svfviktbuvegS * (radG * (1 - F_sh) + radD * F_sh))
-                    + KupS
-                )
+                + (albedo * (svfviktbuvegS * (radG * (1 - F_sh) + radD * F_sh)) + KupS)
                 * 0.5
             )
             Ksouth = KsouthI + KsouthDG
 
             KwestDG = (
                 diffRadW
-                + (
-                    albedo
-                    * (svfviktbuvegW * (radG * (1 - F_sh) + radD * F_sh))
-                    + KupW
-                )
+                + (albedo * (svfviktbuvegW * (radG * (1 - F_sh) + radD * F_sh)) + KupW)
                 * 0.5
             )
             Kwest = KwestI + KwestDG
 
             KnorthDG = (
                 diffRadN
-                + (
-                    albedo
-                    * (svfviktbuvegN * (radG * (1 - F_sh) + radD * F_sh))
-                    + KupN
-                )
+                + (albedo * (svfviktbuvegN * (radG * (1 - F_sh) + radD * F_sh)) + KupN)
                 * 0.5
             )
             Knorth = KnorthI + KnorthDG

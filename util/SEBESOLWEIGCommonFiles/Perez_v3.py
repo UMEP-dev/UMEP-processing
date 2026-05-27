@@ -3,9 +3,7 @@ from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 import torch
 
 
-def Perez_v3(
-    zen, azimuth, radD, radI, jday, patchchoice, patch_option, device
-):
+def Perez_v3(zen, azimuth, radD, radI, jday, patchchoice, patch_option, device):
     """
     This function calculates distribution of luminance on the skyvault based on
     Perez luminince distribution model.
@@ -262,20 +260,17 @@ def Perez_v3(
     m_a = (
         acoeff[intClearness, 0]
         + acoeff[intClearness, 1] * zen
-        + PerezBrightness
-        * (acoeff[intClearness, 2] + acoeff[intClearness, 3] * zen)
+        + PerezBrightness * (acoeff[intClearness, 2] + acoeff[intClearness, 3] * zen)
     )
     m_b = (
         bcoeff[intClearness, 0]
         + bcoeff[intClearness, 1] * zen
-        + PerezBrightness
-        * (bcoeff[intClearness, 2] + bcoeff[intClearness, 3] * zen)
+        + PerezBrightness * (bcoeff[intClearness, 2] + bcoeff[intClearness, 3] * zen)
     )
     m_e = (
         ecoeff[intClearness, 0]
         + ecoeff[intClearness, 1] * zen
-        + PerezBrightness
-        * (ecoeff[intClearness, 2] + ecoeff[intClearness, 3] * zen)
+        + PerezBrightness * (ecoeff[intClearness, 2] + ecoeff[intClearness, 3] * zen)
     )
 
     if intClearness > 0:
@@ -296,9 +291,7 @@ def Perez_v3(
             torch.exp(
                 torch.pow(
                     PerezBrightness
-                    * (
-                        ccoeff[intClearness, 0] + ccoeff[intClearness, 1] * zen
-                    ),
+                    * (ccoeff[intClearness, 0] + ccoeff[intClearness, 1] * zen),
                     ccoeff[intClearness, 2],
                 )
             )

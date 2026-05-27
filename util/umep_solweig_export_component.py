@@ -55,9 +55,7 @@ def write_solweig_config(configDict, refdir):
     f.write("# Point of Interest file for ground\n")
     f.write("poi_file={}\n".format(configDict["poi_file"]))
     f.write("poi_field={}\n".format(configDict["poi_field"]))
-    f.write(
-        "# Input file for wall temperture scheme (Wallenberg et al. 2025)\n"
-    )
+    f.write("# Input file for wall temperture scheme (Wallenberg et al. 2025)\n")
     f.write("input_wall={}\n".format(configDict["input_wall"]))
     f.write("# Input file for surface temperature data\n")
     f.write("input_surf={}\n".format(configDict.get("input_surf", "")))
@@ -90,9 +88,7 @@ def write_solweig_config(configDict, refdir):
         "# scale between horisontal and vertical resolution (1 = 1 meter pixel reolution, 0.5 = 2)\n"
     )
     f.write("scale={}\n".format(configDict["scale"]))
-    f.write(
-        "# Set to 1 if an EPW file is used as meteorological forcing data\n"
-    )
+    f.write("# Set to 1 if an EPW file is used as meteorological forcing data\n")
     f.write("useepwfile={}\n".format(configDict["useepwfile"]))
     f.write("# land cover scheme activated (1) (Lindberg et al. 2016 UC)\n")
     f.write("landcover={}\n".format(configDict["landcover"]))
@@ -104,9 +100,7 @@ def write_solweig_config(configDict, refdir):
         "# use anisotrphic sky (Wallenberg et al. XXXX and Wallenberg et al. XXXX)\n"
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
-    f.write(
-        "# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n"
-    )
+    f.write("# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n")
     f.write("wallscheme={}\n".format(configDict["wallscheme"]))
     f.write(
         "# If building materials is not included in lc, then this is used for all buildings (Wood, Brick or Concrete)\n"
@@ -130,9 +124,7 @@ def write_solweig_config(configDict, refdir):
     f.write("#-------------------------------------------------------\n")
     f.write("# dates - used if an EPW-file is used\n")
     f.write("#-------------------------------------------------------\n")
-    f.write(
-        "# year,month,day,hour	## the start date/time for period of interest\n"
-    )
+    f.write("# year,month,day,hour	## the start date/time for period of interest\n")
     f.write("date1={}\n".format(configDict["date1"]))
     f.write("# year,month,day,hour	# end date/time\n")
     f.write("date2={}\n".format(configDict["date2"]))

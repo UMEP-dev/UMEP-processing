@@ -286,9 +286,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         )
 
         self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_DIR, "Output folder"
-            )
+            QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output folder")
         )
 
         # Advanced parameters
@@ -300,8 +298,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             minValue=1,
         )
         iterations.setFlags(
-            iterations.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            iterations.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(iterations)
 
@@ -313,21 +310,17 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             defaultValue=True,
         )
         includeOutside.setFlags(
-            includeOutside.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            includeOutside.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(includeOutside)
 
         randomStarting = QgsProcessingParameterBoolean(
             self.RANDOM_STARTING,
-            self.tr(
-                "Use random starting positions in the hill climbing algorithm"
-            ),
+            self.tr("Use random starting positions in the hill climbing algorithm"),
             defaultValue=False,
         )
         randomStarting.setFlags(
-            randomStarting.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            randomStarting.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(randomStarting)
 
@@ -337,8 +330,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             defaultValue=False,
         )
         greedyAlgorithm.setFlags(
-            greedyAlgorithm.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            greedyAlgorithm.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(greedyAlgorithm)
 
@@ -353,18 +345,14 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # START_HOUR = 'START_HOUR'
         # END_HOUR = 'END_HOUR'
 
-        infolder = self.parameterAsString(
-            parameters, self.SOLWEIG_DIR, context
-        )
+        infolder = self.parameterAsString(parameters, self.SOLWEIG_DIR, context)
         ttype = self.parameterAsString(parameters, self.TTYPE, context)
         height = self.parameterAsDouble(parameters, self.HEIGHT, context)
         dia = self.parameterAsDouble(parameters, self.DIA, context)
         trunk = self.parameterAsDouble(parameters, self.TRUNK, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
         nTree = self.parameterAsInt(parameters, self.NTREE, context)
-        transVeg = (
-            self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100
-        )
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100
         # INPUT_MET = self.parameterAsString(parameters, self.INPUT_MET, context)
         INPUT_MET = infolder + "/metforcing.txt"
         ITERATIONS = self.parameterAsInt(parameters, self.ITERATIONS, context)
@@ -374,18 +362,14 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         outside_selected = self.parameterAsBoolean(
             parameters, self.INCLUDE_OUTSIDE, context
         )
-        greedy = self.parameterAsBoolean(
-            parameters, self.GREEDY_ALGORITHM, context
-        )
+        greedy = self.parameterAsBoolean(parameters, self.GREEDY_ALGORITHM, context)
         starting_algorithm = self.parameterAsBoolean(
             parameters, self.RANDOM_STARTING, context
         )
 
         # inputPolygonlayer = parameters[self.INPUT_POLYGONLAYER]
         inputPolygonlayer = (
-            self.parameterAsVectorLayer(
-                parameters, self.INPUT_POLYGONLAYER, context
-            )
+            self.parameterAsVectorLayer(parameters, self.INPUT_POLYGONLAYER, context)
             .dataProvider()
             .dataSourceUri()
         )
@@ -395,20 +379,14 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # outputTMRT = self.parameterAsOutputLayer(parameters, self.OUTPUT_TMRT, context)
         # outputOCCURRENCE = self.parameterAsOutputLayer(parameters, self.OUTPUT_OCCURRENCE, context)
 
-        outputDir = self.parameterAsString(
-            parameters, self.OUTPUT_DIR, context
-        )
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
 
-        outputCDSM = self.parameterAsBool(
-            parameters, self.OUTPUT_CDSM, context
-        )
-        outputPoint = self.parameterAsBool(
-            parameters, self.OUTPUT_POINTFILE, context
-        )
+        outputCDSM = self.parameterAsBool(parameters, self.OUTPUT_CDSM, context)
+        outputPoint = self.parameterAsBool(parameters, self.OUTPUT_POINTFILE, context)
         outputOccurrence = self.parameterAsBool(
             parameters, self.OUTPUT_OCCURRENCE, context
         )
@@ -469,12 +447,8 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         )
 
         if not outside_selected:
-            feedback.setProgressText(
-                "Tree shade ineffective outside planting area..."
-            )
-            tree_input.buildings = (
-                tree_input.buildings * tree_input.selected_area
-            )
+            feedback.setProgressText("Tree shade ineffective outside planting area...")
+            tree_input.buildings = tree_input.buildings * tree_input.selected_area
             for i in np.arange(tree_input.tmrt_ts.shape[2]):
                 tree_input.tmrt_ts[:, :, i] = (
                     tree_input.tmrt_ts[:, :, i] * tree_input.selected_area
@@ -515,9 +489,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         cdsm_ = np.zeros((tree_input.rows, tree_input.cols))  # Empty cdsm
         tdsm_ = np.zeros((tree_input.rows, tree_input.cols))  # Empty tdsm
-        dsm_empty = np.ones(
-            (tree_input.rows, tree_input.cols)
-        )  # Empty dsm raster
+        dsm_empty = np.ones((tree_input.rows, tree_input.cols))  # Empty dsm raster
         buildings_empty = np.ones(
             (tree_input.rows, tree_input.cols)
         )  # Empty building raster
@@ -594,9 +566,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             i_c += 1
 
         ## Regional groups for tree shadows
-        shadow_rg = Regional_groups(
-            r_range, treesh_sum_sh, treesh_ts2, tmrt_1d
-        )
+        shadow_rg = Regional_groups(r_range, treesh_sum_sh, treesh_ts2, tmrt_1d)
 
         # Create rasters for new tree; shadows and Tmrt
         treerasters = Treerasters(
@@ -637,14 +607,11 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                 )
 
             if nTree == 1:
-                t_y, t_x = np.where(
-                    treerasters.d_tmrt == np.max(treerasters.d_tmrt)
-                )
+                t_y, t_x = np.where(treerasters.d_tmrt == np.max(treerasters.d_tmrt))
             else:
                 possible_locations = np.sum(treerasters.d_tmrt > 0)
                 feedback.setProgressText(
-                    str(possible_locations)
-                    + " possible locations for trees..."
+                    str(possible_locations) + " possible locations for trees..."
                 )
                 # Running tree planter
                 t_y, t_x, tmrt_max, t_y_all, t_x_all = (
@@ -666,9 +633,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                     # Create occurrence map
                     t_y_all += cropped_rasters.clip_rows[0]
                     t_x_all += cropped_rasters.clip_rows[0]
-                    occurrence_map = np.zeros(
-                        (tree_input.rows, tree_input.cols)
-                    )
+                    occurrence_map = np.zeros((tree_input.rows, tree_input.cols))
                     for row in np.arange(t_y_all.shape[0]):
                         for col in np.arange(t_y_all.shape[1]):
                             occurrence_map[
@@ -678,9 +643,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
                     occurrence_map /= ITERATIONS
 
                     # Save occurrence map as raster
-                    saveraster(
-                        tree_input.dataSet, outputOccurrence, occurrence_map
-                    )
+                    saveraster(tree_input.dataSet, outputOccurrence, occurrence_map)
 
         # Optimal locations for CDSM and point outputs
         t_y = t_y + cropped_rasters.clip_rows[0]

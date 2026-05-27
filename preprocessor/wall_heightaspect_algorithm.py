@@ -51,7 +51,6 @@ from ..util.misc import saverasternd
 import os
 
 
-
 class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
     INPUT_LIMIT = "INPUT_LIMIT"
@@ -117,14 +116,10 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         )
         dsmin = self.parameterAsRasterLayer(parameters, self.INPUT, context)
         # aspectcalculation = self.parameterAsBool(parameters, self.ASPECT_BOOL, context)
-        walllimit = self.parameterAsDouble(
-            parameters, self.INPUT_LIMIT, context
-        )
+        walllimit = self.parameterAsDouble(parameters, self.INPUT_LIMIT, context)
         use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
-        cmd_folder = Path(
-            os.path.split(inspect.getfile(inspect.currentframe()))[0]
-        )
+        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0])
         feedback.setProgressText(str(cmd_folder))
         feedback.setProgressText(str(cmd_folder.parent))
 
@@ -151,7 +146,12 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             # outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
             feedback.setProgressText("Calculating wall aspect")
             dirwalls = wa.filter1Goodwin_as_aspect_v3(
-                walls, torch.tensor(1, device=device), torch.tensor(dsm, device=device), feedback, torch.tensor(total, device=device), device
+                walls,
+                torch.tensor(1, device=device),
+                torch.tensor(dsm, device=device),
+                feedback,
+                torch.tensor(total, device=device),
+                device,
             )
             saverasternd(gdal_dsm, outputFileAspect, dirwalls.cpu().detach().numpy())
         else:

@@ -155,15 +155,11 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
 
         # InputParameters
-        inputDir = self.parameterAsString(
-            parameters, self.INPUT_FOLDER, context
-        )
+        inputDir = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
         inputPolygonlayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
-        startDate = self.parameterAsString(
-            parameters, self.START_DATE, context
-        )
+        startDate = self.parameterAsString(parameters, self.START_DATE, context)
         startDateInterest = self.parameterAsString(
             parameters, self.START_DATE_INTEREST, context
         )
@@ -172,17 +168,11 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         )
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         # outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputCSV = self.parameterAsBoolean(
-            parameters, self.OUTPUT_CSV, context
-        )
+        outputCSV = self.parameterAsBoolean(parameters, self.OUTPUT_CSV, context)
         # dtSim = self.parameterAsDouble(parameters, self.DTSIM, context)
-        mod_Ldown = self.parameterAsBoolean(
-            parameters, self.MOD_LDOWN, context
-        )
+        mod_Ldown = self.parameterAsBoolean(parameters, self.MOD_LDOWN, context)
         runName = self.parameterAsString(parameters, self.RUN_NAME, context)
-        umepformat = self.parameterAsBoolean(
-            parameters, self.OUTPUT_UMEP, context
-        )
+        umepformat = self.parameterAsBoolean(parameters, self.OUTPUT_UMEP, context)
         # getting extent, lat lon, and number of x and y grids
         vlayer = inputPolygonlayer
         ext = vlayer.extent()
@@ -216,12 +206,8 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             nGridY = int(yExt / gridsize)
             break
 
-        latmin, lonmin = xy2latlon(
-            vlayer.crs().toWkt(), ext.xMinimum(), ext.yMinimum()
-        )
-        latmax, lonmax = xy2latlon(
-            vlayer.crs().toWkt(), ext.xMaximum(), ext.yMaximum()
-        )
+        latmin, lonmin = xy2latlon(vlayer.crs().toWkt(), ext.xMinimum(), ext.yMinimum())
+        latmax, lonmax = xy2latlon(vlayer.crs().toWkt(), ext.xMaximum(), ext.yMaximum())
 
         # Converting UMEP met-file to target met-file
         try:
@@ -234,14 +220,10 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             )
 
         metfile["datetime"] = pd.to_datetime(
-            metfile[["%iy", "id", "it", "imin"]]
-            .astype(str)
-            .agg("-".join, axis=1),
+            metfile[["%iy", "id", "it", "imin"]].astype(str).agg("-".join, axis=1),
             format="%Y-%j-%H-%M",
         )
-        metfile = metfile[
-            ["datetime", "Td", "RH", "Wind", "press", "Kdn", "ldown"]
-        ]
+        metfile = metfile[["datetime", "Td", "RH", "Wind", "press", "Kdn", "ldown"]]
         metfile.columns = ["datetime", "Ta", "RH", "WS", "P", "Kd", "Ld"]
         startmetfile = metfile["datetime"].min()
         endmetfile = metfile["datetime"].max()
@@ -273,9 +255,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             cfM["mod_ldown"] = "N"
             if -999 in metfile["Ld"].values:
                 cfM["mod_ldown"] = "Y"
-                feedback.pushWarning(
-                    "-999 found in Ldown. Ldown will be modelled."
-                )
+                feedback.pushWarning("-999 found in Ldown. Ldown will be modelled.")
 
         cfM["domaindim"] = str(nGridX) + "," + str(nGridY)
         cfM["latedge"] = str(latmin)
@@ -283,9 +263,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         cfM["latresolution"] = str(abs(latmin - latmax))
         cfM["lonresolution"] = str(abs(lonmin - lonmax))
         cfM["date1a"] = (
-            datetime.datetime.strptime(startDate, "%Y-%m-%d").strftime(
-                "%Y,%m,%d"
-            )
+            datetime.datetime.strptime(startDate, "%Y-%m-%d").strftime("%Y,%m,%d")
             + ",0"
         )
         cfM["date1"] = (
@@ -343,9 +321,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
 
         # run simulation
         if outputCSV:
-            tar.run_simulation(
-                save_csv=True
-            )  # save model results in csv format
+            tar.run_simulation(save_csv=True)  # save model results in csv format
         else:
             tar.run_simulation(save_csv=False)
 
@@ -353,9 +329,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         tar.save_simulation_parameters()
         end = datetime.datetime.now() - start
         feedback.setProgressText(
-            "Model calculation finished. Output is found in "
-            + inputDir
-            + "/output"
+            "Model calculation finished. Output is found in " + inputDir + "/output"
         )
         feedback.setProgressText(
             "Model calculation time: " + str(end.total_seconds()) + " seconds"
@@ -363,9 +337,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
 
         # saving output as umep formatted metfile
         if umepformat:
-            feedback.setProgressText(
-                "Saving data in UMEP formatted text-files."
-            )
+            feedback.setProgressText("Saving data in UMEP formatted text-files.")
             header = (
                 "%iy  id  it imin   Q*      QH      QE      Qs      Qf    Wind    RH     Td     press   rain "
                 "   Kdn    snow    ldown   fcld    wuh     xsmd    lai_hr  Kdiff   Kdir    Wd"
@@ -380,9 +352,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             )
             dfin = pd.read_csv(inputMet, sep="\s+")
             dfin["datetime"] = pd.to_datetime(
-                dfin[["%iy", "id", "it", "imin"]]
-                .astype(str)
-                .agg("-".join, axis=1),
+                dfin[["%iy", "id", "it", "imin"]].astype(str).agg("-".join, axis=1),
                 format="%Y-%j-%H-%M",
             )
             dfin.set_index("datetime", inplace=True)

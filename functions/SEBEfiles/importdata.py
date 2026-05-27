@@ -73,9 +73,7 @@ def importdata(*args, device):
     if not isinstance(fileName, str):
         raise TypeError("importdata: File name needs to be a string.")
     if "-pastespecial" in fileName:
-        raise ValueError(
-            "importdata: Option " "-pastespecial" " not implemented."
-        )
+        raise ValueError("importdata: Option " "-pastespecial" " not implemented.")
 
     if nargin > 1:
         delimiter = args[1]
@@ -83,9 +81,7 @@ def importdata(*args, device):
         if not isinstance(delimiter, str):
             raise TypeError("importdata: Delimiter needs to be a character.")
         if len(delimiter) > 1 and not delimiter is "\t":
-            raise ValueError(
-                "importdata: Delimiter cannot be longer than 1 character."
-            )
+            raise ValueError("importdata: Delimiter cannot be longer than 1 character.")
         if delimiter is "\\":
             delimiter = "\\\\"  # if delimiter is "\" change to "\\"
 
@@ -106,13 +102,9 @@ def importdata(*args, device):
     ext = ext.lower()  # Make sure file extension is in lower case.
 
     if ext in [".au", ".snd"]:
-        raise ValueError(
-            "importdata: Not implemented for file format " + ext + "."
-        )
+        raise ValueError("importdata: Not implemented for file format " + ext + ".")
     elif ext is ".avi":
-        raise ValueError(
-            "importdata: Not implemented for file format " + ext + "."
-        )
+        raise ValueError("importdata: Not implemented for file format " + ext + ".")
     elif ext in [
         ".bmp",
         ".cur",
@@ -137,9 +129,7 @@ def importdata(*args, device):
         headerRows = 0
         img = Image.open(fileName)
         output["cdata"] = torch.tensor(img, device=device)
-        output["colormap"] = (
-            img.mode
-        )  # TODO: check if this method is euaivalent
+        output["colormap"] = img.mode  # TODO: check if this method is euaivalent
         output["alpha"] = img.split()[-1]
     elif ext is ".mat":
         import scipy.io as sio
@@ -148,20 +138,14 @@ def importdata(*args, device):
         headerRows = 0
         output = sio.loadmat(fileName)
     elif ext is ".wk1":
-        raise ValueError(
-            "importdata: Not implemented for file format " + ext + "."
-        )
+        raise ValueError("importdata: Not implemented for file format " + ext + ".")
     elif ext in [".xls", ".xlsx"]:
-        raise ValueError(
-            "importdata: Not implemented for file format " + ext + "."
-        )
+        raise ValueError("importdata: Not implemented for file format " + ext + ".")
     elif ext in [".wav", ".wave"]:
         # delimiter  = None
         # headerRows = 0
         # [output.data, output.fs] = wavread(fileName)
-        raise ValueError(
-            "importdata: Not implemented for file format " + ext + "."
-        )
+        raise ValueError("importdata: Not implemented for file format " + ext + ".")
     else:
         # Assume the file is in ascii format.
         output, delimiter, headerRows = importdata_ascii(
@@ -174,9 +158,7 @@ def importdata(*args, device):
         for (
             key,
             val,
-        ) in (
-            output.copy().items()
-        ):  # copy() for py3 compatibility or use items()
+        ) in output.copy().items():  # copy() for py3 compatibility or use items()
             if not val:
                 del output[key]
 
@@ -255,7 +237,10 @@ def importdata_ascii(fileName, delimiter, headerRows, device):
     # print "headerRows py:", headerRows
     # Go through the data and put it in either output.data or output.textdata depending on if it is numeric or not.
     output["data"] = (
-        torch.from_numpy(np.empty((len(fileContentRows) - headerRows, dataColumns)), device=device) * torch.nan
+        torch.from_numpy(
+            np.empty((len(fileContentRows) - headerRows, dataColumns)), device=device
+        )
+        * torch.nan
     )
     for i, line in enumerate(fileContentRows[headerRows:]):
         # Only use the row if it contains anything other than white-space characters.

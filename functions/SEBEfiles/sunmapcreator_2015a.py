@@ -26,7 +26,6 @@ def sunmapcreator_2015a(
     :return:
     """
 
-
     # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
     patch_option = 1  # 145 patches
     (
@@ -47,13 +46,19 @@ def sunmapcreator_2015a(
         )
 
     radmatI = torch.transpose(
-        torch.vstack((iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device)))
+        torch.vstack(
+            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+        )
     )
     radmatD = torch.transpose(
-        torch.vstack((iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device)))
+        torch.vstack(
+            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+        )
     )
     radmatR = torch.transpose(
-        torch.vstack((iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device)))
+        torch.vstack(
+            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+        )
     )
 
     iazimuth = skyvaultazi
@@ -114,18 +119,12 @@ def sunmapcreator_2015a(
             radmatD[:, 2] = radmatD[:, 2] + D * lv[:, 2]
             radmatR[:, 2] = radmatR[:, 2] + G * (1 / 145) * albedo
 
-
             if output["energymonth"] == 1:
-                radmatI[azipos2, met[i, 1] + 2] = (
-                    radmatI[azipos2, met[i, 1] + 2] + I
-                )
-                radmatD[:, met[i, 1] + 2] = (
-                    radmatD[:, met[i, 1] + 2] + D * lv[:, 2]
-                )
+                radmatI[azipos2, met[i, 1] + 2] = radmatI[azipos2, met[i, 1] + 2] + I
+                radmatD[:, met[i, 1] + 2] = radmatD[:, met[i, 1] + 2] + D * lv[:, 2]
                 radmatR[:, met[i, 1] + 2] = (
                     radmatR[:, met[i, 1] + 2] + G * (1 / 145) * albedo
                 )
-
 
     # Adjusting the numbers if multiple years is used
 

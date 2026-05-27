@@ -66,9 +66,7 @@ def define_patch_characteristics(
         Lside_sky += temp_sky * Lsky_side[idx, 2]
 
         # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
-        temp_vegsh = (vegshmat[:, :, idx] == 0) | (
-            vbshvegshmat[:, :, idx] == 0
-        )
+        temp_vegsh = (vegshmat[:, :, idx] == 0) | (vbshvegshmat[:, :, idx] == 0)
         # Longwave radiation from vegetation surface (considered vertical)
         vegetation_surface = (ewall * SBC * ((Ta + 273.15) ** 4)) / np.pi
 
@@ -157,14 +155,12 @@ def define_patch_characteristics(
             and (solar_altitude > 0)
         ):
             # Calculate which patches defined as buildings that are sunlit or shaded
-            sunlit_patches, shaded_patches = (
-                sunlit_shaded_patches.shaded_or_sunlit(
-                    solar_altitude,
-                    solar_azimuth,
-                    patch_altitude[idx],
-                    patch_azimuth[idx],
-                    asvf,
-                )
+            sunlit_patches, shaded_patches = sunlit_shaded_patches.shaded_or_sunlit(
+                solar_altitude,
+                solar_azimuth,
+                patch_altitude[idx],
+                patch_azimuth[idx],
+                asvf,
             )
 
             # Calculate longwave radiation from sunlit walls to vertical surface

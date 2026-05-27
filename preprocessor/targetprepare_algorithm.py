@@ -108,18 +108,14 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.UMEP_LC,
-                self.tr(
-                    "Use standard UMEP land cover grid (fractions below is used)"
-                ),
+                self.tr("Use standard UMEP land cover grid (fractions below is used)"),
                 defaultValue=True,
             )
         )
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.FRAC_IRR,
-                self.tr(
-                    "Fraction Irrigated grass taken from Grass land cover class"
-                ),
+                self.tr("Fraction Irrigated grass taken from Grass land cover class"),
                 QgsProcessingParameterNumber.Type.Double,
                 QVariant(0.20),
                 False,
@@ -155,17 +151,13 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        morphFile = self.parameterAsString(
-            parameters, self.INPUT_MORPH, context
-        )
+        morphFile = self.parameterAsString(parameters, self.INPUT_MORPH, context)
         lcFile = self.parameterAsString(parameters, self.INPUT_LC, context)
         umepLC = self.parameterAsBool(parameters, self.UMEP_LC, context)
         fracIrr = self.parameterAsDouble(parameters, self.FRAC_IRR, context)
         fracConc = self.parameterAsDouble(parameters, self.FRAC_CONC, context)
         siteName = self.parameterAsString(parameters, self.SITE_NAME, context)
-        outputDir = self.parameterAsString(
-            parameters, self.OUTPUT_DIR, context
-        )
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -197,9 +189,7 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         grid_crs = osr.SpatialReference()
         grid_crs.ImportFromWkt(vlayer.crs().toWkt())
         grid_unit = grid_crs.GetAttrValue("UNIT")
-        feedback.setProgressText(
-            "Length unit of vector layer: " + str(grid_unit)
-        )
+        feedback.setProgressText("Length unit of vector layer: " + str(grid_unit))
         possible_units_metre = [
             "metre",
             "Metre",
@@ -324,29 +314,14 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
             jsn2.write(jsonout)
 
         # creating folders and saving
-        if not os.path.exists(
-            outputDir + "/" + siteName + "/" + "input" + "/" + "LC"
-        ):
-            os.makedirs(
-                outputDir + "/" + siteName + "/" + "input" + "/" + "LC"
-            )
+        if not os.path.exists(outputDir + "/" + siteName + "/" + "input" + "/" + "LC"):
+            os.makedirs(outputDir + "/" + siteName + "/" + "input" + "/" + "LC")
 
-        if not os.path.exists(
-            outputDir + "/" + siteName + "/" + "input" + "/" + "MET"
-        ):
-            os.makedirs(
-                outputDir + "/" + siteName + "/" + "input" + "/" + "MET"
-            )
+        if not os.path.exists(outputDir + "/" + siteName + "/" + "input" + "/" + "MET"):
+            os.makedirs(outputDir + "/" + siteName + "/" + "input" + "/" + "MET")
 
         np.savetxt(
-            outputDir
-            + "/"
-            + siteName
-            + "/"
-            + "input"
-            + "/"
-            + "LC"
-            + "/lc_target.txt",
+            outputDir + "/" + siteName + "/" + "input" + "/" + "LC" + "/lc_target.txt",
             arrmatsave,
             fmt=numformat,
             header=header,

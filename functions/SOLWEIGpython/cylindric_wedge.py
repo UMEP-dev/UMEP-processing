@@ -39,9 +39,9 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
 
     A = torch.zeros((rows, cols), device=device)
     # A(length(svfalfa),length(svfalfa))=0;
-    A[xa < 0] = (
-        torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])
-    ) / (1 - torch.cos(phi[xa < 0]))
+    A[xa < 0] = (torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])) / (
+        1 - torch.cos(phi[xa < 0])
+    )
 
     ukil = torch.zeros((rows, cols), device=device)
     # ukil(length(svfalfa),length(svfalfa))=0
@@ -95,9 +95,9 @@ def cylindric_wedge_voxel(zen, svfalfa):
 
     A = torch.zeros((svfalfa.shape[0]), device=device)
     # A(length(svfalfa),length(svfalfa))=0;
-    A[xa < 0] = (
-        torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])
-    ) / (1 - torch.cos(phi[xa < 0]))
+    A[xa < 0] = (torch.sin(phi[xa < 0]) - phi[xa < 0] * torch.cos(phi[xa < 0])) / (
+        1 - torch.cos(phi[xa < 0])
+    )
 
     ukil = torch.zeros((svfalfa.shape[0]), device=device)
     # ukil(length(svfalfa),length(svfalfa))=0

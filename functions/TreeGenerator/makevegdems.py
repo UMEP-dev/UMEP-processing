@@ -215,9 +215,7 @@ def imcircle(n):
         width = np.append(np.fliplr(width), width, axis=1)
 
         for k in range(0, int(DIAMETER)):
-            semicircle[k, 0 : int(width[0, k])] = np.ones(
-                [1, int(width[0, k])]
-            )
+            semicircle[k, 0 : int(width[0, k])] = np.ones([1, int(width[0, k])])
 
         y = np.append(np.fliplr(semicircle), semicircle, axis=1)
 
@@ -248,19 +246,13 @@ def imcircle(n):
                 np.mean([width[0, index - 1], width[0, index + 1]])
             )
 
-        width1 = np.append(
-            np.fliplr(width), np.ones([1, 1]) * np.max(width), axis=1
-        )
+        width1 = np.append(np.fliplr(width), np.ones([1, 1]) * np.max(width), axis=1)
         width = np.append(width1, width, axis=1)
 
         for k in range(0, int(DIAMETER)):
-            semicircle[k, 0 : int(width[0, k])] = np.ones(
-                [1, int(width[0, k])]
-            )
+            semicircle[k, 0 : int(width[0, k])] = np.ones([1, int(width[0, k])])
 
-        y = np.append(
-            np.fliplr(semicircle), np.ones([int(DIAMETER), 1]), axis=1
-        )
+        y = np.append(np.fliplr(semicircle), np.ones([int(DIAMETER), 1]), axis=1)
         y = np.append(y, semicircle, axis=1)
 
     return y

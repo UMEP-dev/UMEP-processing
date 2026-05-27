@@ -251,8 +251,7 @@ class Parser(object):
                 # First check for implicit null values
                 if self.prior_token in ("=", "%", ","):
                     if self.token in (",", "/", "&", "$") and not (
-                        self.prior_token == ","
-                        and self.token in ("/", "&", "$")
+                        self.prior_token == "," and self.token in ("/", "&", "$")
                     ):
                         append_value(v_values, None, v_idx, n_vals)
 
@@ -262,8 +261,7 @@ class Parser(object):
                         self.update_tokens(write_token)
 
                     if self.token == "=" or (
-                        self.token in ("/", "&", "$")
-                        and self.prior_token == "*"
+                        self.token in ("/", "&", "$") and self.prior_token == "*"
                     ):
                         next_value = None
                     else:
@@ -286,9 +284,7 @@ class Parser(object):
                     ):
 
                         quote_char = self.prior_token[0]
-                        v_values[-1] = quote_char.join(
-                            [v_values[-1], next_value]
-                        )
+                        v_values[-1] = quote_char.join([v_values[-1], next_value])
                     else:
                         append_value(v_values, next_value, v_idx, n_vals)
 
@@ -352,23 +348,18 @@ class Parser(object):
             except ValueError:
                 if self.token == ")":
                     raise ValueError(
-                        "{0} stride index cannot be "
-                        "implicit.".format(v_name)
+                        "{0} stride index cannot be " "implicit.".format(v_name)
                     )
                 else:
                     raise
 
             if i_stride == 0:
-                raise ValueError(
-                    "{0} stride index cannot be zero." "".format(v_name)
-                )
+                raise ValueError("{0} stride index cannot be zero." "".format(v_name))
 
             self.update_tokens()
 
         if self.token not in (",", ")"):
-            raise ValueError(
-                "{0} index did not terminate " "correctly.".format(v_name)
-            )
+            raise ValueError("{0} index did not terminate " "correctly.".format(v_name))
 
         idx_triplet = (i_start, i_end, i_stride)
         v_indices.append((idx_triplet))

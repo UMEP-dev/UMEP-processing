@@ -26,8 +26,7 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
         if lc_gridvec.size > 0:
             # lc_frac_all[0, i] = round((lc_gridvec.size * 1.0) / (lc_grid.size * 1.0), 3)
             lc_frac_all[0, i] = round(
-                (lc_gridvec.size * 1.0)
-                / (lc_grid.size - (lc_grid == 0).sum()),
+                (lc_gridvec.size * 1.0) / (lc_grid.size - (lc_grid == 0).sum()),
                 3,
             )  # ignoring NoData (0) pixels
 
@@ -52,9 +51,7 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
             feedback.setProgress(int(angle / 3.6))
 
         # d = sc.rotate(lc_grid, angle, order=0, reshape=False, mode='nearest') #old
-        d = sc.rotate(
-            lc_grid, angle, order=0, reshape=True, mode="constant", cval=-99
-        )
+        d = sc.rotate(lc_grid, angle, order=0, reshape=True, mode="constant", cval=-99)
 
         n = d.shape[1]
         imid = np.floor((n / 2.0))  # the mid (NtoS) line of the grid

@@ -344,9 +344,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix=PREFIX_NAME):
     return zoneLengthTable
 
 
-def studyAreaProperties(
-    cursor, upwindTable, stackedBlockTable, vegetationTable
-):
+def studyAreaProperties(cursor, upwindTable, stackedBlockTable, vegetationTable):
     """Calculates roughness height (z0) and displacement length (d) of the study area
     for a wind coming from North (thus you first need to rotate your
                                   obstacles to make them facing north if you
@@ -394,16 +392,14 @@ def studyAreaProperties(
     print("Calculates study area properties")
 
     # Calculate the area of the study area
-    cursor.execute(
-        safe("""
+    cursor.execute(safe("""
            SELECT ST_AREA(ST_BUFFER(ST_EXTENT({0}), 15))
            FROM   (SELECT    {0}
                   FROM {1}
                   UNION ALL
                   SELECT    {0}
                   FROM {2}) AS STUDY_AREA_AREA_TAB
-           """).format(GEOM_FIELD, stackedBlockTable, vegetationTable)
-    )  # nosec B608
+           """).format(GEOM_FIELD, stackedBlockTable, vegetationTable))  # nosec B608
     area = cursor.fetchall()[0][0]
 
     # Calculates the obstacle (stacked blocks and vegetation)

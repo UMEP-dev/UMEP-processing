@@ -199,9 +199,7 @@ def Solweig_2021a_calc(
                     aniLum + diffsh[:, :, idx] * lv[0][idx][2]
                 )  # Total relative luminance from sky into each cell
 
-            dRad = (
-                aniLum * radD
-            )  # Total diffuse radiation from sky into each cell
+            dRad = aniLum * radD  # Total diffuse radiation from sky into each cell
         else:
             dRad = radD * svfbuveg
             lv = 0
@@ -224,15 +222,13 @@ def Solweig_2021a_calc(
             )
             shadow = sh - (1 - vegsh) * (1 - psi)
         else:
-            sh, wallsh, wallsun, facesh, facesun = (
-                shadowingfunction_wallheight_13(
-                    dsm,
-                    azimuth,
-                    altitude,
-                    scale,
-                    walls,
-                    dirwalls * np.pi / 180.0,
-                )
+            sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(
+                dsm,
+                azimuth,
+                altitude,
+                scale,
+                walls,
+                dirwalls * np.pi / 180.0,
             )
             shadow = sh
 
@@ -278,9 +274,7 @@ def Solweig_2021a_calc(
         Tg = Tg * CI_Tg  # new estimation
         Tgwall = Tgwall * CI_Tg
         if landcover == 1:
-            Tg[Tg < 0] = (
-                0  # temporary for removing low Tg during morning 20130205
-            )
+            Tg[Tg < 0] = 0  # temporary for removing low Tg during morning 20130205
 
         # # # # Ground View Factors # # # #
         (

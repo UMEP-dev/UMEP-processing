@@ -196,9 +196,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.LEAF_START,
-                self.tr(
-                    "First day of year with leaves on trees (if deciduous)"
-                ),
+                self.tr("First day of year with leaves on trees (if deciduous)"),
                 QgsProcessingParameterNumber.Type.Integer,
                 QVariant(97),
                 False,
@@ -210,9 +208,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.LEAF_END,
-                self.tr(
-                    "Last day of year with leaves on trees (if deciduous)"
-                ),
+                self.tr("Last day of year with leaves on trees (if deciduous)"),
                 QgsProcessingParameterNumber.Type.Integer,
                 QVariant(300),
                 False,
@@ -295,9 +291,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 self.INPUT_WALLSCHEME,
-                self.tr(
-                    "Voxel data for wall temperature parameterization (.npz)"
-                ),
+                self.tr("Voxel data for wall temperature parameterization (.npz)"),
                 extension="npz",
                 optional=True,
             )
@@ -448,8 +442,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         woifile.setFlags(
-            woifile.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            woifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(woifile)
         woi_field = QgsProcessingParameterField(
@@ -461,8 +454,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         woi_field.setFlags(
-            woi_field.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            woi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(woi_field)
 
@@ -476,8 +468,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         poifile.setFlags(
-            poifile.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            poifile.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(poifile)
         poi_field = QgsProcessingParameterField(
@@ -489,8 +480,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             optional=True,
         )
         poi_field.setFlags(
-            poi_field.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            poi_field.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(poi_field)
 
@@ -504,9 +494,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=120,
         )
-        age.setFlags(
-            age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        age.setFlags(age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(age)
         act = QgsProcessingParameterNumber(
             self.ACTIVITY,
@@ -517,9 +505,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=1000,
         )
-        act.setFlags(
-            act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        act.setFlags(act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(act)
         clo = QgsProcessingParameterNumber(
             self.CLO,
@@ -530,9 +516,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=10,
         )
-        clo.setFlags(
-            clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        clo.setFlags(clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(clo)
         wei = QgsProcessingParameterNumber(
             self.WEIGHT,
@@ -543,9 +527,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=500,
         )
-        wei.setFlags(
-            wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        wei.setFlags(wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(wei)
         hei = QgsProcessingParameterNumber(
             self.HEIGHT,
@@ -556,9 +538,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=250,
         )
-        hei.setFlags(
-            hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        hei.setFlags(hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
             self.SEX,
@@ -567,9 +547,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             optional=True,
             defaultValue=0,
         )
-        sex.setFlags(
-            sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        sex.setFlags(sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(sex)
         shei = QgsProcessingParameterNumber(
             self.SENSOR_HEIGHT,
@@ -580,17 +558,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             minValue=0,
             maxValue=250,
         )
-        shei.setFlags(
-            shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
-        )
+        shei.setFlags(shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(shei)
 
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_GPU,
-                self.tr(
-                    "Use GPU for calculations (if not ticked, CPU will be used)"
-                ),
+                self.tr("Use GPU for calculations (if not ticked, CPU will be used)"),
                 defaultValue=False,
                 optional=False,
             )
@@ -650,9 +624,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_DIR, "Output folder"
-            )
+            QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output folder")
         )
 
         self.plugin_dir = os.path.dirname(__file__)
@@ -662,50 +634,26 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         np.seterr(divide="ignore", invalid="ignore")
 
         # InputParameters
-        dsmlayer = self.parameterAsRasterLayer(
-            parameters, self.INPUT_DSM, context
-        )
-        transVeg = (
-            self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.0
-        )
-        firstdayleaf = self.parameterAsInt(
-            parameters, self.LEAF_START, context
-        )
+        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context) / 100.0
+        firstdayleaf = self.parameterAsInt(parameters, self.LEAF_START, context)
         lastdayleaf = self.parameterAsInt(parameters, self.LEAF_END, context)
-        conifer_bool = self.parameterAsBool(
-            parameters, self.CONIFER_TREES, context
-        )
-        vegdsm = self.parameterAsRasterLayer(
-            parameters, self.INPUT_CDSM, context
-        )
-        vegdsm2 = self.parameterAsRasterLayer(
-            parameters, self.INPUT_TDSM, context
-        )
-        lcgrid = self.parameterAsRasterLayer(
-            parameters, self.INPUT_LC, context
-        )
-        useLcBuild = self.parameterAsBool(
-            parameters, self.USE_LC_BUILD, context
-        )
+        conifer_bool = self.parameterAsBool(parameters, self.CONIFER_TREES, context)
+        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
+        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+        lcgrid = self.parameterAsRasterLayer(parameters, self.INPUT_LC, context)
+        useLcBuild = self.parameterAsBool(parameters, self.USE_LC_BUILD, context)
         dem = None
         inputSVF = self.parameterAsString(parameters, self.INPUT_SVF, context)
-        whlayer = self.parameterAsRasterLayer(
-            parameters, self.INPUT_HEIGHT, context
-        )
-        walayer = self.parameterAsRasterLayer(
-            parameters, self.INPUT_ASPECT, context
-        )
+        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context)
+        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
 
-        trunkr = self.parameterAsDouble(
-            parameters, self.INPUT_THEIGHT, context
-        )
+        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utc = self.parameterAsDouble(parameters, self.UTC, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         # usePOI = self.parameterAsBool(parameters, self.POI, context)
-        poilyr = self.parameterAsVectorLayer(
-            parameters, self.POI_FILE, context
-        )
+        poilyr = self.parameterAsVectorLayer(parameters, self.POI_FILE, context)
         poi_field = None
         mbody = None
         ht = None
@@ -716,22 +664,16 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         sensorheight = None
         saveBuild = self.parameterAsBool(parameters, self.SAVE_BUILD, context)
         demforbuild = 0
-        folderPathPerez = self.parameterAsString(
-            parameters, self.INPUT_ANISO, context
-        )
+        folderPathPerez = self.parameterAsString(parameters, self.INPUT_ANISO, context)
         folderWallScheme = self.parameterAsString(
             parameters, self.INPUT_WALLSCHEME, context
         )
-        wallNetCDF = self.parameterAsBool(
-            parameters, self.WALLTEMP_NETCDF, context
-        )
+        wallNetCDF = self.parameterAsBool(parameters, self.WALLTEMP_NETCDF, context)
         poisxy = None
         poiname = None
 
         # Wall of interest
-        woilyr = self.parameterAsVectorLayer(
-            parameters, self.WOI_FILE, context
-        )
+        woilyr = self.parameterAsVectorLayer(parameters, self.WOI_FILE, context)
         woi_field = None
         woisxy = None
         woiname = None
@@ -754,36 +696,23 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             height = 0.75
             Fcyl = 0.2
 
-        albedo_b = self.parameterAsDouble(
-            parameters, self.ALBEDO_WALLS, context
-        )
-        albedo_g = self.parameterAsDouble(
-            parameters, self.ALBEDO_GROUND, context
-        )
+        albedo_b = self.parameterAsDouble(parameters, self.ALBEDO_WALLS, context)
+        albedo_g = self.parameterAsDouble(parameters, self.ALBEDO_GROUND, context)
         ewall = self.parameterAsDouble(parameters, self.EMIS_WALLS, context)
         eground = self.parameterAsDouble(parameters, self.EMIS_GROUND, context)
         elvis = 0  # option removed 20200907 in processing UMEP. Should be removed completely
         # thermal_effusivity = self.parameterAsDouble(parameters, self.EFFUS_WALL, context)
         wall_type = str(
-            100
-            + int(self.parameterAsString(parameters, self.WALL_TYPE, context))
+            100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context))
         )
 
-        outputDir = self.parameterAsString(
-            parameters, self.OUTPUT_DIR, context
-        )
-        outputTmrt = self.parameterAsBool(
-            parameters, self.OUTPUT_TMRT, context
-        )
+        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outputTmrt = self.parameterAsBool(parameters, self.OUTPUT_TMRT, context)
         outputSh = self.parameterAsBool(parameters, self.OUTPUT_SH, context)
         outputKup = self.parameterAsBool(parameters, self.OUTPUT_KUP, context)
-        outputKdown = self.parameterAsBool(
-            parameters, self.OUTPUT_KDOWN, context
-        )
+        outputKdown = self.parameterAsBool(parameters, self.OUTPUT_KDOWN, context)
         outputLup = self.parameterAsBool(parameters, self.OUTPUT_LUP, context)
-        outputLdown = self.parameterAsBool(
-            parameters, self.OUTPUT_LDOWN, context
-        )
+        outputLdown = self.parameterAsBool(parameters, self.OUTPUT_LDOWN, context)
 
         gpu_bool = self.parameterAsBool(parameters, self.USE_GPU, context)
 
@@ -816,9 +745,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Load parameters and config settings for SOLWEIG
         with open(self.plugin_dir + "/parametersforsolweig.json", "r") as jsn:
             solweig_parameters = json.load(jsn)
-        configDict = read_solweig_config(
-            self.plugin_dir + "/configsolweig.ini"
-        )
+        configDict = read_solweig_config(self.plugin_dir + "/configsolweig.ini")
 
         # Add GUI Tmrt settings to SOLWEIG parameter file
         solweig_parameters["Tmrt_params"]["Value"]["absK"] = absK
@@ -832,9 +759,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "Cobble_stone_2014a"
         ] = albedo_g
         solweig_parameters["Albedo"]["Effective"]["Value"]["Walls"] = albedo_b
-        solweig_parameters["Emissivity"]["Value"][
-            "Cobble_stone_2014a"
-        ] = eground
+        solweig_parameters["Emissivity"]["Value"]["Cobble_stone_2014a"] = eground
         solweig_parameters["Emissivity"]["Value"]["Walls"] = ewall
 
         # Load dsm layer
@@ -879,15 +804,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             vegrows = vegdsm.height()
             vegcols = vegdsm.width()
 
-            solweig_parameters["Tree_settings"]["Value"][
-                "Transmissivity"
-            ] = transVeg
+            solweig_parameters["Tree_settings"]["Value"]["Transmissivity"] = transVeg
             solweig_parameters["Tree_settings"]["Value"][
                 "First_day_leaf"
             ] = firstdayleaf
-            solweig_parameters["Tree_settings"]["Value"][
-                "Last_day_leaf"
-            ] = lastdayleaf
+            solweig_parameters["Tree_settings"]["Value"]["Last_day_leaf"] = lastdayleaf
 
             if not (vegrows == rows) & (vegcols == cols):
                 raise QgsProcessingException(
@@ -955,9 +876,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # DEM #
         if not useLcBuild:
             demforbuild = 1
-            dem = self.parameterAsRasterLayer(
-                parameters, self.INPUT_DEM, context
-            )
+            dem = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
 
             if dem is None:
                 raise QgsProcessingException("Error: No valid DEM selected")
@@ -1049,9 +968,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         delim = " "
 
         try:
-            self.metdata = np.loadtxt(
-                inputMet, skiprows=headernum, delimiter=delim
-            )
+            self.metdata = np.loadtxt(inputMet, skiprows=headernum, delimiter=delim)
         except:
             raise QgsProcessingException(
                 "Error: Make sure format of meteorological file is correct. You can"
@@ -1096,23 +1013,20 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         if poilyr is not None:  # usePOI:
 
             poi_file = str(poilyr.dataProvider().dataSourceUri())
-            poi_field = self.parameterAsString(
-                parameters, self.POI_FIELD, context
-            )
+            poi_field = self.parameterAsString(parameters, self.POI_FIELD, context)
 
             # Other PET variables
-            solweig_parameters["PET_settings"]["Value"]["Age"] = (
-                self.parameterAsDouble(parameters, self.AGE, context)
+            solweig_parameters["PET_settings"]["Value"]["Age"] = self.parameterAsDouble(
+                parameters, self.AGE, context
             )
             solweig_parameters["PET_settings"]["Value"]["Weight"] = (
                 self.parameterAsDouble(parameters, self.WEIGHT, context)
             )
             solweig_parameters["PET_settings"]["Value"]["Height"] = (
-                self.parameterAsDouble(parameters, self.HEIGHT, context)
-                / 100.0
+                self.parameterAsDouble(parameters, self.HEIGHT, context) / 100.0
             )
-            solweig_parameters["PET_settings"]["Value"]["clo"] = (
-                self.parameterAsDouble(parameters, self.CLO, context)
+            solweig_parameters["PET_settings"]["Value"]["clo"] = self.parameterAsDouble(
+                parameters, self.CLO, context
             )
             solweig_parameters["PET_settings"]["Value"]["Activity"] = (
                 self.parameterAsDouble(parameters, self.WEIGHT, context)
@@ -1122,13 +1036,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             else:
                 solweig_parameters["PET_settings"]["Value"]["Sex"] = "Female"
 
-            solweig_parameters["Wind_Height"]["Value"]["magl"] = (
-                self.parameterAsDouble(parameters, self.SENSOR_HEIGHT, context)
+            solweig_parameters["Wind_Height"]["Value"]["magl"] = self.parameterAsDouble(
+                parameters, self.SENSOR_HEIGHT, context
             )
 
-            feedback.setProgressText(
-                "Point of interest (POI) vector data identified"
-            )
+            feedback.setProgressText("Point of interest (POI) vector data identified")
         else:
             poi_file = ""
             poi_field = ""
@@ -1148,10 +1060,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             if folderWallScheme:
                 unique_landcover = np.unique(lcgrid)
                 unique_landcover = unique_landcover[unique_landcover < 100]
-                if (
-                    np.max(unique_landcover) > 7
-                    or np.min(unique_landcover) < 1
-                ):
+                if np.max(unique_landcover) > 7 or np.min(unique_landcover) < 1:
                     feedback.pushWarning(
                         "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
                         "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
@@ -1170,16 +1079,12 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Import data for wall temperature parameterization
         if folderWallScheme:
             wallScheme = 1
-            feedback.setProgressText(
-                "Wall surface temperature scheme activated"
-            )
+            feedback.setProgressText("Wall surface temperature scheme activated")
 
             # Use wall of interest
             if woilyr is not None:
                 woi_file = str(woilyr.dataProvider().dataSourceUri())
-                woi_field = self.parameterAsString(
-                    parameters, self.WOI_FIELD, context
-                )
+                woi_field = self.parameterAsString(parameters, self.WOI_FIELD, context)
             else:
                 woi_file = ""
                 woi_field = ""
