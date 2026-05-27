@@ -96,22 +96,34 @@ def Kside_veg_v2022a(
     else:
         KeastI = torch.where(
             (azimuth > (360 - t)) | (azimuth <= (180 - t)),
-            radI * shadow * torch.cos(altitude * deg2rad) * torch.sin(aziE * deg2rad),
+            radI
+            * shadow
+            * torch.cos(altitude * deg2rad)
+            * torch.sin(aziE * deg2rad),
             torch.zeros((rows, cols), device=device),
         )
         KsouthI = torch.where(
             (azimuth > (90 - t)) & (azimuth <= (270 - t)),
-            radI * shadow * torch.cos(altitude * deg2rad) * torch.sin(aziS * deg2rad),
+            radI
+            * shadow
+            * torch.cos(altitude * deg2rad)
+            * torch.sin(aziS * deg2rad),
             torch.zeros((rows, cols), device=device),
         )
         KwestI = torch.where(
             (azimuth > (180 - t)) & (azimuth <= (360 - t)),
-            radI * shadow * torch.cos(altitude * deg2rad) * torch.sin(aziW * deg2rad),
+            radI
+            * shadow
+            * torch.cos(altitude * deg2rad)
+            * torch.sin(aziW * deg2rad),
             torch.zeros((rows, cols), device=device),
         )
         KnorthI = torch.where(
             (azimuth <= (90 - t)) | (azimuth > (270 - t)),
-            radI * shadow * torch.cos(altitude * deg2rad) * torch.sin(aziN * deg2rad),
+            radI
+            * shadow
+            * torch.cos(altitude * deg2rad)
+            * torch.sin(aziN * deg2rad),
             torch.zeros((rows, cols), device=device),
         )
         KsideI = shadow * 0
@@ -149,15 +161,21 @@ def Kside_veg_v2022a(
                 steradian[i] = (
                     (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
                 ) * (
-                    torch.sin((patch_altitude[i] + patch_altitude[0]) * deg2rad)
-                    - torch.sin((patch_altitude[i] - patch_altitude[0]) * deg2rad)
+                    torch.sin(
+                        (patch_altitude[i] + patch_altitude[0]) * deg2rad
+                    )
+                    - torch.sin(
+                        (patch_altitude[i] - patch_altitude[0]) * deg2rad
+                    )
                 )
             else:
                 steradian[i] = (
                     (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
                 ) * (
                     torch.sin((patch_altitude[i]) * deg2rad)
-                    - torch.sin((patch_altitude[i - 1] + patch_altitude[0]) * deg2rad)
+                    - torch.sin(
+                        (patch_altitude[i - 1] + patch_altitude[0]) * deg2rad
+                    )
                 )
 
             radTot += (
@@ -170,17 +188,22 @@ def Kside_veg_v2022a(
 
         if cyl == 1:
             for idx in range(patch_azimuth.shape[0]):
-                anglIncC = torch.cos(patch_altitude[idx] * deg2rad) * torch.cos(
-                    torch.tensor(0.0)
+                anglIncC = torch.cos(
+                    patch_altitude[idx] * deg2rad
+                ) * torch.cos(torch.tensor(0.0))
+                KsideD += (
+                    diffsh[:, :, idx] * lumChi[idx] * anglIncC * steradian[idx]
                 )
-                KsideD += diffsh[:, :, idx] * lumChi[idx] * anglIncC * steradian[idx]
 
                 sunlit_surface = (
-                    albedo * (radI * torch.cos(altitude * deg2rad)) + (radD * 0.5)
+                    albedo * (radI * torch.cos(altitude * deg2rad))
+                    + (radD * 0.5)
                 ) / torch.pi
                 shaded_surface = (albedo * radD * 0.5) / torch.pi
 
-                temp_vegsh = (vegshmat[:, :, idx] == 0) | (vbshvegshmat[:, :, idx] == 0)
+                temp_vegsh = (vegshmat[:, :, idx] == 0) | (
+                    vbshvegshmat[:, :, idx] == 0
+                )
                 Kref_veg += (
                     shaded_surface
                     * temp_vegsh
@@ -223,43 +246,58 @@ def Kside_veg_v2022a(
         else:
             for idx in range(patch_azimuth.shape[0]):
                 if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] <= 180):
-                    anglIncE = torch.cos(patch_altitude[idx] * deg2rad) * torch.cos(
-                        (90 - patch_azimuth[idx] + t) * deg2rad
-                    )
+                    anglIncE = torch.cos(
+                        patch_altitude[idx] * deg2rad
+                    ) * torch.cos((90 - patch_azimuth[idx] + t) * deg2rad)
                     diffRadE += (
-                        diffsh[:, :, idx] * lumChi[idx] * anglIncE * steradian[idx]
+                        diffsh[:, :, idx]
+                        * lumChi[idx]
+                        * anglIncE
+                        * steradian[idx]
                     )
 
                 if (patch_azimuth[idx] > 90) and (patch_azimuth[idx] <= 270):
-                    anglIncS = torch.cos(patch_altitude[idx] * deg2rad) * torch.cos(
-                        (180 - patch_azimuth[idx] + t) * deg2rad
-                    )
+                    anglIncS = torch.cos(
+                        patch_altitude[idx] * deg2rad
+                    ) * torch.cos((180 - patch_azimuth[idx] + t) * deg2rad)
                     diffRadS += (
-                        diffsh[:, :, idx] * lumChi[idx] * anglIncS * steradian[idx]
+                        diffsh[:, :, idx]
+                        * lumChi[idx]
+                        * anglIncS
+                        * steradian[idx]
                     )
 
                 if (patch_azimuth[idx] > 180) and (patch_azimuth[idx] <= 360):
-                    anglIncW = torch.cos(patch_altitude[idx] * deg2rad) * torch.cos(
-                        (270 - patch_azimuth[idx] + t) * deg2rad
-                    )
+                    anglIncW = torch.cos(
+                        patch_altitude[idx] * deg2rad
+                    ) * torch.cos((270 - patch_azimuth[idx] + t) * deg2rad)
                     diffRadW += (
-                        diffsh[:, :, idx] * lumChi[idx] * anglIncW * steradian[idx]
+                        diffsh[:, :, idx]
+                        * lumChi[idx]
+                        * anglIncW
+                        * steradian[idx]
                     )
 
                 if (patch_azimuth[idx] > 270) or (patch_azimuth[idx] <= 90):
-                    anglIncN = torch.cos(patch_altitude[idx] * deg2rad) * torch.cos(
-                        (0 - patch_azimuth[idx] + t) * deg2rad
-                    )
+                    anglIncN = torch.cos(
+                        patch_altitude[idx] * deg2rad
+                    ) * torch.cos((0 - patch_azimuth[idx] + t) * deg2rad)
                     diffRadN += (
-                        diffsh[:, :, idx] * lumChi[idx] * anglIncN * steradian[idx]
+                        diffsh[:, :, idx]
+                        * lumChi[idx]
+                        * anglIncN
+                        * steradian[idx]
                     )
 
                 sunlit_surface = (
-                    albedo * (radI * torch.cos(altitude * deg2rad)) + (radD * 0.5)
+                    albedo * (radI * torch.cos(altitude * deg2rad))
+                    + (radD * 0.5)
                 ) / torch.pi
                 shaded_surface = (albedo * radD * 0.5) / torch.pi
 
-                temp_vegsh = (vegshmat[:, :, idx] == 0) | (vbshvegshmat[:, :, idx] == 0)
+                temp_vegsh = (vegshmat[:, :, idx] == 0) | (
+                    vbshvegshmat[:, :, idx] == 0
+                )
                 Kref_veg += (
                     shaded_surface
                     * temp_vegsh
@@ -327,14 +365,18 @@ def Kside_veg_v2022a(
                         * torch.cos(patch_altitude[idx] * deg2rad)
                     )
 
-                    if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
+                    if (patch_azimuth[idx] > 360) or (
+                        patch_azimuth[idx] < 180
+                    ):
                         Kref_sun_e += (
                             sunlit_surface
                             * sunlit_patches
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((90 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (90 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
                         Kref_sh_e += (
                             shaded_surface
@@ -342,16 +384,22 @@ def Kside_veg_v2022a(
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((90 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (90 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
-                    if (patch_azimuth[idx] > 90) and (patch_azimuth[idx] < 270):
+                    if (patch_azimuth[idx] > 90) and (
+                        patch_azimuth[idx] < 270
+                    ):
                         Kref_sun_s += (
                             sunlit_surface
                             * sunlit_patches
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((180 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (180 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
                         Kref_sh_s += (
                             shaded_surface
@@ -359,16 +407,22 @@ def Kside_veg_v2022a(
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((180 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (180 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
-                    if (patch_azimuth[idx] > 180) and (patch_azimuth[idx] < 360):
+                    if (patch_azimuth[idx] > 180) and (
+                        patch_azimuth[idx] < 360
+                    ):
                         Kref_sun_w += (
                             sunlit_surface
                             * sunlit_patches
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((270 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (270 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
                         Kref_sh_w += (
                             shaded_surface
@@ -376,7 +430,9 @@ def Kside_veg_v2022a(
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((270 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (270 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
                     if (patch_azimuth[idx] > 270) or (patch_azimuth[idx] < 90):
                         Kref_sun_n += (
@@ -403,29 +459,41 @@ def Kside_veg_v2022a(
                         * torch.cos(patch_altitude[idx] * deg2rad)
                     )
 
-                    if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
+                    if (patch_azimuth[idx] > 360) or (
+                        patch_azimuth[idx] < 180
+                    ):
                         Kref_sh_e += (
                             shaded_surface
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((90 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (90 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
-                    if (patch_azimuth[idx] > 90) and (patch_azimuth[idx] < 270):
+                    if (patch_azimuth[idx] > 90) and (
+                        patch_azimuth[idx] < 270
+                    ):
                         Kref_sh_s += (
                             shaded_surface
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((180 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (180 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
-                    if (patch_azimuth[idx] > 180) and (patch_azimuth[idx] < 360):
+                    if (patch_azimuth[idx] > 180) and (
+                        patch_azimuth[idx] < 360
+                    ):
                         Kref_sh_w += (
                             shaded_surface
                             * steradian[idx]
                             * torch.cos(patch_altitude[idx] * deg2rad)
                             * temp_sh
-                            * torch.cos((270 - patch_azimuth[idx] + t) * deg2rad)
+                            * torch.cos(
+                                (270 - patch_azimuth[idx] + t) * deg2rad
+                            )
                         )
                     if (patch_azimuth[idx] > 270) or (patch_azimuth[idx] < 90):
                         Kref_sh_n += (
@@ -436,13 +504,37 @@ def Kside_veg_v2022a(
                             * torch.cos((0 - patch_azimuth[idx] + t) * deg2rad)
                         )
 
-            Keast = KeastI + diffRadE + Kref_sun_e + Kref_sh_e + Kref_veg_e + KupE * 0.5
-            Kwest = KwestI + diffRadW + Kref_sun_w + Kref_sh_w + Kref_veg_w + KupW * 0.5
+            Keast = (
+                KeastI
+                + diffRadE
+                + Kref_sun_e
+                + Kref_sh_e
+                + Kref_veg_e
+                + KupE * 0.5
+            )
+            Kwest = (
+                KwestI
+                + diffRadW
+                + Kref_sun_w
+                + Kref_sh_w
+                + Kref_veg_w
+                + KupW * 0.5
+            )
             Knorth = (
-                KnorthI + diffRadN + Kref_sun_n + Kref_sh_n + Kref_veg_n + KupN * 0.5
+                KnorthI
+                + diffRadN
+                + Kref_sun_n
+                + Kref_sh_n
+                + Kref_veg_n
+                + KupN * 0.5
             )
             Ksouth = (
-                KsouthI + diffRadS + Kref_sun_s + Kref_sh_s + Kref_veg_s + KupS * 0.5
+                KsouthI
+                + diffRadS
+                + Kref_sun_s
+                + Kref_sh_s
+                + Kref_veg_s
+                + KupS * 0.5
             )
 
     else:

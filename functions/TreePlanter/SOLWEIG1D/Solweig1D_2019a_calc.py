@@ -133,7 +133,9 @@ def Solweig1D_2019a_calc(
                     aniLum + diffsh[idx] * lv[0][idx][2]
                 )  # Total relative luminance from sky into each cell
 
-            dRad = aniLum * radD  # Total diffuse radiation from sky into each cell
+            dRad = (
+                aniLum * radD
+            )  # Total diffuse radiation from sky into each cell
 
         else:
             dRad = radD * svf

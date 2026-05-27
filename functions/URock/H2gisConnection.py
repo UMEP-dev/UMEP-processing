@@ -74,13 +74,18 @@ def downloadH2gis(dbDirectory):
     # Get the zip file name and create the local file directory
     zipFileName = H2GIS_URL.split("/")[-1]
     localH2ZipDir = (dbDirectory + os.sep + zipFileName).encode("utf-8")
-    localH2JarDir = (dbDirectory + os.sep + H2GIS_UNZIPPED_NAME).encode("utf-8")
+    localH2JarDir = (dbDirectory + os.sep + H2GIS_UNZIPPED_NAME).encode(
+        "utf-8"
+    )
 
     # Test whether the .jar already downloaded
     if os.path.exists(localH2ZipDir) or os.path.exists(localH2JarDir):
         print("H2GIS version %s already downloaded" % (H2GIS_VERSION))
     else:
-        print("Downloading H2GIS version %s at %s..." % (H2GIS_URL, H2GIS_VERSION))
+        print(
+            "Downloading H2GIS version %s at %s..."
+            % (H2GIS_URL, H2GIS_VERSION)
+        )
         # Download the archive file and save it into the 'dbDirectory'
         http = urllib3.PoolManager()
         r = http.request("GET", url=H2GIS_URL, preload_content=False)
@@ -377,7 +382,9 @@ def getJavaHome(os_type):
         )
         output, err = proc.communicate()
         # Identify the string corresponding to the java_home in the resulting line
-        javaPath = os.path.abspath(str(output).split("java.home = ")[1].split("\\n")[0])
+        javaPath = os.path.abspath(
+            str(output).split("java.home = ")[1].split("\\n")[0]
+        )
 
     else:
         import winreg

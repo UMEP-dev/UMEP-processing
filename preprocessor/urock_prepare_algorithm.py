@@ -136,7 +136,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT_VEG_POINTS,
-                self.tr("Vegetation point data (trunk location and max height)"),
+                self.tr(
+                    "Vegetation point data (trunk location and max height)"
+                ),
                 [QgsProcessing.SourceType.TypeVectorPoint],
                 optional=True,
             )
@@ -203,7 +205,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_VEG_HEIGHT_FIELD,
-                self.tr("Attribute name for vegetation height in output table"),
+                self.tr(
+                    "Attribute name for vegetation height in output table"
+                ),
                 defaultValue="VEG_HEIGHT",
                 optional=True,
             )
@@ -244,7 +248,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         build_dem = self.parameterAsRasterLayer(
             parameters, self.INPUT_BUILD_DEM, context
         )
-        veg_dsm = self.parameterAsRasterLayer(parameters, self.INPUT_VEG_CDSM, context)
+        veg_dsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_VEG_CDSM, context
+        )
 
         # Get output file paths
         outputBuildFilepath = self.parameterAsOutputLayer(
@@ -322,9 +328,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                     .split(os.sep)[-1]
                     .split(".")[0]
                 )
-                build_dsm_fieldname = re.sub("[-0123456789]", "", build_dsm_filename)[
-                    0:11
-                ]
+                build_dsm_fieldname = re.sub(
+                    "[-0123456789]", "", build_dsm_filename
+                )[0:11]
 
             # Create DSM above ground if a DEM is provided
             if build_dem:
@@ -542,16 +548,12 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                 radiusVegField
                             )
                         )
-                        heightExpression = (
-                            "case when {0} is null then 0 else {0}/{1} end".format(
-                                radiusVegField, vegetationAspect
-                            )
+                        heightExpression = "case when {0} is null then 0 else {0}/{1} end".format(
+                            radiusVegField, vegetationAspect
                         )
                     elif not radiusVegField and heightVegField:
-                        distanceExpression = (
-                            "case when {0} is null then 0 else {0}*{1} end".format(
-                                radiusVegField, vegetationAspect
-                            )
+                        distanceExpression = "case when {0} is null then 0 else {0}*{1} end".format(
+                            radiusVegField, vegetationAspect
                         )
                         heightExpression = (
                             "case when {0} is null then 0 else {0} end".format(
@@ -582,7 +584,9 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                         "native:buffer",
                         {
                             "INPUT": inputVeglayer,
-                            "DISTANCE": QgsProperty.fromExpression(distanceExpression),
+                            "DISTANCE": QgsProperty.fromExpression(
+                                distanceExpression
+                            ),
                             "SEGMENTS": 5,
                             "END_CAP_STYLE": 0,
                             "JOIN_STYLE": 0,

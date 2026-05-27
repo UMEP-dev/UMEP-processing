@@ -200,7 +200,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output folder")
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder"
+            )
         )
         self.addParameter(
             QgsProcessingParameterRasterDestination(
@@ -213,14 +215,28 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DSM, context
+        )
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context)
-        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
+        vegdsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_CDSM, context
+        )
+        vegdsm2 = self.parameterAsRasterLayer(
+            parameters, self.INPUT_TDSM, context
+        )
+        whlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_HEIGHT, context
+        )
+        walayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_ASPECT, context
+        )
+        trunkr = self.parameterAsDouble(
+            parameters, self.INPUT_THEIGHT, context
+        )
         onlyglobal = self.parameterAsBool(parameters, self.ONLYGLOBAL, context)
         utcpos = self.parameterAsString(parameters, self.UTC, context)
         albedo = self.parameterAsDouble(parameters, self.ALBEDO, context)
@@ -228,8 +244,12 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
         use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
-        irrFile = self.parameterAsFileOutput(parameters, self.IRR_FILE, context)
-        outputRoof = self.parameterAsOutputLayer(parameters, self.OUTPUT_ROOF, context)
+        irrFile = self.parameterAsFileOutput(
+            parameters, self.IRR_FILE, context
+        )
+        outputRoof = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_ROOF, context
+        )
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -281,7 +301,11 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         height = self.gdal_dsm.RasterYSize
         geotransform = self.gdal_dsm.GetGeoTransform()
         minx = geotransform[0]
-        miny = geotransform[3] + width * geotransform[4] + height * geotransform[5]
+        miny = (
+            geotransform[3]
+            + width * geotransform[4]
+            + height * geotransform[5]
+        )
         lonlat = transform.TransformPoint(minx, miny)
         gdalver = float(gdal.__version__[0])
         if gdalver == 3.0:
@@ -367,7 +391,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 "Error in Wall height raster: All rasters must be of same extent and resolution"
             )
 
-        wallmaxheight = self.gdal_wh.GetRasterBand(1).GetStatistics(True, True)[1]
+        wallmaxheight = self.gdal_wh.GetRasterBand(1).GetStatistics(
+            True, True
+        )[1]
 
         # wall aspectlayer
         # if walayer is None:
@@ -391,7 +417,8 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
 
         try:
             self.metdata = torch.from_numpy(
-                np.loadtxt(inputMet, skiprows=headernum, delimiter=delim), device=device
+                np.loadtxt(inputMet, skiprows=headernum, delimiter=delim),
+                device=device,
             )
         except:
             QgsProcessingException(
@@ -422,7 +449,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if alt < 0:
             alt = 3
 
-        feedback.setProgressText("Calculating sun positions for each time step")
+        feedback.setProgressText(
+            "Calculating sun positions for each time step"
+        )
         location = {"longitude": lon, "latitude": lat, "altitude": alt}
         YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax = (
             Solweig_2015a_metdata_noload(self.metdata, location, utc)
@@ -451,7 +480,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             metout[:, 3] = radmatD[:, 2]
             header = "%altitude azimuth radI radD"
             numformat = "%6.2f %6.2f %6.2f %6.2f"
-            np.savetxt(irrFile, metout, fmt=numformat, header=header, comments="")
+            np.savetxt(
+                irrFile, metout, fmt=numformat, header=header, comments=""
+            )
 
         building_slope, building_aspect = get_ders(self.dsm, self.scale)
 
@@ -504,7 +535,9 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         Energyyearwall = seberesult["Energyyearwall"]
         vegdata = seberesult["vegdata"]
 
-        feedback.setProgressText("SEBE: Model calculation finished. Saving to disk")
+        feedback.setProgressText(
+            "SEBE: Model calculation finished. Saving to disk"
+        )
 
         if outputRoof:
             saveraster(self.gdal_dsm, outputRoof, Energyyearroof)

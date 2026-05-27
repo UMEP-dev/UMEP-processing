@@ -204,7 +204,9 @@ class NCWMS_Connector(object):
                 end_date_candidate = end_date + td(seconds=3600 * 24 - 1)
                 final_date = True
             else:
-                end_date_candidate = start_dates[s + 1] - td(seconds=self.time_res)
+                end_date_candidate = start_dates[s + 1] - td(
+                    seconds=self.time_res
+                )
                 final_date = False
 
             if end_date_candidate > self.end_date:
@@ -242,7 +244,9 @@ class NCWMS_Connector(object):
         # Convert each file to netcdf4_classic so it can be used with MFDataset
         for file_date in list(self.results.keys()):
             tmp = tempfile.mkstemp(suffix=".nc")
-            new_data = nc4.Dataset(tmp, "w", clobber=True, format="NETCDF3_CLASSIC")
+            new_data = nc4.Dataset(
+                tmp, "w", clobber=True, format="NETCDF3_CLASSIC"
+            )
             extant = nc4.Dataset(self.results[file_date])
 
             # from https://gist.github.com/guziy/8543562
@@ -258,9 +262,13 @@ class NCWMS_Connector(object):
                 else:
                     dtype = varin.datatype
 
-                outVar = new_data.createVariable(v_name, dtype, varin.dimensions)
+                outVar = new_data.createVariable(
+                    v_name, dtype, varin.dimensions
+                )
                 # Copy variable attributes
-                outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+                outVar.setncatts(
+                    {k: varin.getncattr(k) for k in varin.ncattrs()}
+                )
                 outVar[:] = varin[:]
 
             new_data.close()
@@ -296,13 +304,17 @@ class NCWMS_Connector(object):
         :return:
         """
 
-        combined_data = nc4.MFDataset(list(self.results.values()), aggdim="time")
+        combined_data = nc4.MFDataset(
+            list(self.results.values()), aggdim="time"
+        )
         # Create new netCDF file that'll contain averaged/combined data and delete the individual files
         # from https://gist.github.com/guziy/8543562
 
         # Go round the variables and average them
         tmp = tempfile.mkstemp(suffix=".nc")
-        new_data = nc4.Dataset(tmp, "w", clobber=True, format="NETCDF3_CLASSIC")
+        new_data = nc4.Dataset(
+            tmp, "w", clobber=True, format="NETCDF3_CLASSIC"
+        )
         times = combined_data.variables["time"]
         time_bins = nc4.num2date(times[:], units=times.units)
 
@@ -337,7 +349,9 @@ class NCWMS_Connector(object):
 
         # Copy variables from first file
         for v_name, varin in combined_data.variables.items():
-            outVar = new_data.createVariable(v_name, varin.dtype, varin.dimensions)
+            outVar = new_data.createVariable(
+                v_name, varin.dtype, varin.dimensions
+            )
             try:
                 if v_name == "time":
                     outVar.units = varin.units.replace(
@@ -348,7 +362,9 @@ class NCWMS_Connector(object):
             except:
                 pass
             try:
-                outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+                outVar.setncatts(
+                    {k: varin.getncattr(k) for k in varin.ncattrs()}
+                )
             except:
                 pass
 
@@ -357,7 +373,9 @@ class NCWMS_Connector(object):
             if v_name in self.vars:
                 # TODO: Make this efficient
                 for i in range(0, combined_data.variables[v_name][:].shape[1]):
-                    for j in range(0, combined_data.variables[v_name][:].shape[2]):
+                    for j in range(
+                        0, combined_data.variables[v_name][:].shape[2]
+                    ):
                         p = pd.Series(
                             index=time_bins,
                             data=combined_data.variables[v_name][:, i, j],
@@ -422,7 +440,8 @@ class NCWMS_Connector(object):
         except Exception as e:
             os.remove(dataOut)
             raise Exception(
-                "Problem creating temporary file to store raster data: " + str(e)
+                "Problem creating temporary file to store raster data: "
+                + str(e)
             )
         # TODO: Work out if the response is an XML error
 

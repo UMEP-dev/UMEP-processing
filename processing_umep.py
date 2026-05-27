@@ -34,7 +34,7 @@ import os
 import sys
 import inspect
 
-from qgis.core import QgsProcessingAlgorithm, QgsApplication
+from qgis.core import QgsApplication
 from .processing_umep_provider import ProcessingUMEPProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]

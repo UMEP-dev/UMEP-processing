@@ -2,7 +2,9 @@ import numpy as np
 from . import sunlit_shaded_patches
 
 
-def shortwave_from_sky(sky, angle_of_incidence, lumChi, steradian, patch_azimuth, cyl):
+def shortwave_from_sky(
+    sky, angle_of_incidence, lumChi, steradian, patch_azimuth, cyl
+):
     """Calculates the amount of diffuse shortwave radiation from the sky for a patch with:
     angle of incidence = angle_of_incidence
     luminance = lumChi
@@ -70,10 +72,14 @@ def longwave_from_veg(
     vegetation_surface = (ewall * SBC * ((Ta + 273.15) ** 4)) / np.pi
 
     # Longwave radiation reaching a vertical surface
-    Lside_veg = vegetation_surface * steradian * angle_of_incidence * vegetation
+    Lside_veg = (
+        vegetation_surface * steradian * angle_of_incidence * vegetation
+    )
 
     # Longwave radiation reaching a horizontal surface
-    Ldown_veg = vegetation_surface * steradian * angle_of_incidence_h * vegetation
+    Ldown_veg = (
+        vegetation_surface * steradian * angle_of_incidence_h * vegetation
+    )
 
     #
     Least = np.zeros((vegetation.shape[0], vegetation.shape[1]))
@@ -159,11 +165,19 @@ def longwave_from_buildings(
 
         # Calculate longwave radiation from sunlit walls to vertical surface
         Lside_sun = (
-            sunlit_surface * sunlit_patches * steradian * angle_of_incidence * building
+            sunlit_surface
+            * sunlit_patches
+            * steradian
+            * angle_of_incidence
+            * building
         )
         # Calculate longwave radiation from shaded walls to vertical surface
         Lside_sh = (
-            shaded_surface * shaded_patches * steradian * angle_of_incidence * building
+            shaded_surface
+            * shaded_patches
+            * steradian
+            * angle_of_incidence
+            * building
         )
 
         # Calculate longwave radiation from sunlit walls to horizontal surface
@@ -393,19 +407,33 @@ def reflected_longwave(
 
     # Reflected longwave radiation reaching vertical surfaces
     Lside_ref = (
-        reflected_radiation * steradian * angle_of_incidence * reflecting_surface
+        reflected_radiation
+        * steradian
+        * angle_of_incidence
+        * reflecting_surface
     )
 
     # Reflected longwave radiation reaching horizontal surfaces
     Ldown_ref = (
-        reflected_radiation * steradian * angle_of_incidence_h * reflecting_surface
+        reflected_radiation
+        * steradian
+        * angle_of_incidence_h
+        * reflecting_surface
     )
 
     #
-    Least = np.zeros((reflecting_surface.shape[0], reflecting_surface.shape[1]))
-    Lsouth = np.zeros((reflecting_surface.shape[0], reflecting_surface.shape[1]))
-    Lwest = np.zeros((reflecting_surface.shape[0], reflecting_surface.shape[1]))
-    Lnorth = np.zeros((reflecting_surface.shape[0], reflecting_surface.shape[1]))
+    Least = np.zeros(
+        (reflecting_surface.shape[0], reflecting_surface.shape[1])
+    )
+    Lsouth = np.zeros(
+        (reflecting_surface.shape[0], reflecting_surface.shape[1])
+    )
+    Lwest = np.zeros(
+        (reflecting_surface.shape[0], reflecting_surface.shape[1])
+    )
+    Lnorth = np.zeros(
+        (reflecting_surface.shape[0], reflecting_surface.shape[1])
+    )
 
     # Portion into cardinal directions to be used for standing box or POI output
     if (patch_azimuth > 360) or (patch_azimuth < 180):
@@ -461,13 +489,17 @@ def patch_steradians(L_patches):
     for i in range(patch_altitude.shape[0]):
         # If there are more than one patch in a band
         if skyalt_c[skyalt == patch_altitude[i]] > 1:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i] + patch_altitude[0]) * deg2rad)
                 - np.sin((patch_altitude[i] - patch_altitude[0]) * deg2rad)
             )
         # If there is only one patch in band, i.e. 90 degrees
         else:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i]) * deg2rad)
                 - np.sin((patch_altitude[i - 1] + patch_altitude[0]) * deg2rad)
             )

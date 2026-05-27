@@ -56,7 +56,9 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
 
     # Output base names
     outputZoneTableNames = {
-        DISPLACEMENT_NAME: DataUtil.prefix("DISPLACEMENT_ZONES", prefix=prefix),
+        DISPLACEMENT_NAME: DataUtil.prefix(
+            "DISPLACEMENT_ZONES", prefix=prefix
+        ),
         DISPLACEMENT_VORTEX_NAME: DataUtil.prefix(
             "DISPLACEMENT_VORTEX_ZONES", prefix=prefix
         ),
@@ -65,13 +67,17 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
     # Create temporary table names (for tables that will be removed at the end of the process)
     densifiedLinePoints = DataUtil.postfix("DENSIFIED_LINE_POINTS")
     ZonePoints = {
-        DISPLACEMENT_NAME: (DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POINTS")),
+        DISPLACEMENT_NAME: (
+            DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POINTS")
+        ),
         DISPLACEMENT_VORTEX_NAME: (
             DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POINTS")
         ),
     }
     ZonePolygons = {
-        DISPLACEMENT_NAME: (DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POLYGONS")),
+        DISPLACEMENT_NAME: (
+            DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POLYGONS")
+        ),
         DISPLACEMENT_VORTEX_NAME: (
             DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POLYGONS")
         ),
@@ -160,7 +166,8 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
     }
 
     # Create the zone from the half ellipse and the densified line and then join missing columns
-    cursor.execute(safe(";").join([f"""
+    cursor.execute(
+        safe(";").join([f"""
         {DataUtil.createIndex(tableName=ZonePoints[z], 
                               fieldName=UPWIND_FACADE_FIELD,
                               isSpatial=False)}
@@ -187,7 +194,8 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
             FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
             ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
             WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
-        """ for z in variablesNames.index]))  # nosec B608  # nosec B608  # nosec B608
+        """ for z in variablesNames.index])
+    )  # nosec B608  # nosec B608  # nosec B608
 
     if not DEBUG:
         # Drop intermediate tables
@@ -805,7 +813,9 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
 
     # Name of the output tables
     roofPerpZonesTable = DataUtil.prefix(outputBaseNameroofPerp, prefix=prefix)
-    RoofCornerZonesTable = DataUtil.prefix(outputBaseNameroofCorner, prefix=prefix)
+    RoofCornerZonesTable = DataUtil.prefix(
+        outputBaseNameroofCorner, prefix=prefix
+    )
 
     # Create temporary table names (for tables that will be removed at the end of the IProcess)
     temporaryRooftopPerp = DataUtil.postfix("temporary_rooftop_perp")
@@ -909,7 +919,9 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
 
     # Queries to limit the rooftop zones to the rooftop of the stacked block...
     extraFieldToKeep = {
-        "perp": "b.{0}, b.{1},".format(ROOFTOP_PERP_LENGTH, ROOFTOP_PERP_HEIGHT),
+        "perp": "b.{0}, b.{1},".format(
+            ROOFTOP_PERP_LENGTH, ROOFTOP_PERP_HEIGHT
+        ),
         "corner": """a.{0}, a.{1}, a.{2}, b.{3}, 
                                     a.GEOM_CORNER_POINT,""".format(
             ROOFTOP_CORNER_LENGTH,
@@ -979,7 +991,9 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
     return roofPerpZonesTable, RoofCornerZonesTable
 
 
-def vegetationZones(cursor, vegetationTable, wakeZonesTable, prefix=PREFIX_NAME):
+def vegetationZones(
+    cursor, vegetationTable, wakeZonesTable, prefix=PREFIX_NAME
+):
     """Identify vegetation zones which are in "built up" areas and those
     being in "open areas". Vegetation is considered in a built up area
     when it intersects with build wake zone.
@@ -1017,8 +1031,12 @@ def vegetationZones(cursor, vegetationTable, wakeZonesTable, prefix=PREFIX_NAME)
     outputBaseNameBuilt = "BUILTUP_VEGETATION_ZONES"
 
     # Name of the output tables
-    vegetationOpenZoneTable = DataUtil.prefix(outputBaseNameOpen, prefix=prefix)
-    vegetationBuiltZoneTable = DataUtil.prefix(outputBaseNameBuilt, prefix=prefix)
+    vegetationOpenZoneTable = DataUtil.prefix(
+        outputBaseNameOpen, prefix=prefix
+    )
+    vegetationBuiltZoneTable = DataUtil.prefix(
+        outputBaseNameBuilt, prefix=prefix
+    )
 
     # Create temporary table names (for tables that will be removed at the end of the IProcess)
     temporary_built_vegetation = DataUtil.postfix("temporary_built_vegetation")
@@ -1200,7 +1218,9 @@ def identifyImpactingStackedBlocks(
                 Name of the table used to save selected stacked blocks
 
     """
-    print("Identify the buildings concerned by the impacted zone chosen by the user")
+    print(
+        "Identify the buildings concerned by the impacted zone chosen by the user"
+    )
 
     # Name of the output tables
     dicOfSelectedBuildZones = {
@@ -1211,7 +1231,9 @@ def identifyImpactingStackedBlocks(
         t: dicOfVegRockleZoneTable[t] + SELECTED_SUFFIX
         for t in dicOfVegRockleZoneTable.keys()
     }
-    outputStackedBlocks = DataUtil.prefix("IMPACTING_STACKED_BLOCKS", prefix=prefix)
+    outputStackedBlocks = DataUtil.prefix(
+        "IMPACTING_STACKED_BLOCKS", prefix=prefix
+    )
     outputVegetation = DataUtil.prefix("IMPACTING_VEGETATION", prefix=prefix)
 
     # Create temporary table names (for tables that will be removed at the end of the IProcess)
@@ -1463,7 +1485,9 @@ def identifyImpactingStackedBlocks(
         # Drop intermediate tables
         cursor.execute(
             safe("DROP TABLE IF EXISTS {0}").format(
-                ",".join([tabTempStack, tabTempBlock, tabCrossExtBox, tabTempBlock2])
+                ",".join(
+                    [tabTempStack, tabTempBlock, tabCrossExtBox, tabTempBlock2]
+                )
             )
         )
 

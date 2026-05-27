@@ -72,12 +72,16 @@ def SEBE_2015a_calc(
     Energyyearwall = torch.clone(wallmatrix)
 
     # Main loop - Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
-    skyvaultaltint = torch.tensor([6, 18, 30, 42, 54, 66, 78, 90], device=device)
+    skyvaultaltint = torch.tensor(
+        [6, 18, 30, 42, 54, 66, 78, 90], device=device
+    )
     aziinterval = torch.tensor([30, 30, 24, 24, 18, 12, 6, 1], device=device)
 
     if usevegdem == 1:
         wallshve = torch.zeros(torch.shape(a), device=device)
-        vegrow, vegcol = torch.where(vegdem > 0)  # row and col for each veg pixel
+        vegrow, vegcol = torch.where(
+            vegdem > 0
+        )  # row and col for each veg pixel
         vegdata = torch.zeros((torch.shape(vegrow)[0], 3), device=device)
         for i in range(0, vegrow.shape[0] - 1):
             vegdata[i, 0] = vegrow[i] + 1
@@ -113,7 +117,8 @@ def SEBE_2015a_calc(
                 torch.sin(torch.pi / 2)
                 * torch.cos(radmatI[index, 0] * deg2rad)
                 * torch.cos((radmatI[index, 1] * deg2rad) - dirwalls * deg2rad)
-                + torch.cos(torch.pi / 2) * torch.sin((radmatI[index, 0] * deg2rad))
+                + torch.cos(torch.pi / 2)
+                * torch.sin((radmatI[index, 0] * deg2rad))
             )
 
             # Shadow image
@@ -134,13 +139,15 @@ def SEBE_2015a_calc(
                 )
                 shadow = torch.clone(sh - (1.0 - vegsh) * (1.0 - psi))
             else:
-                sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(
-                    a,
-                    radmatI[index, 1],
-                    radmatI[index, 0],
-                    scale,
-                    walls,
-                    dirwalls * deg2rad,
+                sh, wallsh, wallsun, facesh, facesun = (
+                    shadowingfunction_wallheight_13(
+                        a,
+                        radmatI[index, 1],
+                        radmatI[index, 0],
+                        scale,
+                        walls,
+                        dirwalls * deg2rad,
+                    )
                 )
                 shadow = torch.clone(sh)
 
@@ -172,7 +179,9 @@ def SEBE_2015a_calc(
             wallsun = torch.floor(wallsun * (1 / voxelheight)) * voxelheight
             wallsh = torch.floor(wallsh * (1 / voxelheight)) * voxelheight
             if usevegdem == 1:
-                wallshve = torch.floor(wallshve * (1 / voxelheight)) * voxelheight
+                wallshve = (
+                    torch.floor(wallshve * (1 / voxelheight)) * voxelheight
+                )
 
             wallmatrix = wallmatrix * 0
 
@@ -185,7 +194,8 @@ def SEBE_2015a_calc(
                         wallmatrix[
                             p,
                             0 : int(
-                                wallstot[int(wallrow[p]), int(wallcol[p])] / voxelheight
+                                wallstot[int(wallrow[p]), int(wallcol[p])]
+                                / voxelheight
                             ),
                         ] = (
                             Iw[wallrow[p], wallcol[p]]
@@ -202,7 +212,9 @@ def SEBE_2015a_calc(
                                 )
                                 / voxelheight
                             )
-                            - 1 : int(wallstot[wallrow[p], wallcol[p]] / voxelheight),
+                            - 1 : int(
+                                wallstot[wallrow[p], wallcol[p]] / voxelheight
+                            ),
                         ] = (
                             Iw[wallrow[p], wallcol[p]]
                             + Dw[wallrow[p], wallcol[p]]
@@ -221,9 +233,13 @@ def SEBE_2015a_calc(
                             )
                             / voxelheight
                         ),
-                    ] = (Iw[wallrow[p], wallcol[p]] + Dw[wallrow[p], wallcol[p]]) * psi
+                    ] = (
+                        Iw[wallrow[p], wallcol[p]] + Dw[wallrow[p], wallcol[p]]
+                    ) * psi
 
-                if wallsh[wallrow[p], wallcol[p]] > 0:  # sections in building shade
+                if (
+                    wallsh[wallrow[p], wallcol[p]] > 0
+                ):  # sections in building shade
                     wallmatrix[
                         p,
                         0 : int(wallsh[wallrow[p], wallcol[p]] / voxelheight),
@@ -243,7 +259,9 @@ def SEBE_2015a_calc(
     Energyyearroof /= 1000
     Energyyearwall /= 1000
     Energyyearwall = torch.transpose(
-        torch.vstack((wallrow + 1, wallcol + 1, torch.transpose(Energyyearwall)))
+        torch.vstack(
+            (wallrow + 1, wallcol + 1, torch.transpose(Energyyearwall))
+        )
     )  # adding 1 to wallrow and wallcol so that the tests pass
 
     seberesult = {

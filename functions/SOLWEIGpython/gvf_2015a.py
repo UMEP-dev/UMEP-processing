@@ -27,7 +27,9 @@ def gvf_2015a(
     landcover,
 ):
 
-    azimuthA = np.arange(5, 359, 20)  # Search directions for Ground View Factors (GVF)
+    azimuthA = np.arange(
+        5, 359, 20
+    )  # Search directions for Ground View Factors (GVF)
 
     #### Ground View Factors ####
     gvfLup = np.zeros((rows, cols))
@@ -101,10 +103,22 @@ def gvf_2015a(
     gvfalb = gvfalb / azimuthA.__len__()
     gvfalbnosh = gvfalbnosh / azimuthA.__len__()
 
-    gvfLupE = gvfLupE / (azimuthA.__len__() / 2) + SBC * emis_grid * (Ta + 273.15) ** 4
-    gvfLupS = gvfLupS / (azimuthA.__len__() / 2) + SBC * emis_grid * (Ta + 273.15) ** 4
-    gvfLupW = gvfLupW / (azimuthA.__len__() / 2) + SBC * emis_grid * (Ta + 273.15) ** 4
-    gvfLupN = gvfLupN / (azimuthA.__len__() / 2) + SBC * emis_grid * (Ta + 273.15) ** 4
+    gvfLupE = (
+        gvfLupE / (azimuthA.__len__() / 2)
+        + SBC * emis_grid * (Ta + 273.15) ** 4
+    )
+    gvfLupS = (
+        gvfLupS / (azimuthA.__len__() / 2)
+        + SBC * emis_grid * (Ta + 273.15) ** 4
+    )
+    gvfLupW = (
+        gvfLupW / (azimuthA.__len__() / 2)
+        + SBC * emis_grid * (Ta + 273.15) ** 4
+    )
+    gvfLupN = (
+        gvfLupN / (azimuthA.__len__() / 2)
+        + SBC * emis_grid * (Ta + 273.15) ** 4
+    )
 
     gvfalbE = gvfalbE / (azimuthA.__len__() / 2)
     gvfalbS = gvfalbS / (azimuthA.__len__() / 2)

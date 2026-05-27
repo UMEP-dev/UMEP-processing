@@ -20,7 +20,9 @@ def tsh_gen(y, x, treerasters, treeinput):
             y1, y2, x1, x2, treeinput, treerasters
         )
 
-        tsh_pos_pad[yslice2, xslice2, i] = treerasters.treeshade_rg[yslice1, xslice1]
+        tsh_pos_pad[yslice2, xslice2, i] = treerasters.treeshade_rg[
+            yslice1, xslice1
+        ]
         tsh_pos_pad[:, :, i] = tsh_pos_pad[:, :, i] * treeinput.buildings_pad
         tsh_pos_bool_pad[:, :, i] = tsh_pos_pad[:, :, i] > 0
         tsh_pos_bool_pad_all += tsh_pos_bool_pad[:, :, i]

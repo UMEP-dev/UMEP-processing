@@ -71,5 +71,7 @@ def CNRRabs_Total(
     # CNRRabs_Total.m:41
     Acyl = CRT_Acyl(L, D)
     # CNRRabs_Total.m:43
-    Total_CNRRabs = multiply(Aeff, ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl)))
+    Total_CNRRabs = multiply(
+        Aeff, ((Kin_abs + Kup_abs + Lin_abs + Lup_abs) / (Acyl))
+    )
     # CNRRabs_Total.m:46

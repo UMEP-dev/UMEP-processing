@@ -118,13 +118,16 @@ def treenudge(
                                 tsh_bool_nc_t[:, :, j] * tmrt_1d[j, 0]
                             )  # Tree shade
                             tmrt_nc[iy, 1] += np.sum(
-                                tsh_bool_nc_t[:, :, j] * treeinput.tmrt_ts[:, :, j]
+                                tsh_bool_nc_t[:, :, j]
+                                * treeinput.tmrt_ts[:, :, j]
                             )  # Sunlit
                         tmrt_nc[iy, 2] = (
                             tmrt_nc[iy, 1] - tmrt_nc[iy, 0]
                         )  # New Tmrt (sunlit - tree shade)
 
-                    if np.around(np.max(tmrt_nc[:, 2]), decimals=1) > np.around(
+                    if np.around(
+                        np.max(tmrt_nc[:, 2]), decimals=1
+                    ) > np.around(
                         i_tmrt[counter], decimals=1
                     ):  # If any new Tmrt decrease is higher, continue
                         nc_max_r = np.where(
@@ -151,7 +154,9 @@ def treenudge(
                         t1[0, 3] = y_out[i]
                         t1[0, 4] = x_out[i]
 
-                        tp_nc[nc_i_r, 0] = 0  # Reset tp_nc, i.e. trees have moved
+                        tp_nc[nc_i_r, 0] = (
+                            0  # Reset tp_nc, i.e. trees have moved
+                        )
                         tp_nc_a[nc_i_r] = (
                             1  # Reset tp_nc_a, i.e. trees have been adjusted
                         )
@@ -181,16 +186,24 @@ def tree_adjust(i_y, i_x, i_tmrt, counter, trees, treerasters, treeinput):
         y_max = tmrt_temp[:] != np.min(
             tmrt_temp[:]
         )  # Bool of positions of the other trees (highest)
-        y_te = i_y[counter, :]  # Current y-positions of all trees for current run
-        x_te = i_x[counter, :]  # Current x-positions of all trees for current run
+        y_te = i_y[
+            counter, :
+        ]  # Current y-positions of all trees for current run
+        x_te = i_x[
+            counter, :
+        ]  # Current x-positions of all trees for current run
         y_high = np.int_(
             y_te[y_max]
         )  # y-positions of trees with highest decrease in Tmrt
         x_high = np.int_(
             x_te[y_max]
         )  # x-positions of trees with highest decrease in Tmrt
-        y_low = np.int_(y_te[y_min])  # y-position of tree with lowest decrease in Tmrt
-        x_low = np.int_(x_te[y_min])  # x-position of tree with lowest decrease in Tmrt
+        y_low = np.int_(
+            y_te[y_min]
+        )  # y-position of tree with lowest decrease in Tmrt
+        x_low = np.int_(
+            x_te[y_min]
+        )  # x-position of tree with lowest decrease in Tmrt
 
         tsh_rg_temp, tsh_bool_temp, comp_ = tsh_gen_ts(
             y_high, x_high, treerasters, treeinput
@@ -222,7 +235,9 @@ def tree_adjust(i_y, i_x, i_tmrt, counter, trees, treerasters, treeinput):
             (tsh_bool_all == 1) & (tsh_bool_min == 1)
         ):  # If not, proceed. If they overlap, adjustment for overlap needs to be made, etc.
 
-            d_tmrt_vec = d_tmrt_pad.flatten()  # Flatten d_tmrt_pad and create vector
+            d_tmrt_vec = (
+                d_tmrt_pad.flatten()
+            )  # Flatten d_tmrt_pad and create vector
 
             d_tmrt_vec_s = -np.sort(
                 -d_tmrt_vec
@@ -237,7 +252,9 @@ def tree_adjust(i_y, i_x, i_tmrt, counter, trees, treerasters, treeinput):
 
             a_nc = 0  # Adjustment change parameter
             for ix in range(d_tmrt_vec_s.shape[0]):
-                tmrt_adjust = d_tmrt_vec_s[ix]  # Trying values from d_tmrt_vec_s
+                tmrt_adjust = d_tmrt_vec_s[
+                    ix
+                ]  # Trying values from d_tmrt_vec_s
                 y_adjust, x_adjust = np.where(
                     d_tmrt_pad == tmrt_adjust
                 )  # Find coordinates for tmrt_adjust

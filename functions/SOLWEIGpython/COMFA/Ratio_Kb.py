@@ -5,7 +5,9 @@ from libsmop import *
 
 
 @function
-def Ratio_Kb(Kin=None, A=None, lat=None, d=None, t=None, Atr=None, *args, **kwargs):
+def Ratio_Kb(
+    Kin=None, A=None, lat=None, d=None, t=None, Atr=None, *args, **kwargs
+):
     varargin = Ratio_Kb.varargin
     nargin = Ratio_Kb.nargin
 

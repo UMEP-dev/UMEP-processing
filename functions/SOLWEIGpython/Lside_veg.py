@@ -80,7 +80,9 @@ def Lside_veg_v2022a(
     )
 
     ## Least
-    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(svfE, svfEveg, svfEaveg, vikttot)
+    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(
+        svfE, svfEveg, svfEaveg, vikttot
+    )
 
     if altitude > 0:  # daytime
         alfaB = torch.arctan(svfalfaE)
@@ -91,13 +93,18 @@ def Lside_veg_v2022a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
                 * 0.5
             )
-            Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            Lwallsh = (
+                SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            )
         else:
             Lwallsun = 0
             Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -119,7 +126,9 @@ def Lside_veg_v2022a(
     # clear alfaB betaB betasun Lsky Lwallsh Lwallsun Lveg Lground Lrefl viktveg viktwall viktsky
 
     ## Lsouth
-    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(svfS, svfSveg, svfSaveg, vikttot)
+    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(
+        svfS, svfSveg, svfSaveg, vikttot
+    )
 
     if altitude > 0:  # daytime
         alfaB = torch.arctan(svfalfaS)
@@ -130,13 +139,18 @@ def Lside_veg_v2022a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
                 * 0.5
             )
-            Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            Lwallsh = (
+                SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            )
         else:
             Lwallsun = 0
             Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -158,7 +172,9 @@ def Lside_veg_v2022a(
     # clear alfaB betaB betasun Lsky Lwallsh Lwallsun Lveg Lground Lrefl viktveg viktwall viktsky
 
     ## Lwest
-    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(svfW, svfWveg, svfWaveg, vikttot)
+    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(
+        svfW, svfWveg, svfWaveg, vikttot
+    )
 
     if altitude > 0:  # daytime
         alfaB = torch.arctan(svfalfaW)
@@ -169,13 +185,18 @@ def Lside_veg_v2022a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
                 * 0.5
             )
-            Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            Lwallsh = (
+                SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            )
         else:
             Lwallsun = 0
             Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -197,7 +218,9 @@ def Lside_veg_v2022a(
     # clear alfaB betaB betasun Lsky Lwallsh Lwallsun Lveg Lground Lrefl viktveg viktwall viktsky
 
     ## Lnorth
-    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(svfN, svfNveg, svfNaveg, vikttot)
+    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(
+        svfN, svfNveg, svfNaveg, vikttot
+    )
 
     if altitude > 0:  # daytime
         alfaB = torch.arctan(svfalfaN)
@@ -208,13 +231,18 @@ def Lside_veg_v2022a(
             Lwallsun = (
                 SBC
                 * ewall
-                * ((Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180))) ** 4)
+                * (
+                    (Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180)))
+                    ** 4
+                )
                 * viktwall
                 * (1 - F_sh)
                 * torch.cos(betasun)
                 * 0.5
             )
-            Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            Lwallsh = (
+                SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+            )
         else:
             Lwallsun = 0
             Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -310,7 +338,9 @@ def Lside_veg_v2026(
     )
 
     ## Least
-    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(svfE, svfEveg, svfEaveg, vikttot)
+    [viktveg, viktwall, viktsky, viktrefl] = Lvikt_veg(
+        svfE, svfEveg, svfEaveg, vikttot
+    )
 
     if anisotropic_longwave == 1:
         Least = torch.zeros_like(Ldown, device=device)
@@ -329,13 +359,18 @@ def Lside_veg_v2026(
                 Lwallsun = (
                     SBC
                     * ewall
-                    * ((Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180))) ** 4)
+                    * (
+                        (Ta + 273.15 + Tw * torch.sin(aziE * (torch.pi / 180)))
+                        ** 4
+                    )
                     * viktwall
                     * (1 - F_sh)
                     * torch.cos(betasun)
                     * 0.5
                 )
-                Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                Lwallsh = (
+                    SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                )
             else:
                 Lwallsun = 0
                 Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -364,13 +399,18 @@ def Lside_veg_v2026(
                 Lwallsun = (
                     SBC
                     * ewall
-                    * ((Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180))) ** 4)
+                    * (
+                        (Ta + 273.15 + Tw * torch.sin(aziS * (torch.pi / 180)))
+                        ** 4
+                    )
                     * viktwall
                     * (1 - F_sh)
                     * torch.cos(betasun)
                     * 0.5
                 )
-                Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                Lwallsh = (
+                    SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                )
             else:
                 Lwallsun = 0
                 Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -399,13 +439,18 @@ def Lside_veg_v2026(
                 Lwallsun = (
                     SBC
                     * ewall
-                    * ((Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180))) ** 4)
+                    * (
+                        (Ta + 273.15 + Tw * torch.sin(aziW * (torch.pi / 180)))
+                        ** 4
+                    )
                     * viktwall
                     * (1 - F_sh)
                     * torch.cos(betasun)
                     * 0.5
                 )
-                Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                Lwallsh = (
+                    SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                )
             else:
                 Lwallsun = 0
                 Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5
@@ -434,13 +479,18 @@ def Lside_veg_v2026(
                 Lwallsun = (
                     SBC
                     * ewall
-                    * ((Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180))) ** 4)
+                    * (
+                        (Ta + 273.15 + Tw * torch.sin(aziN * (torch.pi / 180)))
+                        ** 4
+                    )
                     * viktwall
                     * (1 - F_sh)
                     * torch.cos(betasun)
                     * 0.5
                 )
-                Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                Lwallsh = (
+                    SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * F_sh * 0.5
+                )
             else:
                 Lwallsun = 0
                 Lwallsh = SBC * ewall * ((Ta + 273.15) ** 4) * viktwall * 0.5

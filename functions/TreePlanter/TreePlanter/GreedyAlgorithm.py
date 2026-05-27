@@ -73,7 +73,9 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
             )
 
             ts_temp1 = np.zeros((treeinput.rows, treeinput.cols))
-            ts_temp1[yslice2, xslice2] = treerasters.treeshade[yslice1, xslice1]
+            ts_temp1[yslice2, xslice2] = treerasters.treeshade[
+                yslice1, xslice1
+            ]
 
             # Estimating Tmrt in tree shade and in sun
             for j in range(tmrt_1d.__len__()):
@@ -103,7 +105,9 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
                 str(possible_locations) + " possible locations for trees..."
             )
 
-        temp_y, temp_x = np.where(treerasters.d_tmrt == np.max(treerasters.d_tmrt))
+        temp_y, temp_x = np.where(
+            treerasters.d_tmrt == np.max(treerasters.d_tmrt)
+        )
 
         tmrt_max += np.max(treerasters.d_tmrt)
 
@@ -130,12 +134,22 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
             tmrt_copy[:, :, j] = tmrt_copy[:, :, j] * temp_shadow
 
         # Determine where to recalcaulate d_tmrt
-        y1 = np.int_(temp_y[0] - treerasters.buffer_y[0] - treerasters.buffer_y[1])
-        y2 = np.int_(temp_y[0] + treerasters.buffer_y[1] + treerasters.buffer_y[0])
-        x1 = np.int_(temp_x[0] - treerasters.buffer_x[0] - treerasters.buffer_x[1])
-        x2 = np.int_(temp_x[0] + treerasters.buffer_x[1] + treerasters.buffer_x[0])
+        y1 = np.int_(
+            temp_y[0] - treerasters.buffer_y[0] - treerasters.buffer_y[1]
+        )
+        y2 = np.int_(
+            temp_y[0] + treerasters.buffer_y[1] + treerasters.buffer_y[0]
+        )
+        x1 = np.int_(
+            temp_x[0] - treerasters.buffer_x[0] - treerasters.buffer_x[1]
+        )
+        x2 = np.int_(
+            temp_x[0] + treerasters.buffer_x[1] + treerasters.buffer_x[0]
+        )
 
-        _, __, yslice2, xslice2 = tree_slice(y1, y2, x1, x2, treeinput, treerasters)
+        _, __, yslice2, xslice2 = tree_slice(
+            y1, y2, x1, x2, treeinput, treerasters
+        )
 
         recalc_positions = np.zeros((bld_copy.shape[0], bld_copy.shape[1]))
         recalc_positions[yslice2, xslice2] = 1

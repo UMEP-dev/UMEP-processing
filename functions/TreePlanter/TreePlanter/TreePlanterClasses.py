@@ -90,22 +90,36 @@ class Inputdata:
         "gt",
     )
 
-    def __init__(self, r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer, feedback):
+    def __init__(
+        self, r_range, sh_fl, tmrt_fl, infolder, inputPolygonlayer, feedback
+    ):
 
         self.dataSet = gdal.Open(infolder + "/buildings.tif")  # GIS data
-        self.buildings = self.dataSet.ReadAsArray().astype(float)  # Building raster
+        self.buildings = self.dataSet.ReadAsArray().astype(
+            float
+        )  # Building raster
         self.buildings = self.buildings == 1.0
-        self.rows = self.buildings.shape[0]  # Rows of input rasters from SOLWEIG
-        self.cols = self.buildings.shape[1]  # Cols of input rasters from SOLWEIG
-        self.cdsm = np.zeros((self.rows, self.cols))  # Canopy digital surface model
-        self.cdsm_b = np.zeros((self.rows, self.cols))  # Canopy digital surface model
+        self.rows = self.buildings.shape[
+            0
+        ]  # Rows of input rasters from SOLWEIG
+        self.cols = self.buildings.shape[
+            1
+        ]  # Cols of input rasters from SOLWEIG
+        self.cdsm = np.zeros(
+            (self.rows, self.cols)
+        )  # Canopy digital surface model
+        self.cdsm_b = np.zeros(
+            (self.rows, self.cols)
+        )  # Canopy digital surface model
         self.shadow = np.zeros(
             (self.rows, self.cols, r_range.__len__())
         )  # Shadow rasters
         self.tmrt_ts = np.zeros(
             (self.rows, self.cols, r_range.__len__())
         )  # Tmrt for each timestep
-        self.tmrt_s = np.zeros((self.rows, self.cols))  # Sum of tmrt for all timesteps
+        self.tmrt_s = np.zeros(
+            (self.rows, self.cols)
+        )  # Sum of tmrt for all timesteps
 
         # Loading DEm, DSM (and CDSM) rasters
         dataSet = gdal.Open(infolder + "/DSM.tif")
@@ -209,7 +223,9 @@ class Treerasters:
         "d_tmrt",
     )
 
-    def __init__(self, treeshade, treeshade_rg, treeshade_bool, cdsm, treedata):
+    def __init__(
+        self, treeshade, treeshade_rg, treeshade_bool, cdsm, treedata
+    ):
         # Find min and max rows and cols where there are shadows
         shy, shx = np.where((treeshade > 0) | (cdsm > 0))
         shy_min = np.min(shy)
@@ -223,7 +239,9 @@ class Treerasters:
         # Cropping to only where there is a shadow
         self.treeshade = treeshade[shy_min:shy_max, shx_min:shx_max]
         self.treeshade_rg = treeshade_rg[shy_min:shy_max, shx_min:shx_max]
-        self.treeshade_bool = 1 - treeshade_bool[shy_min:shy_max, shx_min:shx_max, :]
+        self.treeshade_bool = (
+            1 - treeshade_bool[shy_min:shy_max, shx_min:shx_max, :]
+        )
         self.cdsm = cdsm[shy_min:shy_max, shx_min:shx_max]
         # y, x = np.where(cdsm_clip == treedata.height)  # Position of tree in clipped shadow image
         self.buffer_y = np.zeros((2))
@@ -242,8 +260,12 @@ class Treerasters:
         a = np.array((self.tpy, self.tpx))
         b = np.zeros((4, 2))
         b[0, :] = np.array((0, 0))  # Upper left corner
-        b[1, :] = np.array((0, self.treeshade.shape[0] - 1))  # Lower left corner
-        b[2, :] = np.array((self.treeshade.shape[1] - 1, 0))  # Upper right corner
+        b[1, :] = np.array(
+            (0, self.treeshade.shape[0] - 1)
+        )  # Lower left corner
+        b[2, :] = np.array(
+            (self.treeshade.shape[1] - 1, 0)
+        )  # Upper right corner
         b[3, :] = np.array(
             (self.treeshade.shape[0] - 1, self.treeshade.shape[1] - 1)
         )  # Lower right corner
@@ -313,7 +335,9 @@ class Regional_groups:
         shade_max = np.max(shade_u)  # Maximum value of unique values
 
         for i in range(1, shade_u.shape[0]):  # Loop over all unique values
-            shade_b = shadow_ == shade_u[i]  # Boolean shadow for each timestep i
+            shade_b = (
+                shadow_ == shade_u[i]
+            )  # Boolean shadow for each timestep i
             shade_r = label(shade_b)  # Create regional groups
             shade_r_u = np.unique(
                 shade_r[0]

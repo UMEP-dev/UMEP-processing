@@ -91,7 +91,9 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterDateTime(
                 self.SINGLE_DAY,
-                self.tr("Month and day when single night begins (year is irrelevant)"),
+                self.tr(
+                    "Month and day when single night begins (year is irrelevant)"
+                ),
                 QgsProcessingParameterDateTime.Type.Date,
             )
         )
@@ -178,30 +180,46 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
 
         # InputParameters
-        targetIn = self.parameterAsString(parameters, self.INPUT_FOLDER, context)
+        targetIn = self.parameterAsString(
+            parameters, self.INPUT_FOLDER, context
+        )
         # uwgOut = self.parameterAsString(parameters, self.OUTPUT_FOLDER, context)
         # variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
         # startday = self.parameterAsString(parameters, self.DATEINISTART, context)
-        singleNight = self.parameterAsBool(parameters, self.SINGLE_DAY_BOOL, context)
+        singleNight = self.parameterAsBool(
+            parameters, self.SINGLE_DAY_BOOL, context
+        )
         # endday = self.parameterAsString(parameters, self.DATEINIEND, context)
         inputPolygonlayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
         irreg = self.parameterAsBool(parameters, self.IRREGULAR, context)
-        statTypeStr = self.parameterAsString(parameters, self.STAT_TYPE, context)
+        statTypeStr = self.parameterAsString(
+            parameters, self.STAT_TYPE, context
+        )
         # dayTypeStr = self.parameterAsString(parameters, self.TIME_OF_DAY, context)
         pixelsize = self.parameterAsDouble(parameters, self.PIXELSIZE, context)
-        addAttributes = self.parameterAsBool(parameters, self.ADD_ATTRIBUTES, context)
-        outputStat = self.parameterAsOutputLayer(parameters, self.UWG_GRID_OUT, context)
-        dayTypeStr = self.parameterAsString(parameters, self.TIME_OF_DAY, context)
+        addAttributes = self.parameterAsBool(
+            parameters, self.ADD_ATTRIBUTES, context
+        )
+        outputStat = self.parameterAsOutputLayer(
+            parameters, self.UWG_GRID_OUT, context
+        )
+        dayTypeStr = self.parameterAsString(
+            parameters, self.TIME_OF_DAY, context
+        )
 
         feedback.setProgressText("Initializing...")
 
         # statType = int(statTypeStr)
 
-        feedback.setProgressText("Model input directory: " + targetIn + "/input")
-        feedback.setProgressText("Model output directory: " + targetIn + "/output")
+        feedback.setProgressText(
+            "Model input directory: " + targetIn + "/input"
+        )
+        feedback.setProgressText(
+            "Model output directory: " + targetIn + "/output"
+        )
 
         cfM = read_config(targetIn + "/config.ini")
 
@@ -227,7 +245,9 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # start = datetime.date(int(yyyy), int(mm), int(dd))
         # end = start + datetime.timedelta(days=int(nDays))
-        start = datetime.datetime.strptime(cfM["date1"], "%Y,%m,%d,%H").strftime(
+        start = datetime.datetime.strptime(
+            cfM["date1"], "%Y,%m,%d,%H"
+        ).strftime(
             "%Y-%m-%d"
         )  # string
         end = datetime.datetime.strptime(cfM["date2"], "%Y,%m,%d,%H").strftime(
@@ -241,7 +261,9 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         )
 
         if singleNight:
-            singledate = self.parameterAsString(parameters, self.SINGLE_DAY, context)
+            singledate = self.parameterAsString(
+                parameters, self.SINGLE_DAY, context
+            )
             startDate = datetime.datetime.strptime(singledate, "%Y-%m-%d")
             mm = startDate.month
             dd = startDate.day
@@ -312,7 +334,12 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText("Processing grid: " + str(gid))
 
             datawhole = np.genfromtxt(
-                targetIn + "/output/" + runName + "_" + gid + "_UMEP_TARGET.txt",
+                targetIn
+                + "/output/"
+                + runName
+                + "_"
+                + gid
+                + "_UMEP_TARGET.txt",
                 skip_header=1,
             )
 
@@ -394,9 +421,13 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
             resy = np.abs(geom[0][0][0][1] - geom[0][0][2][1])  # y
 
             if not resx == resy:
-                raise QgsProcessingException("Polygons not squared in current CRS")
+                raise QgsProcessingException(
+                    "Polygons not squared in current CRS"
+                )
 
-        if os.path.isfile(self.plugin_dir + "/tempgrid.tif"):  # response to issue 103
+        if os.path.isfile(
+            self.plugin_dir + "/tempgrid.tif"
+        ):  # response to issue 103
             try:
                 shutil.rmtree(self.plugin_dir + "/tempgrid.tif")
             except OSError:
@@ -453,7 +484,9 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # Create the target raster layer
         cols = int((xmax - xmin) / resolution)
         rows = int((ymax - ymin) / resolution)  # issue 164
-        trgt = gdal.GetDriverByName("GTiff").Create(dst, cols, rows, 1, GDT_Float32)
+        trgt = gdal.GetDriverByName("GTiff").Create(
+            dst, cols, rows, 1, GDT_Float32
+        )
         trgt.SetGeoTransform((xmin, resolution, 0, ymax, 0, -resolution))
 
         # Add crs
@@ -483,7 +516,9 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         caps = vlayer.dataProvider().capabilities()
 
         if caps & QgsVectorDataProvider.Capability.AddAttributes:
-            vlayer.dataProvider().addAttributes([QgsField(header, QVariant.Double)])
+            vlayer.dataProvider().addAttributes(
+                [QgsField(header, QVariant.Double)]
+            )
             attr_dict = {}
             for y in range(0, matdata.shape[0]):
                 attr_dict.clear()

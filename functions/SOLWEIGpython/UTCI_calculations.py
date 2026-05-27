@@ -89,7 +89,13 @@ def utci_polynomial(D_Tmrt, Ta, va, Pa):
         + (6.62154879e-10) * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt
         + (4.03863260e-13) * Ta * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt
         + (1.95087203e-12) * va * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt
-        + (-4.73602469e-12) * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt * D_Tmrt
+        + (-4.73602469e-12)
+        * D_Tmrt
+        * D_Tmrt
+        * D_Tmrt
+        * D_Tmrt
+        * D_Tmrt
+        * D_Tmrt
         + (5.12733497e00) * Pa
         + (-3.12788561e-01) * Ta * Pa
         + (-1.96701861e-02) * Ta * Ta * Pa
@@ -326,7 +332,9 @@ def utci_calculator_grid(Ta, RH, Tmrt, va10m, feedback):
                     UTCI_approx[iy, ix] = -9999
                 # Calculate 6th order polynomial as approximation if wind speed is above zero
                 elif va10m[iy, ix] > 0:
-                    UTCI_approx[iy, ix] = utci_polynomial(D_Tmrt, Ta, va10m[iy, ix], Pa)
+                    UTCI_approx[iy, ix] = utci_polynomial(
+                        D_Tmrt, Ta, va10m[iy, ix], Pa
+                    )
 
                 # Progress counter
                 index = index + 1

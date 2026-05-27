@@ -68,7 +68,9 @@ def treeplanter(treeinput, treedata, treerasters, tmrt_1d):
         # Gör samma som i TreePlanterOptimizer (regional groups, etc)
         for j in range(tmrt_1d.__len__()):
             ts_temp2 = np.zeros((treeinput.rows, treeinput.cols))
-            ts_temp2[yslice2, xslice2] = treerasters.treeshade_bool[yslice1, xslice1, j]
+            ts_temp2[yslice2, xslice2] = treerasters.treeshade_bool[
+                yslice1, xslice1, j
+            ]
             sum_tmrt[res_y[i], res_x[i]] += np.sum(
                 ts_temp2
                 * treeinput.buildings

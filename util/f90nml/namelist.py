@@ -95,7 +95,9 @@ class NmlDict(OrderedDict):
             if value.isspace():
                 self._indent = value
             else:
-                raise ValueError("String indentation can only contain " "whitespace.")
+                raise ValueError(
+                    "String indentation can only contain " "whitespace."
+                )
 
         # Set indent width
         elif isinstance(value, int):
@@ -183,9 +185,12 @@ class NmlDict(OrderedDict):
     def true_repr(self, value):
         """Validate and set the logical true representation."""
         if isinstance(value, str):
-            if not (value.lower().startswith("t") or value.lower().startswith(".t")):
+            if not (
+                value.lower().startswith("t") or value.lower().startswith(".t")
+            ):
                 raise ValueError(
-                    "Logical true representation must start with " "'T' or '.T'."
+                    "Logical true representation must start with "
+                    "'T' or '.T'."
                 )
             else:
                 self._logical_repr[1] = value
@@ -201,9 +206,12 @@ class NmlDict(OrderedDict):
     def false_repr(self, value):
         """Validate and set the logical false representation."""
         if isinstance(value, str):
-            if not (value.lower().startswith("f") or value.lower().startswith(".f")):
+            if not (
+                value.lower().startswith("f") or value.lower().startswith(".f")
+            ):
                 raise ValueError(
-                    "Logical false representation must start " "with 'F' or '.F'."
+                    "Logical false representation must start "
+                    "with 'F' or '.F'."
                 )
             else:
                 self._logical_repr[0] = value
@@ -302,7 +310,9 @@ class NmlDict(OrderedDict):
 
             # Append any remaining values
             if val_line:
-                if self.end_comma or (len(v_values) > 1 and v_values[-1] is None):
+                if self.end_comma or (
+                    len(v_values) > 1 and v_values[-1] is None
+                ):
                     val_strs.append(val_line)
                 else:
                     val_strs.append(val_line[:-2])

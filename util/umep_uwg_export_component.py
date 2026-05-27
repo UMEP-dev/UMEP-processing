@@ -41,7 +41,9 @@ def create_uwgdict():
     uwgDict["grasscover"] = (
         0.1  # Fraction of the urban ground covered in grass/shrubs only (0-1)
     )
-    uwgDict["treeCover"] = 0.1  # Fraction of the urban ground covered in trees (0-1)
+    uwgDict["treeCover"] = (
+        0.1  # Fraction of the urban ground covered in trees (0-1)
+    )
     uwgDict["vegStart"] = (
         4  # The month in which vegetation starts to evapotranspire (leaves are out)
     )
@@ -55,7 +57,9 @@ def create_uwgdict():
     uwgDict["latTree"] = (
         0.6  # Fraction of the heat absorbed by trees that is latent (goes to evaporating water)
     )
-    uwgDict["rurVegCover"] = 0.9  # Fraction of the rural ground covered by vegetation
+    uwgDict["rurVegCover"] = (
+        0.9  # Fraction of the rural ground covered by vegetation
+    )
 
     # Traffic schedule [1 to 24 hour],# Weekday# Saturday# Sunday
     uwgDict["SchTraffic"] = [
@@ -192,7 +196,9 @@ def create_uwgdict():
     # =================================================
     # If not provided, optional parameters are taken from corresponding DOE Reference building
     uwgDict["albRoof"] = None  # roof albedo (0 - 1)
-    uwgDict["vegRoof"] = None  # Fraction of the roofs covered in grass/shrubs (0 - 1)
+    uwgDict["vegRoof"] = (
+        None  # Fraction of the roofs covered in grass/shrubs (0 - 1)
+    )
     uwgDict["glzR"] = None  # Glazing Ratio (0 - 1)
     uwgDict["SHGC"] = None  # Solar Heat Gain Coefficient (0 - 1)
     uwgDict["albWall"] = None  # wall albedo (0 - 1)
@@ -210,10 +216,18 @@ def create_uwgdict():
 
     uwgDict["autosize"] = 0  # autosize HVAC (1 for yes; 0 for no)
     uwgDict["sensOcc"] = 100  # Sensible heat per occupant (W)
-    uwgDict["LatFOcc"] = 0.3  # Latent heat fraction from occupant (normally 0.3)
-    uwgDict["RadFOcc"] = 0.2  # Radiant heat fraction from occupant (normally 0.2)
-    uwgDict["RadFEquip"] = 0.5  # Radiant heat fraction from equipment (normally 0.5)
-    uwgDict["RadFLight"] = 0.7  # Radiant heat fraction from light (normally 0.7)
+    uwgDict["LatFOcc"] = (
+        0.3  # Latent heat fraction from occupant (normally 0.3)
+    )
+    uwgDict["RadFOcc"] = (
+        0.2  # Radiant heat fraction from occupant (normally 0.2)
+    )
+    uwgDict["RadFEquip"] = (
+        0.5  # Radiant heat fraction from equipment (normally 0.5)
+    )
+    uwgDict["RadFLight"] = (
+        0.7  # Radiant heat fraction from light (normally 0.7)
+    )
 
     # Urban climate parameters
     uwgDict["h_ubl1"] = 1000  # ubl height - day (m)
@@ -221,8 +235,12 @@ def create_uwgdict():
     uwgDict["h_ref"] = 150  # inversion height (m)
     uwgDict["h_temp"] = 2  # temperature height (m)
     uwgDict["h_wind"] = 10  # wind height (m)
-    uwgDict["c_circ"] = 1.2  # circulation coefficient (default = 1.2 per Bruno (2012))
-    uwgDict["c_exch"] = 1  # exchange coefficient (default = 1; ref Bruno (2014))
+    uwgDict["c_circ"] = (
+        1.2  # circulation coefficient (default = 1.2 per Bruno (2012))
+    )
+    uwgDict["c_exch"] = (
+        1  # exchange coefficient (default = 1; ref Bruno (2014))
+    )
     uwgDict["maxDay"] = 150  # max day threshold (W/m^2)
     uwgDict["maxNight"] = 20  # max night threshold (W/m^2)
     uwgDict["windMin"] = 1  # min wind speed (m/s)
@@ -247,8 +265,12 @@ def get_uwg_file(uwg_object, refdir, fname):
     f.write(
         "charLength,{},\n".format(uwg_object["charLength"])
     )  # dimension of a square that encompasses the whole neighborhood [aka. characteristic length] (m)
-    f.write("albRoad,{},\n".format(uwg_object["albRoad"]))  # road albedo (0 - 1)
-    f.write("dRoad,{},\n".format(uwg_object["dRoad"]))  # road pavement thickness (m)
+    f.write(
+        "albRoad,{},\n".format(uwg_object["albRoad"])
+    )  # road albedo (0 - 1)
+    f.write(
+        "dRoad,{},\n".format(uwg_object["dRoad"])
+    )  # road pavement thickness (m)
     f.write(
         "kRoad,{},\n".format(uwg_object["kRoad"])
     )  # road pavement conductivity (W/m K)
@@ -310,10 +332,14 @@ def get_uwg_file(uwg_object, refdir, fname):
         "# If not provided, optional parameters are taken from corresponding DOE Reference building\n"
     )
     f.write(
-        "albRoof,{},\n".format(uwg_object["albRoof"] if uwg_object["albRoof"] else "")
+        "albRoof,{},\n".format(
+            uwg_object["albRoof"] if uwg_object["albRoof"] else ""
+        )
     )  # roof albedo (0 - 1)
     f.write(
-        "vegRoof,{},\n".format(uwg_object["vegRoof"] if uwg_object["vegRoof"] else "")
+        "vegRoof,{},\n".format(
+            uwg_object["vegRoof"] if uwg_object["vegRoof"] else ""
+        )
     )  # Fraction of the roofs covered in grass/shrubs (0 - 1)
     f.write(
         "glzR,{},\n".format(uwg_object["glzR"] if uwg_object["glzR"] else "")
@@ -322,10 +348,14 @@ def get_uwg_file(uwg_object, refdir, fname):
         "SHGC,{},\n".format(uwg_object["SHGC"] if uwg_object["SHGC"] else "")
     )  # Solar Heat Gain Coefficient (0 - 1)
     f.write(
-        "albWall,{},\n".format(uwg_object["albWall"] if uwg_object["albWall"] else "")
+        "albWall,{},\n".format(
+            uwg_object["albWall"] if uwg_object["albWall"] else ""
+        )
     )  # wall albedo (0 - 1)
     f.write(
-        "flr_h,{},\n".format(uwg_object["flr_h"] if uwg_object["flr_h"] else "")
+        "flr_h,{},\n".format(
+            uwg_object["flr_h"] if uwg_object["flr_h"] else ""
+        )
     )  # average building floor height
     f.write("\n")
     f.write("# =================================================\n")
@@ -335,9 +365,15 @@ def get_uwg_file(uwg_object, refdir, fname):
     f.write("# Simulation parameters,\n")
     f.write("Month,{},\n".format(uwg_object["Month"]))  # starting month (1-12)
     f.write("Day,{},\n".format(uwg_object["Day"]))  # starting day (1-31)
-    f.write("nDay,{},\n".format(uwg_object["nDay"]))  # number of days to run simultion
-    f.write("dtSim,{},\n".format(uwg_object["dtSim"]))  # simulation time step (s)
-    f.write("dtWeather,{},\n".format(uwg_object["dtWeather"])),  # weather time step (s)
+    f.write(
+        "nDay,{},\n".format(uwg_object["nDay"])
+    )  # number of days to run simultion
+    f.write(
+        "dtSim,{},\n".format(uwg_object["dtSim"])
+    )  # simulation time step (s)
+    f.write(
+        "dtWeather,{},\n".format(uwg_object["dtWeather"])
+    ),  # weather time step (s)
     f.write("\n")
     f.write("# HVAC system and internal loads\n")
     f.write(
@@ -360,10 +396,16 @@ def get_uwg_file(uwg_object, refdir, fname):
     )  # Radiant heat fraction from light (normally 0.7)
     f.write("\n")
     f.write("#Urban climate parameters\n")
-    f.write("h_ubl1,{},\n".format(uwg_object["h_ubl1"]))  # ubl height - day (m)
-    f.write("h_ubl2,{},\n".format(uwg_object["h_ubl2"]))  # ubl height - night (m)
+    f.write(
+        "h_ubl1,{},\n".format(uwg_object["h_ubl1"])
+    )  # ubl height - day (m)
+    f.write(
+        "h_ubl2,{},\n".format(uwg_object["h_ubl2"])
+    )  # ubl height - night (m)
     f.write("h_ref,{},\n".format(uwg_object["h_ref"]))  # inversion height (m)
-    f.write("h_temp,{},\n".format(uwg_object["h_temp"]))  # temperature height (m)
+    f.write(
+        "h_temp,{},\n".format(uwg_object["h_temp"])
+    )  # temperature height (m)
     f.write("h_wind,{},\n".format(uwg_object["h_wind"]))  # wind height (m)
     f.write(
         "c_circ,{},\n".format(uwg_object["c_circ"])
@@ -371,11 +413,15 @@ def get_uwg_file(uwg_object, refdir, fname):
     f.write(
         "c_exch,{},\n".format(uwg_object["c_exch"])
     )  # exchange coefficient (default = 1; ref Bruno (2014))
-    f.write("maxDay,{},\n".format(uwg_object["maxDay"]))  # max day threshold (W/m^2)
+    f.write(
+        "maxDay,{},\n".format(uwg_object["maxDay"])
+    )  # max day threshold (W/m^2)
     f.write(
         "maxNight,{},\n".format(uwg_object["maxNight"])
     )  # max night threshold (W/m^2)
-    f.write("windMin,{},\n".format(uwg_object["windMin"]))  # min wind speed (m/s)
+    f.write(
+        "windMin,{},\n".format(uwg_object["windMin"])
+    )  # min wind speed (m/s)
     f.write(
         "h_obs,{},\n".format(uwg_object["h_obs"])
     )  # rural average obstacle height (m)

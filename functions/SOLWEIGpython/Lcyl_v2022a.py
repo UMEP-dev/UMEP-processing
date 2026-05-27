@@ -67,13 +67,17 @@ def Lcyl_v2022a(
     for i in range(patch_altitude.shape[0]):
         # If there are more than one patch in a band
         if skyalt_c[skyalt == patch_altitude[i]] > 1:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i] + patch_altitude[0]) * deg2rad)
                 - np.sin((patch_altitude[i] - patch_altitude[0]) * deg2rad)
             )
         # If there is only one patch in band, i.e. 90 degrees
         else:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i]) * deg2rad)
                 - np.sin((patch_altitude[i - 1] + patch_altitude[0]) * deg2rad)
             )

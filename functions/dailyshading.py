@@ -177,10 +177,15 @@ def dailyshading(
                     # shtot = shtot + sh
 
                 if onetime == 0:
-                    filename = folder + "/Shadow_ground_" + timestr + "_LST.tif"
+                    filename = (
+                        folder + "/Shadow_ground_" + timestr + "_LST.tif"
+                    )
                     saveraster(gdal_data, filename, sh)
                     filenamewallsh = (
-                        folder + "/Facadeshadow_frombuilding_" + timestr + "_LST.tif"
+                        folder
+                        + "/Facadeshadow_frombuilding_"
+                        + timestr
+                        + "_LST.tif"
                     )
                     saveraster(gdal_data, filenamewallsh, wallsh)
 
@@ -230,7 +235,10 @@ def dailyshading(
             saveraster(gdal_data, filenamewallsh, wallsh)
             if usevegdem == 1:
                 filenamewallshve = (
-                    folder + "/Facadeshadow_fromvegetation_" + timestr + "_LST.tif"
+                    folder
+                    + "/Facadeshadow_fromvegetation_"
+                    + timestr
+                    + "_LST.tif"
                 )
                 saveraster(gdal_data, filenamewallshve, wallshve)
 

@@ -376,7 +376,9 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         # Get the default value of the Java environment path if already exists
         javaDirDefault = getJavaDir(plugin_directory)
 
-        if not javaDirDefault:  # Raise an error if could not find a Java installation
+        if (
+            not javaDirDefault
+        ):  # Raise an error if could not find a Java installation
             raise QgsProcessingException("No Java installation found")
         elif ("Program Files (x86)" in javaDirDefault) and (
             struct.calcsize("P") * 8 != 32
@@ -389,20 +391,30 @@ class URockAlgorithm(QgsProcessingAlgorithm):
             )
         else:  # Set a Java dir if not exist and save it into a file in the plugin repository
             setJavaDir(javaDirDefault)
-            saveJavaDir(javaPath=javaDirDefault, pluginDirectory=plugin_directory)
+            saveJavaDir(
+                javaPath=javaDirDefault, pluginDirectory=plugin_directory
+            )
 
         javaEnvVar = javaDirDefault
 
         # Get the resource folder where styles are located
-        resourceDir = os.path.join(Path(plugin_directory).parent, "functions", "URock")
+        resourceDir = os.path.join(
+            Path(plugin_directory).parent, "functions", "URock"
+        )
 
         # Defines inputs
-        z_ref = self.parameterAsDouble(parameters, self.INPUT_WIND_HEIGHT, context)
-        v_ref = self.parameterAsDouble(parameters, self.INPUT_WIND_SPEED, context)
+        z_ref = self.parameterAsDouble(
+            parameters, self.INPUT_WIND_HEIGHT, context
+        )
+        v_ref = self.parameterAsDouble(
+            parameters, self.INPUT_WIND_SPEED, context
+        )
         windDirection = self.parameterAsDouble(
             parameters, self.INPUT_WIND_DIRECTION, context
         )
-        meshSize = self.parameterAsInt(parameters, self.HORIZONTAL_RESOLUTION, context)
+        meshSize = self.parameterAsInt(
+            parameters, self.HORIZONTAL_RESOLUTION, context
+        )
         dz = self.parameterAsInt(parameters, self.VERTICAL_RESOLUTION, context)
         profileType = self.LIST_OF_PROFILES.loc[
             self.parameterAsInt(parameters, self.INPUT_PROFILE_TYPE, context)
@@ -517,9 +529,9 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         # prefix = self.parameterAsString(parameters, self.PREFIX, context)
 
         # Defines outputs
-        z_out_str = self.parameterAsString(parameters, self.WIND_HEIGHT, context).split(
-            ","
-        )
+        z_out_str = self.parameterAsString(
+            parameters, self.WIND_HEIGHT, context
+        ).split(",")
         z_out = [float(i) for i in z_out_str]
         outputDirectory = self.parameterAsString(
             parameters, self.OUTPUT_DIRECTORY, context
@@ -527,10 +539,18 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         outputFilename = self.parameterAsString(
             parameters, self.OUTPUT_FILENAME, context
         )
-        saveRaster = self.parameterAsBool(parameters, self.SAVE_RASTER, context)
-        saveVector = self.parameterAsBool(parameters, self.SAVE_VECTOR, context)
-        saveNetcdf = self.parameterAsBool(parameters, self.SAVE_NETCDF, context)
-        loadOutput = self.parameterAsBool(parameters, self.LOAD_OUTPUT, context)
+        saveRaster = self.parameterAsBool(
+            parameters, self.SAVE_RASTER, context
+        )
+        saveVector = self.parameterAsBool(
+            parameters, self.SAVE_VECTOR, context
+        )
+        saveNetcdf = self.parameterAsBool(
+            parameters, self.SAVE_NETCDF, context
+        )
+        loadOutput = self.parameterAsBool(
+            parameters, self.LOAD_OUTPUT, context
+        )
 
         # Creates the output folder if it does not exist
         if not os.path.exists(outputDirectory):
@@ -548,10 +568,12 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                     "Coordinate system of input building layer and output Raster layer differ!"
                 )
             xres = (
-                outputRaster.extent().xMaximum() - outputRaster.extent().xMinimum()
+                outputRaster.extent().xMaximum()
+                - outputRaster.extent().xMinimum()
             ) / outputRaster.width()
             yres = (
-                outputRaster.extent().yMaximum() - outputRaster.extent().yMinimum()
+                outputRaster.extent().yMaximum()
+                - outputRaster.extent().yMinimum()
             ) / outputRaster.height()
             # If there is a raster and no meshSize, take the mean of x and y raster resolution
             if not meshSize:
@@ -680,7 +702,9 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                         os.path.join(
                             outputDirectory,
                             "z{0}".format(str(z_i).replace(".", "_")),
-                            outputFilename + WIND_SPEED + OUTPUT_RASTER_EXTENSION,
+                            outputFilename
+                            + WIND_SPEED
+                            + OUTPUT_RASTER_EXTENSION,
                         ),
                         "Wind speed at {0} m".format(z_i),
                         "gdal",

@@ -158,14 +158,24 @@ def solweig_run(configPath, feedback):
     if usevegdem == 1:
         if standAlone == 0:
             vegdsm = torch.from_numpy(
-                (gdal.Open(configDict["filepath_cdsm"]).ReadAsArray().astype(float))
+                (
+                    gdal.Open(configDict["filepath_cdsm"])
+                    .ReadAsArray()
+                    .astype(float)
+                )
             ).to(device)
         else:
-            vegdsm, _, _ = common.load_raster(configDict["filepath_cdsm"], bbox=None)
+            vegdsm, _, _ = common.load_raster(
+                configDict["filepath_cdsm"], bbox=None
+            )
         if configDict["filepath_tdsm"] != "":
             if standAlone == 0:
                 vegdsm2 = torch.from_numpy(
-                    (gdal.Open(configDict["filepath_tdsm"]).ReadAsArray().astype(float))
+                    (
+                        gdal.Open(configDict["filepath_tdsm"])
+                        .ReadAsArray()
+                        .astype(float)
+                    )
                 ).to(device)
             else:
                 vegdsm2, _, _ = common.load_raster(
@@ -182,10 +192,16 @@ def solweig_run(configPath, feedback):
     if landcover == 1:
         if standAlone == 0:
             lcgrid = torch.from_numpy(
-                (gdal.Open(configDict["filepath_lc"]).ReadAsArray().astype(float))
+                (
+                    gdal.Open(configDict["filepath_lc"])
+                    .ReadAsArray()
+                    .astype(float)
+                )
             ).to(device)
         else:
-            lcgrid, _, _ = common.load_raster(configDict["filepath_lc"], bbox=None)
+            lcgrid, _, _ = common.load_raster(
+                configDict["filepath_lc"], bbox=None
+            )
     else:
         lcgrid = 0
 
@@ -196,10 +212,14 @@ def solweig_run(configPath, feedback):
             gdal_dem = gdal.Open(
                 configDict["filepath_dem"]
             )  # .ReadAsArray().astype(float)
-            dem = torch.from_numpy(gdal_dem.ReadAsArray().astype(float)).to(device)
+            dem = torch.from_numpy(gdal_dem.ReadAsArray().astype(float)).to(
+                device
+            )
             nd = gdal_dem.GetRasterBand(1).GetNoDataValue()
         else:
-            dem, _, _ = common.load_raster(configDict["filepath_dem"], bbox=None)
+            dem, _, _ = common.load_raster(
+                configDict["filepath_dem"], bbox=None
+            )
             nd = -9999  # TODO: standAlone nd exposure
 
         # response to issue and #230
@@ -398,8 +418,12 @@ def solweig_run(configPath, feedback):
             (gdal.Open(configDict["filepath_wa"]).ReadAsArray().astype(float))
         ).to(device)
     else:
-        wallheight, _, _ = common.load_raster(configDict["filepath_wh"], bbox=None)
-        wallaspect, _, _ = common.load_raster(configDict["filepath_wa"], bbox=None)
+        wallheight, _, _ = common.load_raster(
+            configDict["filepath_wh"], bbox=None
+        )
+        wallaspect, _, _ = common.load_raster(
+            configDict["filepath_wa"], bbox=None
+        )
 
     # Metdata
     headernum = 1
@@ -407,7 +431,9 @@ def solweig_run(configPath, feedback):
     Twater = []
 
     metdata = torch.from_numpy(
-        np.loadtxt(configDict["input_met"], skiprows=headernum, delimiter=delim)
+        np.loadtxt(
+            configDict["input_met"], skiprows=headernum, delimiter=delim
+        )
     ).to(device)
 
     location = {"longitude": lon, "latitude": lat, "altitude": alt}
@@ -479,7 +505,9 @@ def solweig_run(configPath, feedback):
 
         for k in range(0, poisxy.shape[0]):
             poi_save = []  # torch.zeros((1, 33))
-            data_out = configDict["output_dir"] + "/POI_" + str(poiname[k]) + ".txt"
+            data_out = (
+                configDict["output_dir"] + "/POI_" + str(poiname[k]) + ".txt"
+            )
             np.savetxt(
                 data_out,
                 (
@@ -510,15 +538,17 @@ def solweig_run(configPath, feedback):
     if param["Tmrt_params"]["Value"]["posture"] == "Standing":
         Fside = param["Posture"]["Standing"]["Value"]["Fside"]
         Fup = param["Posture"]["Standing"]["Value"]["Fup"]
-        height = torch.tensor(param["Posture"]["Standing"]["Value"]["height"]).to(
-            device
-        )
+        height = torch.tensor(
+            param["Posture"]["Standing"]["Value"]["height"]
+        ).to(device)
         Fcyl = param["Posture"]["Standing"]["Value"]["Fcyl"]
         pos = 1
     else:
         Fside = param["Posture"]["Sitting"]["Value"]["Fside"]
         Fup = param["Posture"]["Sitting"]["Value"]["Fup"]
-        height = torch.tensor(param["Posture"]["Sitting"]["Value"]["height"]).to(device)
+        height = torch.tensor(
+            param["Posture"]["Sitting"]["Value"]["height"]
+        ).to(device)
         Fcyl = param["Posture"]["Sitting"]["Value"]["Fcyl"]
         pos = 0
 
@@ -564,7 +594,9 @@ def solweig_run(configPath, feedback):
         # % Bush separation
         bush = torch.logical_not((vegdsm2 * vegdsm)) * vegdsm
 
-        svfbuveg = svf - (1.0 - svfveg) * (1.0 - transVeg)  # % major bug fixed 20141203
+        svfbuveg = svf - (1.0 - svfveg) * (
+            1.0 - transVeg
+        )  # % major bug fixed 20141203
     else:
         psi = leafon * 0.0 + 1.0
         svfbuveg = svf
@@ -667,7 +699,10 @@ def solweig_run(configPath, feedback):
         TgK = Knight + param["Ts_deg"]["Value"]["Cobble_stone_2014a"]
         Tstart = Knight - param["Tstart"]["Value"]["Cobble_stone_2014a"]
         TmaxLST = param["TmaxLST"]["Value"]["Cobble_stone_2014a"]
-        alb_grid = Knight + param["Albedo"]["Effective"]["Value"]["Cobble_stone_2014a"]
+        alb_grid = (
+            Knight
+            + param["Albedo"]["Effective"]["Value"]["Cobble_stone_2014a"]
+        )
         emis_grid = Knight + param["Emissivity"]["Value"]["Cobble_stone_2014a"]
         TgK_wall = param["Ts_deg"]["Value"]["Walls"]
         Tstart_wall = param["Tstart"]["Value"]["Walls"]
@@ -1124,7 +1159,9 @@ def solweig_run(configPath, feedback):
                 poi_save[0, 28] = CI
                 poi_save[0, 29] = shadow[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 30] = svf[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                poi_save[0, 31] = svfbuveg[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 31] = svfbuveg[
+                    int(poisxy[k, 2]), int(poisxy[k, 1])
+                ]
                 poi_save[0, 32] = KsideI[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 # Recalculating wind speed based on powerlaw
                 WsPET = (1.1 / sensorheight) ** 0.2 * Ws[i]
@@ -1154,7 +1191,12 @@ def solweig_run(configPath, feedback):
                 poi_save[0, 37] = Lside[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 38] = dRad[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 39] = Kside[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                data_out = configDict["output_dir"] + "/POI_" + str(poiname[k]) + ".txt"
+                data_out = (
+                    configDict["output_dir"]
+                    + "/POI_"
+                    + str(poiname[k])
+                    + ".txt"
+                )
                 # f_handle = file(data_out, 'a')
                 f_handle = open(data_out, "ab")
                 np.savetxt(
@@ -1169,7 +1211,9 @@ def solweig_run(configPath, feedback):
                 f_handle.close()
 
         # If wall temperature parameterization scheme is in use
-        if configDict["wallscheme"] == 1:  # folderWallScheme: TODO: Fix for standalone
+        if (
+            configDict["wallscheme"] == 1
+        ):  # folderWallScheme: TODO: Fix for standalone
             # Store wall data for output
             if not woisxy is None:
                 for k in range(0, woisxy.shape[0]):
@@ -1201,15 +1245,20 @@ def solweig_run(configPath, feedback):
                         ),
                         "wallShade",
                     ].to_numpy()
-                    temp_all = torch.concatenate([temp_wall, K_in, L_in, wallShade]).to(
-                        device
-                    )
+                    temp_all = torch.concatenate(
+                        [temp_wall, K_in, L_in, wallShade]
+                    ).to(device)
                     # temp_all = torch.concatenate([temp_wall])
                     # wall_data = torch.zeros((1, 7 + temp_wall.shape[0]))
-                    wall_data = torch.zeros((1, 7 + temp_all.shape[0])).to(device)
+                    wall_data = torch.zeros((1, 7 + temp_all.shape[0])).to(
+                        device
+                    )
                     # Part of file name (wallid), i.e. WOI_wallid.txt
                     data_out = (
-                        configDict["output_dir"] + "/WOI_" + str(woiname[k]) + ".txt"
+                        configDict["output_dir"]
+                        + "/WOI_"
+                        + str(woiname[k])
+                        + ".txt"
                     )
                     if i == 0:
                         # Output file header
@@ -1243,7 +1292,8 @@ def solweig_run(configPath, feedback):
 
                     # Num format for output file data
                     woi_numformat = (
-                        "%d %d %d %d %.5f %.2f %.2f" + " %.2f" * temp_all.shape[0]
+                        "%d %d %d %d %.5f %.2f %.2f"
+                        + " %.2f" * temp_all.shape[0]
                     )
                     # Open file, add data, save
                     f_handle = open(data_out, "ab")
@@ -1398,7 +1448,10 @@ def solweig_run(configPath, feedback):
             for k in range(poisxy.shape[0]):
                 Lsky_patch_characteristics[:, 2] = patch_characteristics[:, k]
                 skyviewimage_out = (
-                    configDict["output_dir"] + "/POI_" + str(poiname[k]) + ".png"
+                    configDict["output_dir"]
+                    + "/POI_"
+                    + str(poiname[k])
+                    + ".png"
                 )
                 PolarBarPlot(
                     Lsky_patch_characteristics,
@@ -1416,7 +1469,9 @@ def solweig_run(configPath, feedback):
         if feedback is not None:
             feedback.setProgressText("Saving files for Tree Planter tool")
         # Save DSM
-        copyfile(configDict["filepath_dsm"], configDict["output_dir"] + "/DSM.tif")
+        copyfile(
+            configDict["filepath_dsm"], configDict["output_dir"] + "/DSM.tif"
+        )
 
         # Save CDSM
         if usevegdem == 1:
@@ -1480,9 +1535,13 @@ def solweig_run(configPath, feedback):
         )
 
     # Copying met file for SpatialTC
-    copyfile(configDict["input_met"], configDict["output_dir"] + "/metforcing.txt")
+    copyfile(
+        configDict["input_met"], configDict["output_dir"] + "/metforcing.txt"
+    )
 
-    tmrtplot = tmrtplot / Ta.__len__()  # fix average Tmrt instead of sum, 20191022
+    tmrtplot = (
+        tmrtplot / Ta.__len__()
+    )  # fix average Tmrt instead of sum, 20191022
     if standAlone == 0:
         saveraster(
             gdal_dsm,

@@ -13,6 +13,13 @@ import sys
 import getpass
 import xmlrpc.client  # nosec B411
 from optparse import OptionParser
+import xmlrpc.client  # nosec B411
+import getpass
+import sys
+import defusedxml.xmlrpc
+
+defusedxml.xmlrpc.monkey_patch()
+
 
 standard_library.install_aliases()
 
@@ -30,13 +37,15 @@ def main(parameters, arguments):
     :param parameters: Command line parameters.
     :param arguments: Command line arguments.
     """
-    address = "{protocol}://{username}:{password}@{server}:{port}{endpoint}".format(
-        protocol=PROTOCOL,
-        username=parameters.username,
-        password=parameters.password,
-        server=parameters.server,
-        port=parameters.port,
-        endpoint=ENDPOINT,
+    address = (
+        "{protocol}://{username}:{password}@{server}:{port}{endpoint}".format(
+            protocol=PROTOCOL,
+            username=parameters.username,
+            password=parameters.password,
+            server=parameters.server,
+            port=parameters.port,
+            endpoint=ENDPOINT,
+        )
     )
     print("Connecting to: %s" % hide_password(address))
 

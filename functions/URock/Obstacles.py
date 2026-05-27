@@ -205,7 +205,9 @@ def createsBlocks(
        """).format(correlTable, ID_FIELD_BLOCK, HEIGHT_FIELD))
     listOfHeight = cursor.fetchall()
     if len(listOfHeight) > 0:
-        df_listOfHeight = pd.DataFrame(listOfHeight).dropna()[0].astype(int).values
+        df_listOfHeight = (
+            pd.DataFrame(listOfHeight).dropna()[0].astype(int).values
+        )
 
         # Create stacked blocks according to building blocks and height
         listOfSqlQueries = [  # nosec B608
@@ -257,7 +259,9 @@ def createsBlocks(
 
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([correlTable])))
+        cursor.execute(
+            "DROP TABLE IF EXISTS {0}".format(",".join([correlTable]))
+        )
 
     return blockTable, stackedBlockTable
 
@@ -292,7 +296,9 @@ def identifyBlockAndCavityBase(cursor, stackedBlockTable, prefix=PREFIX_NAME):
     tempoAllCavityStacked = DataUtil.postfix("tempo_all_cavity_stacked_table")
 
     # Creates final table
-    stackedBlockPropTable = DataUtil.prefix("stacked_block_prop_table", prefix=prefix)
+    stackedBlockPropTable = DataUtil.prefix(
+        "stacked_block_prop_table", prefix=prefix
+    )
 
     # Identify each block base height and ratio of area between the stacked and its base block
     cursor.execute(
@@ -691,7 +697,9 @@ def updateUpwindFacadeBase(cursor, upwindTable, prefix=PREFIX_NAME):
 
     if not DEBUG:
         # Drop intermediate tables
-        cursor.execute("DROP TABLE IF EXISTS {0}".format(",".join([tempoUpwind])))
+        cursor.execute(
+            "DROP TABLE IF EXISTS {0}".format(",".join([tempoUpwind]))
+        )
 
     return updatedUpwindBaseTable
 

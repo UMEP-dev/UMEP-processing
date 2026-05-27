@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def shortwave_from_sky(sky, angle_of_incidence, lumChi, steradian, patch_azimuth, cyl):
+def shortwave_from_sky(
+    sky, angle_of_incidence, lumChi, steradian, patch_azimuth, cyl
+):
     """Calculates the amount of diffuse shortwave radiation from the sky for a patch with:
     angle of incidence = angle_of_incidence
     luminance = lumChi
@@ -69,10 +71,14 @@ def longwave_from_veg(
     vegetation_surface = (ewall * SBC * ((Ta + 273.15) ** 4)) / np.pi
 
     # Longwave radiation reaching a vertical surface
-    Lside_veg = vegetation_surface * steradian * angle_of_incidence * vegetation
+    Lside_veg = (
+        vegetation_surface * steradian * angle_of_incidence * vegetation
+    )
 
     # Longwave radiation reaching a horizontal surface
-    Ldown_veg = vegetation_surface * steradian * angle_of_incidence_h * vegetation
+    Ldown_veg = (
+        vegetation_surface * steradian * angle_of_incidence_h * vegetation
+    )
 
     #
     Least = 0
@@ -158,11 +164,19 @@ def longwave_from_buildings(
 
         # Calculate longwave radiation from sunlit walls to vertical surface
         Lside_sun = (
-            sunlit_surface * sunlit_patches * steradian * angle_of_incidence * building
+            sunlit_surface
+            * sunlit_patches
+            * steradian
+            * angle_of_incidence
+            * building
         )
         # Calculate longwave radiation from shaded walls to vertical surface
         Lside_sh = (
-            shaded_surface * shaded_patches * steradian * angle_of_incidence * building
+            shaded_surface
+            * shaded_patches
+            * steradian
+            * angle_of_incidence
+            * building
         )
 
         # Calculate longwave radiation from sunlit walls to horizontal surface
@@ -326,12 +340,18 @@ def reflected_longwave(
 
     # Reflected longwave radiation reaching vertical surfaces
     Lside_ref = (
-        reflected_radiation * steradian * angle_of_incidence * reflecting_surface
+        reflected_radiation
+        * steradian
+        * angle_of_incidence
+        * reflecting_surface
     )
 
     # Reflected longwave radiation reaching horizontal surfaces
     Ldown_ref = (
-        reflected_radiation * steradian * angle_of_incidence_h * reflecting_surface
+        reflected_radiation
+        * steradian
+        * angle_of_incidence_h
+        * reflecting_surface
     )
 
     #
@@ -394,13 +414,17 @@ def patch_steradians(L_patches):
     for i in range(patch_altitude.shape[0]):
         # If there are more than one patch in a band
         if skyalt_c[skyalt == patch_altitude[i]] > 1:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i] + patch_altitude[0]) * deg2rad)
                 - np.sin((patch_altitude[i] - patch_altitude[0]) * deg2rad)
             )
         # If there is only one patch in band, i.e. 90 degrees
         else:
-            steradian[i] = ((360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad) * (
+            steradian[i] = (
+                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+            ) * (
                 np.sin((patch_altitude[i]) * deg2rad)
                 - np.sin((patch_altitude[i - 1] + patch_altitude[0]) * deg2rad)
             )
@@ -439,22 +463,38 @@ def cardinal_shortwave(
     if (patch_azimuth > 360) or (patch_azimuth < 180):
         angle_of_incidence = np.cos(patch_altitude * deg2rad) * np.cos(
             (90 - patch_azimuth) * deg2rad
-        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(np.pi / 2)
-        Keast = radiation * steradian * angle_of_incidence * patch_type * sunshade
+        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(
+            np.pi / 2
+        )
+        Keast = (
+            radiation * steradian * angle_of_incidence * patch_type * sunshade
+        )
     if (patch_azimuth > 90) and (patch_azimuth < 270):
         angle_of_incidence = np.cos(patch_altitude * deg2rad) * np.cos(
             (180 - patch_azimuth) * deg2rad
-        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(np.pi / 2)
-        Ksouth = radiation * steradian * angle_of_incidence * patch_type * sunshade
+        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(
+            np.pi / 2
+        )
+        Ksouth = (
+            radiation * steradian * angle_of_incidence * patch_type * sunshade
+        )
     if (patch_azimuth > 180) and (patch_azimuth < 360):
         angle_of_incidence = np.cos(patch_altitude * deg2rad) * np.cos(
             (270 - patch_azimuth) * deg2rad
-        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(np.pi / 2)
-        Kwest = radiation * steradian * angle_of_incidence * patch_type * sunshade
+        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(
+            np.pi / 2
+        )
+        Kwest = (
+            radiation * steradian * angle_of_incidence * patch_type * sunshade
+        )
     if (patch_azimuth > 270) or (patch_azimuth < 90):
         angle_of_incidence = np.cos(patch_altitude * deg2rad) * np.cos(
             (0 - patch_azimuth) * deg2rad
-        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(np.pi / 2)
-        Knorth = radiation * steradian * angle_of_incidence * patch_type * sunshade
+        ) * np.sin(np.pi / 2) + np.sin(patch_altitude * deg2rad) * np.cos(
+            np.pi / 2
+        )
+        Knorth = (
+            radiation * steradian * angle_of_incidence * patch_type * sunshade
+        )
 
     return Keast, Ksouth, Kwest, Knorth

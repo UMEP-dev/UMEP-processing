@@ -182,7 +182,9 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ITERTIME,
-                self.tr("Time interval between casting of each shadow (minutes)"),
+                self.tr(
+                    "Time interval between casting of each shadow (minutes)"
+                ),
                 QgsProcessingParameterNumber.Type.Integer,
                 QVariant(30),
                 True,
@@ -205,7 +207,9 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output folder")
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder"
+            )
         )
         self.addParameter(
             QgsProcessingParameterRasterDestination(
@@ -218,19 +222,37 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        outputFile = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_FILE, context
+        )
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DSM, context
+        )
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-        whlayer = self.parameterAsRasterLayer(parameters, self.INPUT_HEIGHT, context)
-        walayer = self.parameterAsRasterLayer(parameters, self.INPUT_ASPECT, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
+        vegdsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_CDSM, context
+        )
+        vegdsm2 = self.parameterAsRasterLayer(
+            parameters, self.INPUT_TDSM, context
+        )
+        whlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_HEIGHT, context
+        )
+        walayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_ASPECT, context
+        )
+        trunkr = self.parameterAsDouble(
+            parameters, self.INPUT_THEIGHT, context
+        )
         utcpos = self.parameterAsString(parameters, self.UTC, context)
         dst = self.parameterAsBool(parameters, self.DST, context)
         myDate = self.parameterAsString(parameters, self.DATEINI, context)
-        oneShadow = self.parameterAsDouble(parameters, self.ONE_SHADOW, context)
+        oneShadow = self.parameterAsDouble(
+            parameters, self.ONE_SHADOW, context
+        )
         myTime = self.parameterAsString(parameters, self.TIMEINI, context)
         iterShadow = self.parameterAsDouble(parameters, self.ITERTIME, context)
 

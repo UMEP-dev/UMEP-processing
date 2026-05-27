@@ -188,17 +188,25 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         suewsNL = self.parameterAsString(parameters, self.SUEWS_NL, context)
         variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
-        startday = self.parameterAsString(parameters, self.DATEINISTART, context)
+        startday = self.parameterAsString(
+            parameters, self.DATEINISTART, context
+        )
         endday = self.parameterAsString(parameters, self.DATEINIEND, context)
         inputPolygonlayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
         irreg = self.parameterAsBool(parameters, self.IRREGULAR, context)
-        statTypeStr = self.parameterAsString(parameters, self.STAT_TYPE, context)
-        dayTypeStr = self.parameterAsString(parameters, self.TIME_OF_DAY, context)
+        statTypeStr = self.parameterAsString(
+            parameters, self.STAT_TYPE, context
+        )
+        dayTypeStr = self.parameterAsString(
+            parameters, self.TIME_OF_DAY, context
+        )
         pixelsize = self.parameterAsDouble(parameters, self.PIXELSIZE, context)
-        addAttributes = self.parameterAsBool(parameters, self.ADD_ATTRIBUTES, context)
+        addAttributes = self.parameterAsBool(
+            parameters, self.ADD_ATTRIBUTES, context
+        )
         outputStat = self.parameterAsOutputLayer(
             parameters, self.SUEWS_GRID_OUT, context
         )
@@ -227,12 +235,16 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 f"Selected year '{self.YYYY}' is not present in the data.\n Availible years are {str(years)}"
             )
 
-        self.id = int(variaIn)  # self.dlg.comboBox_SpatialVariable.currentIndex() - 1
+        self.id = int(
+            variaIn
+        )  # self.dlg.comboBox_SpatialVariable.currentIndex() - 1
 
         poly_field = idField
 
         if startday >= endday:
-            raise QgsProcessingException("Start date is greater or equal than end date")
+            raise QgsProcessingException(
+                "Start date is greater or equal than end date"
+            )
 
         # load, cut data and calculate statistics
         statvectemp = [0]
@@ -249,7 +261,9 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         else:
             polygonpath = path
 
-        grid_list = [feature[poly_field[0]] for feature in vlayer.getFeatures()]
+        grid_list = [
+            feature[poly_field[0]] for feature in vlayer.getFeatures()
+        ]
 
         for grid in grid_list:
 
@@ -291,7 +305,9 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 statresult = np.nanmedian(vardata)
                 suffix = "_median"
             if statTypeStr == "4":
-                statresult = np.nanpercentile(vardata, 75) - np.percentile(vardata, 25)
+                statresult = np.nanpercentile(vardata, 75) - np.percentile(
+                    vardata, 25
+                )
                 suffix = "_IQR"
             statvectemp = np.vstack((statvectemp, statresult))
             idvec = np.vstack((idvec, int(grid)))
@@ -325,10 +341,14 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
             resy = np.abs(geom[0][0][0][1] - geom[0][0][2][1])  # y
 
             if not resx == resy:
-                raise QgsProcessingException("Polygons not squared in current CRS")
+                raise QgsProcessingException(
+                    "Polygons not squared in current CRS"
+                )
                 return
 
-        if os.path.isfile(self.plugin_dir + "/tempgrid.tif"):  # response to issue 103
+        if os.path.isfile(
+            self.plugin_dir + "/tempgrid.tif"
+        ):  # response to issue 103
             try:
                 shutil.rmtree(self.plugin_dir + "/tempgrid.tif")
             except OSError:
@@ -417,7 +437,9 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         caps = vlayer.dataProvider().capabilities()
 
         if caps & QgsVectorDataProvider.Capability.AddAttributes:
-            vlayer.dataProvider().addAttributes([QgsField(header, QVariant.Double)])
+            vlayer.dataProvider().addAttributes(
+                [QgsField(header, QVariant.Double)]
+            )
             attr_dict = {}
             for y in range(0, matdata.shape[0]):
                 attr_dict.clear()

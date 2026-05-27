@@ -396,7 +396,11 @@ def solver(
         if eps < thresholdIterations:
             break
         else:
-            print("   eps = {0} >= {1}".format(np.round(eps, 6), thresholdIterations))
+            print(
+                "   eps = {0} >= {1}".format(
+                    np.round(eps, 6), thresholdIterations
+                )
+            )
             # Feedback to QGIS every 50 iterations
             if (N % 50 == 0) & (feedback is not None):
                 textToSend = """Iteration {0} (max {1}) - eps = {2} >= {3}
@@ -457,19 +461,25 @@ def solver(
         )
 
     # Reset input and output wind speed to zero for building cells
-    u[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    u[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     u[
         buildingCoordinates[0] + 1,
         buildingCoordinates[1],
         buildingCoordinates[2],
     ] = 0
-    v[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    v[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     v[
         buildingCoordinates[0],
         buildingCoordinates[1] + 1,
         buildingCoordinates[2],
     ] = 0
-    w[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    w[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     w[
         buildingCoordinates[0],
         buildingCoordinates[1],

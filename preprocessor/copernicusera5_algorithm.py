@@ -85,7 +85,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config):
         self.addParameter(
-            QgsProcessingParameterPoint(self.INPUT_POINT, self.tr("Point of interest"))
+            QgsProcessingParameterPoint(
+                self.INPUT_POINT, self.tr("Point of interest")
+            )
         )
         self.addParameter(
             QgsProcessingParameterCrs(
@@ -103,7 +105,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DIAG_HEIGHT,
-                self.tr("Height above ground level to diagnose forcing variables (m)"),
+                self.tr(
+                    "Height above ground level to diagnose forcing variables (m)"
+                ),
                 QgsProcessingParameterNumber.Type.Double,
                 QVariant(100),
                 minValue=2,
@@ -128,12 +132,20 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
             )
 
         # InputParameters
-        inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
+        inputPoint = self.parameterAsPoint(
+            parameters, self.INPUT_POINT, context
+        )
         inputCRS = self.parameterAsCrs(parameters, self.CRS, context)
-        startDate = self.parameterAsString(parameters, self.DATEINISTART, context)
+        startDate = self.parameterAsString(
+            parameters, self.DATEINISTART, context
+        )
         endDate = self.parameterAsString(parameters, self.DATEINIEND, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        diagHeight = self.parameterAsDouble(parameters, self.DIAG_HEIGHT, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        diagHeight = self.parameterAsDouble(
+            parameters, self.DIAG_HEIGHT, context
+        )
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -164,7 +176,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
         transform = osr.CoordinateTransformation(old_cs, new_cs)
 
-        latlon = ogr.CreateGeometryFromWkt("POINT (" + str(x) + " " + str(y) + ")")
+        latlon = ogr.CreateGeometryFromWkt(
+            "POINT (" + str(x) + " " + str(y) + ")"
+        )
         latlon.Transform(transform)
 
         gdalver = float(gdal.__version__[0])
@@ -185,7 +199,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Output folder = " + str(outputDir))
 
         if startDate >= endDate:
-            raise QgsProcessingException("Start date is greater or equal than end date")
+            raise QgsProcessingException(
+                "Start date is greater or equal than end date"
+            )
 
         logger_sp = logging.getLogger("SuPy")
         logger_sp.disabled = True

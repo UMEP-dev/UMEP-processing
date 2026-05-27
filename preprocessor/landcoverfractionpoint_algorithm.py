@@ -116,18 +116,24 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_LCGRID,
-                self.tr("UMEP formatted land cover grid (see help for more info)"),
+                self.tr(
+                    "UMEP formatted land cover grid (see help for more info)"
+                ),
                 None,
                 False,
             )
         )
         self.addParameter(
-            QgsProcessingParameterString(self.FILE_PREFIX, self.tr("File prefix"))
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File prefix")
+            )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.TARGET_LC,
-                self.tr("Calculate fractions for TARGET (9 classes instead of 7)"),
+                self.tr(
+                    "Calculate fractions for TARGET (9 classes instead of 7)"
+                ),
                 defaultValue=False,
             )
         )
@@ -163,12 +169,22 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         inputPointLayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POINTLAYER, context
         )
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
-        lclayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
-        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
+        inputDistance = self.parameterAsDouble(
+            parameters, self.INPUT_DISTANCE, context
+        )
+        inputInterval = self.parameterAsDouble(
+            parameters, self.INPUT_INTERVAL, context
+        )
+        lclayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_LCGRID, context
+        )
+        filePrefix = self.parameterAsString(
+            parameters, self.FILE_PREFIX, context
+        )
         useTarget = self.parameterAsBool(parameters, self.TARGET_LC, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
         outputPolygon = self.parameterAsOutputLayer(
             parameters, self.OUTPUT_POLYGON, context
         )
@@ -181,7 +197,9 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         # Get POI
         if inputPointLayer is None:
             feedback.setProgressText("Point location obtained manually")
-            inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
+            inputPoint = self.parameterAsPoint(
+                parameters, self.INPUT_POINT, context
+            )
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
@@ -220,7 +238,9 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
         filePath_lcgrid = str(provider.dataSourceUri())
         bigraster = gdal.Open(filePath_lcgrid)
         bbox = (x - r, y + r, x + r, y - r)
-        gdal.Translate(self.plugin_dir + "/data/clipdsm.tif", bigraster, projWin=bbox)
+        gdal.Translate(
+            self.plugin_dir + "/data/clipdsm.tif", bigraster, projWin=bbox
+        )
         bigraster = None
         dataset = gdal.Open(self.plugin_dir + "/data/clipdsm.tif")
         lcgrid = dataset.ReadAsArray().astype(float)
@@ -243,17 +263,19 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
                 + " m) from point of interest. Extend your raster(s) or more point."
             )
         else:
-            landcoverresult = land.landcover_v2(lcgrid, 1, degree, feedback, 1, iter)
+            landcoverresult = land.landcover_v2(
+                lcgrid, 1, degree, feedback, 1, iter
+            )
 
         ## save to file ##
         # anisotropic
         if useTarget:
             header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
-            numformat = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
-        else:
-            header = (
-                "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
+            numformat = (
+                "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
             )
+        else:
+            header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
             numformat = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
 
         arr = np.concatenate(
@@ -273,9 +295,7 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
             header = "Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
             numformat = "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
         else:
-            header = (
-                "Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
-            )
+            header = "Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
             numformat = "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
 
         arr2 = np.array(landcoverresult["lc_frac_all"])
@@ -308,7 +328,8 @@ class ProcessingLandCoverFractionPointAlgorithm(QgsProcessingAlgorithm):
 
     def create_point_layer(self, outputPoint, x, y, crs):
         uri = (
-            "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs=" + crs
+            "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs="
+            + crs
         )
         self.poiLayer = QgsVectorLayer(uri, "Point of Interest", "memory")
         self.provider = self.poiLayer.dataProvider()

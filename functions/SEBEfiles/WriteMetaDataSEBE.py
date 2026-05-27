@@ -38,15 +38,21 @@ def writeRunInfo(
         file.write("\n")
         file.write("Digital surface model (DSM): " + filepath_dsm)
         file.write("\n")
-        file.write("Model domain: rows = " + str(rows) + ", columns = " + str(cols))
+        file.write(
+            "Model domain: rows = " + str(rows) + ", columns = " + str(cols)
+        )
         file.write("\n")
         # get CRS
         prj = gdal_dsm.GetProjection()
         srs = osr.SpatialReference(wkt=prj)
         if srs.IsProjected:
-            file.write("Projected referece system: " + srs.GetAttrValue("projcs"))
+            file.write(
+                "Projected referece system: " + srs.GetAttrValue("projcs")
+            )
         file.write("\n")
-        file.write("Geographical coordinate system: " + srs.GetAttrValue("geogcs"))
+        file.write(
+            "Geographical coordinate system: " + srs.GetAttrValue("geogcs")
+        )
         file.write("\n")
         file.write("Latitude: " + str(lat))
         file.write("\n")
@@ -55,19 +61,26 @@ def writeRunInfo(
         file.write("UTC: " + str(UTC))
         file.write("\n")
         if usevegdem == 1:
-            file.write("Transmissivity of light through vegetation: " + str(trans))
+            file.write(
+                "Transmissivity of light through vegetation: " + str(trans)
+            )
             file.write("\n")
-            file.write("Digital vegetation canopy model (CDSM): " + filePath_cdsm)
+            file.write(
+                "Digital vegetation canopy model (CDSM): " + filePath_cdsm
+            )
             file.write("\n")
             if trunkfile == 1:
                 file.write(
-                    "Digital vegetation zrunk zone model (TDSM): " + filePath_tdsm
+                    "Digital vegetation zrunk zone model (TDSM): "
+                    + filePath_tdsm
                 )
                 file.write("\n")
             else:
                 file.write("Trunkzone estimated from CDSM")
                 file.write("\n")
-                file.write("Trunkzone as percent of canopy height: " + str(trunkratio))
+                file.write(
+                    "Trunkzone as percent of canopy height: " + str(trunkratio)
+                )
                 file.write("\n")
         else:
             file.write("Vegetation scheme inactive")

@@ -155,7 +155,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             defaultValue=False,
         )
         wall_scheme.setFlags(
-            wall_scheme.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wall_scheme.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(wall_scheme)
 
@@ -165,13 +166,16 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             defaultValue=True,
         )
         wall_kmeans.setFlags(
-            wall_kmeans.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wall_kmeans.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(wall_kmeans)
 
         wall_clusters = QgsProcessingParameterNumber(
             self.CLUSTERS,
-            self.tr("Number of clusters used in K-Means (number of elevations)"),
+            self.tr(
+                "Number of clusters used in K-Means (number of elevations)"
+            ),
             QgsProcessingParameterNumber.Type.Integer,
             QVariant(5),
             True,
@@ -179,7 +183,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             maxValue=100,
         )
         wall_clusters.setFlags(
-            wall_clusters.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wall_clusters.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(wall_clusters)
 
@@ -192,7 +197,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             True,
         )
         wall_dem.setFlags(
-            wall_dem.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wall_dem.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(wall_dem)
 
@@ -208,7 +214,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             maxValue=10,
         )
         wall_svfheight.setFlags(
-            wall_svfheight.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wall_svfheight.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(wall_svfheight)
 
@@ -229,21 +236,37 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        outputFile = self.parameterAsOutputLayer(parameters, self.OUTPUT_FILE, context)
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
+        outputFile = self.parameterAsOutputLayer(
+            parameters, self.OUTPUT_FILE, context
+        )
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DSM, context
+        )
         # useVegdem = self.parameterAsBool(parameters, self.USE_VEG, context)
         transVeg = self.parameterAsDouble(parameters, self.TRANS_VEG, context)
-        vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-        vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
+        vegdsm = self.parameterAsRasterLayer(
+            parameters, self.INPUT_CDSM, context
+        )
+        vegdsm2 = self.parameterAsRasterLayer(
+            parameters, self.INPUT_TDSM, context
+        )
         # tdsmExists = self.parameterAsBool(parameters, self.TSDM_EXIST, context)
-        trunkr = self.parameterAsDouble(parameters, self.INPUT_THEIGHT, context)
+        trunkr = self.parameterAsDouble(
+            parameters, self.INPUT_THEIGHT, context
+        )
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
         use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         # Wall parameterization settings
-        demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
-        svf_height = self.parameterAsDouble(parameters, self.INPUT_SVFHEIGHT, context)
+        demlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_DEM, context
+        )
+        svf_height = self.parameterAsDouble(
+            parameters, self.INPUT_SVFHEIGHT, context
+        )
 
         kmeans = self.parameterAsBool(
             parameters, self.KMEANS, context
@@ -251,7 +274,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         clusters = (
             self.parameterAsInt(parameters, self.CLUSTERS, context) + 1
         )  # + 1 because ground areas will be one cluster when dsm - dem
-        wallScheme = self.parameterAsBool(parameters, self.WALL_SCHEME, context)
+        wallScheme = self.parameterAsBool(
+            parameters, self.WALL_SCHEME, context
+        )
 
         feedback.setProgressText("Initiating algorithm")
 
@@ -378,7 +403,13 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             with torch.no_grad():
 
                 ret = svf.svfForProcessing655(
-                    dsm, vegdsm, vegdsm2, scale, usevegdem, feedback, device=device
+                    dsm,
+                    vegdsm,
+                    vegdsm2,
+                    scale,
+                    usevegdem,
+                    feedback,
+                    device=device,
                 )
 
         # print('Time to finish first SVF calculation = ' + str(run_time))
@@ -400,7 +431,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
             # Lägg till loop för att lägga till i tabellen
             svf_array = torch.zeros((voxelTable.shape[0]), device=device)
-            svf_height_array = torch.zeros((voxelTable.shape[0]), device=device)
+            svf_height_array = torch.zeros(
+                (voxelTable.shape[0]), device=device
+            )
             svfbu_array = torch.zeros((voxelTable.shape[0]), device=device)
             svfveg_array = torch.zeros((voxelTable.shape[0]), device=device)
             svfaveg_array = torch.zeros((voxelTable.shape[0]), device=device)
@@ -646,7 +679,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 trans = transVeg / 100.0
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
-            misc.saveraster(gdal_dsm, filename, svftotal.cpu().detach().numpy())
+            misc.saveraster(
+                gdal_dsm, filename, svftotal.cpu().detach().numpy()
+            )
 
             # Save shadow images for SOLWEIG 2019a
             if aniso == 1:
@@ -677,7 +712,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     voxelTable=voxelTable.cpu().detach().numpy(),
                 )
 
-        feedback.setProgressText("Sky View Factor: SVF grid(s) successfully generated")
+        feedback.setProgressText(
+            "Sky View Factor: SVF grid(s) successfully generated"
+        )
 
         return {self.OUTPUT_DIR: outputDir, self.OUTPUT_FILE: outputFile}
 

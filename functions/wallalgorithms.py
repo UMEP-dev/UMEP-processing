@@ -19,7 +19,9 @@ def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
         dsm_tensor = torch.tensor(arr_dsm, device=device)
 
     if footprint is None or footprint is False:
-        footprint = torch.tensor([[0, 1, 0], [1, 1, 1], [0, 1, 0]], device=device)
+        footprint = torch.tensor(
+            [[0, 1, 0], [1, 1, 1], [0, 1, 0]], device=device
+        )
     else:
         footprint = footprint.to(device=device)
 
@@ -27,7 +29,9 @@ def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
     pad_h, pad_w = fh // 2, fw // 2
 
     padded_a = dsm_tensor.unsqueeze(0).unsqueeze(0)
-    padded_a = F.pad(padded_a, pad=(pad_w, pad_w, pad_h, pad_h), mode="replicate")
+    padded_a = F.pad(
+        padded_a, pad=(pad_w, pad_w, pad_h, pad_h), mode="replicate"
+    )
     padded_a = padded_a.squeeze(0).squeeze(0)
 
     max_neighbors = torch.full_like(dsm_tensor, float("-inf"))
@@ -69,7 +73,9 @@ def findwalls(a, walllimit, feedback, total):
             break
         for j in torch.arange(1, col - 1):
             dom = a[j - 1 : j + 2, i - 1 : i + 2]
-            walls[j, i] = torch.max(dom[torch.where(domain == 1)])  # new 20171006
+            walls[j, i] = torch.max(
+                dom[torch.where(domain == 1)]
+            )  # new 20171006
             index = index + 1
             feedback.setProgress(int(index * total))
 
@@ -139,7 +145,9 @@ def filter1Goodwin_as_aspect_v3(
             filtmatrixbuildtemp = sc.rotate(
                 buildfilt.numpy(), h, order=0, reshape=False, mode="nearest"
             )
-            filtmatrixbuild = torch.round(torch.from_numpy(filtmatrixbuildtemp))
+            filtmatrixbuild = torch.round(
+                torch.from_numpy(filtmatrixbuildtemp)
+            )
 
             index = 270 - h
             if h in (150, 30):
@@ -233,7 +241,9 @@ def filter1Goodwin_as_aspect_v3(
                 k_dsm2 = all_kernels_dsm2[idx:end_idx].to(device)
 
                 # Notice: padding=0 because we manually padded our spatial tiles!
-                walls_conv = F.conv2d(tile_walls, k_walls, padding=0).squeeze(0)
+                walls_conv = F.conv2d(tile_walls, k_walls, padding=0).squeeze(
+                    0
+                )
                 dsm_conv1 = F.conv2d(tile_a, k_dsm1, padding=0).squeeze(0)
                 dsm_conv2 = F.conv2d(tile_a, k_dsm2, padding=0).squeeze(0)
 
@@ -297,10 +307,12 @@ def filter1Goodwin_as_aspect_v3(
             tile_x = torch.where(dsm_best1 > dsm_best2, 1, 2)
 
             valid_tile_y = tile_y[
-                pad_top : tile_rows - pad_bottom, pad_left : tile_cols - pad_right
+                pad_top : tile_rows - pad_bottom,
+                pad_left : tile_cols - pad_right,
             ]
             valid_tile_x = tile_x[
-                pad_top : tile_rows - pad_bottom, pad_left : tile_cols - pad_right
+                pad_top : tile_rows - pad_bottom,
+                pad_left : tile_cols - pad_right,
             ]
 
             # Write back cleanly into the global array without overlap seams
@@ -310,7 +322,9 @@ def filter1Goodwin_as_aspect_v3(
             # Progress handling
             tile_count += 1
             if feedback is not None:
-                feedback.setProgress(int((tile_count / total_tiles) * total * 0.9))
+                feedback.setProgress(
+                    int((tile_count / total_tiles) * total * 0.9)
+                )
 
     # 6. Global Post-processing calculations
     border_mask = torch.zeros((row, col), dtype=torch.bool, device=device)

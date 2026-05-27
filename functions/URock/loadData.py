@@ -75,7 +75,9 @@ def loadData(
         inputDataRel["cadTriangles"] = os.path.join(
             inputDirectory, prefix, inputGeometries["cadTriangles"]
         )
-        inputDataAbs["cadTriangles"] = os.path.abspath(inputDataRel["cadTriangles"])
+        inputDataAbs["cadTriangles"] = os.path.abspath(
+            inputDataRel["cadTriangles"]
+        )
 
         # Load CAD triangles into H2GIS DB
         loadFile(
@@ -178,7 +180,9 @@ def loadData(
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
-                    """.format(buildTablePreSrid, buildingHeightField, HEIGHT_FIELD)
+                    """.format(
+                    buildTablePreSrid, buildingHeightField, HEIGHT_FIELD
+                )
 
         else:
             importQuery += """ DROP TABLE IF EXISTS {0};
@@ -212,7 +216,10 @@ def loadData(
                 idVegetation = ID_VEGETATION
             # Create an attenuation attribute with default 'DEFAULT_VEG_ATTEN_FACT'
             # if no column
-            if vegetationAttenuationFactor is None or vegetationAttenuationFactor == "":
+            if (
+                vegetationAttenuationFactor is None
+                or vegetationAttenuationFactor == ""
+            ):
                 cursor.execute(
                     safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
@@ -242,7 +249,10 @@ def loadData(
                 vegetationBaseHeight = VEGETATION_CROWN_BASE_HEIGHT
 
             # Load vegetation data and rename fields to generic names
-            if vegetationBaseHeight.upper() != VEGETATION_CROWN_BASE_HEIGHT.upper():
+            if (
+                vegetationBaseHeight.upper()
+                != VEGETATION_CROWN_BASE_HEIGHT.upper()
+            ):
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
@@ -251,7 +261,10 @@ def loadData(
                     vegetationBaseHeight,
                     VEGETATION_CROWN_BASE_HEIGHT,
                 )
-            if vegetationTopHeight.upper() != VEGETATION_CROWN_TOP_HEIGHT.upper():
+            if (
+                vegetationTopHeight.upper()
+                != VEGETATION_CROWN_TOP_HEIGHT.upper()
+            ):
                 importQuery += """
                     ALTER TABLE {0} DROP COLUMN IF EXISTS {2};
                     ALTER TABLE {0} RENAME COLUMN {1} TO {2};
@@ -580,13 +593,17 @@ def fromShp3dTo2_5(
 
     else:
         # Convert building triangles to to 2.5D polygons
-        cursor.execute(safe("""
+        cursor.execute(
+            safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0} 
                 AS SELECT   ID, ST_FORCE2D({1}) AS {1}, 
                             CAST(ST_ZMAX({1}) AS INT) AS {2}
                 FROM    {3}
-                """).format(buildings2d, GEOM_FIELD, HEIGHT_FIELD, trianglesWithId))
+                """).format(
+                buildings2d, GEOM_FIELD, HEIGHT_FIELD, trianglesWithId
+            )
+        )
 
     # Identify unique building triangles keeping only the highest one whenever
     # 2 triangles are superimposed

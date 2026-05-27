@@ -48,7 +48,8 @@ def sunonsurface_2018a(
         Tg[lc_grid == 3] = Twater - Ta  # Setting water temperature
 
     Lwall = (
-        SBC * ewall * (Tgwall + Ta + 273.15) ** 4 - SBC * ewall * (Ta + 273.15) ** 4
+        SBC * ewall * (Tgwall + Ta + 273.15) ** 4
+        - SBC * ewall * (Ta + 273.15) ** 4
     )  # +Ta
     albshadow = alb_grid * shadow
     alb = alb_grid
@@ -169,7 +170,9 @@ def sunonsurface_2018a(
 
             weightsumalbwall_first = weightsumalbwall / ind  # *albedo_b
             weightsumalbsh_first = weightsumalbsh / ind
-            weightsumalbwallnosh_first = weightsumalbwallnosh / ind  # *albedo_b
+            weightsumalbwallnosh_first = (
+                weightsumalbwallnosh / ind
+            )  # *albedo_b
             weightsumalbnosh_first = weightsumalbnosh / ind
             wallinfluence_first = weightsumalbwallnosh_first > 0
             #         gvf1=(weightsumwall+weightsumsh)/first;
@@ -197,7 +200,9 @@ def sunonsurface_2018a(
         )  # (SHADOW)    # check for the -1
     elif azilow > 0 and azihigh >= 2 * np.pi:  # 270 to 360
         azihigh = azihigh - 2 * np.pi
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1  # (SHADOW)
+        facesh = (
+            np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1
+        )  # (SHADOW)
 
     # removing walls in self shadoing
     keep = (weightsumwall == second) - facesh
@@ -210,9 +215,11 @@ def sunonsurface_2018a(
         wallsuninfluence_first * -1 + 1
     )
     weightsumwall[keep == 1] = 0
-    gvf2 = ((weightsumwall + weightsumsh) / (second + 1)) * wallsuninfluence_second + (
-        weightsumsh
-    ) / (second) * (wallsuninfluence_second * -1 + 1)
+    gvf2 = (
+        (weightsumwall + weightsumsh) / (second + 1)
+    ) * wallsuninfluence_second + (weightsumsh) / (second) * (
+        wallsuninfluence_second * -1 + 1
+    )
 
     gvf2[gvf2 > 1.0] = 1.0
 

@@ -145,13 +145,25 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
 
         # InputParameters
-        solweigDir = self.parameterAsString(parameters, self.SOLWEIG_DIR, context)
+        solweigDir = self.parameterAsString(
+            parameters, self.SOLWEIG_DIR, context
+        )
         variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
-        buildings = self.parameterAsRasterLayer(parameters, self.BUILDINGS, context)
-        statTypeStr = self.parameterAsString(parameters, self.STAT_TYPE, context)
-        thresTypeStr = self.parameterAsString(parameters, self.THRES_TYPE, context)
-        thresNum = self.parameterAsDouble(parameters, self.TMRT_THRES_NUM, context)
-        outputStat = self.parameterAsOutputLayer(parameters, self.STAT_OUT, context)
+        buildings = self.parameterAsRasterLayer(
+            parameters, self.BUILDINGS, context
+        )
+        statTypeStr = self.parameterAsString(
+            parameters, self.STAT_TYPE, context
+        )
+        thresTypeStr = self.parameterAsString(
+            parameters, self.THRES_TYPE, context
+        )
+        thresNum = self.parameterAsDouble(
+            parameters, self.TMRT_THRES_NUM, context
+        )
+        outputStat = self.parameterAsOutputLayer(
+            parameters, self.STAT_OUT, context
+        )
         outputTMRT = None
 
         feedback.setProgressText("Initializing...")
@@ -220,7 +232,9 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # Diurnal mean
         if statType == 0:
-            feedback.setProgressText("Calculating " + self.var + " diurnal mean.")
+            feedback.setProgressText(
+                "Calculating " + self.var + " diurnal mean."
+            )
             index = 0
             for i in self.posAll:
                 gdal_dsm = gdal.Open(solweigDir + "/" + self.l[i])
@@ -241,7 +255,9 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # Daytime mean
         if statType == 1:
-            feedback.setProgressText("Calculating " + self.var + " daytime mean.")
+            feedback.setProgressText(
+                "Calculating " + self.var + " daytime mean."
+            )
             index = 0
             for i in self.posDay:
                 gdal_dsm = gdal.Open(solweigDir + "/" + self.l[i])
@@ -262,7 +278,9 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
 
         # Nighttime mean
         if statType == 2:
-            feedback.setProgressText("Calculating " + self.var + " nighttime mean.")
+            feedback.setProgressText(
+                "Calculating " + self.var + " nighttime mean."
+            )
             index = 0
             for i in self.posNight:
                 gdal_dsm = gdal.Open(solweigDir + "/" + self.l[i])
@@ -389,7 +407,9 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # Tmrt threshold above
         if thresType == 1:
             feedback.setProgressText(
-                "Calculating Tmrt percent time above " + str(thresNum) + " degC."
+                "Calculating Tmrt percent time above "
+                + str(thresNum)
+                + " degC."
             )
             outputTMRT = self.parameterAsOutputLayer(
                 parameters, self.TMRT_STAT_OUT, context
@@ -417,7 +437,9 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # Tmrt threshold below
         if thresType == 2:
             feedback.setProgressText(
-                "Calculating Tmrt percent time below " + str(thresNum) + " degC."
+                "Calculating Tmrt percent time below "
+                + str(thresNum)
+                + " degC."
             )
             outputTMRT = self.parameterAsOutputLayer(
                 parameters, self.TMRT_STAT_OUT, context

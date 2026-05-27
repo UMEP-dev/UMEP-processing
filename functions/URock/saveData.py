@@ -165,7 +165,9 @@ def saveBasicOutputs(
         df = pd.DataFrame(
             {
                 HORIZ_WIND_SPEED: ((ufin**2 + vfin**2) ** 0.5).flatten("F"),
-                WIND_SPEED: (((ufin**2 + vfin**2 + wfin**2) ** 0.5).flatten("F")),
+                WIND_SPEED: (
+                    ((ufin**2 + vfin**2 + wfin**2) ** 0.5).flatten("F")
+                ),
                 HORIZ_WIND_DIRECTION: (
                     radToDeg(windDirectionFromXY(ufin, vfin)).flatten("F")
                 ),
@@ -191,8 +193,12 @@ def saveBasicOutputs(
                 LEFT JOIN {9} AS b
                 ON a.{3} = b.{3}
             """).format(
-                createIndex(tableName=gridName, fieldName=ID_POINT, isSpatial=False),
-                createIndex(tableName=tempoTable, fieldName=ID_POINT, isSpatial=False),
+                createIndex(
+                    tableName=gridName, fieldName=ID_POINT, isSpatial=False
+                ),
+                createIndex(
+                    tableName=tempoTable, fieldName=ID_POINT, isSpatial=False
+                ),
                 horizOutputUrock[z_i],
                 ID_POINT,
                 GEOM_FIELD,
@@ -220,7 +226,8 @@ def saveBasicOutputs(
                 tableName=horizOutputUrock[z_i],
                 filedir=os.path.join(
                     outputDir_zi,
-                    prefix(outputFilename, prefix_name) + OUTPUT_VECTOR_EXTENSION,
+                    prefix(outputFilename, prefix_name)
+                    + OUTPUT_VECTOR_EXTENSION,
                 ),
                 delete=DELETE_OUTPUT_IF_EXISTS,
             )
@@ -314,9 +321,15 @@ def saveToNetCDF(
     z = wind3dGrp.createVariable(Z, "f4", "z")
     lon = wind3dGrp.createVariable(LON, "f8", ("rlon", "rlat"))
     lat = wind3dGrp.createVariable(LAT, "f8", ("rlon", "rlat"))
-    windSpeed_x = wind3dGrp.createVariable(WINDSPEED_X, "f4", ("rlon", "rlat", "z"))
-    windSpeed_y = wind3dGrp.createVariable(WINDSPEED_Y, "f4", ("rlon", "rlat", "z"))
-    windSpeed_z = wind3dGrp.createVariable(WINDSPEED_Z, "f4", ("rlon", "rlat", "z"))
+    windSpeed_x = wind3dGrp.createVariable(
+        WINDSPEED_X, "f4", ("rlon", "rlat", "z")
+    )
+    windSpeed_y = wind3dGrp.createVariable(
+        WINDSPEED_Y, "f4", ("rlon", "rlat", "z")
+    )
+    windSpeed_z = wind3dGrp.createVariable(
+        WINDSPEED_Z, "f4", ("rlon", "rlat", "z")
+    )
 
     # Fill the variables
     rlon[:] = x
@@ -444,7 +457,9 @@ def saveTable(
         output_filedir = filedir
     # Write files
     cursor.execute(
-        safe("""CALL {0}('{1}','{2}')""").format(h2_function, output_filedir, tableName)
+        safe("""CALL {0}('{1}','{2}')""").format(
+            h2_function, output_filedir, tableName
+        )
     )
     return output_filedir
 
@@ -495,9 +510,11 @@ def saveRasterFile(
     # Define output path name
     outputFilePathAndNameBaseRaster = outputFilePathAndNameBase + var2save
     # If delete = False, add a suffix to the filename
-    if (os.path.isfile(outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION)) and (
-        not DELETE_OUTPUT_IF_EXISTS
-    ):
+    if (
+        os.path.isfile(
+            outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+        )
+    ) and (not DELETE_OUTPUT_IF_EXISTS):
         outputFilePathAndNameBaseRaster = renameFileIfExists(
             filedir=outputFilePathAndNameBaseRaster,
             extension=OUTPUT_RASTER_EXTENSION,
@@ -516,7 +533,9 @@ def saveRasterFile(
         ymax = outputRasterExtent.yMaximum()
         xmax = outputRasterExtent.xMaximum()
         ymin = outputRasterExtent.yMinimum()
-        tmp_file = os.path.join(tmp_dir, f"interp_before_fillna_{var2save}.tif")
+        tmp_file = os.path.join(
+            tmp_dir, f"interp_before_fillna_{var2save}.tif"
+        )
         # If a single output raster cell contains more than 4 points, average instead of interpolate
         if resX * resY > 4 * meshSize**2:
             Grid(
@@ -528,7 +547,9 @@ def saveRasterFile(
                     width=outputRaster.width(),
                     height=outputRaster.height(),
                     outputBounds=[xmin, ymax, xmax, ymin],
-                    algorithm="average:radius1={0}:radius2={0}".format(1.1 * meshSize),
+                    algorithm="average:radius1={0}:radius2={0}".format(
+                        1.1 * meshSize
+                    ),
                 ),
             )
         else:
@@ -536,7 +557,9 @@ def saveRasterFile(
             interp_vec_to_rast(
                 outputVectorFile=outputVectorFile,
                 stacked_blocks=stacked_blocks,
-                outputFilePathAndNameBaseRaster=".".join(tmp_file.split(".")[0:-1]),
+                outputFilePathAndNameBaseRaster=".".join(
+                    tmp_file.split(".")[0:-1]
+                ),
                 extent=f"{xmin},{xmax},{ymin},{ymax} [EPSG:{srid}]",
                 resX=resX,
                 resY=resY,
@@ -788,12 +811,16 @@ def interp_vec_to_rast(
                 "RTYPE": 5,
                 "OPTIONS": "",
                 "EXTRA": "",
-                "OUTPUT": (outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION),
+                "OUTPUT": (
+                    outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+                ),
             },
         )["OUTPUT"]
     # Else directly save the result of the interpolation
     else:
-        output_file_path = outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+        output_file_path = (
+            outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+        )
         shutil.copy2(src=interp_out, dst=output_file_path)
 
     return output_file_path
@@ -852,7 +879,9 @@ def saveRockleZones(
                 GEOM_FIELD,
                 gridPoint,
                 dicOfBuildZoneGridPoint[t],
-                createIndex(tableName=gridPoint, fieldName=ID_POINT, isSpatial=False),
+                createIndex(
+                    tableName=gridPoint, fieldName=ID_POINT, isSpatial=False
+                ),
                 createIndex(
                     tableName=dicOfBuildZoneGridPoint[t],
                     fieldName=ID_POINT,
@@ -863,7 +892,9 @@ def saveRockleZones(
         saveTable(
             cursor=cursor,
             tableName="point_Buildzone_" + t,
-            filedir=os.path.join(outputDataAbs["point_2DRockleZone"], t + ".geojson"),
+            filedir=os.path.join(
+                outputDataAbs["point_2DRockleZone"], t + ".geojson"
+            ),
             delete=True,
             rotationCenterCoordinates=rotationCenterCoordinates,
             rotateAngle=-windDirection,
@@ -874,7 +905,9 @@ def saveRockleZones(
         saveTable(
             cursor=cursor,
             tableName=dicOfVegZoneGridPoint[t],
-            filedir=os.path.join(outputDataAbs["point_2DRockleZone"], t + ".geojson"),
+            filedir=os.path.join(
+                outputDataAbs["point_2DRockleZone"], t + ".geojson"
+            ),
             delete=True,
             rotationCenterCoordinates=rotationCenterCoordinates,
             rotateAngle=-windDirection,

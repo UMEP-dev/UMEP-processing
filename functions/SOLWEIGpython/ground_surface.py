@@ -35,7 +35,9 @@ def saturated_vp(T):
     return slope, qs
 
 
-def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device):
+def initiate_groundScheme(
+    lc_grid, solweig_parameters, day, Ta, location, device
+):
     """
     Setup the maps used in the ground scheme calculations depending on the landcover
 
@@ -72,9 +74,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
         cap_grid[cap_grid == i] = solweig_parameters["Heat capacity"]["Value"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ]
-        diff_grid[diff_grid == i] = solweig_parameters["Thermal_diffusivity"]["Value"][
-            solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ]
+        diff_grid[diff_grid == i] = solweig_parameters["Thermal_diffusivity"][
+            "Value"
+        ][solweig_parameters["Names"]["Value"][str((int(i.item())))]]
 
         # Coefficients of the OHM per land cover
         mean_a1 = solweig_parameters["OHM_coefficients"]["Values"][
@@ -89,12 +91,12 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
             * torch.sin(2 * torch.pi / 365.25 * day + phi_a1)
             * torch.sign(torch.tensor(location["latitude"], device=device))
         )
-        a2_grid[a2_grid == i] = solweig_parameters["OHM_coefficients"]["Values"][
-            solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ][2]
-        a3_grid[a3_grid == i] = solweig_parameters["OHM_coefficients"]["Values"][
-            solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ][3]
+        a2_grid[a2_grid == i] = solweig_parameters["OHM_coefficients"][
+            "Values"
+        ][solweig_parameters["Names"]["Value"][str((int(i.item())))]][2]
+        a3_grid[a3_grid == i] = solweig_parameters["OHM_coefficients"][
+            "Values"
+        ][solweig_parameters["Names"]["Value"][str((int(i.item())))]][3]
 
         # Initial ground surface temperature parameters
         offset_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
@@ -128,7 +130,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 4
             )
@@ -151,7 +155,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 4
             )
@@ -184,7 +190,9 @@ def initiate_groundScheme(lc_grid, solweig_parameters, day, Ta, location, device
                     + 1
                     / ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
-                    * torch.sign(torch.tensor(location["latitude"], device=device))
+                    * torch.sign(
+                        torch.tensor(location["latitude"], device=device)
+                    )
                 )
                 + 2
             )
@@ -283,7 +291,9 @@ def surfaceTemperature_calc(
     )  # Temporary outgoing longwave rad (W.m-2)
     Rn_temp = Kdown * (1 - alb) + Ldown - Lup_temp  # Temporary net rad (W.m-2)
     RnStar_temp = (Rn_temp - Rn) / 1  # Temporary radiation rate (W.m-2.h-1)
-    G_temp = a1 * Rn_temp + a2 * RnStar_temp + a3  # Temporary ground heat flux (W.m-2)
+    G_temp = (
+        a1 * Rn_temp + a2 * RnStar_temp + a3
+    )  # Temporary ground heat flux (W.m-2)
 
     # Damping of the ground heat flux if it increases (or drops) too quickly
     deltaG = abs(G_temp - G)
@@ -309,7 +319,9 @@ def surfaceTemperature_calc(
 
     # Damping of the ground heat flux if it increases (or decreases) too quickly
     deltaG = abs(G - G_past)
-    radCriterion = abs(a1 * (Rn - Rn_past))  # Criterion regarding the radiation step
+    radCriterion = abs(
+        a1 * (Rn - Rn_past)
+    )  # Criterion regarding the radiation step
     mask = torch.logical_and(
         deltaG > radCriterion, abs(shadow - shadow_past) > 0.5
     )  # Grid of the pixels where the ground heat flux spikes
@@ -323,7 +335,10 @@ def surfaceTemperature_calc(
     Rn_water = (
         Kdown
         * (1 - alb)
-        * (beta + (1 - beta) * (1 - torch.exp(torch.tensor(-1, device=Tg.device))))
+        * (
+            beta
+            + (1 - beta) * (1 - torch.exp(torch.tensor(-1, device=Tg.device)))
+        )
         + Ldown
         - Lup
     )  # Net radiation for the top water layer beta described the transmitted rad
@@ -331,7 +346,10 @@ def surfaceTemperature_calc(
     E = 0.0858 * (es / 1000) * (1 - RH / 100) / 3600 / 1000 * rho * lamb
     deltaTg = torch.clone(lc_grid)
     deltaTg = (
-        timestep / cap / thickness * (Rn_water - E - diff * cap / thickness * (Tg - Tm))
+        timestep
+        / cap
+        / thickness
+        * (Rn_water - E - diff * cap / thickness * (Tg - Tm))
     )
     Tg[lc_grid == 7] = Tg_stored[lc_grid == 7] + deltaTg[lc_grid == 7]
 
@@ -377,7 +395,9 @@ def outgoingLongwave_calc(
 
     # Assessment of the distance from a pixel at which most of the radiation are received (cf view factor Lambert)
     device = Tg.device
-    factor = torch.tensor(0.99, device=device)  # Percentage of radiation accounted for
+    factor = torch.tensor(
+        0.99, device=device
+    )  # Percentage of radiation accounted for
     zs = 1.1  # in m
     r_max = zs * torch.sqrt(
         factor / (1 - factor)
@@ -431,7 +451,9 @@ def outgoingLongwave_calc(
     # Add the radiation from the pixel directly below, only for the total gvf
     # Do not take the roofs into account for now
     view_factor = (sizepx / 2) ** 2 / ((sizepx / 2) ** 2 + zs**2)
-    gvfLup = gvfLup + (SBC * emis * (Tg + 273.15) ** 4) * view_factor * buildings
+    gvfLup = (
+        gvfLup + (SBC * emis * (Tg + 273.15) ** 4) * view_factor * buildings
+    )
     gvfalbsun = gvfalbsun + albsunlit * view_factor * buildings
     gvfalbtot = gvfalbtot + alb * view_factor * buildings
 
@@ -466,8 +488,12 @@ def outgoingLongwave_calc(
         # Translation ranges from 1/2 a pixel to the max radius r_max
         for r in torch.arange(sizepx / 2, r_max, step=step):
             # Longwave radiation grids both at the ground level and from the walls
-            Lup = (SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)) * building_copy
-            Lwall = SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * building_copy
+            Lup = (
+                SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)
+            ) * building_copy
+            Lwall = (
+                SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * building_copy
+            )
 
             # Step of the raster translation
             dx = -torch.cos(azimuth)
@@ -476,9 +502,17 @@ def outgoingLongwave_calc(
             # Scale so that the grid is at least translated from 1px
             if abs(dx) > abs(dy):
                 dx = -r * torch.sign(torch.cos(azimuth))
-                dy = -r * abs(torch.tan(azimuth)) * torch.sign(torch.sin(azimuth))
+                dy = (
+                    -r
+                    * abs(torch.tan(azimuth))
+                    * torch.sign(torch.sin(azimuth))
+                )
             else:
-                dx = -r / abs(torch.tan(azimuth)) * torch.sign(torch.cos(azimuth))
+                dx = (
+                    -r
+                    / abs(torch.tan(azimuth))
+                    * torch.sign(torch.cos(azimuth))
+                )
                 dy = -r * torch.sign(torch.sin(azimuth))
 
             # Select the interested part of the initial raster and the translated one from their four corners and
@@ -577,17 +611,27 @@ def outgoingLongwave_calc(
             onlysunwall_temp = sunlitwall_temp * building_copy
 
             # Then add the radiation incoming from those walls
-            Lup_sum += wall_temp * Lwall_temp * zs**2 / ((r + step) ** 2 + zs**2) / 20
-            albsun_sum += (
-                onlysunwall_temp * alb_wall * zs**2 / ((r + step) ** 2 + zs**2) / 20
+            Lup_sum += (
+                wall_temp * Lwall_temp * zs**2 / ((r + step) ** 2 + zs**2) / 20
             )
-            albtot_sum += wall_temp * alb_wall * zs**2 / ((r + step) ** 2 + zs**2) / 20
+            albsun_sum += (
+                onlysunwall_temp
+                * alb_wall
+                * zs**2
+                / ((r + step) ** 2 + zs**2)
+                / 20
+            )
+            albtot_sum += (
+                wall_temp * alb_wall * zs**2 / ((r + step) ** 2 + zs**2) / 20
+            )
 
             # Finally add the radiation received from the side
             dphi = torch.arctan((r + step) / zs) - torch.arctan(r / zs)
             dtrigo = zs / torch.sqrt(r**2 + zs**2) * r / torch.sqrt(
                 r**2 + zs**2
-            ) - zs / torch.sqrt((r + step) ** 2 + zs**2) * (r + step) / torch.sqrt(
+            ) - zs / torch.sqrt((r + step) ** 2 + zs**2) * (
+                r + step
+            ) / torch.sqrt(
                 (r + step) ** 2 + zs**2
             )
 

@@ -78,7 +78,9 @@ def model2(sky_patches, esky, Ta):
     # b_c = 0.1
 
     # Estimate emissivites at different altitudes/zenith angles
-    esky_band = 1 - (1 - esky) * np.exp(b_c * (1.7 - (1 / np.cos(skyzen * deg2rad))))
+    esky_band = 1 - (1 - esky) * np.exp(
+        b_c * (1.7 - (1 / np.cos(skyzen * deg2rad)))
+    )
 
     # Altitudes of the Robinson & Stone patches
     p_alt = sky_patches[:, 0]

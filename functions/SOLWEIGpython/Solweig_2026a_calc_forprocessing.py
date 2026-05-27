@@ -278,7 +278,9 @@ def Solweig_2026a_calc(
             for idx in range(lv.shape[0]):
                 aniLum += diffsh[:, :, idx] * lv[idx, 2]
 
-            dRad = aniLum * radD  # Total diffuse radiation from sky into each cell
+            dRad = (
+                aniLum * radD
+            )  # Total diffuse radiation from sky into each cell
         else:
             dRad = radD * svfbuveg
             patchchoice = 1
@@ -359,7 +361,11 @@ def Solweig_2026a_calc(
             (svf + svfveg - 1) * esky * SBC * ((Ta + 273.15) ** 4)
             + (2 - svfveg - svfaveg) * ewall * SBC * ((Ta + 273.15) ** 4)
             + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4)
-            + (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)
+            + (2 - svf - svfveg)
+            * (1 - ewall)
+            * esky
+            * SBC
+            * ((Ta + 273.15) ** 4)
         )  # Jonsson et al.(2006)
         # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
         if CI < 0.95:  # non - clear conditions
@@ -454,7 +460,9 @@ def Solweig_2026a_calc(
             )  # timeadd only here v2021a
 
             if landcover == 1:
-                Tg[Tg < 0] = 0  # temporary for removing low Tg during morning 20130205
+                Tg[Tg < 0] = (
+                    0  # temporary for removing low Tg during morning 20130205
+                )
 
             ### Ground View Factors
             (
@@ -600,7 +608,11 @@ def Solweig_2026a_calc(
             (svf + svfveg - 1) * esky * SBC * ((Ta + 273.15) ** 4)
             + (2 - svfveg - svfaveg) * ewall * SBC * ((Ta + 273.15) ** 4)
             + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4)
-            + (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)
+            + (2 - svf - svfveg)
+            * (1 - ewall)
+            * esky
+            * SBC
+            * ((Ta + 273.15) ** 4)
         )  # Jonsson et al.(2006)
         # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
 
@@ -772,7 +784,9 @@ def Solweig_2026a_calc(
                 patch_option, device
             )
 
-            patch_emissivities = torch.zeros(skyvaultalt.shape[0], device=device)
+            patch_emissivities = torch.zeros(
+                skyvaultalt.shape[0], device=device
+            )
 
             x = torch.transpose(torch.atleast_2d(skyvaultalt))
             y = torch.transpose(torch.atleast_2d(skyvaultazi))
@@ -873,7 +887,9 @@ def Solweig_2026a_calc(
             KsideI * Fcyl
             + (Kdown + Kup) * Fup
             + (Knorth + Keast + Ksouth + Kwest) * Fside
-        ) + absL * ((Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside)
+        ) + absL * (
+            (Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside
+        )
     # Human body considered as a cylinder with Perez et al. (1993) (anisotropic sky diffuse)
     # and Martin and Berdahl (1984) (anisotropic sky longwave)
     elif cyl == 1 and anisotropic_sky == 1:
@@ -890,7 +906,9 @@ def Solweig_2026a_calc(
     else:
         Sstr = absK * (
             (Kdown + Kup) * Fup + (Knorth + Keast + Ksouth + Kwest) * Fside
-        ) + absL * ((Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside)
+        ) + absL * (
+            (Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside
+        )
 
     # # # # Tmrt # # # #
     Tmrt = torch.sqrt(torch.sqrt((Sstr / (absL * SBC)))) - 273.2

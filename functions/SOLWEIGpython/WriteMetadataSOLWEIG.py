@@ -87,15 +87,21 @@ def writeRunInfo(
         file.write("\n")
         file.write("Digital surface model (DSM): " + filepath_dsm)
         file.write("\n")
-        file.write("Model domain: rows = " + str(rows) + ", columns = " + str(cols))
+        file.write(
+            "Model domain: rows = " + str(rows) + ", columns = " + str(cols)
+        )
         file.write("\n")
         # get CRS
         prj = gdal_dsm.GetProjection()
         srs = osr.SpatialReference(wkt=prj)
         if srs.IsProjected:
-            file.write("Projected reference system: " + srs.GetAttrValue("projcs"))
+            file.write(
+                "Projected reference system: " + srs.GetAttrValue("projcs")
+            )
         file.write("\n")
-        file.write("Geographical coordinate system: " + srs.GetAttrValue("geogcs"))
+        file.write(
+            "Geographical coordinate system: " + srs.GetAttrValue("geogcs")
+        )
         file.write("\n")
         file.write("Latitude: " + str(lat))
         file.write("\n")
@@ -104,19 +110,26 @@ def writeRunInfo(
         file.write("UTC: " + str(UTC))
         file.write("\n")
         if usevegdem == 1:
-            file.write("Transmissivity of light through vegetation: " + str(trans))
+            file.write(
+                "Transmissivity of light through vegetation: " + str(trans)
+            )
             file.write("\n")
-            file.write("Digital vegetation canopy model (CDSM): " + filePath_cdsm)
+            file.write(
+                "Digital vegetation canopy model (CDSM): " + filePath_cdsm
+            )
             file.write("\n")
             if trunkfile == 1:
                 file.write(
-                    "Digital vegetation trunk zone model (TDSM): " + filePath_tdsm
+                    "Digital vegetation trunk zone model (TDSM): "
+                    + filePath_tdsm
                 )  # FO# zrunk -> trunk
                 file.write("\n")
             else:
                 file.write("Trunkzone estimated from CDSM")
                 file.write("\n")
-                file.write("Trunkzone as percent of canopy height: " + str(trunkratio))
+                file.write(
+                    "Trunkzone as percent of canopy height: " + str(trunkratio)
+                )
                 file.write("\n")
         else:
             file.write("Vegetation scheme inactive")
@@ -162,7 +175,9 @@ def writeRunInfo(
             file.write("\n")
             file.write("Minute: " + str(metdata[0, 3]))
             file.write("\n")
-            file.write("Air temperature: " + str(metdata[0, 11]))  # FO# Ait -> Air
+            file.write(
+                "Air temperature: " + str(metdata[0, 11])
+            )  # FO# Ait -> Air
             file.write("\n")
             file.write("Relative humidity: " + str(metdata[0, 10]))
             file.write("\n")
@@ -204,10 +219,14 @@ def writeRunInfo(
         file.write("ADDITIONAL SETTINGS")
         file.write("\n")
         if elvis == 1:
-            file.write("Sky emissivity adjusted according to Jonsson et al. (2005)")
+            file.write(
+                "Sky emissivity adjusted according to Jonsson et al. (2005)"
+            )
             file.write("\n")
         if cyl == 1:
-            file.write("Human considered as a standing cylinder")  # FO# '' -> standing
+            file.write(
+                "Human considered as a standing cylinder"
+            )  # FO# '' -> standing
         else:
             file.write("Human considered as a standing cube")
         file.write("\n")
@@ -228,7 +247,11 @@ def writeRunInfo(
             else:
                 for i in range(effusivity.size):
                     if i == 0:
-                        file.write("There are " + str(effusivity.size) + " wall types:")
+                        file.write(
+                            "There are "
+                            + str(effusivity.size)
+                            + " wall types:"
+                        )
                         file.write("\n")
                     file.write(
                         "Wall surface parameterization scheme. Wall effusivity set to "

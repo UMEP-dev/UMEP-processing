@@ -9,9 +9,6 @@ Created on Mon Jan 25 16:26:24 2021
 import pandas as pd
 import tempfile
 import os
-import math
-import numpy as np
-from datetime import datetime
 
 # Wind input measurement height
 Z_REF = 10
@@ -25,7 +22,8 @@ REMOVE_INITIALIZATION_OFFSET = False
 # If the solver should go descending order along y (does not work yet...)
 DESCENDING_Y = False
 
-# Street canyon scheme limitation (below this angle, no street canyon is created)
+# Street canyon scheme limitation (below this angle, no street canyon is
+# created)
 STREET_CANYON_ANGLE_THRESH = 30
 
 # Temporary directory where are saved database and specific files exchanged between
@@ -56,7 +54,8 @@ VECTOR_STYLE_FILENAME = "vectorStyle.qml"
 # List of vertical height for the output horizontal wind
 Z_OUT = [1.5]
 
-# Output field names (Horizontal wind speed, wind direction and vertical wind speed)
+# Output field names (Horizontal wind speed, wind direction and vertical
+# wind speed)
 HORIZ_WIND_SPEED = "HWS"
 HORIZ_WIND_DIRECTION = "HWD"
 VERT_WIND_SPEED = "VWS"
@@ -94,7 +93,8 @@ CAV_N_WAKE_FACADE_NPOINTS = 3
 
 # The "perpendicular vortex scheme" for rooftop and displacement zones is activated
 # if the wind angle if more or less 'PERPENDICULAR_THRESHOLD_ANGLE' ° higher
-# or lower than 90° (20° is given in Bagal et al. - 2004 and 15° in Pol et al. - 2006)
+# or lower than 90° (20° is given in Bagal et al. - 2004 and 15° in Pol et
+# al. - 2006)
 PERPENDICULAR_THRESHOLD_ANGLE = 15
 # "Corner wind" rooftop recirculation is activated when a facade is 30 to 70° to
 # the perpendicular to the wind direction (Bagal et al., 2004)
@@ -200,7 +200,8 @@ C_DZ = 0.4
 P_DZ = 0.16
 # Coefficient for rooftop perpendicular
 P_RTP = 0.16
-# Default vegetation attenuation factor (value for Larch plantation - Cionco et al. (1978))
+# Default vegetation attenuation factor (value for Larch plantation -
+# Cionco et al. (1978))
 DEFAULT_VEG_ATTEN_FACT = 1.00
 # Default vegetation crown base height (in % of crown top height)
 DEFAULT_VEG_CROWN_BASE_HEIGHT_FRAC = 0.25

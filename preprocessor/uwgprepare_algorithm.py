@@ -154,7 +154,9 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         )
 
         self.addParameter(
-            QgsProcessingParameterString(self.FILE_PREFIX, self.tr("File code"))
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File code")
+            )
         )
 
         self.addParameter(
@@ -178,12 +180,20 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
         polyBT = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYERTYPOLOGY, context
         )
-        morphFile = self.parameterAsString(parameters, self.INPUT_MORPH, context)
+        morphFile = self.parameterAsString(
+            parameters, self.INPUT_MORPH, context
+        )
         lcFile = self.parameterAsString(parameters, self.INPUT_LC, context)
-        rurVegCover = self.parameterAsDouble(parameters, self.INPUT_RURAL, context)
-        climateZone = self.parameterAsString(parameters, self.CLIMATEZONE, context)
+        rurVegCover = self.parameterAsDouble(
+            parameters, self.INPUT_RURAL, context
+        )
+        climateZone = self.parameterAsString(
+            parameters, self.CLIMATEZONE, context
+        )
         prefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -320,11 +330,15 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                         break
 
             # Populate dict from UMEP
-            uwgDict["bldHeight"] = IMP_heights_mean  # average building height (m)
+            uwgDict["bldHeight"] = (
+                IMP_heights_mean  # average building height (m)
+            )
             uwgDict["bldDensity"] = (
                 LCF_buildings  # urban area building plan density (0-1)
             )
-            uwgDict["verToHor"] = IMP_wai  # urban area vertical to horizontal ratio
+            uwgDict["verToHor"] = (
+                IMP_wai  # urban area vertical to horizontal ratio
+            )
             uwgDict["grasscover"] = (
                 LCF_grass  # Fraction of the urban ground covered in grass/shrubs only (0-1)
             )

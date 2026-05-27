@@ -156,14 +156,20 @@ def main(
     outputDataRel["point3D_BuildZone"] = os.path.join(
         tmp_dir_unique, "point3D_BuildZone"
     )
-    outputDataRel["point3D_VegZone"] = os.path.join(tmp_dir_unique, "point3D_VegZone")
+    outputDataRel["point3D_VegZone"] = os.path.join(
+        tmp_dir_unique, "point3D_VegZone"
+    )
     outputDataRel["point3D_All"] = os.path.join(tmp_dir_unique, "point3D_All")
 
     # Put 2D grid points in the output directory
-    outputDataRel["point_2DRockleZone"] = os.path.join(outputFilePath, "Rockle_zones")
+    outputDataRel["point_2DRockleZone"] = os.path.join(
+        outputFilePath, "Rockle_zones"
+    )
 
     # Convert relative to absolute paths
-    outputDataAbs = {i: os.path.abspath(outputDataRel[i]) for i in outputDataRel}
+    outputDataAbs = {
+        i: os.path.abspath(outputDataRel[i]) for i in outputDataRel
+    }
 
     ############################################################################
     ################################ SCRIPT ####################################
@@ -212,7 +218,9 @@ def main(
     # 2. CREATES OBSTACLE GEOMETRIES ----------------------------------------------------
     # -----------------------------------------------------------------------------------
     if feedback:
-        feedback.setProgressText("Creates the stacked blocks used as obstacles")
+        feedback.setProgressText(
+            "Creates the stacked blocks used as obstacles"
+        )
         if feedback.isCanceled():
             cursor.close()
             feedback.setProgressText("Calculation cancelled by user")
@@ -381,11 +389,13 @@ def main(
     #                             zonePropertiesTable = zonePropertiesTable,
     #                             srid = srid,
     #                             prefix = prefix)
-    displacementZonesTable, displacementVortexZonesTable = Zones.displacementZones2(
-        cursor=cursor,
-        upwindWithPropTable=upwindTable,
-        srid=srid,
-        prefix=prefix,
+    displacementZonesTable, displacementVortexZonesTable = (
+        Zones.displacementZones2(
+            cursor=cursor,
+            upwindWithPropTable=upwindTable,
+            srid=srid,
+            prefix=prefix,
+        )
     )
     # # Creates the displacement zone (upwind)
     # displacementZonesTable = \
@@ -591,7 +601,9 @@ def main(
     # Creates the grid of points
     gridPoint = InitWindField.createGrid(
         cursor=cursor,
-        dicOfInputTables=dict(dicOfBuildRockleZoneTable, **dicOfVegRockleZoneTable),
+        dicOfInputTables=dict(
+            dicOfBuildRockleZoneTable, **dicOfVegRockleZoneTable
+        ),
         srid=srid,
         alongWindZoneExtend=alongWindZoneExtend,
         crossWindZoneExtend=crossWindZoneExtend,
@@ -625,16 +637,18 @@ def main(
     )
 
     # Manage backward cavity and wake zones in the leeward zone of tall buildings
-    dicOfBuildZoneGridPoint, facadeWithinCavity = InitWindField.manageBackwardZones(
-        cursor=cursor,
-        dicOfBuildZoneGridPoint=dicOfBuildZoneGridPoint,
-        cavity2dInitPoints=dicOfInitBuildZoneGridPoint[CAVITY_NAME],
-        wake2dInitPoints=dicOfInitBuildZoneGridPoint[WAKE_NAME],
-        streetCanyonTable=streetCanyonTable,
-        gridTable=gridPoint,
-        meshSize=meshSize,
-        dz=dz,
-        prefix=prefix,
+    dicOfBuildZoneGridPoint, facadeWithinCavity = (
+        InitWindField.manageBackwardZones(
+            cursor=cursor,
+            dicOfBuildZoneGridPoint=dicOfBuildZoneGridPoint,
+            cavity2dInitPoints=dicOfInitBuildZoneGridPoint[CAVITY_NAME],
+            wake2dInitPoints=dicOfInitBuildZoneGridPoint[WAKE_NAME],
+            streetCanyonTable=streetCanyonTable,
+            gridTable=gridPoint,
+            meshSize=meshSize,
+            dz=dz,
+            prefix=prefix,
+        )
     )
 
     # -----------------------------------------------------------------------------------
@@ -752,7 +766,9 @@ def main(
     # ----------------------------------------------------------------
     # Calculates the final weighting factor for each point, dealing with duplicates (superimposition)
     dicAllWeightFactorsTables = dicOfBuildZone3DWindFactor.copy()
-    dicAllWeightFactorsTables[ALL_VEGETATION_NAME] = vegetationWeightFactorTable
+    dicAllWeightFactorsTables[ALL_VEGETATION_NAME] = (
+        vegetationWeightFactorTable
+    )
     allZonesPointFactor = InitWindField.manageSuperimposition(
         cursor=cursor,
         dicAllWeightFactorsTables=dicAllWeightFactorsTables,
@@ -851,7 +867,9 @@ def main(
     nx, ny, nz = nPoints.values()
     df_gridBuil = df_gridBuil.reindex(
         df_gridBuil.index.append(
-            pd.MultiIndex.from_product([range(1, nx - 1), range(1, ny - 1), [0]])
+            pd.MultiIndex.from_product(
+                [range(1, nx - 1), range(1, ny - 1), [0]]
+            )
         )
     )
 
@@ -865,9 +883,15 @@ def main(
     buildGrid3D = np.array(
         [buildGrid3D.xs(i, level=0).unstack().values for i in range(0, nx)]
     )
-    u0 = np.array([df_wind0[U].xs(i, level=0).unstack().values for i in range(0, nx)])
-    v0 = -np.array([df_wind0[V].xs(i, level=0).unstack().values for i in range(0, nx)])
-    w0 = np.array([df_wind0[W].xs(i, level=0).unstack().values for i in range(0, nx)])
+    u0 = np.array(
+        [df_wind0[U].xs(i, level=0).unstack().values for i in range(0, nx)]
+    )
+    v0 = -np.array(
+        [df_wind0[V].xs(i, level=0).unstack().values for i in range(0, nx)]
+    )
+    w0 = np.array(
+        [df_wind0[W].xs(i, level=0).unstack().values for i in range(0, nx)]
+    )
 
     # Identify all cells needing to be updated by the wind solver and store
     # their coordinates in a 1D array
@@ -891,19 +915,25 @@ def main(
     w0[:, :, 1:nz] = (w0[:, :, 0 : nz - 1] + w0[:, :, 1:nz]) / 2
 
     # Reset input and output wind speed to zero for building cells
-    u0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    u0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     u0[
         buildingCoordinates[0] + 1,
         buildingCoordinates[1],
         buildingCoordinates[2],
     ] = 0
-    v0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    v0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     v0[
         buildingCoordinates[0],
         buildingCoordinates[1] + 1,
         buildingCoordinates[2],
     ] = 0
-    w0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    w0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
     w0[
         buildingCoordinates[0],
         buildingCoordinates[1],
@@ -974,22 +1004,37 @@ def main(
         w[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] + w[0 : nx - 1, 0 : ny - 1, 1:nz]
     ) / 2
     u0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] = (
-        u0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] + u0[1:nx, 0 : ny - 1, 0 : nz - 1]
+        u0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1]
+        + u0[1:nx, 0 : ny - 1, 0 : nz - 1]
     ) / 2
     v0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] = (
-        v0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] + v0[0 : nx - 1, 1:ny, 0 : nz - 1]
+        v0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1]
+        + v0[0 : nx - 1, 1:ny, 0 : nz - 1]
     ) / 2
     w0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] = (
-        w0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1] + w0[0 : nx - 1, 0 : ny - 1, 1:nz]
+        w0[0 : nx - 1, 0 : ny - 1, 0 : nz - 1]
+        + w0[0 : nx - 1, 0 : ny - 1, 1:nz]
     ) / 2
 
     # Reset input and output wind speed to zero for building cells
-    u[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
-    v[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
-    w[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
-    u0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
-    v0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
-    w0[buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]] = 0
+    u[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
+    v[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
+    w[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
+    u0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
+    v0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
+    w0[
+        buildingCoordinates[0], buildingCoordinates[1], buildingCoordinates[2]
+    ] = 0
 
     # -------------------------------------------------------------------
     # 11. ROTATE THE WIND FIELD TO THE INITIAL DISPOSITION --------------
@@ -1174,7 +1219,11 @@ def rotateData(theta, nx, ny, nz, x, y, x_rot, y_rot, u, v):
             x_rot[i, j] = (xmax - x[i]) * rot[0, 0] + (ymax - y[j]) * rot[0, 1]
             y_rot[i, j] = (xmax - x[i]) * rot[1, 0] + (ymax - y[j]) * rot[1, 1]
             for k in range(nz):
-                u_rot[i, j, k] = u[i, j, k] * rot[0, 0] + v[i, j, k] * rot[0, 1]
-                v_rot[i, j, k] = u[i, j, k] * rot[1, 0] + v[i, j, k] * rot[1, 1]
+                u_rot[i, j, k] = (
+                    u[i, j, k] * rot[0, 0] + v[i, j, k] * rot[0, 1]
+                )
+                v_rot[i, j, k] = (
+                    u[i, j, k] * rot[1, 0] + v[i, j, k] * rot[1, 1]
+                )
 
     return x_rot, y_rot, u_rot, v_rot

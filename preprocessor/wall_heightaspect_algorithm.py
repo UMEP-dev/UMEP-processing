@@ -116,17 +116,23 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         )
         dsmin = self.parameterAsRasterLayer(parameters, self.INPUT, context)
         # aspectcalculation = self.parameterAsBool(parameters, self.ASPECT_BOOL, context)
-        walllimit = self.parameterAsDouble(parameters, self.INPUT_LIMIT, context)
+        walllimit = self.parameterAsDouble(
+            parameters, self.INPUT_LIMIT, context
+        )
         use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
-        cmd_folder = Path(os.path.split(inspect.getfile(inspect.currentframe()))[0])
+        cmd_folder = Path(
+            os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        )
         feedback.setProgressText(str(cmd_folder))
         feedback.setProgressText(str(cmd_folder.parent))
 
         device = torch.device("cpu")
         if use_gpu and torch.cuda.is_available():
             device = torch.device("cuda")
-            feedback.setProgressText("GPU detected and will be used for calculations.")
+            feedback.setProgressText(
+                "GPU detected and will be used for calculations."
+            )
 
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -139,7 +145,9 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
         wallssave = walls
         # feedback.setProgressText(outputFileHeight)
-        saverasternd(gdal_dsm, outputFileHeight, wallssave.cpu().detach().numpy())
+        saverasternd(
+            gdal_dsm, outputFileHeight, wallssave.cpu().detach().numpy()
+        )
 
         if outputFileAspect:
             total = 100.0 / 180.0
@@ -153,7 +161,9 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 torch.tensor(total, device=device),
                 device,
             )
-            saverasternd(gdal_dsm, outputFileAspect, dirwalls.cpu().detach().numpy())
+            saverasternd(
+                gdal_dsm, outputFileAspect, dirwalls.cpu().detach().numpy()
+            )
         else:
             feedback.setProgressText("Wall aspect not calculated")
 

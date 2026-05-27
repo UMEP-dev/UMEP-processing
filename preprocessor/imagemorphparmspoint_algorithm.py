@@ -133,7 +133,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_DSMBUILD,
-                self.tr("Raster DSM (only 3D building or vegetation objects) exist"),
+                self.tr(
+                    "Raster DSM (only 3D building or vegetation objects) exist"
+                ),
                 defaultValue=False,
             )
         )
@@ -169,7 +171,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterString(self.FILE_PREFIX, self.tr("File prefix"))
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File prefix")
+            )
         )
         # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
         #     self.tr("Save point of interest as new vector layer"), defaultValue=False))
@@ -201,20 +205,32 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # InputParameters
-        usePointlayer = self.parameterAsBool(parameters, self.USE_POINTLAYER, context)
+        usePointlayer = self.parameterAsBool(
+            parameters, self.USE_POINTLAYER, context
+        )
         inputPoint = None
         inputPointLayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POINTLAYER, context
         )
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
-        useDsmBuild = self.parameterAsBool(parameters, self.USE_DSMBUILD, context)
+        inputDistance = self.parameterAsDouble(
+            parameters, self.INPUT_DISTANCE, context
+        )
+        inputInterval = self.parameterAsDouble(
+            parameters, self.INPUT_INTERVAL, context
+        )
+        useDsmBuild = self.parameterAsBool(
+            parameters, self.USE_DSMBUILD, context
+        )
         dsmlayer = None
         demlayer = None
         # dsm_build = None
         ro = self.parameterAsString(parameters, self.ROUGH, context)
-        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        filePrefix = self.parameterAsString(
+            parameters, self.FILE_PREFIX, context
+        )
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
         outputPolygon = self.parameterAsOutputLayer(
             parameters, self.OUTPUT_POLYGON, context
         )
@@ -229,7 +245,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         # if lcgrid is not None:
         if inputPointLayer is None:
             feedback.setProgressText("Point location obtained manually")
-            inputPoint = self.parameterAsPoint(parameters, self.INPUT_POINT, context)
+            inputPoint = self.parameterAsPoint(
+                parameters, self.INPUT_POINT, context
+            )
             x = float(inputPoint[0])
             y = float(inputPoint[1])
         else:
@@ -286,8 +304,12 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             dem = np.zeros((sizex, sizey))
 
         else:  # Both building ground heights
-            dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DSM, context)
-            demlayer = self.parameterAsRasterLayer(parameters, self.INPUT_DEM, context)
+            dsmlayer = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DSM, context
+            )
+            demlayer = self.parameterAsRasterLayer(
+                parameters, self.INPUT_DEM, context
+            )
 
             if dsmlayer is None:
                 raise QgsProcessingException(
@@ -318,7 +340,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             dataset2 = gdal.Open(self.plugin_dir + "/data/clipdem.tif")
             dem = dataset2.ReadAsArray().astype(float)
 
-            if not (dsm.shape[0] == dem.shape[0]) & (dsm.shape[1] == dem.shape[1]):
+            if not (dsm.shape[0] == dem.shape[0]) & (
+                dsm.shape[1] == dem.shape[1]
+            ):
                 raise QgsProcessingException(
                     "All grids must be of same extent and resolution"
                 )
@@ -360,7 +384,9 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         zMax = immorphresult["zHmax"]
         zSdev = immorphresult["zH_sd"]
 
-        zd, z0 = rg.RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev)
+        zd, z0 = rg.RoughnessCalcMany(
+            Roughnessmethod, zH, fai, pai, zMax, zSdev
+        )
 
         # save to file
         pre = filePrefix
@@ -460,7 +486,8 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
 
     def create_point_layer(self, outputPoint, x, y, crs):
         uri = (
-            "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs=" + crs
+            "Point?field=id:integer&field=x:double&field=y:double&index=yes&crs="
+            + crs
         )
         self.poiLayer = QgsVectorLayer(uri, "Point of Interest", "memory")
         self.provider = self.poiLayer.dataProvider()

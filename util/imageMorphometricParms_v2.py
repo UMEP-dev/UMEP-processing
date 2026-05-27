@@ -31,7 +31,9 @@ import scipy.ndimage.interpolation as sc
 
 def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 
-    numPixels = len(dsm[np.where(dsm != -9999)])  # too deal with irregular grids
+    numPixels = len(
+        dsm[np.where(dsm != -9999)]
+    )  # too deal with irregular grids
 
     build = dsm - dem
     build[(build < 3.0)] = (
@@ -80,7 +82,9 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 
         # Rotating buildings
         # d = sc.rotate(build, angle, order=0, reshape=False, mode='nearest') #old
-        a = sc.rotate(build, angle, order=0, reshape=True, mode="constant", cval=-99)
+        a = sc.rotate(
+            build, angle, order=0, reshape=True, mode="constant", cval=-99
+        )
 
         # % convolve leading edge filter with domain
         c = a * 0.0
@@ -98,7 +102,9 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
         )
 
         for i in np.arange(1, c.shape[0]):
-            c[int(i) - 1, :] = np.sum((filt * buildZero[int(i) - 1 : i + 1, :]), 0)
+            c[int(i) - 1, :] = np.sum(
+                (filt * buildZero[int(i) - 1 : i + 1, :]), 0
+            )
 
         if mid == 1:  # from center point
             ny = a.shape[0]
@@ -116,7 +122,9 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 
         wall = wall[np.where(wall > 2)]  # wall vector
         fai[j] = np.sum(wall) / ((lx * ly) / scale)
-        bld = bld[np.where(bld > 2)]  # building vector: change from 0 to 2  : 20150906
+        bld = bld[
+            np.where(bld > 2)
+        ]  # building vector: change from 0 to 2  : 20150906
         pai[j] = np.float32(bld.shape[0]) / (lx * ly)
         deg[j] = angle
         if np.float32(bld.shape[0]) == 0:

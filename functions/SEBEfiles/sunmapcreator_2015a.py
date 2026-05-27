@@ -11,7 +11,16 @@ from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 
 def sunmapcreator_2015a(
-    met, altitude, azimuth, onlyglobal, output, jday, albedo, location, zen, device
+    met,
+    altitude,
+    azimuth,
+    onlyglobal,
+    output,
+    jday,
+    albedo,
+    location,
+    zen,
+    device,
 ):
     """
     % This function creates a sun map based on hourly values of solar radiation.
@@ -42,22 +51,35 @@ def sunmapcreator_2015a(
 
     for j in range(len(aziinterval)):
         iangle2 = torch.append(
-            iangle2, skyvaultaltint[j] * torch.ones([1, aziinterval[j]], device=device)
+            iangle2,
+            skyvaultaltint[j] * torch.ones([1, aziinterval[j]], device=device),
         )
 
     radmatI = torch.transpose(
         torch.vstack(
-            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+            (
+                iangle2,
+                skyvaultazi,
+                torch.zeros((13, len(iangle2)), device=device),
+            )
         )
     )
     radmatD = torch.transpose(
         torch.vstack(
-            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+            (
+                iangle2,
+                skyvaultazi,
+                torch.zeros((13, len(iangle2)), device=device),
+            )
         )
     )
     radmatR = torch.transpose(
         torch.vstack(
-            (iangle2, skyvaultazi, torch.zeros((13, len(iangle2)), device=device))
+            (
+                iangle2,
+                skyvaultazi,
+                torch.zeros((13, len(iangle2)), device=device),
+            )
         )
     )
 
@@ -120,8 +142,12 @@ def sunmapcreator_2015a(
             radmatR[:, 2] = radmatR[:, 2] + G * (1 / 145) * albedo
 
             if output["energymonth"] == 1:
-                radmatI[azipos2, met[i, 1] + 2] = radmatI[azipos2, met[i, 1] + 2] + I
-                radmatD[:, met[i, 1] + 2] = radmatD[:, met[i, 1] + 2] + D * lv[:, 2]
+                radmatI[azipos2, met[i, 1] + 2] = (
+                    radmatI[azipos2, met[i, 1] + 2] + I
+                )
+                radmatD[:, met[i, 1] + 2] = (
+                    radmatD[:, met[i, 1] + 2] + D * lv[:, 2]
+                )
                 radmatR[:, met[i, 1] + 2] = (
                     radmatR[:, met[i, 1] + 2] + G * (1 / 145) * albedo
                 )

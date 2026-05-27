@@ -15,7 +15,9 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg, device):
 
     wallsun = walls - shvo
     wallsun = torch.clamp(wallsun, min=0.0)
-    wallsun = torch.where(facesh == 1, torch.tensor(0.0, device=device), wallsun)
+    wallsun = torch.where(
+        facesh == 1, torch.tensor(0.0, device=device), wallsun
+    )
 
     wallsh = walls - wallsun
 
@@ -188,16 +190,22 @@ def shadowingfunction_wallheight_23(
         is_pergola = fabovea & gabovea & lastfabovea & lastgabovea
 
         # The shadow exists if one of the layers is True, UNLESS it's a pergola.
-        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (~is_pergola)
+        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (
+            ~is_pergola
+        )
         vegsh2 = vegsh2.float()
 
         # Accumulation of vegetation shadows
         vegsh = torch.maximum(vegsh, vegsh2)
-        vegsh = torch.where(vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh)
+        vegsh = torch.where(
+            vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh
+        )
         vbshvegsh.add_(vegsh)
 
     sh = 1 - sh
-    vbshvegsh = torch.where(vbshvegsh > 0, torch.tensor(1.0, device=device), vbshvegsh)
+    vbshvegsh = torch.where(
+        vbshvegsh > 0, torch.tensor(1.0, device=device), vbshvegsh
+    )
     vbshvegsh = vbshvegsh - vegsh
 
     vegsh = torch.where(vegsh > 0, torch.tensor(1.0, device=device), vegsh)
@@ -216,7 +224,9 @@ def shadowingfunction_wallheight_23(
         )
         # print(torch.max(wallshve_))
         shade_on_wall = wallsh_.clone()
-        shade_on_wall[shade_on_wall < wallshve_] = wallshve_[shade_on_wall < wallshve_]
+        shade_on_wall[shade_on_wall < wallshve_] = wallshve_[
+            shade_on_wall < wallshve_
+        ]
 
     return (
         (

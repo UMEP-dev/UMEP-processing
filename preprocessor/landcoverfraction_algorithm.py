@@ -81,7 +81,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
 
         self.search = (
             (
-                self.tr("Search throughout the grid extent (search distance not used)"),
+                self.tr(
+                    "Search throughout the grid extent (search distance not used)"
+                ),
                 "0",
             ),
             (self.tr("Search from grid centroid"), "1"),
@@ -134,18 +136,24 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_LCGRID,
-                self.tr("UMEP formatted land cover grid (see help for more info)"),
+                self.tr(
+                    "UMEP formatted land cover grid (see help for more info)"
+                ),
                 None,
                 False,
             )
         )
         self.addParameter(
-            QgsProcessingParameterString(self.FILE_PREFIX, self.tr("File prefix"))
+            QgsProcessingParameterString(
+                self.FILE_PREFIX, self.tr("File prefix")
+            )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.TARGET_LC,
-                self.tr("Calculate fractions for TARGET (9 classes instead of 7)"),
+                self.tr(
+                    "Calculate fractions for TARGET (9 classes instead of 7)"
+                ),
                 defaultValue=False,
             )
         )
@@ -180,15 +188,27 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_POLYGONLAYER, context
         )
         idField = self.parameterAsFields(parameters, self.ID_FIELD, context)
-        searchMethod = self.parameterAsString(parameters, self.SERACH_METHOD, context)
-        inputDistance = self.parameterAsDouble(parameters, self.INPUT_DISTANCE, context)
-        inputInterval = self.parameterAsDouble(parameters, self.INPUT_INTERVAL, context)
+        searchMethod = self.parameterAsString(
+            parameters, self.SERACH_METHOD, context
+        )
+        inputDistance = self.parameterAsDouble(
+            parameters, self.INPUT_DISTANCE, context
+        )
+        inputInterval = self.parameterAsDouble(
+            parameters, self.INPUT_INTERVAL, context
+        )
         dsmlayer = None
         useTarget = self.parameterAsBool(parameters, self.TARGET_LC, context)
-        filePrefix = self.parameterAsString(parameters, self.FILE_PREFIX, context)
+        filePrefix = self.parameterAsString(
+            parameters, self.FILE_PREFIX, context
+        )
         attrTable = self.parameterAsBool(parameters, self.ATTR_TABLE, context)
-        ignoreNodata = self.parameterAsBool(parameters, self.IGNORE_NODATA, context)
-        outputDir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        ignoreNodata = self.parameterAsBool(
+            parameters, self.IGNORE_NODATA, context
+        )
+        outputDir = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -205,18 +225,18 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
         if useTarget:
             iter = 9
             header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
-            numformat = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            numformat = (
+                "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            )
             header2 = "ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water IrrGrass Concrete"
-            numformat2 = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            numformat2 = (
+                "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
+            )
         else:
             iter = 7
-            header = (
-                "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
-            )
+            header = "Wd Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
             numformat = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
-            header2 = (
-                "ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
-            )
+            header2 = "ID Paved Buildings EvergreenTrees DecidiousTrees Grass Baresoil Water"
             numformat2 = "%3d %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f"
 
         arrmat = np.empty((1, int(iter + 1)))
@@ -241,7 +261,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("idx: " + str(idx))
 
-        dsmlayer = self.parameterAsRasterLayer(parameters, self.INPUT_LCGRID, context)
+        dsmlayer = self.parameterAsRasterLayer(
+            parameters, self.INPUT_LCGRID, context
+        )
         if dsmlayer is None:
             raise QgsProcessingException(
                 "No valid building land cover raster layer is selected"
@@ -278,7 +300,10 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                     prov.crs(),
                     "ESRI shapefile",
                 )
-                if writer.hasError() != QgsVectorFileWriter.WriterError.NoError:
+                if (
+                    writer.hasError()
+                    != QgsVectorFileWriter.WriterError.NoError
+                ):
                     raise QgsProcessingException(
                         "Error when creating shapefile: ",
                         str(writer.hasError()),
@@ -342,7 +367,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 else:
                     lcgrid[lcgrid == nd] = 0
                     feedback.setProgressText(
-                        "Grid " + str(f.attributes()[idx]) + " being calculated."
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " being calculated."
                     )
                     cal = 1
             else:
@@ -356,7 +383,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
                 else:
                     cal = 1
                     feedback.setProgressText(
-                        "Grid " + str(f.attributes()[idx]) + " being calculated."
+                        "Grid "
+                        + str(f.attributes()[idx])
+                        + " being calculated."
                     )
 
             if cal == 1:
@@ -459,7 +488,9 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             wo = np.where(f.attributes()[idx] == matdata[:, 0])
             if wo[0] >= 0:
                 for x in range(1, matdata.shape[1]):
-                    attr_dict[current_index_length + x - 1] = float(matdata[wo[0], x])
+                    attr_dict[current_index_length + x - 1] = float(
+                        matdata[wo[0], x]
+                    )
                 vlayer.dataProvider().changeAttributeValues({id: attr_dict})
 
     def resultcheck(self, landcoverresult):

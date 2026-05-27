@@ -31,7 +31,9 @@ def wallscheme_prepare(
         torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]], device=dsm.device),
     )
     walls_copy = torch.clone(walls)
-    aspect = wa.filter1Goodwin_as_aspect_v3(walls_copy, scale, dsm, feedback, 100)
+    aspect = wa.filter1Goodwin_as_aspect_v3(
+        walls_copy, scale, dsm, feedback, 100
+    )
 
     walls_exact = walls.clone()
     walls_round = torch.ceil(walls).int()
@@ -71,7 +73,9 @@ def wallscheme_prepare(
     v_ids = torch.arange(wall2d_id_tensor.shape[0], device=device)
     # Find the starting index of each repeated wall sequence
     cum_voxels = torch.cumsum(number_of_voxels, dim=0)
-    start_indices = torch.cat([torch.tensor([0], device=device), cum_voxels[:-1]])
+    start_indices = torch.cat(
+        [torch.tensor([0], device=device), cum_voxels[:-1]]
+    )
     shift = torch.repeat_interleave(start_indices, number_of_voxels)
 
     local_voxel_index = v_ids - shift + 1
@@ -83,12 +87,16 @@ def wallscheme_prepare(
     wall2d_id_tensor = torch.cat([wall2d_id_tensor, zero_val])
     voxel_height_tensor = torch.cat([voxel_height_tensor, zero_val.float()])
     wall_height_tensor = torch.cat([wall_height_tensor, zero_val])
-    wall_height_exact_tensor = torch.cat([wall_height_exact_tensor, zero_val.float()])
+    wall_height_exact_tensor = torch.cat(
+        [wall_height_exact_tensor, zero_val.float()]
+    )
     y_position_tensor = torch.cat([y_position_tensor, zero_val])
     x_position_tensor = torch.cat([x_position_tensor, zero_val])
 
     # 7. Construct outputs
-    voxelId_list = torch.arange(1, wall2d_id_tensor.shape[0] + 1, device=device)
+    voxelId_list = torch.arange(
+        1, wall2d_id_tensor.shape[0] + 1, device=device
+    )
 
     voxelTable = torch.column_stack(
         [
@@ -104,7 +112,9 @@ def wallscheme_prepare(
 
     # 8. Construct dictionary mapping (Kept native Python as requested by return type)
     # We do this from the extracted wall tensors to avoid looping over the voxel table
-    wall_dict = dict(zip(wall_indices.tolist(), walls_exact_extracted.tolist()))
+    wall_dict = dict(
+        zip(wall_indices.tolist(), walls_exact_extracted.tolist())
+    )
     wall_dict[0] = 0.0
 
     # Convert specific lists to match original return signature formats if downstream requires it
@@ -165,7 +175,9 @@ def svf_for_voxels(
     # Counter to feedback current iteration
     counter = 1
     # How many iterations are required to calculate svf for all voxels
-    loop_range = torch.arange(svf_height, maxWallHeight + svf_height, svf_height)
+    loop_range = torch.arange(
+        svf_height, maxWallHeight + svf_height, svf_height
+    )
 
     # Loop for svf calculations of all voxel heights
     for i in loop_range:
@@ -177,7 +189,9 @@ def svf_for_voxels(
             + str(int(loop_range.shape[0]))
         )
 
-        feedback.setProgressText("Increasing ground level with " + str(i) + " meters.")
+        feedback.setProgressText(
+            "Increasing ground level with " + str(i) + " meters."
+        )
 
         # Elevate ground in dsm
         temp_dsm = ((dsm + i) * ground) + (dsm * (1 - ground))
@@ -219,7 +233,9 @@ def svf_for_voxels(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(
+            voxelTable[:, 1] == i + svf_height
+        )  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -312,9 +328,9 @@ def svf_kmeans(
     labels = kmeans.fit_predict(data_reshaped)
 
     # Reshape the labels back into a torch tensor on the selected device
-    kmeans_clusters = torch.from_numpy(labels.reshape(dsm.shape[0], dsm.shape[1])).to(
-        device
-    )
+    kmeans_clusters = torch.from_numpy(
+        labels.reshape(dsm.shape[0], dsm.shape[1])
+    ).to(device)
 
     # Remove cluster representing ground areas, i.e. where dsm - dem = 0
     cluster_range = torch.arange(clusters, device=device)
@@ -398,7 +414,9 @@ def svf_kmeans(
             svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
         # Get svf for each voxel
-        voxel_y = torch.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
+        voxel_y = torch.where(
+            voxelTable[:, 1] == i + svf_height
+        )  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
                 int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -423,12 +441,15 @@ def svf_kmeans(
             )  # Get their unique wall ids for slicing
             for (
                 unique_wall
-            ) in unique_walls:  # Loop over all unique walls lower than lowest cluster
+            ) in (
+                unique_walls
+            ):  # Loop over all unique walls lower than lowest cluster
                 temp_wall = temp_data[temp_data[:, 4] == unique_wall, :][
                     :, 1
                 ].max()  # Max height of highest voxel in unique_wall
                 temp_y = torch.where(
-                    (voxelTable[:, 4] == unique_wall) & (voxelTable[:, 1] == temp_wall)
+                    (voxelTable[:, 4] == unique_wall)
+                    & (voxelTable[:, 1] == temp_wall)
                 )[
                     0
                 ]  # Get row of unique_wall and highest voxel in voxelTable
@@ -465,12 +486,15 @@ def svf_kmeans(
             )  # Get their unique wall ids for slicing
             for (
                 unique_wall
-            ) in unique_walls:  # Loop over all unique walls lower than lowest cluster
+            ) in (
+                unique_walls
+            ):  # Loop over all unique walls lower than lowest cluster
                 temp_wall = temp_data[temp_data[:, 4] == unique_wall, :][
                     :, 1
                 ].max()  # Max height of highest voxel in unique_wall
                 temp_y = torch.where(
-                    (voxelTable[:, 4] == unique_wall) & (voxelTable[:, 1] == temp_wall)
+                    (voxelTable[:, 4] == unique_wall)
+                    & (voxelTable[:, 1] == temp_wall)
                 )[
                     0
                 ]  # Get row of unique_wall and highest voxel in voxelTable

@@ -235,7 +235,9 @@ def Solweig_2022a_calc(
             for idx in range(lv.shape[0]):
                 aniLum += diffsh[:, :, idx] * lv[idx, 2]
 
-            dRad = aniLum * radD  # Total diffuse radiation from sky into each cell
+            dRad = (
+                aniLum * radD
+            )  # Total diffuse radiation from sky into each cell
         else:
             dRad = radD * svfbuveg
             patchchoice = 1
@@ -261,13 +263,15 @@ def Solweig_2022a_calc(
             )
             shadow = sh - (1 - vegsh) * (1 - psi)
         else:
-            sh, wallsh, wallsun, facesh, facesun = shadowingfunction_wallheight_13(
-                dsm,
-                azimuth,
-                altitude,
-                scale,
-                walls,
-                dirwalls * np.pi / 180.0,
+            sh, wallsh, wallsun, facesh, facesun = (
+                shadowingfunction_wallheight_13(
+                    dsm,
+                    azimuth,
+                    altitude,
+                    scale,
+                    walls,
+                    dirwalls * np.pi / 180.0,
+                )
             )
             shadow = sh
 
@@ -278,7 +282,10 @@ def Solweig_2022a_calc(
         # Tgampwall = (TgK_wall * altmax - (Tstart_wall)) + (Tstart_wall) # Old
         Tgampwall = TgK_wall * altmax + Tstart_wall
         Tg = Tgamp * np.sin(
-            (((dectime - np.floor(dectime)) - SNUP / 24) / (TmaxLST / 24 - SNUP / 24))
+            (
+                ((dectime - np.floor(dectime)) - SNUP / 24)
+                / (TmaxLST / 24 - SNUP / 24)
+            )
             * np.pi
             / 2
         )  # 2015 a, based on max sun altitude
@@ -315,7 +322,9 @@ def Solweig_2022a_calc(
         Tg = Tg * CI_TgG  # new estimation
         Tgwall = Tgwall * CI_TgG
         if landcover == 1:
-            Tg[Tg < 0] = 0  # temporary for removing low Tg during morning 20130205
+            Tg[Tg < 0] = (
+                0  # temporary for removing low Tg during morning 20130205
+            )
 
         # # # # Ground View Factors # # # #
         (
@@ -510,7 +519,9 @@ def Solweig_2022a_calc(
     if anisotropic_sky == 1:
         if "lv" not in locals():
             # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
-            skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(patch_option)
+            skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(
+                patch_option
+            )
 
             patch_emissivities = np.zeros(skyvaultalt.shape[0])
 
@@ -552,7 +563,11 @@ def Solweig_2022a_calc(
             (svf + svfveg - 1) * esky * SBC * ((Ta + 273.15) ** 4)
             + (2 - svfveg - svfaveg) * ewall * SBC * ((Ta + 273.15) ** 4)
             + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4)
-            + (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)
+            + (2 - svf - svfveg)
+            * (1 - ewall)
+            * esky
+            * SBC
+            * ((Ta + 273.15) ** 4)
         )  # Jonsson et al.(2006)
         # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
 
@@ -614,7 +629,9 @@ def Solweig_2022a_calc(
             KsideI * Fcyl
             + (Kdown + Kup) * Fup
             + (Knorth + Keast + Ksouth + Kwest) * Fside
-        ) + absL * ((Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside)
+        ) + absL * (
+            (Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside
+        )
     # Human body considered as a cylinder with Perez et al. (1993) (anisotropic sky diffuse)
     # and Martin and Berdahl (1984) (anisotropic sky longwave)
     elif cyl == 1 and anisotropic_sky == 1:
@@ -631,7 +648,9 @@ def Solweig_2022a_calc(
     else:  # Human body considered as a standing cube
         Sstr = absK * (
             (Kdown + Kup) * Fup + (Knorth + Keast + Ksouth + Kwest) * Fside
-        ) + absL * ((Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside)
+        ) + absL * (
+            (Ldown + Lup) * Fup + (Lnorth + Least + Lsouth + Lwest) * Fside
+        )
 
     Tmrt = np.sqrt(np.sqrt((Sstr / (absL * SBC)))) - 273.2
 

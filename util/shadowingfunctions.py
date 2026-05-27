@@ -253,12 +253,16 @@ def shadowingfunction_20(
         is_pergola = fabovea & gabovea & lastfabovea & lastgabovea
 
         # The shadow exists if one of the layers is True, UNLESS it's a pergola.
-        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (~is_pergola)
+        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (
+            ~is_pergola
+        )
         vegsh2 = vegsh2.float()
 
         # Accumulation of vegetation shadows
         vegsh = torch.maximum(vegsh, vegsh2)
-        vegsh = torch.where(vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh)
+        vegsh = torch.where(
+            vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh
+        )
         vbshvegsh.add_(vegsh)
 
     sh = 1.0 - sh
@@ -357,7 +361,9 @@ def shadowingfunction_findwallID(
     # Trig variables
     sinazimuth = torch.sin(torch.tensor(azimuth_rad, device=device))
     cosazimuth = torch.cos(torch.tensor(azimuth_rad, device=device))
-    tanaltitudebyscale = torch.tan(torch.tensor(altitude_rad, device=device)) / scale
+    tanaltitudebyscale = (
+        torch.tan(torch.tensor(altitude_rad, device=device)) / scale
+    )
 
     amaxvalue = torch.max(dsm)
     max_steps = int(amaxvalue / tanaltitudebyscale) + 2
@@ -418,7 +424,9 @@ def shadowingfunction_findwallID(
         voxel_height = voxel_height.to(device)
 
     if not isinstance(voxelId_list, torch.Tensor):
-        voxelId_list = torch.tensor(voxelId_list, dtype=torch.long, device=device)
+        voxelId_list = torch.tensor(
+            voxelId_list, dtype=torch.long, device=device
+        )
     else:
         voxelId_list = voxelId_list.to(device=device, dtype=torch.long)
 
@@ -436,7 +444,9 @@ def shadowingfunction_findwallID(
         mask = (wall2d_id == temp_id) & (voxel_height == temp_height)
         temp_fill_id = voxelId_list[mask]
 
-        pixel_mask = (buildIDSeen == temp_id) & (voxelHeight_ceil == temp_height)
+        pixel_mask = (buildIDSeen == temp_id) & (
+            voxelHeight_ceil == temp_height
+        )
 
         if temp_fill_id.numel() > 0:
             voxelId[pixel_mask] = temp_fill_id[0].float()

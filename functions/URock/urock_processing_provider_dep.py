@@ -47,7 +47,6 @@ class URockProvider(QgsProcessingProvider):
         Unloads the provider. Any tear-down steps required by the provider
         should be implemented here.
         """
-        pass
 
     def loadAlgorithms(self):
         """

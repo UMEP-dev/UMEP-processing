@@ -130,9 +130,15 @@ def topt(
             y_n, x_n, treerasters, treeinput
         )  # Boolean tree shadows for trees that are not moving
 
-        if compare == 0:  # If none of the none-moving trees overlap, go in here
-            treesh_bool_mt = tsh_gen_mt1(t_yx[:, 0], t_yx[:, 1], treerasters, treeinput)
-            if np.any(((treesh_bool_mt == 1) & (treesh_ts_bool_pad_large == 1))):
+        if (
+            compare == 0
+        ):  # If none of the none-moving trees overlap, go in here
+            treesh_bool_mt = tsh_gen_mt1(
+                t_yx[:, 0], t_yx[:, 1], treerasters, treeinput
+            )
+            if np.any(
+                ((treesh_bool_mt == 1) & (treesh_ts_bool_pad_large == 1))
+            ):
                 for j in range(t_yx.shape[0]):
                     if (
                         e_bool_sh[j] == 1
@@ -143,8 +149,8 @@ def topt(
                         x_t = np.array(
                             [t_yx[j, 1]]
                         )  # X-position of the current position of the currently moving tree
-                        treesh_bool_mt_pad, treesh_bool_mt_pad_large, _ = tsh_gen_ts(
-                            y_t, x_t, treerasters, treeinput
+                        treesh_bool_mt_pad, treesh_bool_mt_pad_large, _ = (
+                            tsh_gen_ts(y_t, x_t, treerasters, treeinput)
                         )  # Boolean tree shadows for moving tree
                         if np.any(
                             (
@@ -163,7 +169,9 @@ def topt(
                                     * (treeinput.shadow[:, :, ij] == 1)
                                     * (treeinput.buildings == 1)
                                 )
-                                tree_tmrt[j, 0] += np.sum(temp_bool * tmrt_1d[ij, 0])
+                                tree_tmrt[j, 0] += np.sum(
+                                    temp_bool * tmrt_1d[ij, 0]
+                                )
                                 tree_tmrt[j, 1] += np.sum(
                                     temp_bool * treeinput.tmrt_ts[:, :, ij]
                                 )
@@ -216,7 +224,9 @@ def topt(
                     * treeinput.buildings
                 )
                 tree_tmrt[i, 0] += np.sum(tree_bool_temp * tmrt_1d[j, 0])
-                tree_tmrt[i, 1] += np.sum(tree_bool_temp * treeinput.tmrt_ts[:, :, j])
+                tree_tmrt[i, 1] += np.sum(
+                    tree_bool_temp * treeinput.tmrt_ts[:, :, j]
+                )
             tree_tmrt[i, 0] += treerasters.tmrt_shade[y_t, x_t]
             tree_tmrt[i, 1] += treerasters.tmrt_sun[y_t, x_t]
             tree_tmrt[i, 2] = tree_tmrt[i, 1] - tree_tmrt[i, 0]
@@ -225,8 +235,12 @@ def topt(
         elif (compare == 0) & (compare_mt[i] == 0):
             start_time = time.time()
             for j in range(y_n.shape[0]):
-                tree_tmrt[i, 0] += treerasters.tmrt_shade[y_n[j], x_n[j]]  # Tree shade
-                tree_tmrt[i, 1] += treerasters.tmrt_sun[y_n[j], x_n[j]]  # Sunlit
+                tree_tmrt[i, 0] += treerasters.tmrt_shade[
+                    y_n[j], x_n[j]
+                ]  # Tree shade
+                tree_tmrt[i, 1] += treerasters.tmrt_sun[
+                    y_n[j], x_n[j]
+                ]  # Sunlit
                 tree_tmrt[i, 2] += treerasters.d_tmrt[
                     y_n[j], x_n[j]
                 ]  # Sunlit - Tree shade

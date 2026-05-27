@@ -98,10 +98,14 @@ def plotSectionalViews(
     # Temporary files are declared
     pointsDir = os.path.join(TEMPO_DIRECTORY, "urock_allPoints.csv")
     outputPointsDir = os.path.join(TEMPO_DIRECTORY, "urock_selectedPoints.csv")
-    outputPolygonsDir = os.path.join(TEMPO_DIRECTORY, "urock_selectedPolygons.csv")
+    outputPolygonsDir = os.path.join(
+        TEMPO_DIRECTORY, "urock_selectedPolygons.csv"
+    )
 
     if feedback:
-        feedback.setProgressText("Load NetCDF file in Python and save as csv file...")
+        feedback.setProgressText(
+            "Load NetCDF file in Python and save as csv file..."
+        )
 
     # Load the group of the NetCDF file containing the wind speed field
     ds = xr.open_dataset(inputWindFile, group=WIND_GROUP)
@@ -224,7 +228,9 @@ def plotSectionalViews(
         )
 
         # Back to dataframe for the plotting the mean wind speed for each level
-        df_selectedPolygons = pd.read_csv(outputPolygonsDir, index_col=None, header=0)
+        df_selectedPolygons = pd.read_csv(
+            outputPolygonsDir, index_col=None, header=0
+        )
         windList = pd.Series(
             [
                 "Wind speed along x-axis (m/s)",
@@ -260,7 +266,9 @@ def plotSectionalViews(
                 plt.legend()
             if savePlot:
                 fig_poly[w].savefig(
-                    os.path.join(outputDirectory, simulationName + "_" + w + ".png")
+                    os.path.join(
+                        outputDirectory, simulationName + "_" + w + ".png"
+                    )
                 )
 
     # DEAL WITH LINES (ALONG LINE VERTICAL PROFILES)
@@ -334,10 +342,14 @@ def plotSectionalViews(
         )
 
         # Back to dataframe for the plotting of the wind speed for each level
-        df_selectedPoints = pd.read_csv(outputPointsDir, index_col=None, header=0)
+        df_selectedPoints = pd.read_csv(
+            outputPointsDir, index_col=None, header=0
+        )
         df_selectedPoints["PROJECTED_HORIZ_WIND"] = df_selectedPoints[
             WINDSPEED_X.upper()
-        ] * np.cos(df_selectedPoints["AZIMUTH"] - np.pi / 2) + df_selectedPoints[
+        ] * np.cos(
+            df_selectedPoints["AZIMUTH"] - np.pi / 2
+        ) + df_selectedPoints[
             WINDSPEED_Y.upper()
         ] * np.cos(
             df_selectedPoints["AZIMUTH"]
@@ -358,9 +370,9 @@ def plotSectionalViews(
         # Need to reindex regularly values for stream plot
         if isStream:
             uniques_z[uniques_z == 0] = 0 - float(horiz_res) / 2
-            df_selectedPoints[Z.upper()] = df_selectedPoints[Z.upper()].replace(
-                0, 0 - float(horiz_res) / 2
-            )
+            df_selectedPoints[Z.upper()] = df_selectedPoints[
+                Z.upper()
+            ].replace(0, 0 - float(horiz_res) / 2)
             dic_all = {
                 id_line: {
                     zval: (
@@ -475,9 +487,13 @@ def plotSectionalViews(
 
                 if not scale.get(line):
                     if np.max(np.abs(wind_d)) > 3 * np.median(np.abs(wind_d)):
-                        scale[line] = np.max(np.abs(wind_d)) / (1.5 * horiz_res)
+                        scale[line] = np.max(np.abs(wind_d)) / (
+                            1.5 * horiz_res
+                        )
                     else:
-                        scale[line] = np.median(np.abs(wind_d)) / (1.5 * horiz_res)
+                        scale[line] = np.median(np.abs(wind_d)) / (
+                            1.5 * horiz_res
+                        )
                 Q = ax[line].quiver(
                     D,
                     z,
@@ -531,7 +547,9 @@ def plotSectionalViews(
                     rec_z0 = sorted_z[loc_z] - 0.5 * (
                         sorted_z[loc_z] - sorted_z[loc_z - 1]
                     )
-                    rec_height = 0.5 * (sorted_z[loc_z + 1] - sorted_z[loc_z - 1])
+                    rec_height = 0.5 * (
+                        sorted_z[loc_z + 1] - sorted_z[loc_z - 1]
+                    )
                 # Get starting distance and width of building rectangle
                 loc_d = sorted_dist.get_loc(bcell[1])
                 if loc_d == 0:
@@ -540,11 +558,17 @@ def plotSectionalViews(
                     )
                     rec_width = sorted_dist[loc_d + 1] - sorted_dist[loc_d]
                 elif loc_d == sorted_dist.size - 1:
-                    rec_d0 = 0.5 * (sorted_dist[loc_d - 1] + sorted_dist[loc_d])
+                    rec_d0 = 0.5 * (
+                        sorted_dist[loc_d - 1] + sorted_dist[loc_d]
+                    )
                     rec_width = sorted_dist[loc_d] - sorted_dist[loc_d - 1]
                 else:
-                    rec_d0 = 0.5 * (sorted_dist[loc_d - 1] + sorted_dist[loc_d])
-                    rec_width = 0.5 * (sorted_dist[loc_d + 1] - sorted_dist[loc_d - 1])
+                    rec_d0 = 0.5 * (
+                        sorted_dist[loc_d - 1] + sorted_dist[loc_d]
+                    )
+                    rec_width = 0.5 * (
+                        sorted_dist[loc_d + 1] - sorted_dist[loc_d - 1]
+                    )
 
                 # Define and plot the building rectangle
                 rect[i] = Rectangle(
@@ -579,6 +603,8 @@ def conditional_interpolate(df, cols, limit=2):
         .where(df[cols].isnull().prod(axis=1).astype(bool))
     )
 
-    result = df.interpolate(limit_area="inside", method="slinear").mask(m >= limit)
+    result = df.interpolate(limit_area="inside", method="slinear").mask(
+        m >= limit
+    )
 
     return result

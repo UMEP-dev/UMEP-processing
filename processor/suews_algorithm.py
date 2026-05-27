@@ -93,11 +93,15 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.net = (
             (self.tr("0. (OBSERVED) from forcing file"), "0"),
             (
-                self.tr("1. (LDOWN_OBSERVED) Modelled (NARP) but Ldown observed"),
+                self.tr(
+                    "1. (LDOWN_OBSERVED) Modelled (NARP) but Ldown observed"
+                ),
                 "1",
             ),
             (
-                self.tr("2.  (LDOWN_CLOUD) Modelled (NARP), Ldown from cloud cover"),
+                self.tr(
+                    "2.  (LDOWN_CLOUD) Modelled (NARP), Ldown from cloud cover"
+                ),
                 "2",
             ),
             (
@@ -169,15 +173,21 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.z0m = (
             (self.tr("1. (FIXED) = Fixed from site parameters"), "1"),
             (
-                self.tr("2. (VARIABLE) = Varies with vegetation LAI (Default)"),
+                self.tr(
+                    "2. (VARIABLE) = Varies with vegetation LAI (Default)"
+                ),
                 "2",
             ),
             (
-                self.tr("3. (MACDONALD) = MacDonald et al. 1998 morphometric method"),
+                self.tr(
+                    "3. (MACDONALD) = MacDonald et al. 1998 morphometric method"
+                ),
                 "3",
             ),
             (
-                self.tr("4. (LAMBDAP_DEPENDENT) = Varies with plan area fraction"),
+                self.tr(
+                    "4. (LAMBDAP_DEPENDENT) = Varies with plan area fraction"
+                ),
                 "4",
             ),
         )
@@ -189,11 +199,15 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                 "1",
             ),
             (
-                self.tr("2. (KAWAI) = Kawai et al. (2009) formulation (Default)"),
+                self.tr(
+                    "2. (KAWAI) = Kawai et al. (2009) formulation (Default)"
+                ),
                 "2",
             ),
             (
-                self.tr("3. (VOOGT_GRIMMOND) = Voogt and Grimmond (2000) formulation"),
+                self.tr(
+                    "3. (VOOGT_GRIMMOND) = Voogt and Grimmond (2000) formulation"
+                ),
                 "3",
             ),
             (self.tr("4. (KANDA) = Kanda et al. (2007) formulation"), "4"),
@@ -336,7 +350,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.Z0M,
-                self.tr("Method for calculating momentum roughness length (z0m)"),
+                self.tr(
+                    "Method for calculating momentum roughness length (z0m)"
+                ),
                 options=[i[0] for i in self.z0m],
                 defaultValue=1,
             )
@@ -344,7 +360,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.Z0H,
-                self.tr("Method for calculating thermal roughness length (z0h)"),
+                self.tr(
+                    "Method for calculating thermal roughness length (z0h)"
+                ),
                 options=[i[0] for i in self.z0h],
                 defaultValue=1,
             )
@@ -370,7 +388,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.WU,
-                self.tr("Method for determining external water use (irrigation)"),
+                self.tr(
+                    "Method for determining external water use (irrigation)"
+                ),
                 options=[i[0] for i in self.wu],
                 defaultValue=0,
             )
@@ -401,7 +421,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output folder")
+            QgsProcessingParameterFolderDestination(
+                self.OUTPUT_DIR, "Output folder"
+            )
         )
 
         # Advanced parameters
@@ -413,7 +435,8 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
             defaultValue=False,
         )
         chunkBool.setFlags(
-            chunkBool.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            chunkBool.flags()
+            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
         )
         self.addParameter(chunkBool)
 
@@ -449,7 +472,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         self.supylib = sys.modules["supy"].__path__[0]
         feedback.setProgressText(self.supylib)
         infile = self.parameterAsString(parameters, self.INPUT_FILE, context)
-        outfolder = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+        outfolder = self.parameterAsString(
+            parameters, self.OUTPUT_DIR, context
+        )
 
         net = self.parameterAsString(parameters, self.NET, context)
         qf = self.parameterAsString(parameters, self.ANTHRO, context)
@@ -482,7 +507,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         yaml_dict["model"]["physics"]["emissionsmethod"]["value"] = int(
             self.anthro[int(qf)][1]
         )
-        yaml_dict["model"]["physics"]["ohmincqf"]["value"] = int(self.ohm[int(ohm)][1])
+        yaml_dict["model"]["physics"]["ohmincqf"]["value"] = int(
+            self.ohm[int(ohm)][1]
+        )
         yaml_dict["model"]["physics"]["stabilitymethod"]["value"] = int(
             self.stab[int(stab)][1]
         )
@@ -495,15 +522,21 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         yaml_dict["model"]["physics"]["roughlenheatmethod"]["value"] = int(
             self.z0h[int(z0h)][1]
         )
-        yaml_dict["model"]["physics"]["smdmethod"]["value"] = int(self.smd[int(smd)][1])
+        yaml_dict["model"]["physics"]["smdmethod"]["value"] = int(
+            self.smd[int(smd)][1]
+        )
         yaml_dict["model"]["physics"]["waterusemethod"]["value"] = int(
             self.wu[int(wu)][1]
         )
         yaml_dict["model"]["physics"]["rslmethod"] = int(
             self.rslmethod[int(rslmethod)][1]
         )
-        yaml_dict["model"]["physics"]["rsllevel"] = int(self.rsllevel[int(rsllevel)][1])
-        yaml_dict["model"]["control"]["output_file"]["path"] = str(outfolder) + "/"
+        yaml_dict["model"]["physics"]["rsllevel"] = int(
+            self.rsllevel[int(rsllevel)][1]
+        )
+        yaml_dict["model"]["control"]["output_file"]["path"] = (
+            str(outfolder) + "/"
+        )
 
         with open(infile, "w") as file:
             yaml.dump(yaml_dict, file, sort_keys=False)
@@ -519,7 +552,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Loading forcing data")
 
         grid = df_state_init.index[0]
-        df_forcing = sp.load_forcing_grid(infile, grid, df_state_init=df_state_init)
+        df_forcing = sp.load_forcing_grid(
+            infile, grid, df_state_init=df_state_init
+        )
 
         if chunkBool:
             noOfDays = (df_forcing.index.max() - df_forcing.index.min()).days
