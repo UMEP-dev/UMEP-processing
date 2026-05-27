@@ -1152,13 +1152,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     np.max(unique_landcover) > 7
                     or np.min(unique_landcover) < 1
                 ):
-                    feedback.pushWarning(
+                    raise QgsProcessingException(
                         "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
                         "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
                     )
             else:
                 if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
-                    feedback.pushWarning(
+                    raise QgsProcessingException(
                         "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
                         "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
                     )

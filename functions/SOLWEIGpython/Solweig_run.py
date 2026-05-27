@@ -86,8 +86,10 @@ def solweig_run(configPath, feedback):
     # Load parameters settings for SOLWEIG
     with open(configDict["para_json_path"], "r") as jsn:
         param = json.load(jsn)
+    
 
     # reading variables from config and parameters that is not yet presented
+    standAlone = int(configDict["standalone"]) 
     cyl = int(configDict["cyl"])
     albedo_b = param["Albedo"]["Effective"]["Value"]["Walls"]
     ewall = param["Emissivity"]["Value"]["Walls"]
@@ -203,7 +205,7 @@ def solweig_run(configPath, feedback):
                 configDict["filepath_lc"], bbox=None
             )
     else:
-        lcgrid = 0
+        lcgrid = torch.ones_like(dsm, device=device)
 
     # DEM for buildings #TODO: fix nodata in standalone
     demforbuild = int(configDict["demforbuild"])
