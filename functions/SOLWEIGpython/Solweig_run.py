@@ -688,7 +688,7 @@ def solweig_run(configPath, feedback):
         pass
     
     # Replace the ground view factors with integration of solid angles
-    outgoingLW = int(configDict["outgoingLW"])
+    outgoingLW = int(configDict["outgoinglongwave"])
     
     # Import data for wall temperature parameterization TODO: fix for standalone
     wallScheme = int(configDict["wallscheme"])
@@ -1025,7 +1025,7 @@ def solweig_run(configPath, feedback):
             steradians,
             walls_scheme,
             dirwalls_scheme,
-            groundScheme,
+            groundSurface,
             outgoingLW,
             Tg,
             Rn,
