@@ -13,16 +13,11 @@ import scipy.ndimage as sc
 from scipy.ndimage import maximum_filter
 
 def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
-    """
-    Identifie les murs de manière ultra-optimisée en mémoire (sans F.unfold).
-    """
-    # 1. S'assurer que l'entrée est un tenseur PyTorch
     if isinstance(arr_dsm, torch.Tensor):
         dsm_tensor = arr_dsm
     else:
         dsm_tensor = torch.tensor(arr_dsm, device=device)
 
-    # 2. Définir le footprint par défaut (forme de diamant / points cardinaux)
     if footprint is None or footprint is False:
         footprint = torch.tensor([
             [0, 1, 0],
@@ -35,32 +30,23 @@ def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
     fh, fw = footprint.shape
     pad_h, pad_w = fh // 2, fw // 2
 
-    # Padding adaptatif basé sur la taille du filtre
     padded_a = dsm_tensor.unsqueeze(0).unsqueeze(0)
     padded_a = F.pad(padded_a, pad=(pad_w, pad_w, pad_h, pad_h), mode="replicate")
     padded_a = padded_a.squeeze(0).squeeze(0)
 
-    # Initialisation de la matrice des maximums avec une valeur minimale (-infini)
     max_neighbors = torch.full_like(dsm_tensor, float('-inf'))
 
-    # Trouver les coordonnées où le filtre est actif (égal à 1)
     y_indices, x_indices = torch.where(footprint == 1)
 
-    # Utilisation du glissement par vue (0 copie mémoire)
     H, W = dsm_tensor.shape
     for dy, dx in zip(y_indices, x_indices):
-        # Cette ligne crée une "vue" virtuelle sans allouer de RAM
         shifted_view = padded_a[dy : dy + H, dx : dx + W]
-        # Comparaison élément par élément optimisée
         max_neighbors = torch.maximum(max_neighbors, shifted_view)
 
-    # 3. Identification des pixels de murs
     walls = max_neighbors - dsm_tensor
 
-    # Appliquer la limite de hauteur des murs
     walls[walls < walllimit] = 0
 
-    # 4. Remise à zéro des bordures extérieures
     walls[0, :] = 0
     walls[-1, :] = 0
     walls[:, 0] = 0
@@ -146,7 +132,7 @@ def filter1Goodwin_as_aspect_v3(
     buildfilt1_list = []
     buildfilt2_list = []
 
-    # 2. Pre-calculate all 180 directional filters on CPU
+    # 2. Pre-calculate all 180 directional filters on CPU or GPU
     with torch.no_grad(): 
         for h in range(180):
             filtmatrix1temp = sc.rotate(
