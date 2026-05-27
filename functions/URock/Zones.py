@@ -166,8 +166,7 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
     }
 
     # Create the zone from the half ellipse and the densified line and then join missing columns
-    cursor.execute(
-        safe(";").join([f"""
+    cursor.execute(safe(";").join([f"""
         {DataUtil.createIndex(tableName=ZonePoints[z], 
                               fieldName=UPWIND_FACADE_FIELD,
                               isSpatial=False)}
@@ -194,8 +193,7 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
             FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
             ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
             WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
-        """ for z in variablesNames.index])
-    )  # nosec B608  # nosec B608  # nosec B608
+        """ for z in variablesNames.index]))  # nosec B608  # nosec B608
 
     if not DEBUG:
         # Drop intermediate tables

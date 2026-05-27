@@ -56,21 +56,6 @@ except:
     pass
 
 
-# import numpy as np
-# from .daylen import daylen
-# from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-# from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
-# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
-# from .gvf_2018a import gvf_2018a
-# from .cylindric_wedge import cylindric_wedge
-# from .TsWaveDelay_2015a import TsWaveDelay_2015a
-# from .Kup_veg_2015a import Kup_veg_2015a
-# # from .Lside_veg_v2015a import Lside_veg_v2015a
-# # from .Kside_veg_v2019a import Kside_veg_v2019a
-# from .Kside_veg_v2022a import Kside_veg_v2022a
-# from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
-# from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 
 def solweig_run(configPath, feedback):
@@ -86,10 +71,9 @@ def solweig_run(configPath, feedback):
     # Load parameters settings for SOLWEIG
     with open(configDict["para_json_path"], "r") as jsn:
         param = json.load(jsn)
-    
 
     # reading variables from config and parameters that is not yet presented
-    standAlone = int(configDict["standalone"]) 
+    standAlone = int(configDict["standalone"])
     cyl = int(configDict["cyl"])
     albedo_b = param["Albedo"]["Effective"]["Value"]["Walls"]
     ewall = param["Emissivity"]["Value"]["Walls"]
@@ -645,7 +629,9 @@ def solweig_run(configPath, feedback):
     # Import shadow matrices (Anisotropic sky)
     anisotropic_sky = int(configDict["aniso"])
     if anisotropic_sky == 1:  # UseAniso
-        data = torch.load(configDict["input_aniso"]).to(device)
+        data = torch.load(
+            configDict["input_aniso"], map_location=device, weights_only=True
+        )
         shmat = data["shadowmat"]
         vegshmat = data["vegshadowmat"]
         vbshvegshmat = data["vbshmat"]
@@ -753,7 +739,9 @@ def solweig_run(configPath, feedback):
     # Import data for wall temperature parameterization TODO: fix for standalone
     wallScheme = int(configDict["wallscheme"])
     if wallScheme == 1:
-        wallData = torch.load(configDict["input_wall"]).to(device)
+        wallData = torch.load(
+            configDict["input_wall"], map_location=device, weights_only=True
+        )
         voxelMaps = wallData["voxelId"]
         voxelTable = wallData["voxelTable"]
         # Get wall type from standalone

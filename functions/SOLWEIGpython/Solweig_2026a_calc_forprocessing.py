@@ -19,8 +19,7 @@ from .cylindric_wedge import cylindric_wedge
 from .TsWaveDelay_2015a import TsWaveDelay_2015a
 from .Kup_veg_2015a import Kup_veg_2015a
 
-# from .Lside_veg_v2015a import Lside_veg_v2015a
-# from .Kside_veg_v2019a import Kside_veg_v2019a
+
 from .Kside_veg_v2022a import Kside_veg_v2022a
 from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
