@@ -133,6 +133,7 @@ def Solweig_2026a_calc(
     walls_scheme,
     dirwalls_scheme,
     groundScheme,
+    outgoingLW,
     Tg,
     Rn,
     Rn_past,
@@ -401,6 +402,34 @@ def Solweig_2026a_calc(
                 shadow_past,
             )
 
+        else:
+            # using max sun alt instead of dfm
+            Tgamp = TgK * altmax + Tstart  # Fixed 2021
+            Tgdiff = Tgamp * torch.sin(
+                (
+                    ((dectime - torch.floor(dectime)) - SNUP / 24)
+                    / (TmaxLST / 24 - SNUP / 24)
+                )
+                * torch.pi
+                / 2
+            )  # 2015 a, based on max sun altitude
+
+            Tgdiff = Tgdiff * CI_TgG  # new estimation
+
+            # For Tg output in POIs
+            TgTemp = Tgdiff * shadow + Ta
+            _, timeadd, Tg = TsWaveDelay_2015a(
+                TgTemp, firstdaytime, timeadd, timestepdec, Tg
+            )  # timeadd only here v2021a
+
+            if landcover == 1:
+                Tg[Tg < 0] = (
+                    0  # temporary for removing low Tg during morning 20130205
+                )
+
+        # Calculate the outgoing longwave radiation
+        if outgoingLW == 1:
+
             # # # # Lup, daytime # # # #
             (
                 Lup,
@@ -439,30 +468,6 @@ def Solweig_2026a_calc(
             )
 
         else:
-            # using max sun alt instead of dfm
-            Tgamp = TgK * altmax + Tstart  # Fixed 2021
-            Tgdiff = Tgamp * torch.sin(
-                (
-                    ((dectime - torch.floor(dectime)) - SNUP / 24)
-                    / (TmaxLST / 24 - SNUP / 24)
-                )
-                * torch.pi
-                / 2
-            )  # 2015 a, based on max sun altitude
-
-            Tgdiff = Tgdiff * CI_TgG  # new estimation
-
-            # For Tg output in POIs
-            TgTemp = Tgdiff * shadow + Ta
-            _, timeadd, Tg = TsWaveDelay_2015a(
-                TgTemp, firstdaytime, timeadd, timestepdec, Tg
-            )  # timeadd only here v2021a
-
-            if landcover == 1:
-                Tg[Tg < 0] = (
-                    0  # temporary for removing low Tg during morning 20130205
-                )
-
             ### Ground View Factors
             (
                 gvfLup,
@@ -648,7 +653,12 @@ def Solweig_2026a_calc(
                 shadow,
                 shadow_past,
             )
+        else:
+            # In the old scheme the ground surface temperature is equal to the air temperature during nighttime
+            Tg = torch.ones((rows, cols), device=device) * Ta
 
+        # Calculate the outgoing longwave radiation
+        if outgoingLW == 1:
             # # # # Lup, daytime # # # #
             (
                 Lup,
@@ -687,9 +697,6 @@ def Solweig_2026a_calc(
             )
 
         else:
-            # In the old scheme the ground surface temperature is equal to the air temperature during nighttime
-            Tg = torch.ones((rows, cols), device=device) * Ta
-
             # # # # Lup, nighttime # # # #
             Lup = SBC * emis_grid * ((Knight + Tg + 273.15) ** 4)
             LupE = Lup

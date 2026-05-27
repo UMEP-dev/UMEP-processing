@@ -255,7 +255,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.INPUT_LC,
                 self.tr("UMEP land cover grid"),
                 "",
-                optional=False,
+                optional=True,
             )
         )
         self.addParameter(
@@ -271,7 +271,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.INPUT_DEM,
                 self.tr("Digital Elevation Model (DEM)"),
                 "",
-                optional=False,
+                optional=True,
             )
         )
         self.addParameter(

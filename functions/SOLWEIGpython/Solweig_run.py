@@ -56,8 +56,6 @@ except:
     pass
 
 
-
-
 def solweig_run(configPath, feedback):
     """
     Input:
@@ -697,8 +695,8 @@ def solweig_run(configPath, feedback):
         TmaxLST_wall = param["TmaxLST"]["Value"]["Walls"]
 
     # Parameterization for the 2026 ground scheme
-    groundScheme = int(configDict["groundmodel"])
-    if groundScheme == 1:
+    groundSurface = int(configDict["groundmodel"])
+    if groundSurface == 1:
         # Initiate the maps if the surface temperature is available
         if configDict["input_surf"] != "":
             surfData = pd.read_csv(configDict["input_surf"])
@@ -735,6 +733,9 @@ def solweig_run(configPath, feedback):
             )
     else:
         pass
+
+    # Replace the ground view factors with integration of solid angles
+    outgoingLW = int(configDict["outgoingLW"])
 
     # Import data for wall temperature parameterization TODO: fix for standalone
     wallScheme = int(configDict["wallscheme"])
@@ -1077,6 +1078,7 @@ def solweig_run(configPath, feedback):
             walls_scheme,
             dirwalls_scheme,
             groundScheme,
+            outgoingLW,
             Tg,
             Rn,
             Rn_past,

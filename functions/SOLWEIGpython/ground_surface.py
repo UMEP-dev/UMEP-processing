@@ -102,23 +102,35 @@ def initiate_groundScheme(
         offset_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ][0]
-        ratio_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
+
+        slope_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ][1]
-        phi_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
-            solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ][2]
+        ][0]
+
+        ratio_Tg = float(
+            solweig_parameters["Tg_ini coefficients"]["Values"][
+                solweig_parameters["Names"]["Value"][str((int(i.item())))]
+            ][1]
+        )
+        phi_Tg = 1.6
+
+        # Correct the offset value given the latitude
+        offset_Tg += slope_Tg * location["latitude"]
 
         # Mean daily soil temperature parameters
         ampl_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ][0]
-        phi_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
+        slope_Tm = solweig_parameters["Tm_inicoefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ][1]
+        phi_Tm = 1.7
         offset_Tm = solweig_parameters["Tm_ini coefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
         ][2]
+
+        # Correct the offset value given the latitude
+        offset_Tm += slope_Tm * location["latitude"]
 
         if i == 0 or i == 1:
             # For paved and asphalt landcover
@@ -127,8 +139,7 @@ def initiate_groundScheme(
                 + offset_Tg
                 * (
                     1
-                    + 1
-                    / ratio_Tg
+                    + ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
                     * torch.sign(
                         torch.tensor(location["latitude"], device=device)
@@ -152,8 +163,7 @@ def initiate_groundScheme(
                 + offset_Tg
                 * (
                     1
-                    + 1
-                    / ratio_Tg
+                    + ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
                     * torch.sign(
                         torch.tensor(location["latitude"], device=device)
@@ -167,8 +177,7 @@ def initiate_groundScheme(
             # For grass surfaces
             Tg[Tg == i] = Ta[0] + offset_Tg * (
                 1
-                + 1
-                / ratio_Tg
+                + ratio_Tg
                 * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
                 * torch.sign(torch.tensor(location["latitude"], device=device))
             )
@@ -187,8 +196,7 @@ def initiate_groundScheme(
                 + offset_Tg
                 * (
                     1
-                    + 1
-                    / ratio_Tg
+                    + ratio_Tg
                     * torch.sin(2 * torch.pi / 365.25 * day + phi_Tg)
                     * torch.sign(
                         torch.tensor(location["latitude"], device=device)

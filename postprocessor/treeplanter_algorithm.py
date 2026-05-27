@@ -102,8 +102,6 @@ from ..functions.TreePlanter.TreePlanter import GreedyAlgorithm
 from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG1D_2023a import tmrt_1d_fun
 
 
-
-
 class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of Tree planter
