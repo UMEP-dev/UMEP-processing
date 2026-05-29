@@ -4,7 +4,7 @@
 # Goteborg Urban Climate Group
 # Gothenburg University
 
-# imports
+# sommon imports
 from __future__ import absolute_import
 from ...util.umep_solweig_export_component import read_solweig_config
 from ...util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import (
@@ -14,10 +14,11 @@ from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
     clearnessindex_2013b,
 )
 
-from ...functions.SOLWEIGpython import Solweig_2025a_calc_forprocessing as so
+from ...functions.SOLWEIGpython import (
+    Solweig_2026a_calc_forprocessing as so,
+)
 
-# from ...functions.SOLWEIGpython import WriteMetadataSOLWEIG # Not needed
-# anymore?
+# from ...functions.SOLWEIGpython import WriteMetadataSOLWEIG # Not needed anymore?
 from ...functions.SOLWEIGpython import PET_calculations as p
 from ...functions.SOLWEIGpython import UTCI_calculations as utci
 from ...functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
@@ -27,7 +28,9 @@ from ...functions.SOLWEIGpython.patch_characteristics import hemispheric_image
 from ...functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
 from ...functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
 from ...functions import wallalgorithms as wa
-
+from ...functions.SOLWEIGpython.ground_surface import (
+    initiate_groundScheme,
+)
 import numpy as np
 import json
 import zipfile
@@ -38,10 +41,10 @@ from shutil import copyfile
 # imports from osgeo/qgis dependency
 try:
     from osgeo import gdal
+    from osgeo.gdalconst import *
     from ...util.misc import saveraster, xy2latlon_fromraster
-    from qgis.core import QgsRasterLayer
-    import configparser
-except BaseException:
+    from qgis.core import QgsVectorLayer, QgsRasterLayer
+except:
     pass
 
 # imports for standalone
@@ -51,26 +54,25 @@ try:
     import pyproj
     from tqdm import tqdm
     import geopandas as gpd
-except BaseException:
+except:
     pass
 
 
-def config_to_dict(config: configparser.ConfigParser):
-    def auto_cast(value: str):
-        """Try to interpret strings as bool, int, or float."""
-        v = value.strip().lower()
-        if v in ("true", "yes", "on"):
-            return True
-        if v in ("false", "no", "off"):
-            return False
-        if v.isdigit():
-            return int(v)
-        try:
-            return float(v)
-        except ValueError:
-            return value  # fallback: leave as string
-
-    return {k: auto_cast(v) for k, v in config.items()}
+# import numpy as np
+# from .daylen import daylen
+# from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+# from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
+# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
+# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
+# from .gvf_2018a import gvf_2018a
+# from .cylindric_wedge import cylindric_wedge
+# from .TsWaveDelay_2015a import TsWaveDelay_2015a
+# from .Kup_veg_2015a import Kup_veg_2015a
+# # from .Lside_veg_v2015a import Lside_veg_v2015a
+# # from .Kside_veg_v2019a import Kside_veg_v2019a
+# from .Kside_veg_v2022a import Kside_veg_v2022a
+# from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
+# from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 
 def solweig_run(configPath, feedback):
@@ -86,8 +88,6 @@ def solweig_run(configPath, feedback):
     # Load parameters settings for SOLWEIG
     with open(configDict["para_json_path"], "r") as jsn:
         param = json.load(jsn)
-
-    configDict = config_to_dict(configDict)
 
     standAlone = int(configDict["standalone"])
 
@@ -120,6 +120,7 @@ def solweig_run(configPath, feedback):
         lon, lat = transformer.transform(minx, miny)
         nd = -9999  # TODO: extract nodatavalue from rasterio
     else:
+        # dsmlayer = QgsRasterLayer(configDict['filepath_dsm'])
         dsm_wkt = QgsRasterLayer(configDict["filepath_dsm"]).crs().toWkt()
         gdal_dsm = gdal.Open(configDict["filepath_dsm"])
         lat, lon, scale, minx, miny = xy2latlon_fromraster(dsm_wkt, gdal_dsm)
@@ -156,7 +157,7 @@ def solweig_run(configPath, feedback):
             vegdsm, _, _ = common.load_raster(
                 configDict["filepath_cdsm"], bbox=None
             )
-        if configDict["filepath_tdsm"] is not "":
+        if configDict["filepath_tdsm"] != "":
             if standAlone == 0:
                 vegdsm2 = (
                     gdal.Open(configDict["filepath_tdsm"])
@@ -187,14 +188,15 @@ def solweig_run(configPath, feedback):
                 configDict["filepath_lc"], bbox=None
             )
     else:
-        lcgrid = 0
+        lcgrid = np.ones_like(dsm)
 
     # DEM for buildings #TODO: fix nodata in standalone
     demforbuild = int(configDict["demforbuild"])
     if demforbuild == 1:
         if standAlone == 0:
-            # .ReadAsArray().astype(float)
-            gdal_dem = gdal.Open(configDict["filepath_dem"])
+            gdal_dem = gdal.Open(
+                configDict["filepath_dem"]
+            )  # .ReadAsArray().astype(float)
             dem = gdal_dem.ReadAsArray().astype(float)
             nd = gdal_dem.GetRasterBand(1).GetNoDataValue()
         else:
@@ -402,18 +404,37 @@ def solweig_run(configPath, feedback):
     Ws = metdata[:, 9]
 
     # POIs check
-    if configDict["poi_file"] is not "":  # usePOI:
+    if configDict["poi_file"] != "":  # usePOI:
         header = (
             "yyyy id   it imin dectime altitude azimuth kdir kdiff kglobal kdown   kup    keast ksouth "
             "kwest knorth ldown   lup    least lsouth lwest  lnorth   Ta      Tg     RH    Esky   Tmrt    "
-            "I0     CI   Shadow  SVF_b  SVF_bv KsideI PET UTCI  CI_Tg   CI_TgG  KsideD  Lside   diffDown    Kside"
+            "I0     CI   Shadow  SVF_b  SVF_bv  KsideI   PET UTCI  CI_TgG  KsideD  Lside   diffDown    Kside  "
         )
         # poiname = []
-        # self.parameterAsString(parameters, self.POI_FIELD, context)
-        poi_field = configDict["poi_field"]
+        poi_field = configDict[
+            "poi_field"
+        ]  # self.parameterAsString(parameters, self.POI_FIELD, context)
         if standAlone == 0:
-            # self.parameterAsStrings(parameters, self.WOI_FIELD, context)
-            poi_field = configDict["woi_field"]
+            # vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
+            # idx = vlayer.fields().indexFromName(poi_field)
+            # numfeat = vlayer.featureCount()
+            # poisxy = np.zeros((numfeat, 3)) - 999
+            # ind = 0
+            # for f in vlayer.getFeatures():  # looping through each POI
+            #     y = f.geometry().centroid().asPoint().y()
+            #     x = f.geometry().centroid().asPoint().x()
+            #     poiname.append(f.attributes()[idx])
+            #     poisxy[ind, 0] = ind
+            #     poisxy[ind, 1] = np.round((x - minx) * scale)
+            #     if miny >= 0:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     else:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     ind += 1
+
+            poi_field = configDict[
+                "woi_field"
+            ]  # self.parameterAsStrings(parameters, self.WOI_FIELD, context)
             poisxy, poiname = pointOfInterest(
                 configDict["poi_file"], poi_field, scale, gdal_dsm
             )
@@ -423,13 +444,11 @@ def solweig_run(configPath, feedback):
             numfeat = pois_gdf.shape[0]
             poisxy = np.zeros((numfeat, 3)) - 999
             for idx, row in pois_gdf.iterrows():
-                # TODO: This produce different result since no standalone round
-                # coordinates
                 y, x = rowcol(
                     dsm_transf,
                     row["geometry"].centroid.x,
                     row["geometry"].centroid.y,
-                )
+                )  # TODO: This produce different result since no standalone round coordinates
                 poiname.append(row[configDict["poi_field"]])
                 poisxy[idx, 0] = idx
                 poisxy[idx, 1] = x
@@ -443,9 +462,9 @@ def solweig_run(configPath, feedback):
             np.savetxt(
                 data_out, poi_save, delimiter=" ", header=header, comments=""
             )
-
+        # print(poisxy)
         # Num format for POI output
-        numformat = "%d %d %d %d %.5f " + "%.2f " * 36
+        numformat = "%d %d %d %d %.5f " + "%.2f " * 35
 
         # Other PET variables
         sensorheight = param["Wind_Height"]["Value"]["magl"]
@@ -497,7 +516,7 @@ def solweig_run(configPath, feedback):
                 ) & (DOY < param["Tree_settings"]["Value"]["Last_day_leaf"])
             leafon[0, leaf_bool] = 1
 
-        # Vegetation transmittivity of shortwave radiation
+        # % Vegetation transmittivity of shortwave radiation
         psi = leafon * transVeg
         psi[leafon == 0] = 0.5
         # amaxvalue
@@ -514,8 +533,9 @@ def solweig_run(configPath, feedback):
         # % Bush separation
         bush = np.logical_not((vegdsm2 * vegdsm)) * vegdsm
 
-        # % major bug fixed 20141203
-        svfbuveg = svf - (1.0 - svfveg) * (1.0 - transVeg)
+        svfbuveg = svf - (1.0 - svfveg) * (
+            1.0 - transVeg
+        )  # % major bug fixed 20141203
     else:
         psi = leafon * 0.0 + 1.0
         svfbuveg = svf
@@ -569,10 +589,9 @@ def solweig_run(configPath, feedback):
         if usevegdem == 1:
             diffsh = np.zeros((rows, cols, shmat.shape[2]))
             for i in range(0, shmat.shape[2]):
-                # changes in psi not implemented yet
                 diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (
                     1 - transVeg
-                )
+                )  # changes in psi not implemented yet
         else:
             diffsh = shmat
 
@@ -600,12 +619,11 @@ def solweig_run(configPath, feedback):
         asvf = None
         patch_option = 0
         steradians = 0
+    shadow = np.zeros_like(dsm)
 
     # % Ts parameterisation maps
     if landcover == 1.0:
-        # Get land cover properties for Tg wave (land cover scheme based on
-        # Bogren et al. 2000, explained in Lindberg et al., 2008 and Lindberg,
-        # Onomura & Grimmond, 2016)
+        # Get land cover properties for Tg wave (land cover scheme based on Bogren et al. 2000, explained in Lindberg et al., 2008 and Lindberg, Onomura & Grimmond, 2016)
         [
             TgK,
             Tstart,
@@ -628,9 +646,51 @@ def solweig_run(configPath, feedback):
         TgK_wall = param["Ts_deg"]["Value"]["Walls"]
         Tstart_wall = param["Tstart"]["Value"]["Walls"]
         TmaxLST_wall = param["TmaxLST"]["Value"]["Walls"]
-
-    # Import data for wall temperature parameterization TODO: fix for
-    # standalone
+        
+    # Parameterization for the 2026 ground scheme
+    groundSurface = int(configDict["groundmodel"])
+    if groundSurface == 1:
+        # Initiate the maps if the surface temperature is available
+        if configDict["input_surf"] != "":
+            surfData = pd.read_csv(configDict["input_surf"])
+            Tg = surfData["Tg"]
+            Tm = np.mean(surfData["Tg"])
+            (
+                _,
+                _,
+                Rn,
+                Rn_past,
+                G,
+                cap_grid,
+                diff_grid,
+                a1_grid,
+                a2_grid,
+                a3_grid,
+            ) = initiate_groundScheme(
+                lcgrid.copy(), param, DOY[0], Ta, location
+            )
+        else:
+            (
+                Tg,
+                Tm,
+                Rn,
+                Rn_past,
+                G,
+                cap_grid,
+                diff_grid,
+                a1_grid,
+                a2_grid,
+                a3_grid,
+            ) = initiate_groundScheme(
+                lcgrid.copy(), param, DOY[0], Ta, location
+            )
+    else:
+        pass
+    
+    # Replace the ground view factors with integration of solid angles
+    outgoingLW = int(configDict["outgoinglongwave"])
+    
+    # Import data for wall temperature parameterization TODO: fix for standalone
     wallScheme = int(configDict["wallscheme"])
     if wallScheme == 1:
         wallData = np.load(configDict["input_wall"])
@@ -646,14 +706,15 @@ def solweig_run(configPath, feedback):
             wall_type = wall_type_standalone[configDict["walltype"]]
         else:
             # Get wall type set in GUI
-            wall_type = str(configDict["walltype"])
-        # Calculate wall height for wall scheme, i.e. include corners (thicker
-        # walls)
+            wall_type = configDict[
+                "walltype"
+            ]  # str(100 + int(self.parameterAsString(parameters, self.WALL_TYPE, context))) #TODO
+
+        # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
         walls_scheme = wa.findwalls_sp(
             dsm, 2, np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
         )
-        # Calculate wall aspect for wall scheme, i.e. include corners (thicker
-        # walls)
+        # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
         dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(
             walls_scheme.copy(), scale, dsm, feedback, 100.0 / 180.0
         )
@@ -692,12 +753,12 @@ def solweig_run(configPath, feedback):
 
         # Use wall of interest
         woi_file = configDict["woi_file"]
-
         if woi_file:
             # (dsm_minx, dsm_x_size, dsm_x_rotation, dsm_miny, dsm_y_rotation, dsm_y_size) = gdal_dsm.GetGeoTransform() #TODO: fix for standalone
             if standAlone == 0:
-                # self.parameterAsStrings(parameters, self.WOI_FIELD, context)
-                woi_field = configDict["woi_field"]
+                woi_field = configDict[
+                    "woi_field"
+                ]  # self.parameterAsStrings(parameters, self.WOI_FIELD, context)
                 woisxy, woiname = pointOfInterest(
                     configDict["woi_file"], woi_field, scale, gdal_dsm
                 )
@@ -706,22 +767,17 @@ def solweig_run(configPath, feedback):
                 numfeat = pois_gdf.shape[0]
                 poisxy = np.zeros((numfeat, 3)) - 999
                 for idx, row in pois_gdf.iterrows():
-                    # TODO: This produce different result since no standalone
-                    # round coordinates
                     y, x = rowcol(
                         dsm_transf,
                         row["geometry"].centroid.x,
                         row["geometry"].centroid.y,
-                    )
+                    )  # TODO: This produce different result since no standalone round coordinates
                     poiname.append(row[configDict["poi_field"]])
                     poisxy[idx, 0] = idx
                     poisxy[idx, 1] = x
                     poisxy[idx, 2] = y
-        else:
-            woisxy = None
-        # Create pandas datetime object to be used when createing an xarray
-        # DataSet where wall temperatures/radiation is stored and eventually
-        # saved as a NetCDf
+
+        # Create pandas datetime object to be used when createing an xarray DataSet where wall temperatures/radiation is stored and eventually saved as a NetCDf
         if configDict["wallnetcdf"] == 1:
             met_for_xarray = (
                 pd.to_datetime(YYYY[0][:], format="%Y")
@@ -762,7 +818,6 @@ def solweig_run(configPath, feedback):
 
     # Main loop
     tmrtplot = np.zeros((rows, cols))
-    TgOut1 = np.zeros((rows, cols))
 
     # Initiate array for I0 values
     if np.unique(DOY).shape[0] > 1:
@@ -778,8 +833,9 @@ def solweig_run(configPath, feedback):
 
     for i in np.arange(0, Ta.__len__()):
         if feedback is not None:
-            # move progressbar forward
-            feedback.setProgress(int(i * (100.0 / Ta.__len__())))
+            feedback.setProgress(
+                int(i * (100.0 / Ta.__len__()))
+            )  # move progressbar forward
             if feedback.isCanceled():
                 feedback.setProgressText("Calculation cancelled")
                 break
@@ -819,6 +875,21 @@ def solweig_run(configPath, feedback):
         #     radD[i] = 0.
         #     radI[i] = 0.
 
+        # Timestep of the simulation used in the ground scheme calculation
+        first_timestep = (
+            pd.to_datetime(YYYY[0][0], format="%Y")
+            + pd.to_timedelta(DOY[0] - 1, unit="d")
+            + pd.to_timedelta(hours[0], unit="h")
+            + pd.to_timedelta(minu[0], unit="m")
+        )
+        second_timestep = (
+            pd.to_datetime(YYYY[0][1], format="%Y")
+            + pd.to_timedelta(DOY[1] - 1, unit="d")
+            + pd.to_timedelta(hours[1], unit="h")
+            + pd.to_timedelta(minu[1], unit="m")
+        )
+        timeStep = (second_timestep - first_timestep).seconds
+
         (
             Tmrt,
             Kdown,
@@ -848,20 +919,21 @@ def solweig_run(configPath, feedback):
             Lwest,
             Lnorth,
             KsideI,
-            TgOut1,
-            TgOut,
             radIout,
             radDout,
             Lside,
             Lsky_patch_characteristics,
-            CI_Tg,
             CI_TgG,
             KsideD,
             dRad,
             Kside,
             steradians,
             voxelTable,
-        ) = so.Solweig_2025a_calc(
+            Rn,
+            Rn_past,
+            Tm,
+            G,
+        ) = so.Solweig_2026a_calc(
             i,
             dsm,
             scale,
@@ -938,7 +1010,6 @@ def solweig_run(configPath, feedback):
             Tgmap1W,
             Tgmap1N,
             CI,
-            TgOut1,
             diffsh,
             shmat,
             vegshmat,
@@ -954,24 +1025,20 @@ def solweig_run(configPath, feedback):
             steradians,
             walls_scheme,
             dirwalls_scheme,
+            groundSurface,
+            outgoingLW,
+            Tg,
+            Rn,
+            Rn_past,
+            G,
+            Tm,
+            cap_grid,
+            diff_grid,
+            a1_grid,
+            a2_grid,
+            a3_grid,
+            shadow,
         )
-
-        # Save I0 for I0 vs. Kdown output plot to check if UTC is off
-        # if i == (first_unique_day.shape[0] - 1):
-        #     # Output I0 vs. Kglobal plot
-        #     radG_for_plot = radG[DOY == first_unique_day[0]]
-        #     # hours_for_plot = hours[DOY == first_unique_day[0]]
-        #     dectime_for_plot = dectime[DOY == first_unique_day[0]]
-        #     fig, ax = plt.subplots()
-        #     ax.plot(dectime_for_plot, I0_array, label='I0')
-        #     ax.plot(dectime_for_plot, radG_for_plot, label='Kglobal')
-        #     ax.set_ylabel('Shortwave radiation [$Wm^{-2}$]')
-        #     ax.set_xlabel('Decimal time')
-        #     ax.set_title('UTC' + str(configDict['utc']))
-        #     ax.legend()
-        #     fig.savefig(configDict['output_dir'] + '/metCheck.png', dpi=150)
-        # elif i < (first_unique_day.shape[0] - 1):
-        #     I0_array[i] = I0
 
         # Save I0 for I0 vs. Kdown output plot to check if UTC is off
         if i < first_unique_day.shape[0]:
@@ -1000,7 +1067,7 @@ def solweig_run(configPath, feedback):
         # Write to POIs
         if not poisxy is None:
             for k in range(0, poisxy.shape[0]):
-                poi_save = np.zeros((1, 41))
+                poi_save = np.zeros((1, 40))
                 poi_save[0, 0] = YYYY[0][i]
                 poi_save[0, 1] = jday[0][i]
                 poi_save[0, 2] = hours[i]
@@ -1024,7 +1091,7 @@ def solweig_run(configPath, feedback):
                 poi_save[0, 20] = Lwest[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 21] = Lnorth[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 22] = Ta[i]
-                poi_save[0, 23] = TgOut[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 23] = Tg[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 poi_save[0, 24] = RH[i]
                 poi_save[0, 25] = esky
                 poi_save[0, 26] = Tmrt[int(poisxy[k, 2]), int(poisxy[k, 1])]
@@ -1059,12 +1126,11 @@ def solweig_run(configPath, feedback):
                     WsUTCI,
                 )
                 poi_save[0, 34] = resultUTCI
-                poi_save[0, 35] = CI_Tg
-                poi_save[0, 36] = CI_TgG
-                poi_save[0, 37] = KsideD[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                poi_save[0, 38] = Lside[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                poi_save[0, 39] = dRad[int(poisxy[k, 2]), int(poisxy[k, 1])]
-                poi_save[0, 40] = Kside[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 35] = CI_TgG
+                poi_save[0, 36] = KsideD[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 37] = Lside[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 38] = dRad[int(poisxy[k, 2]), int(poisxy[k, 1])]
+                poi_save[0, 39] = Kside[int(poisxy[k, 2]), int(poisxy[k, 1])]
                 data_out = (
                     configDict["output_dir"]
                     + "/POI_"
@@ -1164,10 +1230,9 @@ def solweig_run(configPath, feedback):
                     np.savetxt(f_handle, wall_data, fmt=woi_numformat)
                     f_handle.close()
 
-            # Save wall temperature/radiation as NetCDF TODO: fix for
-            # standAlone?
-            if configDict["wallnetcdf"] == 1:  # wallNetCDF:
-                netcdf_output = configDict["output_dir"] + "/walls.nc"
+            # Save wall temperature/radiation as NetCDF TODO: fix for standAlone?
+            if configDict["wallnetcdf"] == "1":  # wallNetCDF:
+                netcdf_output = configDict["outputDir"] + "/walls.nc"
                 walls_as_netcdf(
                     voxelTable,
                     rows,
@@ -1200,7 +1265,7 @@ def solweig_run(configPath, feedback):
             + w
         )
 
-        if configDict["outputtmrt"] == 1:
+        if configDict["outputtmrt"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1214,7 +1279,7 @@ def solweig_run(configPath, feedback):
                     dsm_transf,
                     dsm_crs,
                 )
-        if configDict["outputkup"] == 1:
+        if configDict["outputkup"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1228,7 +1293,7 @@ def solweig_run(configPath, feedback):
                     dsm_transf,
                     dsm_crs,
                 )
-        if configDict["outputkdown"] == 1:
+        if configDict["outputkdown"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1242,7 +1307,7 @@ def solweig_run(configPath, feedback):
                     dsm_transf,
                     dsm_crs,
                 )
-        if configDict["outputlup"] == 1:
+        if configDict["outputlup"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1256,7 +1321,7 @@ def solweig_run(configPath, feedback):
                     dsm_transf,
                     dsm_crs,
                 )
-        if configDict["outputldown"] == 1:
+        if configDict["outputldown"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1270,7 +1335,7 @@ def solweig_run(configPath, feedback):
                     dsm_transf,
                     dsm_crs,
                 )
-        if configDict["outputsh"] == 1:
+        if configDict["outputsh"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1285,7 +1350,7 @@ def solweig_run(configPath, feedback):
                     dsm_crs,
                 )
 
-        if configDict["outputkdiff"] == 1:
+        if configDict["outputkdiff"] == "1":
             if standAlone == 0:
                 saveraster(
                     gdal_dsm,
@@ -1322,7 +1387,7 @@ def solweig_run(configPath, feedback):
                 )
 
     # Save files for Tree Planter
-    if configDict["outputtreeplanter"] == 1:  # outputTreeplanter:
+    if configDict["outputtreeplanter"] == "1":  # outputTreeplanter:
         if feedback is not None:
             feedback.setProgressText("Saving files for Tree Planter tool")
         # Save DSM
