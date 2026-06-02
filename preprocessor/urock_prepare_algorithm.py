@@ -277,7 +277,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             outputVegFilepath = os.path.join(
                 tmp_dir, f"veg_vector{OUTPUT_VECTOR_EXTENSION}"
             )
-        elif (veg_out_ext != "geojson") and (veg_out_ext != "shp"):
+        elif (veg_out_ext != "geojson") and (veg_out_ext != "shp") and (veg_out_ext != "fgb"):
             outputVegFilepath = veg_out_basepath + OUTPUT_VECTOR_EXTENSION
             feedback.pushWarning(
                 f".gpkg format is currently not available, output vegetation file extension has been changed to {OUTPUT_VECTOR_EXTENSION}"
@@ -286,7 +286,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             outputBuildFilepath = os.path.join(
                 tmp_dir, f"build_vector{OUTPUT_VECTOR_EXTENSION}"
             )
-        elif (build_out_ext != "geojson") and (build_out_ext != "shp"):
+        elif (build_out_ext != "geojson") and (build_out_ext != "shp") and (build_out_ext != "fgb"):
             outputBuildFilepath = build_out_basepath + OUTPUT_VECTOR_EXTENSION
             feedback.pushWarning(
                 f".gpkg format is currently not available, output building file extension has been changed to {OUTPUT_VECTOR_EXTENSION}"

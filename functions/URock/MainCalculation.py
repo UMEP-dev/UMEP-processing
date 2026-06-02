@@ -22,6 +22,7 @@ from . import WindSolver
 import datetime
 import time
 import numpy as np
+import math
 
 try:
     from numba import jit

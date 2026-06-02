@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 import platform
 from packaging import version
-import datetime
+from datetime import datetime
 from .GlobalVariables import *
 import re
 

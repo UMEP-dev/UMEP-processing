@@ -573,6 +573,10 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 outputRaster.extent().yMaximum()
                 - outputRaster.extent().yMinimum()
             ) / outputRaster.height()
+            if xres != yres:
+                raise QgsProcessingException(
+                    "The output raster template should have the same x and y resolution"
+                )
             # If there is a raster and no meshSize, take the mean of x and y
             # raster resolution
             if not meshSize:
