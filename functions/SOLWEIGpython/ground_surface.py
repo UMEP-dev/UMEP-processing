@@ -398,6 +398,9 @@ def outgoingLongwave_calc(
     sunlitwall = sunwall
     sunlitwall[sunlitwall > 0] = 1
 
+    # Boolean array 1 if the pixel is a wall, 0 if not
+    wallbol = walls > 0
+    
     # The alb grids only take into account the sunlit surfaces in the alb calculation albnosh calculate it for all the surfaces
     albsunlit = alb * shadow
 
@@ -407,6 +410,9 @@ def outgoingLongwave_calc(
     # step in meters between every iteration
     step = 1
 
+    # Grid of the outgoing longwave radiation coming from the ground
+    Lup = (SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)) * buildings
+    
     ### Initialize the ground view factor grids as np.zeros()
     # Upwelling longwave radiation
     gvfLup = np.zeros((rows, cols))
@@ -438,9 +444,7 @@ def outgoingLongwave_calc(
     # Add the radiation from the pixel directly below, only for the total gvf
     # Do not take the roofs into account for now
     view_factor = (sizepx / 2) ** 2 / ((sizepx / 2) ** 2 + zs**2)
-    gvfLup = (
-        gvfLup + (SBC * emis * (Tg + 273.15) ** 4) * view_factor * buildings
-    )
+    gvfLup = gvfLup + Lup * view_factor
     gvfalbsun = gvfalbsun + albsunlit * view_factor * buildings
     gvfalbtot = gvfalbtot + alb * view_factor * buildings
 
@@ -451,16 +455,24 @@ def outgoingLongwave_calc(
     ### Loop for the number of azimuth values
     for azimuth in azimuths:
         # Copy of the building grid
-        building_copy = buildings
+        building_copy = np.copy(buildings)
 
+        # Boolean array 1 if the pixel is (or was) a wall, 0 if not
+        pastwalls = np.copy(wallbol)
+        
+        # Grid of the longwave radiation emitted by the walls
+        Lwall = SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * wallbol
+        
         # Initialisation of the tables
         # First the ones containing the translated rasters (temporary)
-        building_temp = np.zeros((rows, cols))
-        Lup_temp = np.zeros((rows, cols))
-        Lwall_temp = np.zeros((rows, cols))
-        albsun_temp = np.zeros((rows, cols))
-        albtot_temp = np.zeros((rows, cols))
+        building_temp = np.copy(buildings)
+        Lup_temp = np.copy(Lup)
+        Lwall_temp = np.copy(Lwall)
+        albsun_temp = np.copy(albsunlit)
+        albtot_temp = np.copy(alb)
+        walls_temp = np.zeros((rows, cols))
         sunlitwall_temp = np.zeros((rows, cols))
+        onlywall_temp = np.zeros((rows, cols))
 
         # Then the tables containing the sum of the radiations (or albedo) for this azimuth
         Lup_sum = np.zeros((rows, cols))
@@ -474,14 +486,6 @@ def outgoingLongwave_calc(
         ### Shadow casting algorithm
         # Translation ranges from 1/2 a pixel to the max radius r_max
         for r in np.arange(sizepx / 2, r_max, step=step):
-            # Longwave radiation grids both at the ground level and from the walls
-            Lup = (
-                SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)
-            ) * building_copy
-            Lwall = (
-                SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * building_copy
-            )
-
             # Step of the raster translation
             dx = -np.cos(azimuth)
             dy = -np.sin(azimuth)
@@ -574,6 +578,15 @@ def outgoingLongwave_calc(
                 int(y_select_start) : math.ceil(y_select_end),
             ]
 
+            # All walls grid
+            walls_temp[
+                int(x_transl_start) : math.ceil(x_transl_end),
+                int(y_transl_start) : math.ceil(y_transl_end),
+            ] = wallbol[
+                int(x_select_start) : math.ceil(x_select_end),
+                int(y_select_start) : math.ceil(y_select_end),
+            ]
+            
             # Change the boolean building grid, if the px was already a building it remains one (px value = 0)
             building_copy = np.min([building_copy, building_temp], axis=0)
 
@@ -584,51 +597,82 @@ def outgoingLongwave_calc(
             Lup_sum += Lup_temp * view_factor * building_copy / 20
             albsun_sum += albsun_temp * view_factor * building_copy / 20
             albtot_sum += albtot_temp * view_factor * building_copy / 20
-
+            
             # Create a boolean grid to assert that the sunlit walls are not inside a building
-            wall_temp = wallbol * building_copy
+            onlywall_temp = np.logical_and(
+                walls_temp, np.logical_not(pastwalls)
+            )
+            onlywall_temp = onlywall_temp * building_copy
             onlysunwall_temp = sunlitwall_temp * building_copy
+            pastwalls = np.logical_or(pastwalls, walls_temp)
 
+            # Compute the view factor of the wall surface for a given translatio distance
+            viewfactor_wall = (
+                1
+                / 2 ** (1 / 2)
+                / 3
+                * np.sqrt(1 + (r + step) / np.sqrt((r + step) ** 2 + zs**2))
+                * (
+                    2
+                    + (r + sizepx / 2) / np.sqrt((r + sizepx / 2) ** 2 + zs**2)
+                )
+                * (
+                    1
+                    - (r + sizepx / 2) / np.sqrt((r + sizepx / 2) ** 2 + zs**2)
+                )
+                / zs
+                * np.sqrt((r + sizepx / 2) ** 2 + zs**2)
+            )
+            
             # Then add the radiation incoming from those walls
             Lup_sum += (
-                wall_temp * Lwall_temp * zs**2 / ((r + step) ** 2 + zs**2) / 20
+                onlywall_temp
+                * Lwall_temp
+                * viewfactor_wall
+                * building_copy
+                / 20
             )
             albsun_sum += (
                 onlysunwall_temp
                 * alb_wall
-                * zs**2
-                / ((r + step) ** 2 + zs**2)
+                * viewfactor_wall
+                * building_copy
                 / 20
             )
             albtot_sum += (
-                wall_temp * alb_wall * zs**2 / ((r + step) ** 2 + zs**2) / 20
+                onlywall_temp * alb_wall * viewfactor_wall * building_copy / 20
             )
-
-            # Finally add the radiation received from the side
+            
+            # Finally add the radiation in Lside
             dphi = np.arctan((r + step) / zs) - np.arctan(r / zs)
             dtrigo = zs / np.sqrt(r**2 + zs**2) * r / np.sqrt(
                 r**2 + zs**2
             ) - zs / np.sqrt((r + step) ** 2 + zs**2) * (r + step) / np.sqrt(
                 (r + step) ** 2 + zs**2
             )
-
+            
             # Calculation of the solid angle for each of the cardinal points
+            # plus add the radiation from a potential wall
             steradiansW, steradiansS, steradiansE, steradiansN = 0, 0, 0, 0
             if (azimuth >= 0) and (azimuth < np.pi):
                 dthetaW = 2 * np.pi / 20
                 steradiansW += dthetaW * (dphi + dtrigo) / 2
+                LsideW_sum += onlywall_temp * Lwall_temp * viewfactor_wall / 10
 
             if (azimuth >= np.pi / 2) and (azimuth < 3 * np.pi / 2):
                 dthetaS = 2 * np.pi / 20
                 steradiansS += dthetaS * (dphi + dtrigo) / 2
+                LsideS_sum += onlywall_temp * Lwall_temp * viewfactor_wall / 10
 
             if (azimuth >= np.pi) and (azimuth < 2 * np.pi):
                 dthetaE = 2 * np.pi / 20
                 steradiansE += dthetaE * (dphi + dtrigo) / 2
+                LsideE_sum += onlywall_temp * Lwall_temp * viewfactor_wall / 10
 
             if (azimuth >= 3 * np.pi / 2) or (azimuth < np.pi / 2):
                 dthetaN = 2 * np.pi / 20
                 steradiansN += dthetaN * (dphi + dtrigo) / 2
+                LsideN_sum += onlywall_temp * Lwall_temp * viewfactor_wall / 10
 
             LsideW_sum += Lup_temp / np.pi * steradiansW * building_copy
             LsideS_sum += Lup_temp / np.pi * steradiansS * building_copy
@@ -668,9 +712,20 @@ def outgoingLongwave_calc(
     # If the px is associated with a roof landcover, for now Lup = 0
     # Here their Lup value is allocated to those px
     gvfLup += (SBC * emis * (Tg + 273.15) ** 4) * (buildings * -1 + 1)
-
-    # # Finally add the reflection from the downwelling longwave radiation
-    # gvfLup += Ldown * (1-emis)
+    gvfLsideE += (SBC * emis * (Tg + 273.15) ** 4) * 0.5 * (buildings * -1 + 1)
+    gvfLsideN += (SBC * emis * (Tg + 273.15) ** 4) * 0.5 * (buildings * -1 + 1)
+    gvfLsideW += (SBC * emis * (Tg + 273.15) ** 4) * 0.5 * (buildings * -1 + 1)
+    gvfLsideS += (SBC * emis * (Tg + 273.15) ** 4) * 0.5 * (buildings * -1 + 1)
+    gvfalbsun += albsunlit * (buildings * -1 + 1)
+    gvfalbtot += alb * (buildings * -1 + 1)
+    gvfalbsunE += albsunlit * 0.5 * (buildings * -1 + 1)
+    gvfalbsunN += albsunlit * 0.5 * (buildings * -1 + 1)
+    gvfalbsunW += albsunlit * 0.5 * (buildings * -1 + 1)
+    gvfalbsunS += albsunlit * 0.5 * (buildings * -1 + 1)
+    gvfalbtotE += alb * 0.5 * (buildings * -1 + 1)
+    gvfalbtotN += alb * 0.5 * (buildings * -1 + 1)
+    gvfalbtotW += alb * 0.5 * (buildings * -1 + 1)
+    gvfalbtotS += alb * 0.5 * (buildings * -1 + 1)
 
     return (
         gvfLup,
