@@ -250,6 +250,11 @@ def svf_kmeans(
     svf_height_array,
     feedback,
 ):
+    
+    try:
+        from sklearn.cluster import KMeans
+    except:
+        raise ImportError("[UMEP-processing Error] pleas install sklearn via pip install scikit-learn or via osgeo4w")
 
     # Calculate where there are buildings and not. Used to elevate dem.
     ground = dsm - dem

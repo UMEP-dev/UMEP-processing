@@ -1,5 +1,8 @@
 
-from sklearn.cluster import KMeans
+try:
+    from sklearn.cluster import KMeans
+except:
+    pass
 import numpy as np
 
 
@@ -295,6 +298,11 @@ def svf_kmeans(
     feedback,
     device=torch.device("cpu"),
 ):
+    try:
+        from sklearn.cluster import KMeans
+    except:
+        raise ImportError("[UMEP-processing Error] pleas install sklearn via pip install scikit-learn or via osgeo4w")
+    
     with torch.no_grad():
 
         dsm = _to_tensor(dsm, device)
