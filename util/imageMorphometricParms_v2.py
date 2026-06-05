@@ -26,8 +26,6 @@ imp_point = used to communicate with QGIS
 import numpy as np
 import scipy.ndimage.interpolation as sc
 
-# import matplotlib as plt
-
 
 def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 

@@ -9,12 +9,11 @@ import numpy as np
 from ..functions import wallalgorithms as wa
 
 # from umep_suewsss_export_component import write_GridLayout_file, create_GridLayout_dict
-from ..util.umep_suewsss_export_component import (
+from .umep_suewsss_export_component import (
     write_GridLayout_file,
     create_GridLayout_dict,
 )
 
-# import matplotlib as plt
 
 
 def ss_calc(build, cdsm, walls, numPixels, feedback):

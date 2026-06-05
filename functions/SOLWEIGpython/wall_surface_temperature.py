@@ -3,7 +3,6 @@ import pandas as pd
 import math
 from ...functions.SOLWEIGpython.wall_cover import get_wall_cover
 from .cylindric_wedge import cylindric_wedge_voxel
-from .Lvikt_veg import Lvikt_veg
 
 # Stefan Boltzmans Constant
 SBC = 5.67051e-8

@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 
 
 def daylen(DOY, XLAT):
@@ -7,23 +7,15 @@ def daylen(DOY, XLAT):
     # Sun angles.  SOC limited for latitudes above polar circles.
     # Calculate daylength, sunrise and sunset (Eqn. 17)
 
-    device = (
-        DOY.device
-        if isinstance(DOY, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    )
-    if not isinstance(XLAT, torch.Tensor):
-        XLAT = torch.tensor(XLAT, device=device)
+    RAD = np.pi / 180.0
 
-    RAD = torch.tensor(torch.pi / 180.0, device=device)
+    DEC = -23.45 * np.cos(2.0 * np.pi * (DOY + 10.0) / 365.0)
 
-    DEC = -23.45 * torch.cos(2.0 * torch.pi * (DOY + 10.0) / 365.0)
-
-    SOC = torch.tan(RAD * DEC) * torch.tan(RAD * XLAT)
-    SOC = torch.clamp(SOC, -1.0, 1.0)
+    SOC = np.tan(RAD * DEC) * np.tan(RAD * XLAT)
+    SOC = min(max(SOC, -1.0), 1.0)
     # SOC=alt
 
-    DAYL = 12.0 + 24.0 * torch.arcsin(SOC) / torch.pi
+    DAYL = 12.0 + 24.0 * np.arcsin(SOC) / np.pi
     SNUP = 12.0 - DAYL / 2.0
     SNDN = 12.0 + DAYL / 2.0
 

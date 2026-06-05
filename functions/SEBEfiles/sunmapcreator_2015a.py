@@ -1,7 +1,7 @@
 from __future__ import division
 from __future__ import absolute_import
 from builtins import range
-import torch
+import numpy as np
 from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
 from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
@@ -11,16 +11,7 @@ from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 
 def sunmapcreator_2015a(
-    met,
-    altitude,
-    azimuth,
-    onlyglobal,
-    output,
-    jday,
-    albedo,
-    location,
-    zen,
-    device,
+    met, altitude, azimuth, onlyglobal, output, jday, albedo, location, zen
 ):
     """
     % This function creates a sun map based on hourly values of solar radiation.
@@ -34,9 +25,15 @@ def sunmapcreator_2015a(
     :param albedo:
     :return:
     """
+    np.seterr(over="raise")
+    np.seterr(invalid="raise")
 
-    # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
+    # Creating skyvault of patches of constant radians (Tregeneza and
+    # Sharples, 1993)
     patch_option = 1  # 145 patches
+    # patch_option = 2 # 153 patches
+    # patch_option = 3 # 306 patches
+    # patch_option = 4 # 612 patches
     (
         skyvaultalt,
         skyvaultazi,
@@ -45,45 +42,31 @@ def sunmapcreator_2015a(
         aziinterval,
         skyvaultaziint,
         azistart,
-    ) = create_patches(patch_option, device)
+    ) = create_patches(patch_option)
 
-    iangle2 = torch.tensor([])
-
+    iangle2 = np.array([])
+    Gyear = 0
+    Dyear = 0
+    Gmonth = np.zeros([1, 12])
+    Dmonth = Gmonth
     for j in range(len(aziinterval)):
-        iangle2 = torch.append(
-            iangle2,
-            skyvaultaltint[j] * torch.ones([1, aziinterval[j]], device=device),
+        iangle2 = np.append(
+            iangle2, skyvaultaltint[j] * np.ones([1, aziinterval[j]])
         )
 
-    radmatI = torch.transpose(
-        torch.vstack(
-            (
-                iangle2,
-                skyvaultazi,
-                torch.zeros((13, len(iangle2)), device=device),
-            )
-        )
+    radmatI = np.transpose(
+        np.vstack((iangle2, skyvaultazi, np.zeros((13, len(iangle2)))))
     )
-    radmatD = torch.transpose(
-        torch.vstack(
-            (
-                iangle2,
-                skyvaultazi,
-                torch.zeros((13, len(iangle2)), device=device),
-            )
-        )
+    radmatD = np.transpose(
+        np.vstack((iangle2, skyvaultazi, np.zeros((13, len(iangle2)))))
     )
-    radmatR = torch.transpose(
-        torch.vstack(
-            (
-                iangle2,
-                skyvaultazi,
-                torch.zeros((13, len(iangle2)), device=device),
-            )
-        )
+    radmatR = np.transpose(
+        np.vstack((iangle2, skyvaultazi, np.zeros((13, len(iangle2)))))
     )
 
     iazimuth = skyvaultazi
+    # Ta = met[:, 11]
+    # RH = met[:, 10]
 
     # Main loop
     for i in range(len(met[:, 0])):
@@ -91,13 +74,14 @@ def sunmapcreator_2015a(
         azi = azimuth[0, i]
         # disp(alt)
         if alt > 2:
-            # Estimation of radD and radI if not measured after Reindl et al. (1990)
+            # Estimation of radD and radI if not measured after Reindl et al.
+            # (1990)
             if onlyglobal:
                 if (
                     met[i, 11] <= -999.00
                     or met[i, 10] <= -999.00
-                    or torch.isnan(met[i, 11])
-                    or torch.isnan(met[i, 10])
+                    or np.isnan(met[i, 11])
+                    or np.isnan(met[i, 10])
                 ):
                     met[i, 11] = 15.0
                     met[i, 10] = 75.0
@@ -120,7 +104,8 @@ def sunmapcreator_2015a(
 
             G = met[i, 14]
 
-            # Anisotropic diffuse distribution (Perez et al., 1993/Robinson & Stone, 2004)
+            # Anisotropic diffuse distribution (Perez et al., 1993/Robinson &
+            # Stone, 2004)
             lv, _, _ = Perez_v3(
                 90 - altitude[0, i],
                 azimuth[0, i],
@@ -131,15 +116,18 @@ def sunmapcreator_2015a(
                 patch_option,
             )
 
-            distalt = torch.abs(iangle2 - alt)
-            altlevel = distalt == (torch.min(torch.abs(distalt)))
-            distazi = torch.abs(iazimuth - azi)
-            azipos = distazi[altlevel] == (torch.min(distazi[altlevel]))
-            azipos2 = torch.where(altlevel)[0][0] + torch.where(azipos)[0][0]
-
+            distalt = np.abs(iangle2 - alt)
+            altlevel = distalt == (np.min(np.abs(distalt)))
+            distazi = np.abs(iazimuth - azi)
+            azipos = distazi[altlevel] == (np.min(distazi[altlevel]))
+            azipos2 = np.where(altlevel)[0][0] + np.where(azipos)[0][0]
+            # azipos2 = np.where(altlevel)[0] + np.where(azipos)[0]
+            # azipos2 = find(altlevel, 1)-1 + find(azipos, 1)
             radmatI[azipos2, 2] = radmatI[azipos2, 2] + I
             radmatD[:, 2] = radmatD[:, 2] + D * lv[:, 2]
             radmatR[:, 2] = radmatR[:, 2] + G * (1 / 145) * albedo
+            #         Gyear=Gyear+(G*sin(altitude(i)*(pi/180)));
+            #         Dyear=Dyear+D;
 
             if output["energymonth"] == 1:
                 radmatI[azipos2, met[i, 1] + 2] = (
@@ -153,9 +141,8 @@ def sunmapcreator_2015a(
                 )
 
     # Adjusting the numbers if multiple years is used
-
-    if torch.shape(met)[0] > 8760:
-        multiyear = torch.shape(met)[0] / 8760
+    if np.shape(met)[0] > 8760:
+        multiyear = np.shape(met)[0] / 8760
         radmatI[:, 2:15] = radmatI[:, 2:15] / multiyear
         radmatD[:, 2:15] = radmatD[:, 2:15] / multiyear
         radmatR[:, 2:15] = radmatR[:, 2:15] / multiyear

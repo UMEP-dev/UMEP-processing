@@ -59,6 +59,7 @@ from ..util.umep_solweig_export_component import (
     read_solweig_config,
     write_solweig_config,
 )
+from ..functions.SOLWEIGpython import Solweig_run_torch as sr_torch
 from ..functions.SOLWEIGpython import Solweig_run as sr
 import json
 
@@ -89,6 +90,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_DEM = "INPUT_DEM"
     SAVE_BUILD = "SAVE_BUILD"
     INPUT_ANISO = "INPUT_ANISO"
+    USE_GROUNDSCHEME = "USE_GROUNDSCHEME" 
+    USE_OUTGOINGLW = "USE_OUTGOINGLW"
+    INPUT_GROUNDSCHEME = "INPUT_GROUNDSCHEME"
     INPUT_WALLSCHEME = "INPUT_WALLSCHEME"
     WALLTEMP_NETCDF = "WALLTEMP_NETCDF"
 
@@ -126,9 +130,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     POI_FIELD = "POI_FIELD"
     CYL = "CYL"
     USE_GPU = "USE_GPU"
-
-    # solweig
-    groundmodel = "groundmodel"
 
     # Output
     OUTPUT_DIR = "OUTPUT_DIR"
@@ -271,7 +272,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.INPUT_DEM,
                 self.tr("Digital Elevation Model (DEM)"),
                 "",
-                optional=True,
+                optional=False,
             )
         )
         self.addParameter(
@@ -289,6 +290,30 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     "Shadow maps used for anisotropic model for sky diffuse and longwave radiation (.npz)"
                 ),
                 extension="npz",
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GROUNDSCHEME,
+                self.tr("Use surface temperature parameterization v2026a"),
+                defaultValue=False,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_OUTGOINGLW,
+                self.tr("Use upwelling longwave radiation from v2026a"),
+                defaultValue=True,
+                optional=True,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFile(
+                self.INPUT_GROUNDSCHEME,
+                self.tr("Ground surface temperature data (.txt)"),
+                extension="txt",
                 optional=True,
             )
         )
@@ -695,7 +720,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         walayer = self.parameterAsRasterLayer(
             parameters, self.INPUT_ASPECT, context
         )
-
+        useGroundScheme = self.parameterAsString(
+            parameters, self.USE_GROUNDSCHEME, context
+        )
+        useOutgoingLW = self.parameterAsString(
+            parameters, self.USE_OUTGOINGLW, context
+        )     
+        groundTempFile = self.parameterAsString(
+            parameters, self.INPUT_GROUNDSCHEME, context
+        )
         trunkr = self.parameterAsDouble(
             parameters, self.INPUT_THEIGHT, context
         )
@@ -1142,6 +1175,33 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
+            
+        ### Ground cover scheme
+        # Surface temperature parameterization
+        if useGroundScheme:
+            groundscheme = 1
+            feedback.setProgressText(
+                "The surface temperature parameterization from v2026 is activated"
+            )
+        else:
+            groundscheme = 0
+            feedback.setProgressText(
+                "The surface temperature scheme described in 2016 is activated"
+            )
+
+        # Outgoing longwave calculation
+        if useOutgoingLW:
+            feedback.setProgressText(
+                "The upwelling longwave radiation from v2026 is activated"
+            )
+            outgoingLW = 1
+        else:
+            feedback.setProgressText(
+                "The ground cover scheme described in 2016 is activated"
+            )
+            outgoingLW = 0           
+            
+        
 
         # % Ts parameterisation maps
         if landcover == 1.0:
@@ -1217,6 +1277,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             ),  # 'C:\\Users\\xlinfr\\Desktop\\SOLWEIGdata\\shadowmats.npz',
             "poi_file": poi_file,
             "poi_field": poi_field,
+            "input_surf": groundTempFile,
             "input_wall": folderWallScheme,
             "woi_file": woi_file,
             "woi_field": woi_field,
@@ -1237,8 +1298,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "aniso": int(anisotropic_sky),
             "wallscheme": wallScheme,
             "walltype": wall_type,  #'Brick_wall', #:TODO
-            "groundmodel": 1,
-            "input_surf": "",
+            "groundmodel": groundscheme,
+            "outgoingLW": outgoingLW,
             "outputtmrt": int(outputTmrt),
             "outputkup": int(outputKup),
             "outputkdown": int(outputKdown),
@@ -1263,8 +1324,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # Main function
         feedback.setProgressText("Executing main model")
-
-        sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
+        
+        if gpu_bool:
+            sr_torch.solweig_run(outputDir + "/configsolweig.ini", feedback)
+        else:
+            sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
 
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
 

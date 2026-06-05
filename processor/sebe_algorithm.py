@@ -30,7 +30,6 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
-
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
@@ -44,11 +43,8 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingParameterRasterLayer,
 )
-from processing.gui.wrappers import WidgetWrapper
 import numpy as np
-import torch
 from osgeo import gdal, osr
-from osgeo.gdalconst import *
 import os
 from qgis.PyQt.QtGui import QIcon
 import inspect
@@ -86,7 +82,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
     IRR_FILE = "IRR_FILE"
     OUTPUT_DIR = "OUTPUT_DIR"
     OUTPUT_ROOF = "OUTPUT_ROOF"
-    USE_GPU = "USE8GPU"
 
     def initAlgorithm(self, config):
         self.addParameter(
@@ -186,13 +181,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.USE_GPU,
-                self.tr("Use GPU"),
-                defaultValue=False,
-            )
-        )
-        self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.IRR_FILE,
                 self.tr("Sky irradiance distribution"),
@@ -242,8 +230,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         albedo = self.parameterAsDouble(parameters, self.ALBEDO, context)
         inputMet = self.parameterAsString(parameters, self.INPUT_MET, context)
         saveskyirr = self.parameterAsBool(parameters, self.SAVESKYIRR, context)
-        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
-
         irrFile = self.parameterAsFileOutput(
             parameters, self.IRR_FILE, context
         )
@@ -254,10 +240,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-
-        device = torch.device("cpu")
-        if use_gpu and torch.cuda.is_available():
-            device = torch.device("cuda")
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -270,7 +252,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         nd = self.gdal_dsm.GetRasterBand(1).GetNoDataValue()
         self.dsm[self.dsm == nd] = 0.0
         if self.dsm.min() < 0:
-            self.dsm = self.dsm + torch.abs(self.dsm.min())
+            self.dsm = self.dsm + np.abs(self.dsm.min())
 
         # response to issue #104
         self.sorted_utclist
@@ -326,9 +308,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if vegdsm:
             usevegdem = 1
             feedback.setProgressText("Vegetation scheme activated")
-            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-            # if vegdsm is None:
-            #     raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -346,10 +325,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 )
 
             if vegdsm2:
-                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-
-                # if vegdsm2 is None:
-                #     raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -378,8 +353,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             filePath_tdsm = None
 
         # wall height layer
-        # if whlayer is None:
-        #     raise QgsProcessingException("Error: No valid wall height raster layer is selected")
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
@@ -396,8 +369,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         )[1]
 
         # wall aspectlayer
-        # if walayer is None:
-        #     raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)
@@ -416,18 +387,17 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         delim = " "
 
         try:
-            self.metdata = torch.from_numpy(
-                np.loadtxt(inputMet, skiprows=headernum, delimiter=delim),
-                device=device,
+            self.metdata = np.loadtxt(
+                inputMet, skiprows=headernum, delimiter=delim
             )
-        except:
+        except BaseException:
             QgsProcessingException(
                 "Error: Make sure format of meteorological file is correct. You can"
                 "prepare your data by using 'Prepare Existing Data' in "
                 "the Pre-processor"
             )
 
-        testwhere = torch.where(
+        testwhere = np.where(
             (self.metdata[:, 14] < 0.0) | (self.metdata[:, 14] > 1300.0)
         )
         if testwhere[0].__len__() > 0:
@@ -445,7 +415,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 "the Pre-processor"
             )
 
-        alt = torch.median(self.dsm)
+        alt = np.median(self.dsm)
         if alt < 0:
             alt = 3
 
@@ -469,11 +439,10 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             albedo,
             location,
             zen,
-            device,
         )
 
         if saveskyirr:
-            metout = torch.zeros((145, 4), device=device)
+            metout = np.zeros((145, 4))
             metout[:, 0] = radmatI[:, 0]
             metout[:, 1] = radmatI[:, 1]
             metout[:, 2] = radmatI[:, 2]
@@ -528,7 +497,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             usevegdem,
             feedback,
             wallmaxheight,
-            device,
         )
 
         Energyyearroof = seberesult["Energyyearroof"]

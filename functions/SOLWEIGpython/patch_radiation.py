@@ -1,5 +1,4 @@
 import numpy as np
-from . import sunlit_shaded_patches
 
 
 def shortwave_from_sky(
@@ -160,8 +159,7 @@ def longwave_from_buildings(
         and (azimuth_difference < 270)
         and (solar_altitude > 0)
     ):
-        # Calculate which patches defined as buildings that are sunlit or shaded
-        # sunlit_patches, shaded_patches = sunlit_shaded_patches.shaded_or_sunlit(solar_altitude, solar_azimuth, patch_altitude, patch_azimuth, asvf)
+
 
         # Calculate longwave radiation from sunlit walls to vertical surface
         Lside_sun = (

@@ -12,15 +12,17 @@
  ***************************************************************************/
 
 /***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
+ * *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ * *
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
+# 1. Initialize fallback immediately to shield all downstream imports
+from .util import torch_fallback
 
 import site
 import sys
@@ -41,7 +43,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #
     from .processing_umep import ProcessingUMEPPlugin
 
+    # Crucial: pass the iface variable QGIS gives you right into the plugin
     return ProcessingUMEPPlugin()

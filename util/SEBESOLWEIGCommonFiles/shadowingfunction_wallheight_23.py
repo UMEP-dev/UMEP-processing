@@ -1,36 +1,53 @@
 from __future__ import division
-import torch
-import torch.nn.functional as F
+import numpy as np
 
 # import matplotlib.pylab as plt
 
 
-def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg, device):
-    cos_incidence = torch.cos(aspect - azimuth)
-    facesh = (cos_incidence <= 0).float() * (walls > 0).float()
+def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg):
+    # wall shadows wall parameterization
+    wallbol = (walls > 0).astype(float)
 
-    shvo = f - dsm
+    # Removing walls in shadow due to selfshadowing
+    azilow = azimuth - np.pi / 2
+    azihigh = azimuth + np.pi / 2
+    if azilow >= 0 and azihigh < 2 * np.pi:  # 90 to 270  (SHADOW)
+        facesh = (
+            np.logical_or(aspect < azilow, aspect >= azihigh).astype(float)
+            - wallbol
+            + 1
+        )  # TODO check
+    elif azilow < 0 and azihigh <= 2 * np.pi:  # 0 to 90
+        azilow = azilow + 2 * np.pi
+        facesh = (
+            np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1
+        )  # (SHADOW)
+    elif azilow > 0 and azihigh >= 2 * np.pi:  # 270 to 360
+        azihigh -= 2 * np.pi
+        facesh = (
+            np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1
+        )  # (SHADOW)
 
-    facesun = ((facesh == 0) & (walls > 0)).float()
+    shvo = f - dsm  # building shadow volume
+    facesun = np.logical_and(
+        facesh + (walls > 0).astype(float) == 1, walls > 0
+    ).astype(float)
+    wallsun = np.copy(walls - shvo)
+    wallsun[wallsun < 0] = 0
+    wallsun[facesh == 1] = 0  # Removing walls in "self"-shadow
+    wallsh = np.copy(walls - wallsun)
 
-    wallsun = walls - shvo
-    wallsun = torch.clamp(wallsun, min=0.0)
-    wallsun = torch.where(
-        facesh == 1, torch.tensor(0.0, device=device), wallsun
-    )
-
-    wallsh = walls - wallsun
-
-    wallshve = shvoveg * (walls > 0).float()
-    wallshve = torch.clamp(wallshve - wallsh, min=0.0)
-
-    mask_clip = wallshve > walls
-    wallshve[mask_clip] = walls[mask_clip].to(dtype=wallshve.dtype)
-
-    wallsun = wallsun - wallshve
-    mask_neg = wallsun < 0
-    wallshve[mask_neg] = 0
-    wallsun[mask_neg] = 0
+    wallshve = shvoveg * wallbol
+    wallshve = wallshve - wallsh
+    wallshve[wallshve < 0] = 0
+    id = np.where(wallshve > walls)
+    wallshve[id] = walls[id]
+    wallsun = wallsun - wallshve  # problem with wallshve only
+    id = np.where(wallsun < 0)
+    wallshve[id] = 0
+    wallsun[id] = 0
+    # if np.sum(wallshve <= 0) == wallshve.size:
+    #     wallshve[:, :] = 0
 
     return wallsh, wallsun, wallshve, facesh, facesun
 
@@ -86,148 +103,148 @@ def shadowingfunction_wallheight_23(
     :return:
     """
 
-    # automatically get the device to use from the input
-    device = a.device if isinstance(a, torch.Tensor) else torch.device("cpu")
-    degrees = torch.pi / 180.0
+    # conversion
+    degrees = np.pi / 180.0
     azimuth *= degrees
     altitude *= degrees
 
-    sizex, sizey = a.shape
-    bushplant = (bush > 1).float()
+    # measure the size of the image
+    sizex = np.shape(a)[0]
+    sizey = np.shape(a)[1]
 
-    # Tensor initialisation
-    sh = torch.zeros((sizex, sizey), device=device)
-    vbshvegsh = torch.zeros((sizex, sizey), device=device)
-    vegsh = torch.zeros((sizex, sizey), device=device) + bushplant
-    f = a.clone()
-    shvoveg = vegdem.clone()
+    # initialise parameters
+    dx = 0
+    dy = 0
+    dz = 0
+    temp = np.zeros((sizex, sizey))
+    tempvegdem = np.zeros((sizex, sizey))
+    tempvegdem2 = np.zeros((sizex, sizey))
+    templastfabovea = np.zeros((sizex, sizey))
+    templastgabovea = np.zeros((sizex, sizey))
+    bushplant = bush > 1
+    sh = np.zeros((sizex, sizey))  # shadows from buildings
+    vbshvegsh = np.copy(sh)  # vegetation blocking buildings
+    vegsh = np.add(
+        np.zeros((sizex, sizey)), bushplant, dtype=float
+    )  # vegetation shadow
+    f = np.copy(a)
+    shvoveg = np.copy(vegdem)  # for vegetation shadowvolume
+    # g = np.copy(sh)
+    wallbol = (walls > 0).astype(float)
 
-    # ---coordinates drag the layer  ---
-    y, x = torch.meshgrid(
-        torch.linspace(-1, 1, sizex, device=device),
-        torch.linspace(-1, 1, sizey, device=device),
-        indexing="ij",
-    )
-    grille_base = torch.stack((x, y), dim=-1).unsqueeze(0)
+    # other loop parameters
+    pibyfour = np.pi / 4
+    threetimespibyfour = 3 * pibyfour
+    fivetimespibyfour = 5 * pibyfour
+    seventimespibyfour = 7 * pibyfour
+    sinazimuth = np.sin(azimuth)
+    cosazimuth = np.cos(azimuth)
+    tanazimuth = np.tan(azimuth)
+    signsinazimuth = np.sign(sinazimuth)
+    signcosazimuth = np.sign(cosazimuth)
+    dssin = np.abs(1 / sinazimuth)
+    dscos = np.abs(1 / cosazimuth)
+    tanaltitudebyscale = np.tan(altitude) / scale
 
-    # Preparation of the layers packed for grid_sample
-    a_4d = a.unsqueeze(0).unsqueeze(0).float()
-    veg_4d = vegdem.unsqueeze(0).unsqueeze(0).float()
-    veg2_4d = vegdem2.unsqueeze(0).unsqueeze(0).float()
+    index = 0
 
-    # Trigonometric params for the sun's step
-    sinazimuth = torch.sin(azimuth)
-    cosazimuth = torch.cos(azimuth)
-    tanaltitudebyscale = torch.tan(altitude) / scale
+    # new case with pergola (thin vertical layer of vegetation), August 2021
+    dzprev = 0
 
-    # Calculation of the maximum of steps
-    # We stop when the shadow exceed the max possible height
-    max_steps = int(amaxvalue / tanaltitudebyscale) + 2
+    # main loop
+    while (amaxvalue >= dz) and (np.abs(dx) < sizex) and (np.abs(dy) < sizey):
+        if ((pibyfour <= azimuth) and (azimuth < threetimespibyfour)) or (
+            (fivetimespibyfour <= azimuth) and (azimuth < seventimespibyfour)
+        ):
+            dy = signsinazimuth * index
+            dx = -1 * signcosazimuth * np.abs(np.round(index / tanazimuth))
+            ds = dssin
+        else:
+            dy = signsinazimuth * np.abs(np.round(index * tanazimuth))
+            dx = -1 * signcosazimuth * index
+            ds = dscos
 
-    # Facteur d'avancement du rayon (équivalent géométrique de ton ancien 'ds')
-    # Plus besoin de gros blocs If/Else selon les quadrants du soleil !
-    delta_z_par_pas = tanaltitudebyscale
+        # note: dx and dy represent absolute values while ds is an incremental
+        # value
+        dz = (ds * index) * tanaltitudebyscale
+        tempvegdem[0:sizex, 0:sizey] = 0
+        tempvegdem2[0:sizex, 0:sizey] = 0
+        temp[0:sizex, 0:sizey] = 0
+        templastfabovea[0:sizex, 0:sizey] = 0.0
+        templastgabovea[0:sizex, 0:sizey] = 0.0
+        absdx = np.abs(dx)
+        absdy = np.abs(dy)
+        xc1 = int((dx + absdx) / 2)
+        xc2 = int(sizex + (dx - absdx) / 2)
+        yc1 = int((dy + absdy) / 2)
+        yc2 = int(sizey + (dy - absdy) / 2)
+        xp1 = -int((dx - absdx) / 2)
+        xp2 = int(sizex - (dx + absdx) / 2)
+        yp1 = -int((dy - absdy) / 2)
+        yp2 = int(sizey - (dy + absdy) / 2)
 
-    for index in range(1, max_steps):
+        tempvegdem[xp1:xp2, yp1:yp2] = vegdem[xc1:xc2, yc1:yc2] - dz
+        tempvegdem2[xp1:xp2, yp1:yp2] = vegdem2[xc1:xc2, yc1:yc2] - dz
+        temp[xp1:xp2, yp1:yp2] = a[xc1:xc2, yc1:yc2] - dz
 
-        # 1. Calculations of the slide
-        shift_x = index * sinazimuth / scale
-        shift_y = index * cosazimuth / scale
-        dz = index * delta_z_par_pas
+        f = np.fmax(f, temp)  # Moving building shadow
+        # moving vegetation shadow volume
+        shvoveg = np.fmax(shvoveg, tempvegdem)
 
-        # Stop if the shadow is completely outside of the map
-        if abs(shift_x) >= sizey and abs(shift_y) >= sizex:
-            break
+        sh[f > a] = 1
+        sh[f <= a] = 0
+        fabovea = (tempvegdem > a).astype(int)  # vegdem above DEM
+        gabovea = (tempvegdem2 > a).astype(int)  # vegdem2 above DEM
 
-        # 2. Applying the offset to our normalized coordinate sheet (-1 to 1)
-        grille_deplacee = grille_base.clone()
-        grille_deplacee[..., 0] -= (2.0 * shift_x) / (sizey - 1)
-        grille_deplacee[..., 1] -= (2.0 * shift_y) / (sizex - 1)
-
-        # 3. Global Material Sampling (Instant Layer Swipe)
-        temp = (
-            F.grid_sample(
-                a_4d, grille_deplacee, mode="bilinear", padding_mode="border"
-            ).squeeze()
-            - dz
-        )
-        tempvegdem = (
-            F.grid_sample(
-                veg_4d, grille_deplacee, mode="bilinear", padding_mode="border"
-            ).squeeze()
-            - dz
-        )
-        tempvegdem2 = (
-            F.grid_sample(
-                veg2_4d,
-                grille_deplacee,
-                mode="bilinear",
-                padding_mode="border",
-            ).squeeze()
-            - dz
-        )
-
-        # 4. Update of cast shadow volumes
-        f = torch.fmax(f, temp)
-        shvoveg = torch.fmax(shvoveg, tempvegdem)
-
-        sh = torch.where(
-            f > a,
-            torch.tensor(1.0, device=device),
-            torch.tensor(0.0, device=device),
-        )
-        fabovea = tempvegdem > a
-        gabovea = tempvegdem2 > a
-
-        # 5. Pergola logic (Overlaying layers with the & operator)
-        templastfabovea = tempvegdem + delta_z_par_pas
-        templastgabovea = tempvegdem2 + delta_z_par_pas
-
+        # new pergola condition
+        templastfabovea[xp1:xp2, yp1:yp2] = vegdem[xc1:xc2, yc1:yc2] - dzprev
+        templastgabovea[xp1:xp2, yp1:yp2] = vegdem2[xc1:xc2, yc1:yc2] - dzprev
         lastfabovea = templastfabovea > a
         lastgabovea = templastgabovea > a
-
-        # If all 4 layers are True at the same time, it's a pergola (light passes through).
-        is_pergola = fabovea & gabovea & lastfabovea & lastgabovea
-
-        # The shadow exists if one of the layers is True, UNLESS it's a pergola.
-        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (
-            ~is_pergola
+        dzprev = dz
+        vegsh2 = np.add(
+            np.add(
+                np.add(fabovea, gabovea, dtype=float), lastfabovea, dtype=float
+            ),
+            lastgabovea,
+            dtype=float,
         )
-        vegsh2 = vegsh2.float()
+        vegsh2[vegsh2 == 4] = 0.0
+        # vegsh2[vegsh2 == 1] = 0. # This one is the ultimate question...
+        vegsh2[vegsh2 > 0] = 1.0
 
-        # Accumulation of vegetation shadows
-        vegsh = torch.maximum(vegsh, vegsh2)
-        vegsh = torch.where(
-            vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh
-        )
-        vbshvegsh.add_(vegsh)
+        vegsh = np.fmax(vegsh, vegsh2)
+        vegsh[vegsh * sh > 0] = 0
+        # removing shadows 'behind' buildings
+        vbshvegsh = np.copy(vegsh) + vbshvegsh
+
+        index += 1
 
     sh = 1 - sh
-    vbshvegsh = torch.where(
-        vbshvegsh > 0, torch.tensor(1.0, device=device), vbshvegsh
-    )
+    vbshvegsh[vbshvegsh > 0] = 1
     vbshvegsh = vbshvegsh - vegsh
 
-    vegsh = torch.where(vegsh > 0, torch.tensor(1.0, device=device), vegsh)
+    vegsh[vegsh > 0] = 1
     shvoveg = (shvoveg - a) * vegsh  # Vegetation shadow volume
     vegsh = 1 - vegsh
     vbshvegsh = 1 - vbshvegsh
-
-    # print(torch.max(shvoveg))
+    # print(np.max(shvoveg))
     wallsh, wallsun, wallshve, facesh, facesun = shade_on_walls(
-        azimuth, aspect, walls, a, f, shvoveg, device
+        azimuth, aspect, walls, a, f, shvoveg
     )
-    # print(torch.max(wallshve))
+    # print(np.max(wallshve))
     if walls_scheme is not False:
         wallsh_, wallsun_, wallshve_, facesh_, facesun_ = shade_on_walls(
-            azimuth, aspect_scheme, walls_scheme, a, f, shvoveg, device
+            azimuth, aspect_scheme, walls_scheme, a, f, shvoveg
         )
-        # print(torch.max(wallshve_))
-        shade_on_wall = wallsh_.clone()
+        # print(np.max(wallshve_))
+        shade_on_wall = wallsh_.copy()
         shade_on_wall[shade_on_wall < wallshve_] = wallshve_[
             shade_on_wall < wallshve_
         ]
 
+    # return vegsh, sh, vbshvegsh, wallsh, wallsun, wallshve, facesh, facesun,
+    # shade_on_wall
     return (
         (
             vegsh,

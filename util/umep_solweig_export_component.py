@@ -56,11 +56,13 @@ def write_solweig_config(configDict, refdir):
     f.write("poi_file={}\n".format(configDict["poi_file"]))
     f.write("poi_field={}\n".format(configDict["poi_field"]))
     f.write(
+        "# Input file for surface temperature data in v2026a (.txt file)\n"
+    )
+    f.write("input_surf={}\n".format(configDict["input_surf"]))
+    f.write(
         "# Input file for wall temperture scheme (Wallenberg et al. 2025)\n"
     )
     f.write("input_wall={}\n".format(configDict["input_wall"]))
-    f.write("# Input file for surface temperature data\n")
-    f.write("input_surf={}\n".format(configDict.get("input_surf", "")))
     f.write("# Point of Interest file for walls\n")
     f.write("woi_file={}\n".format(configDict["woi_file"]))
     f.write("woi_field={}\n".format(configDict["woi_field"]))
@@ -105,6 +107,14 @@ def write_solweig_config(configDict, refdir):
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
     f.write(
+        "# use the surface temperature parameterization v2026a\n"
+    )
+    f.write("groundmodel={}\n".format(configDict["groundmodel"]))
+    f.write(
+        "# use the outgoing longwave radiation computation scheme v2026a\n"
+    )
+    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))  
+    f.write(
         "# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n"
     )
     f.write("wallscheme={}\n".format(configDict["wallscheme"]))
@@ -112,8 +122,6 @@ def write_solweig_config(configDict, refdir):
         "# If building materials is not included in lc, then this is used for all buildings (Wood, Brick or Concrete)\n"
     )
     f.write("walltype={}\n".format(configDict["walltype"]))
-    f.write("# use OHM for ground surface temperature modeling\n")
-    f.write("groundmodel={}\n".format(configDict["groundmodel"]))
     f.write("# output settings\n")
     f.write("outputtmrt={}\n".format(configDict["outputtmrt"]))
     f.write("outputkup={}\n".format(configDict["outputkup"]))

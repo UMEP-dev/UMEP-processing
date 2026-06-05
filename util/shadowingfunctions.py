@@ -1,126 +1,94 @@
 # -*- coding: utf-8 -*-
 # Ready for python action!
-import torch
-from math import radians
-import matplotlib.pylab as plt
 import numpy as np
-import torch.nn.functional as F
-
-
-def _to_tensor(x, device, dtype=torch.float32):
-    if isinstance(x, torch.Tensor):
-        return x.to(device)
-    if x is None:
-        return None
-    return torch.tensor(x, dtype=dtype, device=device)
+from math import radians
 
 
 def shadowingfunctionglobalradiation(
-    a, azimuth, altitude, scale, feedback, forsvf, device=torch.device("cpu")
+    a, azimuth, altitude, scale, feedback, forsvf
 ):
-    """
-    Computes global radiation shadows on a DSM using PyTorch hardware acceleration.
 
-    This function leverages `F.grid_sample` to perform global map translations,
-    completely removing multi-index array slicing and trigonometric quadrant switches.
-    It is heavily optimized for GPU matrix operations.
-
-    Args:
-        a (torch.Tensor or numpy.ndarray): Digital Surface Model (DSM) matrix.
-        azimuth (float): Sun azimuth angle in degrees.
-        altitude (float): Sun altitude angle in degrees.
-        scale (float): Spatial resolution modifier (1 pixel = 1 meter -> 1.0).
-        feedback (QgsProcessingFeedback or similar): Object used to report algorithm progress.
-        forsvf (int): Flag to toggle progress reporting (0 = report progress, 1 = skip).
-        device (torch.device, optional): Device context for execution. Defaults to CPU.
-
-    Returns:
-        torch.Tensor: Binary shadow mask (1.0 = in sun, 0.0 = in shadow) matching `a.dtype`.
-    """
-    # Ensure inputs are correctly formatted PyTorch tensors on the target device
-    if not isinstance(a, torch.Tensor):
-        a = torch.tensor(a, device=device)
-    else:
-        a = a.to(device=device)
-
-    # Convert angular sun positions to radians
-    degrees = torch.pi / 180.0
-    azimuth = azimuth * degrees
-    altitude = altitude * degrees
-
-    sizex, sizey = a.shape
-
-    # Track progress bounds if requested
+    # %This m.file calculates shadows on a DEM
+    # % conversion
+    degrees = np.pi / 180.0
+    # if azimuth == 0.0:
+    # azimuth = 0.000000000001
+    azimuth = np.dot(azimuth, degrees)
+    altitude = np.dot(altitude, degrees)
+    # % measure the size of the image
+    sizex = a.shape[0]
+    sizey = a.shape[1]
     if forsvf == 0:
-        barstep = max(sizex, sizey)
-        total = 100.0 / barstep
-
-    # Clone initial DSM layout to accumulate the upper shadow envelope
-    f = a.clone()
-
-    # --- COORDINATE GRID GENERATION FOR GLOBAL TRANSFORMATION ---
-    y, x = torch.meshgrid(
-        torch.linspace(-1, 1, sizex, device=device),
-        torch.linspace(-1, 1, sizey, device=device),
-        indexing="ij",
-    )
-    # Target PyTorch shape: (1, H, W, 2) with (X, Y) layout at dim=-1
-    grille_base = torch.stack((x, y), dim=-1).unsqueeze(0)
-
-    # Convert the 2D DSM to a 4D tensor chunk (1, 1, H, W) for grid sampling
-    a_4d = a.unsqueeze(0).unsqueeze(0)
-
-    # Pre-calculate sun path factors
-    amaxvalue = torch.max(a).item()
-    sinazimuth = torch.sin(azimuth)
-    cosazimuth = torch.cos(azimuth)
-    tanaltitudebyscale = torch.tan(altitude) / scale
-
-    # Dynamically estimate the safety limit for our vector operations
-    max_steps = int(amaxvalue / tanaltitudebyscale.item()) + 2
-
-    # Vectorized loop structure (Eliminates slice variables and block switches)
-    for step_idx in range(1, max_steps):
-        index = float(step_idx)
-
+        barstep = np.max([sizex, sizey])
+        total = 100.0 / barstep  # dlg.progressBar.setRange(0, barstep)
+    # % initialise parameters
+    f = a
+    dx = 0.0
+    dy = 0.0
+    dz = 0.0
+    temp = np.zeros((sizex, sizey))
+    index = 1.0
+    # % other loop parameters
+    amaxvalue = a.max()
+    pibyfour = np.pi / 4.0
+    threetimespibyfour = 3.0 * pibyfour
+    fivetimespibyfour = 5.0 * pibyfour
+    seventimespibyfour = 7.0 * pibyfour
+    sinazimuth = np.sin(azimuth)
+    cosazimuth = np.cos(azimuth)
+    tanazimuth = np.tan(azimuth)
+    signsinazimuth = np.sign(sinazimuth)
+    signcosazimuth = np.sign(cosazimuth)
+    dssin = np.abs((1.0 / sinazimuth))
+    dscos = np.abs((1.0 / cosazimuth))
+    tanaltitudebyscale = np.tan(altitude) / scale
+    # % main loop
+    while amaxvalue >= dz and np.abs(dx) < sizex and np.abs(dy) < sizey:
         if forsvf == 0:
             feedback.setProgress(int(index * total))
 
-        # 1. Project ground physical shadow offset (in pixels)
-        shift_x = index * sinazimuth / scale
-        shift_y = index * cosazimuth / scale
-        dz = index * tanaltitudebyscale
+        if (
+            pibyfour <= azimuth
+            and azimuth < threetimespibyfour
+            or fivetimespibyfour <= azimuth
+            and azimuth < seventimespibyfour
+        ):
+            dy = signsinazimuth * index
+            dx = -1.0 * signcosazimuth * np.abs(np.round(index / tanazimuth))
+            ds = dssin
+        else:
+            dy = signsinazimuth * np.abs(np.round(index * tanazimuth))
+            dx = -1.0 * signcosazimuth * index
+            ds = dscos
 
-        # Safe breakout loop check if rays completely clear the canvas boundaries
-        if abs(shift_x) >= sizey and abs(shift_y) >= sizex:
-            break
-
-        # 2. Shift the underlying layout grid space (-1 to 1 space boundaries)
-        grille_deplacee = grille_base.clone()
-        grille_deplacee[..., 0] -= (2.0 * shift_x) / (sizey - 1)
-        grille_deplacee[..., 1] -= (2.0 * shift_y) / (sizex - 1)
-
-        # 3. Retrieve translated elevation layout using bilinear interpolation
-        temp = (
-            F.grid_sample(
-                a_4d, grille_deplacee, mode="bilinear", padding_mode="border"
-            ).squeeze()
-            - dz
+        # % note: dx and dy represent absolute values while ds is an incremental value
+        dz = ds * index * tanaltitudebyscale
+        temp[0:sizex, 0:sizey] = 0.0
+        absdx = np.abs(dx)
+        absdy = np.abs(dy)
+        xc1 = (dx + absdx) / 2.0 + 1.0
+        xc2 = sizex + (dx - absdx) / 2.0
+        yc1 = (dy + absdy) / 2.0 + 1.0
+        yc2 = sizey + (dy - absdy) / 2.0
+        xp1 = -((dx - absdx) / 2.0) + 1.0
+        xp2 = sizex - (dx + absdx) / 2.0
+        yp1 = -((dy - absdy) / 2.0) + 1.0
+        yp2 = sizey - (dy + absdy) / 2.0
+        temp[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
+            a[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
         )
+        f = np.fmax(f, temp)
+        index += 1.0
 
-        # 4. Amalgamate upper terrain shadow bounds
-        f = torch.maximum(f, temp)
-
-    # Calculate local shadow gaps
     f = f - a
-
-    # Binary conversion: Where f == 0, the ground matches the shadow envelope (it is in sun)
-    sh = (f == 0).to(dtype=a.dtype)
+    f = np.logical_not(f)
+    sh = np.double(f)
 
     return sh
 
 
-# @jit(nopython=True)
+
+
 def shadowingfunction_20(
     a,
     vegdem,
@@ -132,148 +100,285 @@ def shadowingfunction_20(
     bush,
     feedback,
     forsvf,
-    device=torch.device("cpu"),
 ):
-    # automatically get the device to use from the input
-    device = a.device if isinstance(a, torch.Tensor) else torch.device("cpu")
 
-    a = _to_tensor(a, device)
-    vegdem = _to_tensor(vegdem, device)
-    vegdem2 = _to_tensor(vegdem2, device)
-    bush = _to_tensor(bush, device)
+    # This function casts shadows on buildings and vegetation units.
+    # New capability to deal with pergolas 20210827
 
-    degrees = torch.pi / 180.0
+    # conversion
+    degrees = np.pi / 180.0
     azimuth = azimuth * degrees
     altitude = altitude * degrees
 
+    # measure the size of grid
     sizex = a.shape[0]
     sizey = a.shape[1]
 
+    # progressbar for svf plugin
     if forsvf == 0:
-        barstep = max(sizex, sizey)
+        barstep = np.max([sizex, sizey])
         total = 100.0 / barstep
         feedback.setProgress(0)
 
+    # initialise parameters
+    dx = 0.0
+    dy = 0.0
     dz = 0.0
-    temp = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    tempvegdem = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    tempvegdem2 = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    templastfabovea = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    templastgabovea = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
+    temp = np.zeros((sizex, sizey))
+    tempvegdem = np.zeros((sizex, sizey))
+    tempvegdem2 = np.zeros((sizex, sizey))
+    templastfabovea = np.zeros((sizex, sizey))
+    templastgabovea = np.zeros((sizex, sizey))
     bushplant = bush > 1.0
-    sh = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    vbshvegsh = torch.zeros((sizex, sizey), device=device, dtype=a.dtype)
-    vegsh = bushplant.to(dtype=a.dtype)
+    sh = np.zeros((sizex, sizey))  # shadows from buildings
+    vbshvegsh = np.zeros((sizex, sizey))  # vegetation blocking buildings
+    vegsh = np.add(
+        np.zeros((sizex, sizey)), bushplant, dtype=float
+    )  # vegetation shadow
     f = a
 
-    shvoveg = vegdem.clone()
-    y, x = torch.meshgrid(
-        torch.linspace(-1, 1, sizex, device=device),
-        torch.linspace(-1, 1, sizey, device=device),
-        indexing="ij",
-    )
-    grille_base = torch.stack((x, y), dim=-1).unsqueeze(0)
+    pibyfour = np.pi / 4.0
+    threetimespibyfour = 3.0 * pibyfour
+    fivetimespibyfour = 5.0 * pibyfour
+    seventimespibyfour = 7.0 * pibyfour
+    sinazimuth = np.sin(azimuth)
+    cosazimuth = np.cos(azimuth)
+    tanazimuth = np.tan(azimuth)
+    signsinazimuth = np.sign(sinazimuth)
+    signcosazimuth = np.sign(cosazimuth)
+    dssin = np.abs((1.0 / sinazimuth))
+    dscos = np.abs((1.0 / cosazimuth))
+    tanaltitudebyscale = np.tan(altitude) / scale
+    # index = 1
+    index = 0
 
-    # Preparation of the layers packed for grid_sample
-    a_4d = a.unsqueeze(0).unsqueeze(0).float()
-    veg_4d = vegdem.unsqueeze(0).unsqueeze(0).float()
-    veg2_4d = vegdem2.unsqueeze(0).unsqueeze(0).float()
+    # new case with pergola (thin vertical layer of vegetation), August 2021
+    dzprev = 0
 
-    # Trigonometric params for the sun's step
-    sinazimuth = torch.sin(azimuth)
-    cosazimuth = torch.cos(azimuth)
-    tanaltitudebyscale = torch.tan(altitude) / scale
+    # main loop
+    while (amaxvalue >= dz) and (np.abs(dx) < sizex) and (np.abs(dy) < sizey):
+        if forsvf == 0:
+            # dlg.progressBar.setValue(index)
+            feedback.setProgress(int(index * total))
+        if (
+            (pibyfour <= azimuth)
+            and (azimuth < threetimespibyfour)
+            or (fivetimespibyfour <= azimuth)
+            and (azimuth < seventimespibyfour)
+        ):
+            dy = signsinazimuth * index
+            dx = -1.0 * signcosazimuth * np.abs(np.round(index / tanazimuth))
+            ds = dssin
+        else:
+            dy = signsinazimuth * np.abs(np.round(index * tanazimuth))
+            dx = -1.0 * signcosazimuth * index
+            ds = dscos
+        # note: dx and dy represent absolute values while ds is an incremental
+        # value
+        dz = (ds * index) * tanaltitudebyscale
+        tempvegdem[0:sizex, 0:sizey] = 0.0
+        tempvegdem2[0:sizex, 0:sizey] = 0.0
+        temp[0:sizex, 0:sizey] = 0.0
+        templastfabovea[0:sizex, 0:sizey] = 0.0
+        templastgabovea[0:sizex, 0:sizey] = 0.0
+        absdx = np.abs(dx)
+        absdy = np.abs(dy)
+        xc1 = int((dx + absdx) / 2.0)
+        xc2 = int(sizex + (dx - absdx) / 2.0)
+        yc1 = int((dy + absdy) / 2.0)
+        yc2 = int(sizey + (dy - absdy) / 2.0)
+        xp1 = int(-((dx - absdx) / 2.0))
+        xp2 = int(sizex - (dx + absdx) / 2.0)
+        yp1 = int(-((dy - absdy) / 2.0))
+        yp2 = int(sizey - (dy + absdy) / 2.0)
 
-    # Calculation of the maximum of steps
-    # We stop when the shadow exceed the max possible height
-    max_steps = int(amaxvalue / tanaltitudebyscale) + 2
+        tempvegdem[xp1:xp2, yp1:yp2] = vegdem[xc1:xc2, yc1:yc2] - dz
+        tempvegdem2[xp1:xp2, yp1:yp2] = vegdem2[xc1:xc2, yc1:yc2] - dz
+        temp[xp1:xp2, yp1:yp2] = a[xc1:xc2, yc1:yc2] - dz
 
-    # Facteur d'avancement du rayon (équivalent géométrique de ton ancien 'ds')
-    # Plus besoin de gros blocs If/Else selon les quadrants du soleil !
-    delta_z_par_pas = tanaltitudebyscale
+        f = np.fmax(f, temp)  # Moving building shadow
+        sh[(f > a)] = 1.0
+        sh[(f <= a)] = 0.0
+        fabovea = tempvegdem > a  # vegdem above DEM
+        gabovea = tempvegdem2 > a  # vegdem2 above DEM
 
-    for index in range(1, max_steps):
-        # 1. Calculations of the slide
-        shift_x = index * sinazimuth / scale
-        shift_y = index * cosazimuth / scale
-        dz = index * delta_z_par_pas
-
-        # Stop if the shadow is completely outside of the map
-        if abs(shift_x) >= sizey and abs(shift_y) >= sizex:
-            break
-
-        # 2. Applying the offset to our normalized coordinate sheet (-1 to 1)
-        grille_deplacee = grille_base.clone()
-        grille_deplacee[..., 0] -= (2.0 * shift_x) / (sizey - 1)
-        grille_deplacee[..., 1] -= (2.0 * shift_y) / (sizex - 1)
-
-        # 3. Global Material Sampling (Instant Layer Swipe)
-        temp = (
-            F.grid_sample(
-                a_4d, grille_deplacee, mode="bilinear", padding_mode="border"
-            ).squeeze()
-            - dz
-        )
-        tempvegdem = (
-            F.grid_sample(
-                veg_4d, grille_deplacee, mode="bilinear", padding_mode="border"
-            ).squeeze()
-            - dz
-        )
-        tempvegdem2 = (
-            F.grid_sample(
-                veg2_4d,
-                grille_deplacee,
-                mode="bilinear",
-                padding_mode="border",
-            ).squeeze()
-            - dz
-        )
-
-        # 4. Update of cast shadow volumes
-        f = torch.fmax(f, temp)
-        shvoveg = torch.fmax(shvoveg, tempvegdem)
-
-        sh = torch.where(
-            f > a,
-            torch.tensor(1.0, device=device),
-            torch.tensor(0.0, device=device),
-        )
-        fabovea = tempvegdem > a
-        gabovea = tempvegdem2 > a
-
-        # 5. Pergola logic (Overlaying layers with the & operator)
-        templastfabovea = tempvegdem + delta_z_par_pas
-        templastgabovea = tempvegdem2 + delta_z_par_pas
-
+        # new pergola condition
+        templastfabovea[xp1:xp2, yp1:yp2] = vegdem[xc1:xc2, yc1:yc2] - dzprev
+        templastgabovea[xp1:xp2, yp1:yp2] = vegdem2[xc1:xc2, yc1:yc2] - dzprev
         lastfabovea = templastfabovea > a
         lastgabovea = templastgabovea > a
-
-        # If all 4 layers are True at the same time, it's a pergola (light passes through).
-        is_pergola = fabovea & gabovea & lastfabovea & lastgabovea
-
-        # The shadow exists if one of the layers is True, UNLESS it's a pergola.
-        vegsh2 = (fabovea | gabovea | lastfabovea | lastgabovea) & (
-            ~is_pergola
+        dzprev = dz
+        vegsh2 = np.add(
+            np.add(
+                np.add(fabovea, gabovea, dtype=float), lastfabovea, dtype=float
+            ),
+            lastgabovea,
+            dtype=float,
         )
-        vegsh2 = vegsh2.float()
+        vegsh2[vegsh2 == 4] = 0.0
+        # vegsh2[vegsh2 == 1] = 0. # This one is the ultimate question...
+        vegsh2[vegsh2 > 0] = 1.0
 
-        # Accumulation of vegetation shadows
-        vegsh = torch.maximum(vegsh, vegsh2)
-        vegsh = torch.where(
-            vegsh * sh > 0, torch.tensor(0.0, device=device), vegsh
-        )
-        vbshvegsh.add_(vegsh)
+        vegsh = np.fmax(vegsh, vegsh2)
+        vegsh[(vegsh * sh > 0.0)] = 0.0
+        vbshvegsh = vegsh + vbshvegsh  # removing shadows 'behind' buildings
+
+        index += 1.0
 
     sh = 1.0 - sh
-    vbshvegsh = torch.where(
-        vbshvegsh > 0.0, torch.tensor(1.0, device=device), vbshvegsh
-    )
+    vbshvegsh[(vbshvegsh > 0.0)] = 1.0
     vbshvegsh = vbshvegsh - vegsh
     vegsh = 1.0 - vegsh
     vbshvegsh = 1.0 - vbshvegsh
 
     shadowresult = {"sh": sh, "vegsh": vegsh, "vbshvegsh": vbshvegsh}
+
+    return shadowresult
+
+
+def shadowingfunction_20_old(
+    a, vegdem, vegdem2, azimuth, altitude, scale, amaxvalue, bush, dlg, forsvf
+):
+
+    # % This function casts shadows on buildings and vegetation units
+    # % conversion
+    degrees = np.pi / 180.0
+    if azimuth == 0.0:
+        azimuth = 0.000000000001
+    azimuth = np.dot(azimuth, degrees)
+    altitude = np.dot(altitude, degrees)
+    # % measure the size of the image
+    sizex = a.shape[0]
+    sizey = a.shape[1]
+    # % initialise parameters
+    if forsvf == 0:
+        barstep = np.max([sizex, sizey])
+        dlg.progressBar.setRange(0, barstep)
+        dlg.progressBar.setValue(0)
+
+    dx = 0.0
+    dy = 0.0
+    dz = 0.0
+    temp = np.zeros((sizex, sizey))
+    tempvegdem = np.zeros((sizex, sizey))
+    tempvegdem2 = np.zeros((sizex, sizey))
+    sh = np.zeros((sizex, sizey))
+    vbshvegsh = np.zeros((sizex, sizey))
+    vegsh = np.zeros((sizex, sizey))
+    tempbush = np.zeros((sizex, sizey))
+    f = a
+    g = np.zeros((sizex, sizey))
+    bushplant = bush > 1.0
+    pibyfour = np.pi / 4.0
+    threetimespibyfour = 3.0 * pibyfour
+    fivetimespibyfour = 5.0 * pibyfour
+    seventimespibyfour = 7.0 * pibyfour
+    sinazimuth = np.sin(azimuth)
+    cosazimuth = np.cos(azimuth)
+    tanazimuth = np.tan(azimuth)
+    signsinazimuth = np.sign(sinazimuth)
+    signcosazimuth = np.sign(cosazimuth)
+    dssin = np.abs((1.0 / sinazimuth))
+    dscos = np.abs((1.0 / cosazimuth))
+    tanaltitudebyscale = np.tan(altitude) / scale
+    index = 1
+
+    # % main loop
+    while amaxvalue >= dz and np.abs(dx) < sizex and np.abs(dy) < sizey:
+        if forsvf == 0:
+            dlg.progressBar.setValue(index)
+        if (
+            pibyfour <= azimuth
+            and azimuth < threetimespibyfour
+            or fivetimespibyfour <= azimuth
+            and azimuth < seventimespibyfour
+        ):
+            dy = signsinazimuth * index
+            dx = -1.0 * signcosazimuth * np.abs(np.round(index / tanazimuth))
+            ds = dssin
+        else:
+            dy = signsinazimuth * np.abs(np.round(index * tanazimuth))
+            dx = -1.0 * signcosazimuth * index
+            ds = dscos
+        # % note: dx and dy represent absolute values while ds is an incremental value
+        dz = np.dot(np.dot(ds, index), tanaltitudebyscale)
+        tempvegdem[0:sizex, 0:sizey] = 0.0
+        tempvegdem2[0:sizex, 0:sizey] = 0.0
+        temp[0:sizex, 0:sizey] = 0.0
+        absdx = np.abs(dx)
+        absdy = np.abs(dy)
+        xc1 = (dx + absdx) / 2.0 + 1.0
+        xc2 = sizex + (dx - absdx) / 2.0
+        yc1 = (dy + absdy) / 2.0 + 1.0
+        yc2 = sizey + (dy - absdy) / 2.0
+        xp1 = -((dx - absdx) / 2.0) + 1.0
+        xp2 = sizex - (dx + absdx) / 2.0
+        yp1 = -((dy - absdy) / 2.0) + 1.0
+        yp2 = sizey - (dy + absdy) / 2.0
+        tempvegdem[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
+            vegdem[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
+        )
+        tempvegdem2[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
+            vegdem2[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
+        )
+        temp[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
+            a[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
+        )
+        # f = np.maximum(f, temp) # bad performance in python3. Replaced with
+        # fmax
+        f = np.fmax(f, temp)
+        sh[(f > a)] = 1.0
+        sh[(f <= a)] = 0.0
+        # %Moving building shadow
+        fabovea = tempvegdem > a
+        # %vegdem above DEM
+        gabovea = tempvegdem2 > a
+        # %vegdem2 above DEM
+        # vegsh2 = np.float(fabovea)-np.float(gabovea)
+        vegsh2 = np.subtract(fabovea, gabovea, dtype=float)
+        # vegsh = np.maximum(vegsh, vegsh2) # bad performance in python3.
+        # Replaced with fmax
+        vegsh = np.fmax(vegsh, vegsh2)
+        vegsh[(vegsh * sh > 0.0)] = 0.0
+        # % removing shadows 'behind' buildings
+        vbshvegsh = vegsh + vbshvegsh
+        # % vegsh at high sun altitudes
+        if index == 1.0:
+            firstvegdem = tempvegdem - temp
+            firstvegdem[(firstvegdem <= 0.0)] = 1000.0
+            vegsh[(firstvegdem < dz)] = 1.0
+            vegsh = vegsh * (vegdem2 > a)
+            vbshvegsh = np.zeros((sizex, sizey))
+
+        # % Bush shadow on bush plant
+        if np.logical_and(bush.max() > 0.0, np.max((fabovea * bush)) > 0.0):
+            tempbush[0:sizex, 0:sizey] = 0.0
+            tempbush[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
+                bush[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
+            )
+            # g = np.maximum(g, tempbush) # bad performance in python3.
+            # Replaced with fmax
+            g = np.fmax(g, tempbush)
+            g *= bushplant
+        index += 1.0
+
+    sh = 1.0 - sh
+    vbshvegsh[(vbshvegsh > 0.0)] = 1.0
+    vbshvegsh = vbshvegsh - vegsh
+
+    if bush.max() > 0.0:
+        g = g - bush
+        g[(g > 0.0)] = 1.0
+        g[(g < 0.0)] = 0.0
+        vegsh = vegsh - bushplant + g
+        vegsh[(vegsh < 0.0)] = 0.0
+
+    vegsh[(vegsh > 0.0)] = 1.0
+    vegsh = 1.0 - vegsh
+    vbshvegsh = 1.0 - vbshvegsh
+
+    shadowresult = {"sh": sh, "vegsh": vegsh, "vbshvegsh": vbshvegsh}
+
     return shadowresult
 
 
@@ -291,174 +396,194 @@ def shadowingfunction_findwallID(
     facesh,
     wall_dict,
     sh,
-    device,
 ):
     """
-    Identifies which wall ID and voxel height are visible along solar ray vectors from ground pixels.
+    This function identifies what wall id and voxel height that is seen from a ground pixel
 
-    This version removes explicit pixel-slice shifting loops by utilizing PyTorch's hardware-accelerated
-    `F.grid_sample` engine. It implements nearest-neighbor interpolation to prevent spatial distortion
-    of discrete categorical Wall IDs during matrix transformation layers.
+    INPUTS:
+    dsm = Digital surface model
+    azimuth and altitude = sun position in degrees
+    scale= scale of DSM (1 meter pixels=1, 2 meter pixels=0.5)
+    uniqueWallIDs = pixel row 'outside' buildings. will be calculated if empty
+    walls = height of walls
+    dem = Digital elevation model. (Should be excluded in future to incorporate ground elevation)
 
-    Args:
-        dsm (torch.Tensor): Digital Surface Model tensor.
-        azimuth (float): Sun azimuth angle in degrees.
-        altitude (float): Sun altitude angle in degrees.
-        scale (float): Spatial resolution modifier (1 pixel = 1 meter -> 1.0).
-        walls (torch.Tensor): Height profile of the pixels representing building walls.
-        uniqueWallIDs (torch.Tensor): Matrix containing distinct structural identifiers for each wall.
-        dem (torch.Tensor): Digital Elevation Model representing bare earth topography.
-        wall2d_id (torch.Tensor or list): Reference map containing baseline wall components.
-        voxel_height (torch.Tensor or list): Reference metric indicating structural slice heights.
-        voxelId_list (torch.Tensor or list): Linear index tracker for specific 3D voxel spaces.
-        facesh (torch.Tensor): Binary mask identifying building walls shaded by their own geometry.
-        wall_dict (dict): Dictionary mapping categorical string/int Wall IDs to their true heights.
-        sh (torch.Tensor): Baseline ground shadow mask layer (1 = sun, 0 = shadow).
-        device (torch.device): Execution hardware targeting context (CPU/GPU).
+    OUTPUT:
+    buildIDSeen = ID seen from ground pixel
+    voxelHeight = Wall height shadow volume
 
-    Returns:
-        tuple: A tuple containing:
-            - buildIDSeen (torch.Tensor): Categorical ID of the wall casting a shadow onto the pixel.
-            - voxelHeight (torch.Tensor): Accumulated vertical shadow volume height profile.
-            - voxelId (torch.Tensor): Specific structural voxel block identifier seen by the layout.
+    Fredrik Lindberg 2023-02-16
+    fredrikl@gvc.gu.se
+
     """
-    # 1. PRE-PROCESSING & FORMATTING
+
+    # Remove ground heights
     dsm = dsm - dem
-    dsm = torch.where(dsm < 0.5, torch.tensor(0.0, device=device), dsm)
+    # buildings = 1 - ((dsm) > 0)
+    dsm[dsm < 0.5] = 0
 
-    # Conversion degrees to radians
-    azimuth_rad = radians(azimuth)
-    altitude_rad = radians(altitude)
+    # conversion, degrees to radians
+    azimuth = radians(azimuth)
+    altitude = radians(altitude)
 
-    rows, cols = dsm.shape
+    # measure the size of the image
+    rows = np.shape(dsm)[0]
+    cols = np.shape(dsm)[1]
 
-    # Initialise tracked arrays
-    buildIDSeen = torch.zeros((rows, cols), device=device)
-    voxelHeight = torch.zeros((rows, cols), device=device)
-    temp3 = torch.ones((rows, cols), device=device)
+    # initialise parameters
+    f = np.copy(dsm)
+    buildIDSeen = np.zeros((rows, cols))
+    # h = np.zeros((rows, cols))
 
-    # Mask wall tracking based on facing attributes
-    uniqueWallIDs_masked = uniqueWallIDs * facesh
+    dx = 0
+    dy = 0
+    dz = 0
+    temp = np.zeros((rows, cols))
+    temp2 = np.zeros((rows, cols))  # walls
+    tempwallID = np.zeros((rows, cols))
+    uniqueWallIDsOrig = np.copy(uniqueWallIDs)
 
-    # Build a high-performance native tensor lookup table for wall heights
-    max_wall_id = int(max(wall_dict.keys())) if wall_dict else 0
-    wall_height_lookup = torch.zeros(max_wall_id + 1, device=device)
-    for k, v in wall_dict.items():
-        wall_height_lookup[int(k)] = v
+    voxelHeight = np.zeros((rows, cols))
+    temp3 = np.ones((rows, cols))
 
-    # --- COORDINATE GRID GENERATION FOR THE SAMPLING TRANSFORMS ---
-    y, x = torch.meshgrid(
-        torch.linspace(-1, 1, rows, device=device),
-        torch.linspace(-1, 1, cols, device=device),
-        indexing="ij",
-    )
-    grille_base = torch.stack((x, y), dim=-1).unsqueeze(0)
+    # other loop parameters
+    amaxvalue = np.max(dsm)
+    pibyfour = np.pi / 4
+    threetimespibyfour = 3 * pibyfour
+    fivetimespibyfour = 5 * pibyfour
+    seventimespibyfour = 7 * pibyfour
+    sinazimuth = np.sin(azimuth)
+    cosazimuth = np.cos(azimuth)
+    tanazimuth = np.tan(azimuth)
+    signsinazimuth = np.sign(sinazimuth)
+    signcosazimuth = np.sign(cosazimuth)
+    dssin = np.abs(1 / sinazimuth)
+    dscos = np.abs(1 / cosazimuth)
+    tanaltitudebyscale = np.tan(altitude) / scale
 
-    # Emballer uniqueWallIDs in 4D (1, 1, H, W) for grid_sample
-    # We keep it as float for grid_sample, and convert back to long for indexing
-    wall_id_4d = uniqueWallIDs_masked.unsqueeze(0).unsqueeze(0).float()
+    index = 1
 
-    # Trig variables
-    sinazimuth = torch.sin(torch.tensor(azimuth_rad, device=device))
-    cosazimuth = torch.cos(torch.tensor(azimuth_rad, device=device))
-    tanaltitudebyscale = (
-        torch.tan(torch.tensor(altitude_rad, device=device)) / scale
-    )
+    # main loop
+    while (amaxvalue >= dz) and (np.abs(dx) < rows) and (np.abs(dy) < cols):
 
-    amaxvalue = torch.max(dsm)
-    max_steps = int(amaxvalue / tanaltitudebyscale) + 2
+        if (pibyfour <= azimuth and azimuth < threetimespibyfour) or (
+            fivetimespibyfour <= azimuth and azimuth < seventimespibyfour
+        ):
+            dy = signsinazimuth * index
+            dx = -1 * signcosazimuth * np.abs(np.round(index / tanazimuth))
+            ds = dssin
+        else:
+            dy = signsinazimuth * np.abs(np.round(index * tanazimuth))
+            dx = -1 * signcosazimuth * index
+            ds = dscos
 
-    # 2. CORE VECTORIZED GRID-SHIFTING LOOP
-    for index in range(1, max_steps):
-        # Project spatial offsets on pixel dimensions
-        shift_x = index * sinazimuth / scale
-        shift_y = index * cosazimuth / scale
-        dz = index * tanaltitudebyscale
+        # note: dx and dy represent absolute values while ds is an incremental
+        # value
+        dz = ds * index * tanaltitudebyscale
+        temp[0:rows, 0:cols] = 0
+        temp2[0:rows, 0:cols] = 0
 
-        # Break early if ray projections completely escape spatial boundaries
-        if abs(shift_x) >= cols and abs(shift_y) >= rows:
-            break
+        absdx = np.abs(dx)
+        absdy = np.abs(dy)
 
-        # Displace the structural tracking sheet
-        grille_deplacee = grille_base.clone()
-        grille_deplacee[..., 0] -= (2.0 * shift_x) / (cols - 1)
-        grille_deplacee[..., 1] -= (2.0 * shift_y) / (rows - 1)
+        xc1 = int((dx + absdx) / 2)
+        xc2 = int(rows + (dx - absdx) / 2)
+        yc1 = int((dy + absdy) / 2)
+        yc2 = int(cols + (dy - absdy) / 2)
 
-        # CRITICAL OPTIMIZATION: mode="nearest" keeps Wall IDs integer-pure (no interpolation fuzziness)
-        tempwallID = F.grid_sample(
-            wall_id_4d, grille_deplacee, mode="nearest", padding_mode="zeros"
-        ).squeeze()
+        xp1 = int(-((dx - absdx) / 2))
+        xp2 = int(rows - (dx + absdx) / 2)
+        yp1 = int(-((dy - absdy) / 2))
+        yp2 = int(cols - (dy + absdy) / 2)
 
-        # Batch-map wall ID categories directly to structural heights via tensor indexing
-        temp_wallHeight = wall_height_lookup[tempwallID.long()]
+        wallSeen = facesh
+        uniqueWallIDs = uniqueWallIDs * wallSeen
+        # uniqueWallIDs = ((uniqueWallIDs - firstMove) < 0) * uniqueWallIDsOrig + uniqueWallIDs # adding missing corner
+        # wallSeenHeight = walls * wallSeen
 
-        # Track wall degradation down ray segments
+        # temp2[xp1:xp2, yp1:yp2] = wallSeenHeight[xc1:xc2, yc1:yc2] - dz # Moving wall shadow
+        # Moving wall id
+        tempwallID[xp1:xp2, yp1:yp2] = uniqueWallIDs[xc1:xc2, yc1:yc2]
+
+        # Get wall height from wall id
+        temp_wallHeight = np.vectorize(wall_dict.__getitem__)(tempwallID)
+
+        # Descending wall, how much of the wall that is still above ground
+        # level
         temp2 = temp_wallHeight - dz
 
-        # Process logical flags globally on the GPU cores
-        valid_mask = temp2 > 0
-        active_pixels_mask = valid_mask & temp3
+        # buildIDSeen = Wall pixels/voxels seen, i.e. only voxels that are positive (above ground level) (temp2 > 0).
+        # temp3 indicates those pixels that the walls have not progressed into
+        # yet (saved in previous iteration).
+        buildIDSeen = (temp2 > 0) * temp3 * tempwallID + buildIDSeen
 
-        # Amalgamate ray intersection metrics
-        buildIDSeen = torch.where(active_pixels_mask, tempwallID, buildIDSeen)
-        voxelHeight = torch.where(
-            active_pixels_mask, temp_wallHeight - temp2, voxelHeight
-        )
 
-        # Update remaining target pixel profiles using fast tensor boolean operations
-        temp3 = (temp2 <= 0) & (buildIDSeen == 0)
 
-    # 3. POST-PROCESSING & VOXEL IDENTIFICATION
-    voxelHeight_ceil = torch.ceil(voxelHeight)
-    voxelId = torch.zeros((rows, cols), device=device)
+        # voxelHeight = the elevation on a wall that is seen from a pixel with the given altitude and azimuth (only above ground leve, i.e. (temp2 > 0)).
+        # voxelHeight = wall height - descending wall, i.e. temp_wallHeight -
+        # temp2. Only applicable to pixels where there is no value from
+        # previous iterations (temp3).
+        voxelHeight = (temp2 > 0) * temp3 * (
+            temp_wallHeight - temp2
+        ) + voxelHeight
 
-    # Secure mapping arrays are local tensors
-    if not isinstance(wall2d_id, torch.Tensor):
-        wall2d_id = torch.tensor(wall2d_id, device=device)
-    else:
-        wall2d_id = wall2d_id.to(device)
+        # Remember pixels previous iteration that walls have not progressed
+        # into yet.
+        temp3 = np.copy(temp2 <= 0) * (buildIDSeen == 0)
 
-    if not isinstance(voxel_height, torch.Tensor):
-        voxel_height = torch.tensor(voxel_height, device=device)
-    else:
-        voxel_height = voxel_height.to(device)
+        index += 1
 
-    if not isinstance(voxelId_list, torch.Tensor):
-        voxelId_list = torch.tensor(
-            voxelId_list, dtype=torch.long, device=device
-        )
-    else:
-        voxelId_list = voxelId_list.to(device=device, dtype=torch.long)
+    # Ceil voxel height values to integers
+    voxelHeight_ceil = np.ceil(voxelHeight)
+    # voxelHeight_ceil = np.round(voxelHeight)
 
-    # Find unique Wall ID & Voxel Height pairings found across the canvas
-    stacked_profiles = torch.column_stack(
-        [buildIDSeen.flatten(), voxelHeight_ceil.flatten()]
-    )
-    unique_combinations = torch.unique(stacked_profiles, dim=0)
-    unique_combinations = unique_combinations[
-        ~torch.all(unique_combinations == 0, dim=1)
-    ]
+    # Empty raster to fill with voxel IDs
+    voxelId = np.zeros((rows, cols))
+    # Convert wall2d_id from list to numpy array
+    wall2d_id = np.array(wall2d_id)
+    # Convert voxel_height from list to numpy array
+    voxel_height = np.array(voxel_height)
+    # Convert voxelId_list from list to numpy array
+    voxelId_list = np.array(voxelId_list, dtype=int)
 
-    # Map the linear 3D voxel index references
-    for temp_id, temp_height in unique_combinations:
-        mask = (wall2d_id == temp_id) & (voxel_height == temp_height)
-        temp_fill_id = voxelId_list[mask]
+    # Flatten buildIDseen from matrix to array
+    a = buildIDSeen.flatten()
+    # Flatten voxelHeight_ceil from matrix to array
+    b = voxelHeight_ceil.flatten()
+    # Combine the two above arrays into an n by 2 array
+    c = np.column_stack([a, b])
+    # Find unique values in c
+    d = np.unique(c, axis=0)
+    # Remove rows where both columns are zero
+    d = d[~np.all(d == 0, axis=1)]
 
-        pixel_mask = (buildIDSeen == temp_id) & (
-            voxelHeight_ceil == temp_height
-        )
 
-        if temp_fill_id.numel() > 0:
-            voxelId[pixel_mask] = temp_fill_id[0].float()
+    not_in_list = 0
+    in_list = 0
+    # Fill voxelId matrix with unique voxel IDs
+    for temp_id, temp_height in d:
+        # print(str(temp_id) + ' ' + str(temp_height))
+        temp_fill_id = voxelId_list[
+            ((wall2d_id == temp_id) & (voxel_height == temp_height))
+        ]
+        if temp_fill_id.__len__() > 0:
+            # print('temp_fill_id = ' + str(temp_fill_id))
+            voxelId[
+                (buildIDSeen == temp_id) & (voxelHeight_ceil == temp_height)
+            ] = temp_fill_id
+            in_list += 1
         else:
-            buildIDSeen[pixel_mask] = 0.0
-            voxelHeight_ceil[pixel_mask] = 0.0
+            not_in_list += 1
+            buildIDSeen[
+                (buildIDSeen == temp_id) & (voxelHeight_ceil == temp_height)
+            ] = 0
+            voxelHeight_ceil[
+                (buildIDSeen == temp_id) & (voxelHeight_ceil == temp_height)
+            ] = 0
 
-    # Invert original shadow notation layout logic (1 - sh)
-    # This aligns the mapping accurately to raw cast shadows
-    shadow_correction = 1.0 - sh
-    buildIDSeen *= shadow_correction
-    voxelHeight *= shadow_correction
-    voxelId *= shadow_correction
+    # Correct for shadows, i.e. remove weird pixels on top of buildings etc
+    buildIDSeen = buildIDSeen * (1 - sh)
+    voxelHeight = voxelHeight * (1 - sh)
+    voxelId = voxelId * (1 - sh)
 
     return buildIDSeen, voxelHeight, voxelId

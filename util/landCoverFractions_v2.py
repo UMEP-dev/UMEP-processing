@@ -35,16 +35,6 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
     lc_frac = np.zeros((int(360.0 / dtheta), iter))
     deg = np.zeros((int(360.0 / dtheta), 1))
 
-    # n = lc_grid.shape[0]
-    # imid = np.floor((n/2.))
-    # if mid == 1:
-    # dY = np.int16(np.arange(np.dot(1, imid)))  # the half length of the grid (y)
-    # else: #moved inside loop as it varies on an irregular grid
-    # dY = np.int16(np.arange(np.dot(1, n)))  # the whole length of the grid (y)
-
-    # dX = np.int16(np.arange(imid, imid+1))
-    # lx = dX.shape[0]
-    # ly = dY.shape[0]
 
     j = int(0)
     for angle in np.arange(0, 360, dtheta):
@@ -66,8 +56,6 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
             lineMid = d[:, int(imid)]  # whole center line
         bld = lineMid[np.where(lineMid > 0)]  # line within grid only
 
-        # b = np.round(((lc_grid.max()-lc_grid.min())/d.max())*d+lc_grid.min(), 0) #not needed anymore
-        # bld = b[dY, dX]  # lc array
         ly = bld.shape[0]  # number of pixels to consider in NtoS
         lx = 1  #!TODO should this consider full length (EtoW) of grid and if so, how?
 

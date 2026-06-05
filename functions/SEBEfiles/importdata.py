@@ -47,10 +47,9 @@ from builtins import str
 import os
 from PIL import Image
 import numpy as np
-import torch
 
 
-def importdata(*args, device):
+def importdata(*args):
     """
     Imports data.
 
@@ -136,10 +135,9 @@ def importdata(*args, device):
         delimiter = None
         headerRows = 0
         img = Image.open(fileName)
-        output["cdata"] = torch.tensor(img, device=device)
-        output["colormap"] = (
-            img.mode
-        )  # TODO: check if this method is euaivalent
+        output["cdata"] = np.array(img)
+        # TODO: check if this method is euaivalent
+        output["colormap"] = img.mode
         output["alpha"] = img.split()[-1]
     elif ext is ".mat":
         import scipy.io as sio
@@ -197,9 +195,9 @@ def print_usage():
     raise IOError("Insufficient/bad arguments for importdata()")
 
 
-def importdata_ascii(fileName, delimiter, headerRows, device):
+def importdata_ascii(fileName, delimiter, headerRows):
     output = dict()
-    output["data"] = torch.tensor([], device=device)
+    output["data"] = np.array([])
     output["textdata"] = list()
 
     # Read file into string and count the number of header rows
@@ -220,19 +218,21 @@ def importdata_ascii(fileName, delimiter, headerRows, device):
             if delimiter in line:
                 headerRows += 1
             else:
-                # Data part has begun and therefore no more header rows can be found
+                # Data part has begun and therefore no more header rows can be
+                # found
                 break
 
     # Put the header rows in output.textdata.
     if headerRows > 0:
         for i, el in enumerate(fileContentRows[0:headerRows]):
-            output["textdata"].append(
-                str(el)
-            )  # struct in ML is converted to dict in py
+            # struct in ML is converted to dict in py
+            output["textdata"].append(str(el))
 
-    # If space is the delimiter, then remove spaces in the beginning of each data row.
+    # If space is the delimiter, then remove spaces in the beginning of each
+    # data row.
     if delimiter is " ":
-        # strtrim does not only remove the leading spaces but also the tailing spaces, but that doesn't really matter.
+        # strtrim does not only remove the leading spaces but also the tailing
+        # spaces, but that doesn't really matter.
         fileContentRows = fileContentRows[:headerRows] + [
             line.strip() for line in fileContentRows[headerRows:]
         ]
@@ -247,40 +247,35 @@ def importdata_ascii(fileName, delimiter, headerRows, device):
     # If there are different number of columns, use the greatest value.
     dataColumns = 0
     for line in fileContentRows:
-        num_elements = len(
-            [el for el in line.split(delimiter) if el]
-        )  # if element is not empty
+        # if element is not empty
+        num_elements = len([el for el in line.split(delimiter) if el])
         dataColumns = max(dataColumns, num_elements)
 
     # print "headerRows py:", headerRows
-    # Go through the data and put it in either output.data or output.textdata depending on if it is numeric or not.
+    # Go through the data and put it in either output.data or output.textdata
+    # depending on if it is numeric or not.
     output["data"] = (
-        torch.from_numpy(
-            np.empty((len(fileContentRows) - headerRows, dataColumns)),
-            device=device,
-        )
-        * torch.nan
+        np.empty((len(fileContentRows) - headerRows, dataColumns)) * np.nan
     )
     for i, line in enumerate(fileContentRows[headerRows:]):
-        # Only use the row if it contains anything other than white-space characters.
+        # Only use the row if it contains anything other than white-space
+        # characters.
         if line.replace(" ", ""):
             rowData = line.split(delimiter)
             for j, el in enumerate(rowData):
                 try:
                     output["data"][i, j] = float(el)
                 except ValueError:
-                    output["textdata"].append(
-                        str(el)
-                    )  # using tuple (i,j) as key to dict textdata
+                    # using tuple (i,j) as key to dict textdata
+                    output["textdata"].append(str(el))
 
     # Check wether rowheaders or colheaders should be used
     # fix_print_with_import
     print("text data")
     # fix_print_with_import
     print(output["textdata"])
-    if (
-        headerRows == dataColumns and len(output["textdata"]) == 1
-    ):  # getting the col size, assuming
+    # getting the col size, assuming
+    if headerRows == dataColumns and len(output["textdata"]) == 1:
         # the dict is equivalent of struct in Matlab
         output["rowheaders"] = output["textdata"]
     elif len(output["textdata"]) == dataColumns:  # TODO fix this

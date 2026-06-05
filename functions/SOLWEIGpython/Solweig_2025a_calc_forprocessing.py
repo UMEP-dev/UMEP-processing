@@ -17,18 +17,17 @@ from .cylindric_wedge import cylindric_wedge
 from .TsWaveDelay_2015a import TsWaveDelay_2015a
 from .Kup_veg_2015a import Kup_veg_2015a
 
-
+# from .Lside_veg_v2015a import Lside_veg_v2015a
+# from .Kside_veg_v2019a import Kside_veg_v2019a
 from .Kside_veg_v2022a import Kside_veg_v2022a
 from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 # Anisotropic longwave
-from .Lcyl_v2022a import Lcyl_v2022a
 from .Lside_veg import Lside_veg_v2022a
 from .anisotropic_sky import anisotropic_sky as ani_sky
 from .patch_radiation import patch_steradians
 from copy import deepcopy
-import time
 
 # Wall surface temperature scheme
 from .wall_surface_temperature import wall_surface_temperature
@@ -135,7 +134,7 @@ def Solweig_2025a_calc(
     #                       landcover, lc_grid, dectime, altmax, dirwalls, walls, cyl, elvis, Ta, RH, radG, radD, radI, P,
     #                       amaxvalue, bush, Twater, TgK, Tstart, alb_grid, emis_grid, TgK_wall, Tstart_wall, TmaxLST,
     #                       TmaxLST_wall, first, second, svfalfa, svfbuveg, firstdaytime, timeadd, timestepdec, Tgmap1,
-    #                       Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani):
+    # Tgmap1E, Tgmap1S, Tgmap1W, Tgmap1N, CI, TgOut1, diffsh, ani):
 
     # This is the core function of the SOLWEIG model
     # 2016-Aug-28
@@ -218,7 +217,7 @@ def Solweig_2025a_calc(
         1 - (1 + msteg) * np.exp(-((1.2 + 3.0 * msteg) ** 0.5))
     ) + elvis  # -0.04 old error from Jonsson et al.2006
 
-    if altitude > 0:  # # # # # # DAYTIME # # # # # #
+    if altitude > 0:  # DAYTIME # # # # # #
         # Clearness Index on Earth's surface after Crawford and Dunchon (1999) with a correction
         #  factor for low sun elevations after Lindberg et al.(2008)
         I0, CI, Kt, I0et, CIuncorr = clearnessindex_2013b(
@@ -244,16 +243,10 @@ def Solweig_2025a_calc(
             zenDeg = zen * (180 / np.pi)
             # Relative luminance
             lv, pc_, pb_ = Perez_v3(
-                zenDeg,
-                azimuth,
-                radD,
-                radI,
-                jday,
-                patchchoice,
-                patch_option,
-                "cpu",
+                zenDeg, azimuth, radD, radI, jday, patchchoice, patch_option
             )
-            # Total relative luminance from sky, i.e. from each patch, into each cell
+            # Total relative luminance from sky, i.e. from each patch, into
+            # each cell
             aniLum = np.zeros((rows, cols))
             for idx in range(lv.shape[0]):
                 aniLum += diffsh[:, :, idx] * lv[idx, 2]
@@ -327,11 +320,11 @@ def Solweig_2025a_calc(
             # Tg = 0
             Tgwall = 0
 
-        # New estimation of Tg reduction for non - clear situation based on Reindl et al.1990
+        # New estimation of Tg reduction for non - clear situation based on
+        # Reindl et al.1990
         radI0, _ = diffusefraction(I0, altitude, 1.0, Ta, RH)
-        corr = (
-            0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
-        )  # 20070329 correction of lat, Lindberg et al. 2008
+        # 20070329 correction of lat, Lindberg et al. 2008
+        corr = 0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
         CI_Tg = (radG / radI0) + (1 - corr)
         if (CI_Tg > 1) or (CI_Tg == np.inf):
             CI_Tg = 1
@@ -418,9 +411,8 @@ def Solweig_2025a_calc(
         )  # timeadd only here v2021a
 
         # Building height angle from svf
-        F_sh = cylindric_wedge(
-            zen, svfalfa, rows, cols
-        )  # Fraction shadow on building walls based on sun alt and svf
+        # Fraction shadow on building walls based on sun alt and svf
+        F_sh = cylindric_wedge(zen, svfalfa, rows, cols)
         F_sh[np.isnan(F_sh)] = 0.5
 
         # # # # # # # Calculation of shortwave daytime radiative fluxes # # # # # # #
@@ -536,7 +528,8 @@ def Solweig_2025a_calc(
         + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4)
         + (2 - svf - svfveg) * (1 - ewall) * esky * SBC * ((Ta + 273.15) ** 4)
     )  # Jonsson et al.(2006)
-    # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et al.(2006)
+    # Ldown = Ldown - 25 # Shown by Jonsson et al.(2006) and Duarte et
+    # al.(2006)
 
     if CI < 0.95:  # non - clear conditions
         c = 1 - CI
@@ -544,8 +537,10 @@ def Solweig_2025a_calc(
             (svf + svfveg - 1) * SBC * ((Ta + 273.15) ** 4)
             + (2 - svfveg - svfaveg) * ewall * SBC * ((Ta + 273.15) ** 4)
             + (svfaveg - svf) * ewall * SBC * ((Ta + 273.15 + Tgwall) ** 4)
-            + (2 - svf - svfveg) * (1 - ewall) * SBC * ((Ta + 273.15) ** 4)
-        )  # NOT REALLY TESTED!!! BUT MORE CORRECT?
+            +
+            # NOT REALLY TESTED!!! BUT MORE CORRECT?
+            (2 - svf - svfveg) * (1 - ewall) * SBC * ((Ta + 273.15) ** 4)
+        )
 
     # # # # Lside # # # #
     Least, Lsouth, Lwest, Lnorth = Lside_veg_v2022a(
@@ -601,7 +596,8 @@ def Solweig_2025a_calc(
     # Anisotropic sky
     if anisotropic_sky == 1:
         if "lv" not in locals():
-            # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
+            # Creating skyvault of patches of constant radians (Tregeneza and
+            # Sharples, 1993)
             skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(
                 patch_option
             )
@@ -630,7 +626,8 @@ def Solweig_2025a_calc(
             KupW = 0
             KupN = 0
 
-        # Adjust sky emissivity under semi-cloudy/hazy/cloudy/overcast conditions, i.e. CI lower than 0.95
+        # Adjust sky emissivity under semi-cloudy/hazy/cloudy/overcast
+        # conditions, i.e. CI lower than 0.95
         if CI < 0.95:
             esky_c = CI * esky + (1 - CI) * 1.0
             esky = esky_c

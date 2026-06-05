@@ -4,9 +4,9 @@ from __future__ import absolute_import
 from . import sun_position as sp
 
 # import sun_position as sp
+import numpy as np
 import datetime
 import calendar
-import torch
 
 
 def Solweig_2015a_metdata_noload(inputdata, location, UTC):
@@ -21,13 +21,8 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
     """
 
     met = inputdata
-    device = (
-        met.device if isinstance(met, torch.Tensor) else torch.device("cpu")
-    )
     data_len = len(met[:, 0])
-    dectime = torch.tensor(
-        met[:, 1] + met[:, 2] / 24 + met[:, 3] / (60 * 24.0)
-    )
+    dectime = met[:, 1] + met[:, 2] / 24 + met[:, 3] / (60 * 24.0)
     dectimemin = met[:, 3] / (60 * 24.0)
     if data_len == 1:
         halftimestepdec = 0
@@ -41,13 +36,13 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
     leafoff1 = 300  # TODO this should change
 
     # initialize matrices
-    altitude = torch.empty(size=(1, data_len), device=device)
-    azimuth = torch.empty(size=(1, data_len), device=device)
-    zen = torch.empty(size=(1, data_len), device=device)
-    jday = torch.empty(size=(1, data_len), device=device)
-    YYYY = torch.empty(size=(1, data_len), device=device)
-    leafon = torch.empty(size=(1, data_len), device=device)
-    altmax = torch.empty(size=(1, data_len), device=device)
+    altitude = np.empty(shape=(1, data_len))
+    azimuth = np.empty(shape=(1, data_len))
+    zen = np.empty(shape=(1, data_len))
+    jday = np.empty(shape=(1, data_len))
+    YYYY = np.empty(shape=(1, data_len))
+    leafon = np.empty(shape=(1, data_len))
+    altmax = np.empty(shape=(1, data_len))
 
     sunmax = dict()
 
@@ -58,9 +53,7 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
             int(met[i, 1]) - 1
         )
         # Finding maximum altitude in 15 min intervals (20141027)
-        if (i == 0) or (
-            torch.remainder(dectime[i], torch.floor(dectime[i])) == 0
-        ):
+        if (i == 0) or (np.mod(dectime[i], np.floor(dectime[i])) == 0):
             fifteen = 0.0
             sunmaximum = -90.0
             sunmax["zenith"] = 90.0
@@ -77,9 +70,9 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
                 sunmax = sp.sun_position(time, location)
         altmax[0, i] = sunmaximum
 
-        half = datetime.timedelta(days=float(halftimestepdec))
-        H = datetime.timedelta(hours=int(met[i, 2]))
-        M = datetime.timedelta(minutes=int(met[i, 3]))
+        half = datetime.timedelta(days=halftimestepdec)
+        H = datetime.timedelta(hours=met[i, 2])
+        M = datetime.timedelta(minutes=met[i, 3])
         YMDHM = YMD + H + M - half
         time["year"] = YMDHM.year
         time["month"] = YMDHM.month
@@ -87,32 +80,25 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
         time["hour"] = YMDHM.hour
         time["min"] = YMDHM.minute
         sun = sp.sun_position(time, location)
-        sun_zenith = sun["zenith"]
-        sun_azimuth = sun["azimuth"]
-
-        if (sun_zenith > 89.0) & (sun_zenith <= 90.0):
-            sun_zenith = 89.0
-
-        altitude[0, i] = 90.0 - sun_zenith
-        zen[0, i] = sun_zenith * (torch.pi / 180.0)
-        azimuth[0, i] = sun_azimuth
+        # Hopefully fixes weird values in Perez et al. when altitude < 1.0,
+        # i.e. close to sunrise/sunset
+        if (sun["zenith"] > 89.0) & (sun["zenith"] <= 90.0):
+            sun["zenith"] = 89.0
+        altitude[0, i] = 90.0 - sun["zenith"]
+        zen[0, i] = sun["zenith"] * (np.pi / 180.0)
+        azimuth[0, i] = sun["azimuth"]
 
         # day of year and check for leap year
         if calendar.isleap(time["year"]):
-            dayspermonth = torch.atleast_2d(
-                torch.tensor(
-                    [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-                    device=device,
-                )
+            dayspermonth = np.atleast_2d(
+                [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
             )
         else:
-            dayspermonth = torch.atleast_2d(
-                torch.tensor(
-                    [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-                    device=device,
-                )
+            dayspermonth = np.atleast_2d(
+                [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
             )
-        # jday[0, i] = torch.sum(dayspermonth[0, 0:time['month']-1]) + time['day'] # bug when a new day 20191015
+        # jday[0, i] = np.sum(dayspermonth[0, 0:time['month']-1]) + time['day']
+        # # bug when a new day 20191015
         YYYY[0, i] = met[i, 0]
         doy = YMD.timetuple().tm_yday
         jday[0, i] = doy

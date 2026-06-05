@@ -1,5 +1,5 @@
 __author__ = "xlinfr"
-import torch
+import numpy as np
 
 
 def sun_distance(jday):
@@ -9,14 +9,14 @@ def sun_distance(jday):
     #% with day of year as input.
     #% Partridge and Platt, 1975
     """
-    b = 2.0 * torch.pi * jday / 365.0
-    D = torch.sqrt(
+    b = 2.0 * np.pi * jday / 365.0
+    D = np.sqrt(
         (
             1.00011
-            + 0.034221 * torch.cos(b)
-            + 0.001280 * torch.sin(b)
-            + 0.000719 * torch.cos(2.0 * b)
-            + 0.000077 * torch.sin(2.0 * b)
+            + np.dot(0.034221, np.cos(b))
+            + np.dot(0.001280, np.sin(b))
+            + np.dot(0.000719, np.cos((2.0 * b)))
+            + np.dot(0.000077, np.sin((2.0 * b)))
         )
     )
     return D

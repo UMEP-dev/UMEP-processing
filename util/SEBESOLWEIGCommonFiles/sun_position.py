@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from __future__ import print_function
-import torch
+import numpy as np
 
 
 def sun_position(time, location):
@@ -150,7 +150,8 @@ def sun_position(time, location):
         apparent_sun_longitude, true_obliquity, sun_geocentric_position
     )
 
-    # 11. Calculate the observer local hour angle (in degrees, westward from south).
+    # 11. Calculate the observer local hour angle (in degrees, westward from
+    # south).
     observer_local_hour = observer_local_hour_calculation(
         apparent_stime_at_greenwich, location, sun_rigth_ascension
     )
@@ -179,7 +180,6 @@ def sun_position(time, location):
 
 
 def julian_calculation(t_input):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     """
     % This function compute the julian day and julian century from the local
     % time and timezone information. Ephemeris are calculated with a delta_t=0
@@ -204,20 +204,21 @@ def julian_calculation(t_input):
         time = t_input
 
     if time["month"] == 1 or time["month"] == 2:
-        Y = torch.tensor(time["year"] - 1, device=device)
-        M = torch.tensor(time["month"] + 12, device=device)
+        Y = time["year"] - 1
+        M = time["month"] + 12
     else:
-        Y = torch.tensor(time["year"], device=device)
-        M = torch.tensor(time["month"], device=device)
+        Y = time["year"]
+        M = time["month"]
 
-    ut_time = torch.tensor(
+    # time of day in UT time.
+    ut_time = (
         ((time["hour"] - time["UTC"]) / 24)
         + (time["min"] / (60 * 24))
-        + (time["sec"] / (60 * 60 * 24)),
-        device=device,
-    )  # time of day in UT time.
+        + (time["sec"] / (60 * 60 * 24))
+    )
+    # Day of month in decimal time, ex. 2sd day of month at 12:30:30UT,
+    # D=2.521180556
     D = time["day"] + ut_time
-    # Day of month in decimal time, ex. 2sd day of month at 12:30:30UT, D=2.521180556
 
     # In 1582, the gregorian calendar was adopted
     if time["year"] == 1582:
@@ -225,36 +226,36 @@ def julian_calculation(t_input):
             if (
                 time["day"] <= 4
             ):  # The Julian calendar ended on October 4, 1582
-                B = torch.tensor(0, device=device)
+                B = 0
             elif (
                 time["day"] >= 15
             ):  # The Gregorian calendar started on October 15, 1582
-                A = torch.floor(Y / 100)
-                B = 2 - A + torch.floor(A / 4)
+                A = np.floor(Y / 100)
+                B = 2 - A + np.floor(A / 4)
             else:
                 print(
                     "This date never existed!. Date automatically set to October 4, 1582"
                 )
                 time["month"] = 10
                 time["day"] = 4
-                B = torch.tensor(0, device=device)
+                B = 0
         elif time["month"] < 10:  # Julian calendar
-            B = torch.tensor(0, device=device)
+            B = 0
         else:  # Gregorian calendar
-            A = torch.floor(Y / 100)
-            B = 2 - A + torch.floor(A / 4)
+            A = np.floor(Y / 100)
+            B = 2 - A + np.floor(A / 4)
     elif time["year"] < 1582:  # Julian calendar
-        B = torch.tensor(0, device=device)
+        B = 0
     else:
-        A = torch.floor(Y / 100)  # Gregorian calendar
-        B = 2 - A + torch.floor(A / 4)
+        A = np.floor(Y / 100)  # Gregorian calendar
+        B = 2 - A + np.floor(A / 4)
 
     julian = dict()
     julian["day"] = (
         D
         + B
-        + torch.floor(365.25 * (Y + 4716))
-        + torch.floor(30.6001 * (M + 1))
+        + np.floor(365.25 * (Y + 4716))
+        + np.floor(30.6001 * (M + 1))
         - 1524.5
     )
 
@@ -268,7 +269,6 @@ def julian_calculation(t_input):
 
 
 def earth_heliocentric_position_calculation(julian):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     """
     % This function compute the earth position relative to the sun, using
     % tabulated values.
@@ -278,7 +278,7 @@ def earth_heliocentric_position_calculation(julian):
     """
     # Tabulated values for the longitude calculation
     # L terms  from the original code.
-    L0_terms = torch.tensor(
+    L0_terms = np.array(
         [
             [175347046.0, 0, 0],
             [3341656.0, 4.6692568, 6283.07585],
@@ -344,11 +344,10 @@ def earth_heliocentric_position_calculation(julian):
             [30, 0.44, 83996.85],
             [30, 2.74, 1349.87],
             [25, 3.16, 4690.48],
-        ],
-        device=device,
+        ]
     )
 
-    L1_terms = torch.tensor(
+    L1_terms = np.array(
         [
             [628331966747.0, 0, 0],
             [206059.0, 2.678235, 6283.07585],
@@ -384,11 +383,10 @@ def earth_heliocentric_position_calculation(julian):
             [8, 5.3, 2352.87],
             [6, 2.65, 9437.76],
             [6, 4.67, 4690.48],
-        ],
-        device=device,
+        ]
     )
 
-    L2_terms = torch.tensor(
+    L2_terms = np.array(
         [
             [52919.0, 0, 0],
             [8720.0, 1.0721, 6283.0758],
@@ -410,11 +408,10 @@ def earth_heliocentric_position_calculation(julian):
             [3, 2.28, 553.57],
             [2, 4.38, 5223.69],
             [2, 3.75, 0.98],
-        ],
-        device=device,
+        ]
     )
 
-    L3_terms = torch.tensor(
+    L3_terms = np.array(
         [
             [289.0, 5.844, 6283.076],
             [35, 0, 0],
@@ -423,18 +420,15 @@ def earth_heliocentric_position_calculation(julian):
             [1, 4.72, 3.52],
             [1, 5.3, 18849.23],
             [1, 5.97, 242.73],
-        ],
-        device=device,
+        ]
     )
-    L4_terms = torch.tensor(
-        [[114.0, 3.142, 0], [8, 4.13, 6283.08], [1, 3.84, 12566.15]],
-        device=device,
+    L4_terms = np.array(
+        [[114.0, 3.142, 0], [8, 4.13, 6283.08], [1, 3.84, 12566.15]]
     )
 
-    L5_terms = torch.tensor([1, 3.14, 0], device=device)
-    L5_terms = torch.atleast_2d(
-        L5_terms
-    )  # since L5_terms is 1D, we have to convert it to 2D to avoid indexErrors
+    L5_terms = np.array([1, 3.14, 0])
+    # since L5_terms is 1D, we have to convert it to 2D to avoid indexErrors
+    L5_terms = np.atleast_2d(L5_terms)
 
     A0 = L0_terms[:, 0]
     B0 = L0_terms[:, 1]
@@ -463,25 +457,25 @@ def earth_heliocentric_position_calculation(julian):
     JME = julian["ephemeris_millenium"]
 
     # Compute the Earth Heliochentric longitude from the tabulated values.
-    L0 = torch.sum(A0 * torch.cos(B0 + (C0 * JME)))
-    L1 = torch.sum(A1 * torch.cos(B1 + (C1 * JME)))
-    L2 = torch.sum(A2 * torch.cos(B2 + (C2 * JME)))
-    L3 = torch.sum(A3 * torch.cos(B3 + (C3 * JME)))
-    L4 = torch.sum(A4 * torch.cos(B4 + (C4 * JME)))
-    L5 = A5 * torch.cos(B5 + (C5 * JME))
+    L0 = np.sum(A0 * np.cos(B0 + (C0 * JME)))
+    L1 = np.sum(A1 * np.cos(B1 + (C1 * JME)))
+    L2 = np.sum(A2 * np.cos(B2 + (C2 * JME)))
+    L3 = np.sum(A3 * np.cos(B3 + (C3 * JME)))
+    L4 = np.sum(A4 * np.cos(B4 + (C4 * JME)))
+    L5 = A5 * np.cos(B5 + (C5 * JME))
 
     earth_heliocentric_position = dict()
     earth_heliocentric_position["longitude"] = (
         L0
         + (L1 * JME)
-        + (L2 * torch.pow(JME, 2))
-        + (L3 * torch.pow(JME, 3))
-        + (L4 * torch.pow(JME, 4))
-        + (L5 * torch.pow(JME, 5))
+        + (L2 * np.power(JME, 2))
+        + (L3 * np.power(JME, 3))
+        + (L4 * np.power(JME, 4))
+        + (L5 * np.power(JME, 5))
     ) / 1e8
     # Convert the longitude to degrees.
     earth_heliocentric_position["longitude"] = (
-        earth_heliocentric_position["longitude"] * 180 / torch.pi
+        earth_heliocentric_position["longitude"] * 180 / np.pi
     )
 
     # Limit the range to [0,360]
@@ -491,20 +485,17 @@ def earth_heliocentric_position_calculation(julian):
 
     # Tabulated values for the earth heliocentric latitude.
     # B terms  from the original code.
-    B0_terms = torch.tensor(
+    B0_terms = np.array(
         [
             [280.0, 3.199, 84334.662],
             [102.0, 5.422, 5507.553],
             [80, 3.88, 5223.69],
             [44, 3.7, 2352.87],
             [32, 4, 1577.34],
-        ],
-        device=device,
+        ]
     )
 
-    B1_terms = torch.tensor(
-        [[9, 3.9, 5507.55], [6, 1.73, 5223.69]], device=device
-    )
+    B1_terms = np.array([[9, 3.9, 5507.55], [6, 1.73, 5223.69]])
 
     A0 = B0_terms[:, 0]
     B0 = B0_terms[:, 1]
@@ -514,14 +505,14 @@ def earth_heliocentric_position_calculation(julian):
     B1 = B1_terms[:, 1]
     C1 = B1_terms[:, 2]
 
-    L0 = torch.sum(A0 * torch.cos(B0 + (C0 * JME)))
-    L1 = torch.sum(A1 * torch.cos(B1 + (C1 * JME)))
+    L0 = np.sum(A0 * np.cos(B0 + (C0 * JME)))
+    L1 = np.sum(A1 * np.cos(B1 + (C1 * JME)))
 
     earth_heliocentric_position["latitude"] = (L0 + (L1 * JME)) / 1e8
 
     # Convert the latitude to degrees.
     earth_heliocentric_position["latitude"] = (
-        earth_heliocentric_position["latitude"] * 180 / torch.pi
+        earth_heliocentric_position["latitude"] * 180 / np.pi
     )
 
     # Limit the range to [0,360];
@@ -531,7 +522,7 @@ def earth_heliocentric_position_calculation(julian):
 
     # Tabulated values for radius vector.
     # R terms from the original code
-    R0_terms = torch.tensor(
+    R0_terms = np.array(
         [
             [100013989.0, 0, 0],
             [1670700.0, 3.0984635, 6283.07585],
@@ -573,11 +564,10 @@ def earth_heliocentric_position_calculation(julian):
             [28, 1.21, 6286.6],
             [28, 1.9, 6279.55],
             [26, 4.59, 10447.39],
-        ],
-        device=device,
+        ]
     )
 
-    R1_terms = torch.tensor(
+    R1_terms = np.array(
         [
             [103019.0, 1.10749, 6283.07585],
             [1721.0, 1.0644, 12566.1517],
@@ -589,11 +579,10 @@ def earth_heliocentric_position_calculation(julian):
             [10, 5.91, 10977.08],
             [9, 1.42, 6275.96],
             [9, 0.27, 5486.78],
-        ],
-        device=device,
+        ]
     )
 
-    R2_terms = torch.tensor(
+    R2_terms = np.array(
         [
             [4359.0, 5.7846, 6283.0758],
             [124.0, 5.579, 12566.152],
@@ -601,19 +590,14 @@ def earth_heliocentric_position_calculation(julian):
             [9, 3.63, 77713.77],
             [6, 1.87, 5573.14],
             [3, 5.47, 18849],
-        ],
-        device=device,
+        ]
     )
 
-    R3_terms = torch.tensor(
-        [[145.0, 4.273, 6283.076], [7, 3.92, 12566.15]], device=device
-    )
+    R3_terms = np.array([[145.0, 4.273, 6283.076], [7, 3.92, 12566.15]])
 
     R4_terms = [4, 2.56, 6283.08]
-    # Force it to be a tensor first, then ensure it's 2D
-    R4_terms = torch.atleast_2d(
-        torch.tensor(R4_terms, device=device)
-    )  # since L5_terms is 1D, we have to convert it to 2D to avoid indexErrors
+    # since L5_terms is 1D, we have to convert it to 2D to avoid indexErrors
+    R4_terms = np.atleast_2d(R4_terms)
 
     A0 = R0_terms[:, 0]
     B0 = R0_terms[:, 1]
@@ -636,19 +620,19 @@ def earth_heliocentric_position_calculation(julian):
     C4 = R4_terms[:, 2]
 
     # Compute the Earth heliocentric radius vector
-    L0 = torch.sum(A0 * torch.cos(B0 + (C0 * JME)))
-    L1 = torch.sum(A1 * torch.cos(B1 + (C1 * JME)))
-    L2 = torch.sum(A2 * torch.cos(B2 + (C2 * JME)))
-    L3 = torch.sum(A3 * torch.cos(B3 + (C3 * JME)))
-    L4 = A4 * torch.cos(B4 + (C4 * JME))
+    L0 = np.sum(A0 * np.cos(B0 + (C0 * JME)))
+    L1 = np.sum(A1 * np.cos(B1 + (C1 * JME)))
+    L2 = np.sum(A2 * np.cos(B2 + (C2 * JME)))
+    L3 = np.sum(A3 * np.cos(B3 + (C3 * JME)))
+    L4 = A4 * np.cos(B4 + (C4 * JME))
 
     # Units are in AU
     earth_heliocentric_position["radius"] = (
         L0
         + (L1 * JME)
-        + (L2 * torch.pow(JME, 2))
-        + (L3 * torch.pow(JME, 3))
-        + (L4 * torch.pow(JME, 4))
+        + (L2 * np.power(JME, 2))
+        + (L3 * np.power(JME, 3))
+        + (L4 * np.power(JME, 4))
     ) / 1e8
 
     return earth_heliocentric_position
@@ -678,7 +662,6 @@ def sun_geocentric_position_calculation(earth_heliocentric_position):
 
 
 def nutation_calculation(julian):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     """
     % This function compute the nutation in longtitude and in obliquity, in
     % degrees.
@@ -690,83 +673,64 @@ def nutation_calculation(julian):
     JCE = julian["ephemeris_century"]
 
     # 1. Mean elongation of the moon from the sun
-    p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 189474), -0.0019142, 445267.11148, 297.85036], device=device
-        )
-    )
+    p = np.atleast_2d([(1 / 189474), -0.0019142, 445267.11148, 297.85036])
 
     # X0 = polyval(p, JCE);
+    # This is faster than polyval...
     X0 = (
-        p[0, 0] * torch.pow(JCE, 3)
-        + p[0, 1] * torch.pow(JCE, 2)
+        p[0, 0] * np.power(JCE, 3)
+        + p[0, 1] * np.power(JCE, 2)
         + p[0, 2] * JCE
         + p[0, 3]
-    )  # This is faster than polyval...
+    )
 
     # 2. Mean anomaly of the sun (earth)
-    p = torch.atleast_2d(
-        torch.tensor(
-            [-(1 / 300000), -0.0001603, 35999.05034, 357.52772], device=device
-        )
-    )
+    p = np.atleast_2d([-(1 / 300000), -0.0001603, 35999.05034, 357.52772])
 
     # X1 = polyval(p, JCE)
     X1 = (
-        p[0, 0] * torch.pow(JCE, 3)
-        + p[0, 1] * torch.pow(JCE, 2)
+        p[0, 0] * np.power(JCE, 3)
+        + p[0, 1] * np.power(JCE, 2)
         + p[0, 2] * JCE
         + p[0, 3]
     )
 
     # 3. Mean anomaly of the moon
-    p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 56250), 0.0086972, 477198.867398, 134.96298], device=device
-        )
-    )
+    p = np.atleast_2d([(1 / 56250), 0.0086972, 477198.867398, 134.96298])
 
     # X2 = polyval(p, JCE);
     X2 = (
-        p[0, 0] * torch.pow(JCE, 3)
-        + p[0, 1] * torch.pow(JCE, 2)
+        p[0, 0] * np.power(JCE, 3)
+        + p[0, 1] * np.power(JCE, 2)
         + p[0, 2] * JCE
         + p[0, 3]
     )
 
     # 4. Moon argument of latitude
-    p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 327270), -0.0036825, 483202.017538, 93.27191], device=device
-        )
-    )
+    p = np.atleast_2d([(1 / 327270), -0.0036825, 483202.017538, 93.27191])
 
     # X3 = polyval(p, JCE)
     X3 = (
-        p[0, 0] * torch.pow(JCE, 3)
-        + p[0, 1] * torch.pow(JCE, 2)
+        p[0, 0] * np.power(JCE, 3)
+        + p[0, 1] * np.power(JCE, 2)
         + p[0, 2] * JCE
         + p[0, 3]
     )
 
     # 5. Longitude of the ascending node of the moon's mean orbit on the
     # ecliptic, measured from the mean equinox of the date
-    p = torch.atleast_2d(
-        torch.tensor(
-            [(1 / 450000), 0.0020708, -1934.136261, 125.04452], device=device
-        )
-    )
+    p = np.atleast_2d([(1 / 450000), 0.0020708, -1934.136261, 125.04452])
 
     # X4 = polyval(p, JCE);
     X4 = (
-        p[0, 0] * torch.pow(JCE, 3)
-        + p[0, 1] * torch.pow(JCE, 2)
+        p[0, 0] * np.power(JCE, 3)
+        + p[0, 1] * np.power(JCE, 2)
         + p[0, 2] * JCE
         + p[0, 3]
     )
 
     # Y tabulated terms from the original code
-    Y_terms = torch.tensor(
+    Y_terms = np.array(
         [
             [0, 0, 0, 0, 1],
             [-2, 0, 0, 2, 2],
@@ -831,11 +795,10 @@ def nutation_calculation(julian):
             [2, -1, -1, 2, 2],
             [0, 0, 3, 2, 2],
             [2, -1, 0, 2, 2],
-        ],
-        device=device,
+        ]
     )
 
-    nutation_terms = torch.tensor(
+    nutation_terms = np.array(
         [
             [-171996, -174.2, 92025, 8.9],
             [-13187, -1.6, 5736, -3.1],
@@ -900,37 +863,33 @@ def nutation_calculation(julian):
             [-3, 0, 0, 0],
             [-3, 0, 0, 0],
             [-3, 0, 0, 0],
-        ],
-        device=device,
+        ]
     )
 
     # Using the tabulated values, compute the delta_longitude and
     # delta_obliquity.
-    Xi = torch.tensor(
-        [X0, X1, X2, X3, X4], device=device
-    )  # a col mat in octave
+    Xi = np.array([X0, X1, X2, X3, X4])  # a col mat in octave
 
-    tabulated_argument = torch.matmul(Y_terms.float(), Xi) * (torch.pi / 180)
+    tabulated_argument = Y_terms.dot(np.transpose(Xi)) * (np.pi / 180)
 
     delta_longitude = (
         nutation_terms[:, 0] + (nutation_terms[:, 1] * JCE)
-    ) * torch.sin(tabulated_argument)
+    ) * np.sin(tabulated_argument)
     delta_obliquity = (
         nutation_terms[:, 2] + (nutation_terms[:, 3] * JCE)
-    ) * torch.cos(tabulated_argument)
+    ) * np.cos(tabulated_argument)
 
     nutation = dict()  # init nutation dictionary
     # Nutation in longitude
-    nutation["longitude"] = torch.sum(delta_longitude) / 36000000
+    nutation["longitude"] = np.sum(delta_longitude) / 36000000
 
     # Nutation in obliquity
-    nutation["obliquity"] = torch.sum(delta_obliquity) / 36000000
+    nutation["obliquity"] = np.sum(delta_obliquity) / 36000000
 
     return nutation
 
 
 def true_obliquity_calculation(julian, nutation):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     """
     This function compute the true obliquity of the ecliptic.
 
@@ -939,37 +898,34 @@ def true_obliquity_calculation(julian, nutation):
     :return:
     """
 
-    p = torch.atleast_2d(
-        torch.tensor(
-            [
-                2.45,
-                5.79,
-                27.87,
-                7.12,
-                -39.05,
-                -249.67,
-                -51.38,
-                1999.25,
-                -1.55,
-                -4680.93,
-                84381.448,
-            ],
-            device=device,
-        )
+    p = np.atleast_2d(
+        [
+            2.45,
+            5.79,
+            27.87,
+            7.12,
+            -39.05,
+            -249.67,
+            -51.38,
+            1999.25,
+            -1.55,
+            -4680.93,
+            84381.448,
+        ]
     )
 
     # mean_obliquity = polyval(p, julian.ephemeris_millenium/10);
     U = julian["ephemeris_millenium"] / 10
     mean_obliquity = (
-        p[0, 0] * torch.pow(U, 10)
-        + p[0, 1] * torch.pow(U, 9)
-        + p[0, 2] * torch.pow(U, 8)
-        + p[0, 3] * torch.pow(U, 7)
-        + p[0, 4] * torch.pow(U, 6)
-        + p[0, 5] * torch.pow(U, 5)
-        + p[0, 6] * torch.pow(U, 4)
-        + p[0, 7] * torch.pow(U, 3)
-        + p[0, 8] * torch.pow(U, 2)
+        p[0, 0] * np.power(U, 10)
+        + p[0, 1] * np.power(U, 9)
+        + p[0, 2] * np.power(U, 8)
+        + p[0, 3] * np.power(U, 7)
+        + p[0, 4] * np.power(U, 6)
+        + p[0, 5] * np.power(U, 5)
+        + p[0, 6] * np.power(U, 4)
+        + p[0, 7] * np.power(U, 3)
+        + p[0, 8] * np.power(U, 2)
         + p[0, 9] * U
         + p[0, 10]
     )
@@ -1029,15 +985,15 @@ def apparent_stime_at_greenwich_calculation(julian, nutation, true_obliquity):
     mean_stime = (
         280.46061837
         + (360.98564736629 * (JD - 2451545))
-        + (0.000387933 * torch.pow(JC, 2))
-        - (torch.pow(JC, 3) / 38710000)
+        + (0.000387933 * np.power(JC, 2))
+        - (np.power(JC, 3) / 38710000)
     )
 
     # Limit the range to [0-360];
     mean_stime = set_to_range(mean_stime, 0, 360)
 
     apparent_stime_at_greenwich = mean_stime + (
-        nutation["longitude"] * torch.cos(true_obliquity * torch.pi / 180)
+        nutation["longitude"] * np.cos(true_obliquity * np.pi / 180)
     )
     return apparent_stime_at_greenwich
 
@@ -1054,18 +1010,16 @@ def sun_rigth_ascension_calculation(
     """
 
     argument_numerator = (
-        torch.sin(apparent_sun_longitude * torch.pi / 180)
-        * torch.cos(true_obliquity * torch.pi / 180)
+        np.sin(apparent_sun_longitude * np.pi / 180)
+        * np.cos(true_obliquity * np.pi / 180)
     ) - (
-        torch.tan(sun_geocentric_position["latitude"] * torch.pi / 180)
-        * torch.sin(true_obliquity * torch.pi / 180)
+        np.tan(sun_geocentric_position["latitude"] * np.pi / 180)
+        * np.sin(true_obliquity * np.pi / 180)
     )
-    argument_denominator = torch.cos(apparent_sun_longitude * torch.pi / 180)
+    argument_denominator = np.cos(apparent_sun_longitude * np.pi / 180)
 
     sun_rigth_ascension = (
-        torch.arctan2(argument_numerator, argument_denominator)
-        * 180
-        / torch.pi
+        np.arctan2(argument_numerator, argument_denominator) * 180 / np.pi
     )
     # Limit the range to [0,360];
     sun_rigth_ascension = set_to_range(sun_rigth_ascension, 0, 360)
@@ -1084,15 +1038,15 @@ def sun_geocentric_declination_calculation(
     """
 
     argument = (
-        torch.sin(sun_geocentric_position["latitude"] * torch.pi / 180)
-        * torch.cos(true_obliquity * torch.pi / 180)
+        np.sin(sun_geocentric_position["latitude"] * np.pi / 180)
+        * np.cos(true_obliquity * np.pi / 180)
     ) + (
-        torch.cos(sun_geocentric_position["latitude"] * torch.pi / 180)
-        * torch.sin(true_obliquity * torch.pi / 180)
-        * torch.sin(apparent_sun_longitude * torch.pi / 180)
+        np.cos(sun_geocentric_position["latitude"] * np.pi / 180)
+        * np.sin(true_obliquity * np.pi / 180)
+        * np.sin(apparent_sun_longitude * np.pi / 180)
     )
 
-    sun_geocentric_declination = torch.arcsin(argument) * 180 / torch.pi
+    sun_geocentric_declination = np.arcsin(argument) * 180 / np.pi
     return sun_geocentric_declination
 
 
@@ -1143,56 +1097,53 @@ def topocentric_sun_position_calculate(
     )
 
     # Term u, used in the following calculations (in radians)
-    u = torch.arctan(
-        0.99664719
-        * torch.tan(torch.as_tensor(location["latitude"]) * torch.pi / 180)
-    )
+    u = np.arctan(0.99664719 * np.tan(location["latitude"] * np.pi / 180))
 
     # Term x, used in the following calculations
-    x = torch.cos(u) + (
-        (torch.as_tensor(location["altitude"]) / 6378140)
-        * torch.cos(torch.as_tensor(location["latitude"]) * torch.pi / 180)
+    x = np.cos(u) + (
+        (location["altitude"] / 6378140)
+        * np.cos(location["latitude"] * np.pi / 180)
     )
 
     # Term y, used in the following calculations
-    y = (0.99664719 * torch.sin(u)) + (
-        (torch.as_tensor(location["altitude"]) / 6378140)
-        * torch.sin(torch.as_tensor(location["latitude"]) * torch.pi / 180)
+    y = (0.99664719 * np.sin(u)) + (
+        (location["altitude"] / 6378140)
+        * np.sin(location["latitude"] * np.pi / 180)
     )
 
     # Parallax in the sun rigth ascension (in radians)
     nominator = (
         -x
-        * torch.sin(eq_horizontal_parallax * torch.pi / 180)
-        * torch.sin(observer_local_hour * torch.pi / 180)
+        * np.sin(eq_horizontal_parallax * np.pi / 180)
+        * np.sin(observer_local_hour * np.pi / 180)
     )
-    denominator = torch.cos(sun_geocentric_declination * torch.pi / 180) - (
+    denominator = np.cos(sun_geocentric_declination * np.pi / 180) - (
         x
-        * torch.sin(eq_horizontal_parallax * torch.pi / 180)
-        * torch.cos(observer_local_hour * torch.pi / 180)
+        * np.sin(eq_horizontal_parallax * np.pi / 180)
+        * np.cos(observer_local_hour * np.pi / 180)
     )
-    sun_rigth_ascension_parallax = torch.arctan2(nominator, denominator)
+    sun_rigth_ascension_parallax = np.arctan2(nominator, denominator)
     # Conversion to degrees.
     topocentric_sun_position = dict()
     topocentric_sun_position["rigth_ascension_parallax"] = (
-        sun_rigth_ascension_parallax * 180 / torch.pi
+        sun_rigth_ascension_parallax * 180 / np.pi
     )
 
     # Topocentric sun rigth ascension (in degrees)
     topocentric_sun_position["rigth_ascension"] = sun_rigth_ascension + (
-        sun_rigth_ascension_parallax * 180 / torch.pi
+        sun_rigth_ascension_parallax * 180 / np.pi
     )
 
     # Topocentric sun declination (in degrees)
     nominator = (
-        torch.sin(sun_geocentric_declination * torch.pi / 180)
-        - (y * torch.sin(eq_horizontal_parallax * torch.pi / 180))
-    ) * torch.cos(sun_rigth_ascension_parallax)
-    denominator = torch.cos(sun_geocentric_declination * torch.pi / 180) - (
-        y * torch.sin(eq_horizontal_parallax * torch.pi / 180)
-    ) * torch.cos(observer_local_hour * torch.pi / 180)
+        np.sin(sun_geocentric_declination * np.pi / 180)
+        - (y * np.sin(eq_horizontal_parallax * np.pi / 180))
+    ) * np.cos(sun_rigth_ascension_parallax)
+    denominator = np.cos(sun_geocentric_declination * np.pi / 180) - (
+        y * np.sin(eq_horizontal_parallax * np.pi / 180)
+    ) * np.cos(observer_local_hour * np.pi / 180)
     topocentric_sun_position["declination"] = (
-        torch.arctan2(nominator, denominator) * 180 / torch.pi
+        np.arctan2(nominator, denominator) * 180 / np.pi
     )
     return topocentric_sun_position
 
@@ -1231,26 +1182,18 @@ def sun_topocentric_zenith_angle_calculate(
 
     # Topocentric elevation, without atmospheric refraction
     argument = (
-        torch.sin(torch.as_tensor(location["latitude"]) * torch.pi / 180)
-        * torch.sin(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
-        )
+        np.sin(location["latitude"] * np.pi / 180)
+        * np.sin(topocentric_sun_position["declination"] * np.pi / 180)
     ) + (
-        torch.cos(torch.as_tensor(location["latitude"]) * torch.pi / 180)
-        * torch.cos(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
-        )
-        * torch.cos(torch.as_tensor(topocentric_local_hour) * torch.pi / 180)
+        np.cos(location["latitude"] * np.pi / 180)
+        * np.cos(topocentric_sun_position["declination"] * np.pi / 180)
+        * np.cos(topocentric_local_hour * np.pi / 180)
     )
-    true_elevation = torch.arcsin(argument) * 180 / torch.pi
+    true_elevation = np.arcsin(argument) * 180 / np.pi
 
     # Atmospheric refraction correction (in degrees)
     argument = true_elevation + (10.3 / (true_elevation + 5.11))
-    refraction_corr = 1.02 / (60 * torch.tan(argument * torch.pi / 180))
+    refraction_corr = 1.02 / (60 * np.tan(argument * np.pi / 180))
 
     # For exact pressure and temperature correction, use this,
     # with P the pressure in mbar amd T the temperature in Kelvins:
@@ -1265,23 +1208,15 @@ def sun_topocentric_zenith_angle_calculate(
     # Topocentric azimuth angle. The +180 conversion is to pass from astronomer
     # notation (westward from south) to navigation notation (eastward from
     # north);
-    nominator = torch.sin(
-        torch.as_tensor(topocentric_local_hour * torch.pi / 180)
-    )
+    nominator = np.sin(topocentric_local_hour * np.pi / 180)
     denominator = (
-        torch.cos(torch.as_tensor(topocentric_local_hour) * torch.pi / 180)
-        * torch.sin(torch.as_tensor(location["latitude"]) * torch.pi / 180)
+        np.cos(topocentric_local_hour * np.pi / 180)
+        * np.sin(location["latitude"] * np.pi / 180)
     ) - (
-        torch.tan(
-            torch.as_tensor(topocentric_sun_position["declination"])
-            * torch.pi
-            / 180
-        )
-        * torch.cos(torch.as_tensor(location["latitude"]) * torch.pi / 180)
+        np.tan(topocentric_sun_position["declination"] * np.pi / 180)
+        * np.cos(location["latitude"] * np.pi / 180)
     )
-    sun["azimuth"] = (
-        torch.arctan2(nominator, denominator) * 180 / torch.pi
-    ) + 180
+    sun["azimuth"] = (np.arctan2(nominator, denominator) * 180 / np.pi) + 180
 
     # Set the range to [0-360]
     sun["azimuth"] = set_to_range(sun["azimuth"], 0, 360)
@@ -1297,7 +1232,7 @@ def set_to_range(var, min_interval, max_interval):
     :param max_interval:
     :return:
     """
-    var = var - max_interval * torch.floor(var / max_interval)
+    var = var - max_interval * np.floor(var / max_interval)
 
     if var < min_interval:
         var = var + max_interval
