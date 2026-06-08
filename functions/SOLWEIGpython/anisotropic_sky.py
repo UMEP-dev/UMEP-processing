@@ -272,8 +272,6 @@ def anisotropic_sky(
 
             else:
                 azimuth_difference = np.abs(solar_azimuth - patch_azimuth[i])
-                # print('Building pixels = ' + str(temp_sh.sum()))
-                # print('Building pixels wall scheme = ' + str(np.sum(temp_sh_w > 0)))
                 (
                     Lside_sun_temp,
                     Lside_sh_temp,

@@ -142,9 +142,8 @@ def svfForProcessing153(
     feedback,
     device=torch.device("cpu"),
 ):
-    
-    with torch.no_grad():
 
+    with torch.no_grad():
 
         dsm = _to_tensor(dsm, device)
         vegdem = _to_tensor(vegdem, device)
@@ -211,7 +210,9 @@ def svfForProcessing153(
         skyvaultaziint = torch.tensor(
             [360 / patches for patches in aziinterval], device=device
         )
-        iazimuth = torch.zeros(int(torch.sum(aziinterval).item()), device=device)
+        iazimuth = torch.zeros(
+            int(torch.sum(aziinterval).item()), device=device
+        )
 
         shmat = torch.zeros(
             (rows, cols, int(torch.sum(aziinterval).item())), device=device
@@ -238,7 +239,6 @@ def svfForProcessing153(
             ) = svfv.wallscheme_prepare(
                 dsm, scale, pixel_resolution, feedback, device=device
             )
-            print("-2 device :" + str(device))
 
             # Rasters to fill with values in loop
             all_buildIDSeen = torch.zeros(
@@ -343,7 +343,9 @@ def svfForProcessing153(
                             device,
                         )
 
-                        vegsh = torch.tensor(shadowresult["vegsh"], device=device)
+                        vegsh = torch.tensor(
+                            shadowresult["vegsh"], device=device
+                        )
                         vbshvegsh = torch.tensor(
                             shadowresult["vbshvegsh"], device=device
                         )
@@ -388,7 +390,9 @@ def svfForProcessing153(
 
                     weight = annulus_weight(k, aziinterval[i], device) * sh
                     svf = svf + weight
-                    weight = annulus_weight(k, aziintervalaniso[i], device) * sh
+                    weight = (
+                        annulus_weight(k, aziintervalaniso[i], device) * sh
+                    )
                     if (azimuth >= 0) and (azimuth < 180):
                         svfE = svfE + weight
                     if (azimuth >= 90) and (azimuth < 270):
@@ -421,7 +425,9 @@ def svfForProcessing153(
                             svfNaveg = svfNaveg + weight * vbshvegsh
 
                 index += 1
-                feedback.setProgress(int(index * (100.0 / torch.sum(aziinterval))))
+                feedback.setProgress(
+                    int(index * (100.0 / torch.sum(aziinterval)))
+                )
 
         svfS = svfS + 3.0459e-004
         svfW = svfW + 3.0459e-004
@@ -491,7 +497,7 @@ def svfForProcessing655(
     feedback,
     device=torch.device("cpu"),
 ):
-    
+
     with torch.no_grad():
 
         dsm = _to_tensor(dsm, device)
@@ -587,7 +593,9 @@ def svfForProcessing655(
                 ):
                     weight = annulus_weight(k, aziinterval[i], device) * sh
                     svf = svf + weight
-                    weight = annulus_weight(k, aziintervalaniso[i], device) * sh
+                    weight = (
+                        annulus_weight(k, aziintervalaniso[i], device) * sh
+                    )
                     if (azimuth >= 0) and (azimuth < 180):
                         svfE = svfE + weight
                     if (azimuth >= 90) and (azimuth < 270):

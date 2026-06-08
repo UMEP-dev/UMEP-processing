@@ -155,11 +155,5 @@ def Lcyl_v2022a(
         current_step,
     )
 
-    # print('Lside_sky old = ' + str(Lside_sky.max()))
-    # print('Lside_veg old = ' + str(Lside_veg.max()))
-    # print('Lside_sh old = ' + str(Lside_sh.max()))
-    # print('Lside_sun old = ' + str(Lside_sun.max()))
-    # print('Lside_ref old = ' + str(Lside_ref.max()))
-
     return Ldown, Lside, Least_, Lwest_, Lnorth_, Lsouth_
     # return Ldown, Lside, Lside_sky, Lside_veg, Lside_sh, Lside_sun, Lside_ref, Lsky_normal, Lsky_down, Lsky_side, Least_, Lwest_, Lnorth_, Lsouth_

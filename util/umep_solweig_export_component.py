@@ -106,14 +106,12 @@ def write_solweig_config(configDict, refdir):
         "# use anisotrphic sky (Wallenberg et al. XXXX and Wallenberg et al. XXXX)\n"
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
-    f.write(
-        "# use the surface temperature parameterization v2026a\n"
-    )
+    f.write("# use the surface temperature parameterization v2026a\n")
     f.write("groundmodel={}\n".format(configDict["groundmodel"]))
     f.write(
         "# use the outgoing longwave radiation computation scheme v2026a\n"
     )
-    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))  
+    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))
     f.write(
         "# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n"
     )

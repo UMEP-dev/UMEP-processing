@@ -3,6 +3,7 @@ try:
 except:
     pass
 
+
 def create_patches(patch_option, device):
 
     deg2rad = torch.pi / 180

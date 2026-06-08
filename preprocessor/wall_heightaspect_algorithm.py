@@ -133,21 +133,23 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText(str(cmd_folder.parent))
         device = None
         if use_gpu:
-            
+
             # Check if torch is the fake version from torch_fallback.py then tells the
             # user to install the real pip module
-            if type(torch).__name__ == "MetaMock" or hasattr(torch, "__getattr__"):
+            if type(torch).__name__ == "MetaMock" or hasattr(
+                torch, "__getattr__"
+            ):
                 raise ImportError(
                     "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
                     "Please install it using: pip install torch in your venv or using osgeo4w"
-            )
+                )
             try:
                 torch.set_num_threads(max(1, os.cpu_count()))
                 torch.set_num_interop_threads(max(1, os.cpu_count()))
             except:
                 pass
-            
-            if  torch.cuda.is_available():
+
+            if torch.cuda.is_available():
                 device = torch.device("cuda")
                 feedback.setProgressText(
                     "GPU detected and will be used for calculations."
@@ -156,7 +158,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 device = torch.device("cpu")
                 feedback.setProgressText(
                     "No GPU detected.CPU will be used for calculations."
-                )       
+                )
 
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -165,7 +167,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Calculating wall height")
         total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
-        
+
         if use_gpu:
             walls = wa_torch.findwalls_sp(dsm, walllimit, device, False)
         else:
@@ -175,9 +177,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
         if use_gpu:
             wallssave = wallssave.cpu().detach().numpy()
-        saverasternd(
-            gdal_dsm, outputFileHeight, wallssave
-        )
+        saverasternd(gdal_dsm, outputFileHeight, wallssave)
 
         if outputFileAspect:
             total = 100.0 / 180.0
@@ -192,14 +192,12 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                     torch.tensor(total, device=device),
                     device,
                 )
-                
+
                 if use_gpu:
                     dirwalls = dirwalls.cpu().detach().numpy()
-                saverasternd(
-                    gdal_dsm, outputFileAspect, dirwalls
-                )
+                saverasternd(gdal_dsm, outputFileAspect, dirwalls)
             else:
-                
+
                 if use_gpu:
                     dirwalls = wa_torch.filter1Goodwin_as_aspect_v3(
                         walls,
@@ -216,9 +214,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                         feedback,
                         total,
                     )
-                saverasternd(
-                    gdal_dsm, outputFileAspect, dirwalls
-                )          
+                saverasternd(gdal_dsm, outputFileAspect, dirwalls)
         else:
             feedback.setProgressText("Wall aspect not calculated")
 

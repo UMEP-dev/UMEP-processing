@@ -15,7 +15,6 @@ from .umep_suewsss_export_component import (
 )
 
 
-
 def ss_calc(build, cdsm, walls, numPixels, feedback):
 
     walllimit = 0.3  # 30 centimeters height variation identifies a vegetation edge pixel

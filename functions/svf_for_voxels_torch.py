@@ -1,4 +1,3 @@
-
 try:
     from sklearn.cluster import KMeans
 except:
@@ -31,7 +30,6 @@ def wallscheme_prepare(
         torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]], device=dsm.device),
     )
     walls_copy = torch.clone(walls)
-    print("-1 device :" + str(device))
     aspect = wa.filter1Goodwin_as_aspect_v3(
         walls_copy, scale, dsm, feedback, 100, device
     )
@@ -301,8 +299,10 @@ def svf_kmeans(
     try:
         from sklearn.cluster import KMeans
     except:
-        raise ImportError("[UMEP-processing Error] pleas install sklearn via pip install scikit-learn or via osgeo4w")
-    
+        raise ImportError(
+            "[UMEP-processing Error] pleas install sklearn via pip install scikit-learn or via osgeo4w"
+        )
+
     with torch.no_grad():
 
         dsm = _to_tensor(dsm, device)
@@ -350,7 +350,8 @@ def svf_kmeans(
         for i in cluster_range:
             # cluster_heights[counter] = torch.round(building_heights[kmeans_clusters == i].mean())
             cluster_heights[counter] = (
-                torch.round(wallHeights[kmeans_clusters == i].mean()) - svf_height
+                torch.round(wallHeights[kmeans_clusters == i].mean())
+                - svf_height
             )  # Remove svf_height which is the voxel size to be below the top of the wall
             counter += 1
 
@@ -559,25 +560,25 @@ def interpolate_svf(voxelTable):
 
         unique_wall_pixels = np.unique(voxelTable_np[:, 4])
         unique_wall_pixels = unique_wall_pixels[unique_wall_pixels != 0]
-        
+
         for unique_wall in unique_wall_pixels:
             # Mask for the current wall pixel
             wall_mask = voxelTable_np[:, 4] == unique_wall
-            temp_data = voxelTable_np[wall_mask, :]  # All data for current wall pixel
-            
+            temp_data = voxelTable_np[
+                wall_mask, :
+            ]  # All data for current wall pixel
+
             # Mask for valid SVF calculation heights
             valid_svf_mask = temp_data[:, -1] != 0
-            temp_heights = temp_data[valid_svf_mask, 1]   # Voxel heights
-            temp_svf = temp_data[valid_svf_mask, -4]       # SVF values
-            
+            temp_heights = temp_data[valid_svf_mask, 1]  # Voxel heights
+            temp_svf = temp_data[valid_svf_mask, -4]  # SVF values
+
             if len(temp_heights) == 1:
                 calculated_svf = temp_svf[0] if len(temp_svf) > 0 else 0.0
                 new_svf = np.full(temp_data.shape[0], calculated_svf)
-                
+
             elif len(temp_heights) > 1:  # Interpolate
-                new_svf = np.interp(
-                    temp_data[:, 1], temp_heights, temp_svf
-                )
+                new_svf = np.interp(temp_data[:, 1], temp_heights, temp_svf)
             else:
                 continue
 

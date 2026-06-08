@@ -87,8 +87,6 @@ def shadowingfunctionglobalradiation(
     return sh
 
 
-
-
 def shadowingfunction_20(
     a,
     vegdem,
@@ -517,8 +515,6 @@ def shadowingfunction_findwallID(
         # yet (saved in previous iteration).
         buildIDSeen = (temp2 > 0) * temp3 * tempwallID + buildIDSeen
 
-
-
         # voxelHeight = the elevation on a wall that is seen from a pixel with the given altitude and azimuth (only above ground leve, i.e. (temp2 > 0)).
         # voxelHeight = wall height - descending wall, i.e. temp_wallHeight -
         # temp2. Only applicable to pixels where there is no value from
@@ -556,7 +552,6 @@ def shadowingfunction_findwallID(
     d = np.unique(c, axis=0)
     # Remove rows where both columns are zero
     d = d[~np.all(d == 0, axis=1)]
-
 
     not_in_list = 0
     in_list = 0

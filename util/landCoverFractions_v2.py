@@ -35,7 +35,6 @@ def landcover_v2(lc_grid, mid, dtheta, feedback, imp_point, iter):
     lc_frac = np.zeros((int(360.0 / dtheta), iter))
     deg = np.zeros((int(360.0 / dtheta), 1))
 
-
     j = int(0)
     for angle in np.arange(0, 360, dtheta):
         if imp_point == 1:

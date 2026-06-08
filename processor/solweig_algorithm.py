@@ -90,7 +90,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     INPUT_DEM = "INPUT_DEM"
     SAVE_BUILD = "SAVE_BUILD"
     INPUT_ANISO = "INPUT_ANISO"
-    USE_GROUNDSCHEME = "USE_GROUNDSCHEME" 
+    USE_GROUNDSCHEME = "USE_GROUNDSCHEME"
     USE_OUTGOINGLW = "USE_OUTGOINGLW"
     INPUT_GROUNDSCHEME = "INPUT_GROUNDSCHEME"
     INPUT_WALLSCHEME = "INPUT_WALLSCHEME"
@@ -725,7 +725,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         )
         useOutgoingLW = self.parameterAsString(
             parameters, self.USE_OUTGOINGLW, context
-        )     
+        )
         groundTempFile = self.parameterAsString(
             parameters, self.INPUT_GROUNDSCHEME, context
         )
@@ -1175,7 +1175,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
-            
+
         ### Ground cover scheme
         # Surface temperature parameterization
         if useGroundScheme:
@@ -1199,9 +1199,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             feedback.setProgressText(
                 "The ground cover scheme described in 2016 is activated"
             )
-            outgoingLW = 0           
-            
-        
+            outgoingLW = 0
 
         # % Ts parameterisation maps
         if landcover == 1.0:
@@ -1324,7 +1322,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # Main function
         feedback.setProgressText("Executing main model")
-        
+
         if gpu_bool:
             sr_torch.solweig_run(outputDir + "/configsolweig.ini", feedback)
         else:

@@ -217,16 +217,15 @@ def shadowingfunction_wallheight_23(
     vegsh = 1 - vegsh
     vbshvegsh = 1 - vbshvegsh
 
-    # print(torch.max(shvoveg))
     wallsh, wallsun, wallshve, facesh, facesun = shade_on_walls(
         azimuth, aspect, walls, a, f, shvoveg, device
     )
-    # print(torch.max(wallshve))
+
     if walls_scheme is not False:
         wallsh_, wallsun_, wallshve_, facesh_, facesun_ = shade_on_walls(
             azimuth, aspect_scheme, walls_scheme, a, f, shvoveg, device
         )
-        # print(torch.max(wallshve_))
+
         shade_on_wall = wallsh_.clone()
         shade_on_wall[shade_on_wall < wallshve_] = wallshve_[
             shade_on_wall < wallshve_

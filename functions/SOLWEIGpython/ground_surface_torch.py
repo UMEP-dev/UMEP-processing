@@ -3,6 +3,7 @@
 """
 
 import math
+
 try:
     import torch
 except:
@@ -418,7 +419,7 @@ def outgoingLongwave_calc(
     # Copy of the sunlit wall grid and replacement of the wall height with 1 if sunlit
     sunlitwall = sunwall
     sunlitwall[sunlitwall > 0] = 1
-    
+
     # Boolean array 1 if the pixel is a wall, 0 if not
     wallbol = walls > 0
 
@@ -430,7 +431,7 @@ def outgoingLongwave_calc(
 
     # step in meters between every iteration
     step = 1
-    
+
     # Grid of the outgoing longwave radiation coming from the ground
     Lup = (SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)) * buildings
 
@@ -480,7 +481,7 @@ def outgoingLongwave_calc(
 
         # Boolean array 1 if the pixel is (or was) a wall, 0 if not
         pastwalls = wallbol.clone()
-        
+
         # Grid of the longwave radiation emitted by the walls
         Lwall = SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * wallbol
 
@@ -607,7 +608,7 @@ def outgoingLongwave_calc(
                 int(x_select_start) : math.ceil(x_select_end),
                 int(y_select_start) : math.ceil(y_select_end),
             ]
-            
+
             # All walls grid
             walls_temp[
                 int(x_transl_start) : math.ceil(x_transl_end),
@@ -628,42 +629,44 @@ def outgoingLongwave_calc(
             albsun_sum += albsun_temp * view_factor * building_copy / 20
             albtot_sum += albtot_temp * view_factor * building_copy / 20
 
-
             # Create a boolean grid to assert that the sunlit walls are not inside a building
             onlywall_temp = torch.logical_and(
                 walls_temp, torch.logical_not(pastwalls)
             )
-            onlywall_temp = onlywall_temp * building_copy            
+            onlywall_temp = onlywall_temp * building_copy
             onlysunwall_temp = sunlitwall_temp * building_copy
 
             pastwalls = torch.logical_or(pastwalls, walls_temp)
-            
-            
+
             # Compute the view factor of the wall surface for a given translatio distance
             viewfactor_wall = (
                 1
                 / 2 ** (1 / 2)
                 / 3
-                * torch.sqrt(1 + (r + step) / torch.sqrt((r + step) ** 2 + zs**2))
+                * torch.sqrt(
+                    1 + (r + step) / torch.sqrt((r + step) ** 2 + zs**2)
+                )
                 * (
                     2
-                    + (r + sizepx / 2) / torch.sqrt((r + sizepx / 2) ** 2 + zs**2)
+                    + (r + sizepx / 2)
+                    / torch.sqrt((r + sizepx / 2) ** 2 + zs**2)
                 )
                 * (
                     1
-                    - (r + sizepx / 2) / torch.sqrt((r + sizepx / 2) ** 2 + zs**2)
+                    - (r + sizepx / 2)
+                    / torch.sqrt((r + sizepx / 2) ** 2 + zs**2)
                 )
                 / zs
                 * torch.sqrt((r + sizepx / 2) ** 2 + zs**2)
             )
-            
+
             # Then add the radiation incoming from those walls
             Lup_sum += (
                 onlywall_temp
                 * Lwall_temp
                 * viewfactor_wall
                 * building_copy
-                / 20            
+                / 20
             )
             albsun_sum += (
                 onlysunwall_temp
@@ -673,7 +676,7 @@ def outgoingLongwave_calc(
                 / 20
             )
             albtot_sum += (
-                onlywall_temp * alb_wall * viewfactor_wall * building_copy / 20    
+                onlywall_temp * alb_wall * viewfactor_wall * building_copy / 20
             )
 
             # Finally add the radiation in Lside

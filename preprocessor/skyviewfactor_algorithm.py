@@ -63,6 +63,7 @@ from ..functions import svf_for_voxels_torch as svfv_torch
 from ..functions import svf_functions as svf
 from ..functions import svf_for_voxels as svfv
 
+
 class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     """
     This algorithm is a processing version of SkyViewFactor
@@ -288,23 +289,23 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
-            
+
         device = None
-        
+
         if use_gpu:
             # Check if torch is the fake version from torch_fallback.py then tells the
             # user to install the real pip module
-            if type(torch).__name__ == "MetaMock" or hasattr(torch, "__getattr__"):
+            if type(torch).__name__ == "MetaMock" or hasattr(
+                torch, "__getattr__"
+            ):
                 raise ImportError(
                     "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
                     "Please install it using: pip install torch in your venv or using osgeo4w"
-            )
-            if  torch.cuda.is_available():
+                )
+            if torch.cuda.is_available():
                 device = torch.device("cuda")
             else:
                 device = torch.device("cpu")
-
-
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -323,7 +324,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         geotransform = gdal_dsm.GetGeoTransform()
         pixel_resolution = geotransform[1]
         scale = 1 / pixel_resolution
-        
+
         if use_gpu:
             dsm = torch.from_numpy(dsm).to(device)
 
@@ -406,7 +407,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         if aniso == 1:
             feedback.setProgressText("Calculating SVF using 153 iterations")
-            
+
             if use_gpu:
                 print("gpu version")
 
@@ -424,7 +425,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 )
             else:
                 print("cpu version")
-                ret =  svf.svfForProcessing153(
+                ret = svf.svfForProcessing153(
                     dsm,
                     vegdsm,
                     vegdsm2,
@@ -438,7 +439,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
         else:
             feedback.setProgressText("Calculating SVF using 655 iterations")
-            
+
             if use_gpu:
                 print("gpu version")
 
@@ -481,26 +482,26 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
             # Lägg till loop för att lägga till i tabellen
             svf_array = np.zeros((voxelTable.shape[0]))
-            svf_height_array = np.zeros(
-                (voxelTable.shape[0])
-            )
+            svf_height_array = np.zeros((voxelTable.shape[0]))
             svfbu_array = np.zeros((voxelTable.shape[0]))
             svfveg_array = np.zeros((voxelTable.shape[0]))
             svfaveg_array = np.zeros((voxelTable.shape[0]))
-            
+
             if use_gpu:
                 svf_array = torch.from_numpy(svf_array).to(device)
-                svf_height_array = torch.from_numpy(svf_height_array).to(device)
+                svf_height_array = torch.from_numpy(svf_height_array).to(
+                    device
+                )
                 svfbu_array = torch.from_numpy(svfbu_array).to(device)
                 svfveg_array = torch.from_numpy(svfveg_array).to(device)
                 svfaveg_array = torch.from_numpy(svfaveg_array).to(device)
-            
+
             voxel_y = None
             if use_gpu:
                 voxel_y = torch.where(voxelTable[:, 2] != 0)
             else:
                 voxel_y = np.where(voxelTable[:, 2] != 0)
-                
+
             for temp_y in voxel_y[0]:
                 svf_array[temp_y] = svftotal[
                     int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -517,7 +518,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svf_height_array[temp_y] = svf_height
 
             if kmeans:
-                
+
                 if use_gpu:
                     print("gpu version")
 
@@ -544,9 +545,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     )
 
                     # Interpolate for voxels where SVF has not been calculated
-                    voxelTable = svfv_torch.interpolate_svf(
-                        voxelTable
-                    )
+                    voxelTable = svfv_torch.interpolate_svf(voxelTable)
                 else:
 
                     voxelTable, cluster_heights = svfv.svf_kmeans(
@@ -571,9 +570,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     )
 
                     # Interpolate for voxels where SVF has not been calculated
-                    voxelTable = svfv.interpolate_svf(
-                        voxelTable
-                    )
+                    voxelTable = svfv.interpolate_svf(voxelTable)
 
             # Loop for exact SVF at heights (increase DEM)
             # if demlayer:
@@ -623,7 +620,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                         svf_height_array,
                         feedback,
                     )
-                    
+
                 # Remove rows where svfbu, sfveg and svfaveg is zero
                 if usevegdem == 1:
                     voxelTable = voxelTable[
@@ -654,7 +651,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfbuS = ret["svfS"]
             svfbuW = ret["svfW"]
             svfbuN = ret["svfN"]
-            
+
             if use_gpu:
 
                 misc.saveraster(
@@ -682,7 +679,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     outputDir + "/" + "svfN.tif",
                     svfbuN.cpu().detach().numpy(),
                 )
-            
+
             else:
                 misc.saveraster(
                     gdal_dsm,
@@ -741,7 +738,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svfSaveg = ret["svfSaveg"]
                 svfWaveg = ret["svfWaveg"]
                 svfNaveg = ret["svfNaveg"]
-                
+
                 if use_gpu:
 
                     misc.saveraster(
@@ -878,9 +875,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     gdal_dsm, filename, svftotal.cpu().detach().numpy()
                 )
             else:
-                 misc.saveraster(
-                    gdal_dsm, filename, svftotal
-                ) 
+                misc.saveraster(gdal_dsm, filename, svftotal)
 
             # Save shadow images for SOLWEIG 2019a
             if aniso == 1:
@@ -903,19 +898,18 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                         vbshmat=vbshvegshmat,
                     )  # ,
 
-
             if wallScheme == 1:
                 voxelId = ret["voxelIds"]
                 voxelTable = ret["voxelTable"]
 
-                if use_gpu:   
+                if use_gpu:
                     np.savez_compressed(
                         outputDir + "/" + "wallScheme.npz",
                         voxelId=voxelId.cpu().detach().numpy(),
                         voxelTable=voxelTable.cpu().detach().numpy(),
                     )
                 else:
-                     np.savez_compressed(
+                    np.savez_compressed(
                         outputDir + "/" + "wallScheme.npz",
                         voxelId=voxelId,
                         voxelTable=voxelTable,

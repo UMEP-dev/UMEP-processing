@@ -4,6 +4,7 @@ from builtins import range
 __author__ = "xlinfr"
 
 import math
+
 try:
     import torch
     import torch.nn.functional as F
@@ -114,7 +115,10 @@ def filter1Goodwin_as_aspect_v3(
     row, col = a.shape
 
     # 1. Compute kernel footprint based on scale factor
-    filtersize = torch.floor((scale + torch.tensor(0.0000000001, device=device)) * torch.tensor(9, device=device))
+    filtersize = torch.floor(
+        (scale + torch.tensor(0.0000000001, device=device))
+        * torch.tensor(9, device=device)
+    )
     if filtersize <= 2:
         filtersize = 3
     elif filtersize != 9 and filtersize % 2 == 0:
@@ -136,8 +140,6 @@ def filter1Goodwin_as_aspect_v3(
     filtmatrix_list = []
     buildfilt1_list = []
     buildfilt2_list = []
-    print("-0 device :" + str(device))
-
 
     # 2. Pre-calculate all 180 directional filters on CPU or GPU
     with torch.no_grad():
@@ -171,7 +173,7 @@ def filter1Goodwin_as_aspect_v3(
             buildfilt2_list.append(
                 (filtmatrixbuild == 2).float().unsqueeze(0).unsqueeze(0)
             )
-    
+
     # Stacking kernels on CPU first - Now perfectly defined!
     all_kernels_walls = torch.cat(filtmatrix_list, dim=0)
     all_kernels_dsm1 = torch.cat(buildfilt1_list, dim=0)

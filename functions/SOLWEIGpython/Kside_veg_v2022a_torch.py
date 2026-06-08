@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 from .Kvikt_veg import Kvikt_veg
+
 try:
     import torch
 except:
     pass
+
 
 def Kside_veg_v2022a(
     radI,

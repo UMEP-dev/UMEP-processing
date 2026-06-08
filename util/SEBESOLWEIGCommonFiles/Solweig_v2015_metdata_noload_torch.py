@@ -6,10 +6,12 @@ from . import sun_position_torch as sp
 # import sun_position as sp
 import datetime
 import calendar
+
 try:
     import torch
 except:
     pass
+
 
 def Solweig_2015a_metdata_noload(inputdata, location, UTC):
     """

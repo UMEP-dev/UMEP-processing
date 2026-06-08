@@ -34,6 +34,7 @@ import zipfile
 import pandas as pd
 import matplotlib.pylab as plt
 from shutil import copyfile
+
 try:
     import torch
 except:
@@ -71,7 +72,6 @@ def solweig_run(configPath, feedback):
             "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
             "Please install it using: pip install torch in your venv or using osgeo4w"
         )
-
 
     # Load config file
     configDict = read_solweig_config(configPath)
@@ -420,7 +420,6 @@ def solweig_run(configPath, feedback):
         )
         wallaspect = torch.tensor(wallaspect, device=device)
 
-
     # Metdata
     headernum = 1
     delim = " "
@@ -515,7 +514,7 @@ def solweig_run(configPath, feedback):
                 header=header,
                 comments="",
             )
-        # print(poisxy)
+
         # Num format for POI output
         numformat = "%d %d %d %d %.5f " + "%.2f " * 35
 
@@ -773,7 +772,10 @@ def solweig_run(configPath, feedback):
 
         # Calculate wall height for wall scheme, i.e. include corners (thicker walls)
         walls_scheme = wa.findwalls_sp(
-            dsm, 2, device, torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]]).to(device)
+            dsm,
+            2,
+            device,
+            torch.tensor([[1, 1, 1], [1, 0, 1], [1, 1, 1]]).to(device),
         )
         # Calculate wall aspect for wall scheme, i.e. include corners (thicker walls)
         dirwalls_scheme = wa.filter1Goodwin_as_aspect_v3(
@@ -930,8 +932,6 @@ def solweig_run(configPath, feedback):
             else:
                 CI = 1.0
 
-
-
         # Timestep of the simulation used in the ground scheme calculation
         first_timestep = (
             pd.to_datetime(int(YYYY[0][0].item()), format="%Y")
@@ -947,7 +947,6 @@ def solweig_run(configPath, feedback):
         )
 
         timeStep = (second_timestep - first_timestep).seconds
-        
 
         (
             Tmrt,
@@ -1520,7 +1519,7 @@ def solweig_run(configPath, feedback):
                 ]
             ]
         ).to(device)
-        # print(settingsData)
+
         np.savetxt(
             configDict["output_dir"] + "/treeplantersettings.txt",
             (

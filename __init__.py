@@ -21,6 +21,7 @@
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
+
 # 1. Initialize fallback immediately to shield all downstream imports
 from .util import torch_fallback
 

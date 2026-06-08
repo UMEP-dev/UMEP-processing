@@ -3,6 +3,7 @@ try:
 except:
     pass
 
+
 def daylen(DOY, XLAT):
     # Calculation of declination of sun (Eqn. 16). Amplitude= +/-23.45
     # deg. Minimum = DOY 355 (DEC 21), maximum = DOY 172.5 (JUN 21/22).

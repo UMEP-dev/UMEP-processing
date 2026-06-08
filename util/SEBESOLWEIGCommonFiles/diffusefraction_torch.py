@@ -1,8 +1,10 @@
 from __future__ import division
+
 try:
     import torch
 except:
     pass
+
 
 def diffusefraction(radG, altitude, Kt, Ta, RH):
     """

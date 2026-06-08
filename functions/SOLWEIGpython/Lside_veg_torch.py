@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 from .Lvikt_veg_torch import Lvikt_veg
+
 try:
     import torch
 except:
     pass
+
 
 def Lside_veg_v2022a(
     svfS,

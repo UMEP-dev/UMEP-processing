@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from __future__ import print_function
+
 try:
     import torch
 except:
     pass
+
 
 def sun_position(time, location):
     """

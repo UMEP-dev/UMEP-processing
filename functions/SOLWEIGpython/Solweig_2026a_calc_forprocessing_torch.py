@@ -7,7 +7,9 @@ from .daylen_torch import daylen
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b_torch import (
     clearnessindex_2013b,
 )
-from ...util.SEBESOLWEIGCommonFiles.diffusefraction_torch import diffusefraction
+from ...util.SEBESOLWEIGCommonFiles.diffusefraction_torch import (
+    diffusefraction,
+)
 from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13_torch import (
     shadowingfunction_wallheight_13,
 )
@@ -29,13 +31,17 @@ from .Lside_veg_torch import Lside_veg_v2022a, Lside_veg_v2026
 from .anisotropic_sky import anisotropic_sky as ani_sky
 from .patch_radiation import patch_steradians
 from copy import deepcopy
+
 try:
     import torch
 except:
     pass
 
 # Ground surface temperature
-from .ground_surface_torch import surfaceTemperature_calc, outgoingLongwave_calc
+from .ground_surface_torch import (
+    surfaceTemperature_calc,
+    outgoingLongwave_calc,
+)
 
 
 def Solweig_2026a_calc(

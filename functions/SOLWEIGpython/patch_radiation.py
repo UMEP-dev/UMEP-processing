@@ -160,7 +160,6 @@ def longwave_from_buildings(
         and (solar_altitude > 0)
     ):
 
-
         # Calculate longwave radiation from sunlit walls to vertical surface
         Lside_sun = (
             sunlit_surface
@@ -342,12 +341,8 @@ def longwave_from_buildings_wallScheme(
     Lwest = np.zeros((voxelMaps.shape[0], voxelMaps.shape[1]))
     Lnorth = np.zeros((voxelMaps.shape[0], voxelMaps.shape[1]))
 
-    # print(voxelMaps)
-    # print(voxelTable.head())
     l = list(np.unique(voxelMaps)[1:])
-    # print(l)
     a = dict(voxelTable.loc[l, "LongwaveRadiation"])
-    # print(a)
     patch_radiation = np.vectorize(a.get)(voxelMaps).astype(float)
     patch_radiation[np.isnan(patch_radiation)] = 0
     Lside += patch_radiation * steradian * angle_of_incidence

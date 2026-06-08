@@ -105,7 +105,6 @@ def sun_position(time, location):
     # 1. Calculate the Julian Day, and Century. Julian Ephemeris day, century
     # and millenium are calculated using a mean delta_t of 33.184 seconds.
     julian = julian_calculation(time)
-    # print(julian)
 
     # 2. Calculate the Earth heliocentric longitude, latitude, and radius
     # vector (L, B, and R)
@@ -1203,7 +1202,7 @@ def sun_topocentric_zenith_angle_calculate(
     apparent_elevation = true_elevation + refraction_corr
 
     sun = dict()
-    sun["zenith"] = 90 - apparent_elevation
+    sun["zenith"] = (90 - apparent_elevation)[0]
 
     # Topocentric azimuth angle. The +180 conversion is to pass from astronomer
     # notation (westward from south) to navigation notation (eastward from
@@ -1219,7 +1218,7 @@ def sun_topocentric_zenith_angle_calculate(
     sun["azimuth"] = (np.arctan2(nominator, denominator) * 180 / np.pi) + 180
 
     # Set the range to [0-360]
-    sun["azimuth"] = set_to_range(sun["azimuth"], 0, 360)
+    sun["azimuth"] = set_to_range(sun["azimuth"], 0, 360)[0]
     return sun
 
 

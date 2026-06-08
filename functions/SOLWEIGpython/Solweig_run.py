@@ -58,14 +58,13 @@ except:
     pass
 
 
-
 def solweig_run(configPath, feedback):
     """
     Input:
     configPath : config file including geodata paths and settings.
     feedback : To communicate with qgis gui. Set to None if standalone
     """
-    
+
     print("Running cpu")
 
     # Load config file
@@ -616,7 +615,7 @@ def solweig_run(configPath, feedback):
         TgK_wall = param["Ts_deg"]["Value"]["Walls"]
         Tstart_wall = param["Tstart"]["Value"]["Walls"]
         TmaxLST_wall = param["TmaxLST"]["Value"]["Walls"]
-        
+
     # Parameterization for the 2026 ground scheme
     groundSurface = int(configDict["groundmodel"])
     if groundSurface == 1:
@@ -656,10 +655,10 @@ def solweig_run(configPath, feedback):
             )
     else:
         pass
-    
+
     # Replace the ground view factors with integration of solid angles
     outgoingLW = int(configDict["outgoinglongwave"])
-    
+
     # Import data for wall temperature parameterization TODO: fix for standalone
     wallScheme = int(configDict["wallscheme"])
     if wallScheme == 1:

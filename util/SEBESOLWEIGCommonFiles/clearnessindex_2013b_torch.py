@@ -4,6 +4,7 @@ author = "xlinfr"
 
 from . import sun_distance_torch
 import math
+
 try:
     import torch
 except:

@@ -1,9 +1,11 @@
 from __future__ import division
 from .create_patches_torch import create_patches
+
 try:
     import torch
 except:
     pass
+
 
 def Perez_v3(
     zen, azimuth, radD, radI, jday, patchchoice, patch_option, device

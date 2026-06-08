@@ -4,6 +4,7 @@ try:
 except:
     pass
 
+
 def sun_distance(jday):
     """
 

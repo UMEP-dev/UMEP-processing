@@ -68,7 +68,7 @@ def PolarBarPlot(
     radii_sub = 0
     for i in range(skyalt_c.__len__()):
         clrs = lv_norm[lv_alt == skyalt[i]]
-        # print(clrs)
+
         if skyalt_c[i] > 1:
             theta_patch = (
                 np.arange(0, skyalt_c[skyalt == skyalt[i]][0], 1)
@@ -79,11 +79,6 @@ def PolarBarPlot(
                 * (360 * deg2rad)
                 / skyalt_c[skyalt == skyalt[i]][0]
             )
-
-            # if plot_type:
-            #     patch_order_range = range(skyalt_c[skyalt == skyalt[i]][0])
-            # else:
-            #     patch_order_range = reversed(range(skyalt_c[skyalt == skyalt[i]][0]))
 
             patch_order_range = range(skyalt_c[skyalt == skyalt[i]][0])
 
