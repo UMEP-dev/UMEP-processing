@@ -55,6 +55,10 @@ def write_solweig_config(configDict, refdir):
     f.write("poi_file={}\n".format(configDict["poi_file"]))
     f.write("poi_field={}\n".format(configDict["poi_field"]))
     f.write(
+        "# Input file for surface temperature data in v2026a (.txt file)\n"
+    )
+    f.write("input_surf={}\n".format(configDict["input_surf"]))
+    f.write(
         "# Input file for wall temperture scheme (Wallenberg et al. 2025)\n"
     )
     f.write("input_wall={}\n".format(configDict["input_wall"]))
@@ -101,6 +105,14 @@ def write_solweig_config(configDict, refdir):
         "# use anisotrphic sky (Wallenberg et al. XXXX and Wallenberg et al. XXXX)\n"
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
+    f.write(
+        "# use the surface temperature parameterization v2026a\n"
+    )
+    f.write("groundmodel={}\n".format(configDict["groundmodel"]))
+    f.write(
+        "# use the outgoing longwave radiation computation scheme v2026a\n"
+    )
+    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))
     f.write(
         "# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n"
     )

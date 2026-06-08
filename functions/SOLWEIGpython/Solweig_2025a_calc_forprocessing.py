@@ -24,7 +24,7 @@ from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 # Anisotropic longwave
-from .Lside_veg_v2022a import Lside_veg_v2022a
+from .Lside_veg import Lside_veg_v2022a
 from .anisotropic_sky import anisotropic_sky as ani_sky
 from .patch_radiation import patch_steradians
 from copy import deepcopy
