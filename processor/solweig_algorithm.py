@@ -34,6 +34,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
+    QgsProcessingParameterString,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterFolderDestination,
@@ -46,7 +47,18 @@ from qgis.core import (
     QgsProcessingParameterRasterLayer,
 )
 
+# from processing.gui.wrappers import WidgetWrapper
+# from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
+
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+# import pandas as pd
 from osgeo import gdal
 from osgeo.gdalconst import *
 import os
@@ -55,12 +67,14 @@ import inspect
 from pathlib import Path
 from ..util.misc import xy2latlon_fromraster
 import zipfile
+
 from ..util.umep_solweig_export_component import (
     read_solweig_config,
     write_solweig_config,
 )
 from ..functions.SOLWEIGpython import Solweig_run_torch as sr_torch
 from ..functions.SOLWEIGpython import Solweig_run as sr
+
 import json
 
 
@@ -186,7 +200,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.TRANS_VEG,
                 self.tr("Transmissivity of light through vegetation (%):"),
-                QgsProcessingParameterNumber.Type.Integer,
+                QgsProcessingParameterNumber.Integer,
                 QVariant(3),
                 True,
                 minValue=0,
@@ -200,7 +214,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.tr(
                     "First day of year with leaves on trees (if deciduous)"
                 ),
-                QgsProcessingParameterNumber.Type.Integer,
+                QgsProcessingParameterNumber.Integer,
                 QVariant(97),
                 False,
                 minValue=0,
@@ -214,7 +228,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.tr(
                     "Last day of year with leaves on trees (if deciduous)"
                 ),
-                QgsProcessingParameterNumber.Type.Integer,
+                QgsProcessingParameterNumber.Integer,
                 QVariant(300),
                 False,
                 minValue=0,
@@ -244,7 +258,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.tr(
                     "Trunk zone height (percent of Canopy Height). Used if no Vegetation Trunk-zone DSM is loaded"
                 ),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(25.0),
                 optional=True,
                 minValue=0.1,
@@ -337,6 +351,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Environmental parameters
+        # self.addParameter(QgsProcessingParameterNumber(self.EFFUS_WALL,
+        #     self.tr('Wall type (only with wall scheme)'), QgsProcessingParameterNumber.Integer,
+        #     QVariant(1065), False, minValue=0, maxValue=20000))
         self.wallType = (
             (self.tr("Brick"), "0"),
             (self.tr("Concrete"), "1"),
@@ -354,7 +371,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.ALBEDO_WALLS,
                 self.tr("Albedo (walls)"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.20),
                 False,
                 minValue=0,
@@ -365,7 +382,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.ALBEDO_GROUND,
                 self.tr("Albedo (ground)"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.15),
                 False,
                 minValue=0,
@@ -376,7 +393,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.EMIS_WALLS,
                 self.tr("Emissivity (walls)"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.90),
                 False,
                 minValue=0,
@@ -387,7 +404,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.EMIS_GROUND,
                 self.tr("Emissivity (ground)"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.95),
                 False,
                 minValue=0,
@@ -400,7 +417,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.ABS_S,
                 self.tr("Absorption of shortwave radiation of human body"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.70),
                 False,
                 minValue=0,
@@ -411,7 +428,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.ABS_L,
                 self.tr("Absorption of longwave radiation of human body"),
-                QgsProcessingParameterNumber.Type.Double,
+                QgsProcessingParameterNumber.Double,
                 QVariant(0.95),
                 False,
                 minValue=0,
@@ -455,7 +472,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterNumber(
                 self.UTC,
                 self.tr("Coordinated Universal Time (UTC) "),
-                QgsProcessingParameterNumber.Type.Integer,
+                QgsProcessingParameterNumber.Integer,
                 QVariant(0),
                 False,
                 minValue=-12,
@@ -469,12 +486,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr(
                 "Vector point file including Wall of Interest(s) for output with wall surface temperatures"
             ),
-            [QgsProcessing.SourceType.TypeVectorPoint],
+            [QgsProcessing.TypeVectorPoint],
             optional=True,
         )
         woifile.setFlags(
-            woifile.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            woifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(woifile)
         woi_field = QgsProcessingParameterField(
@@ -482,27 +498,29 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("Wall ID field"),
             "",
             self.WOI_FILE,
-            QgsProcessingParameterField.DataType.Numeric,
+            QgsProcessingParameterField.Numeric,
             optional=True,
         )
         woi_field.setFlags(
-            woi_field.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            woi_field.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(woi_field)
 
         # POIs for thermal comfort estimations
+        # poi = QgsProcessingParameterBoolean(self.POI,
+        #     self.tr("Include Point of Interest(s) for thermal comfort calculations (PET and UTCI)"), defaultValue=False)
+        # poi.setFlags(poi.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        # self.addParameter(poi)
         poifile = QgsProcessingParameterFeatureSource(
             self.POI_FILE,
             self.tr(
                 "Vector point file including Point of Interest(s) for thermal comfort calculations (PET and UTCI)"
             ),
-            [QgsProcessing.SourceType.TypeVectorPoint],
+            [QgsProcessing.TypeVectorPoint],
             optional=True,
         )
         poifile.setFlags(
-            poifile.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            poifile.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(poifile)
         poi_field = QgsProcessingParameterField(
@@ -510,12 +528,11 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             self.tr("ID field"),
             "",
             self.POI_FILE,
-            QgsProcessingParameterField.DataType.Numeric,
+            QgsProcessingParameterField.Numeric,
             optional=True,
         )
         poi_field.setFlags(
-            poi_field.flags()
-            | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            poi_field.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(poi_field)
 
@@ -523,66 +540,66 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         age = QgsProcessingParameterNumber(
             self.AGE,
             self.tr("Age (yy)"),
-            QgsProcessingParameterNumber.Type.Integer,
+            QgsProcessingParameterNumber.Integer,
             QVariant(35),
             optional=True,
             minValue=0,
             maxValue=120,
         )
         age.setFlags(
-            age.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            age.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(age)
         act = QgsProcessingParameterNumber(
             self.ACTIVITY,
             self.tr("Activity (W)"),
-            QgsProcessingParameterNumber.Type.Double,
+            QgsProcessingParameterNumber.Double,
             QVariant(80),
             optional=True,
             minValue=0,
             maxValue=1000,
         )
         act.setFlags(
-            act.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            act.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(act)
         clo = QgsProcessingParameterNumber(
             self.CLO,
             self.tr("Clothing (clo)"),
-            QgsProcessingParameterNumber.Type.Double,
+            QgsProcessingParameterNumber.Double,
             QVariant(0.9),
             optional=True,
             minValue=0,
             maxValue=10,
         )
         clo.setFlags(
-            clo.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            clo.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(clo)
         wei = QgsProcessingParameterNumber(
             self.WEIGHT,
             self.tr("Weight (kg)"),
-            QgsProcessingParameterNumber.Type.Integer,
+            QgsProcessingParameterNumber.Integer,
             QVariant(75),
             optional=True,
             minValue=0,
             maxValue=500,
         )
         wei.setFlags(
-            wei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            wei.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(wei)
         hei = QgsProcessingParameterNumber(
             self.HEIGHT,
             self.tr("Height (cm)"),
-            QgsProcessingParameterNumber.Type.Integer,
+            QgsProcessingParameterNumber.Integer,
             QVariant(180),
             optional=True,
             minValue=0,
             maxValue=250,
         )
         hei.setFlags(
-            hei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            hei.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(hei)
         sex = QgsProcessingParameterEnum(
@@ -593,20 +610,20 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             defaultValue=0,
         )
         sex.setFlags(
-            sex.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            sex.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(sex)
         shei = QgsProcessingParameterNumber(
             self.SENSOR_HEIGHT,
             self.tr("Height of wind sensor (m agl)"),
-            QgsProcessingParameterNumber.Type.Double,
+            QgsProcessingParameterNumber.Double,
             QVariant(10),
             optional=True,
             minValue=0,
             maxValue=250,
         )
         shei.setFlags(
-            shei.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced
+            shei.flags() | QgsProcessingParameterDefinition.FlagAdvanced
         )
         self.addParameter(shei)
 
@@ -752,6 +769,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         folderPathPerez = self.parameterAsString(
             parameters, self.INPUT_ANISO, context
         )
+        useGroundScheme = self.parameterAsString(
+            parameters, self.USE_GROUNDSCHEME, context
+        )
+        useOutgoingLW = self.parameterAsString(
+            parameters, self.USE_OUTGOINGLW, context
+        )
+        groundTempFile = self.parameterAsString(
+            parameters, self.INPUT_GROUNDSCHEME, context
+        )
         folderWallScheme = self.parameterAsString(
             parameters, self.INPUT_WALLSCHEME, context
         )
@@ -775,6 +801,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         pos = self.parameterAsInt(parameters, self.POSTURE, context)
 
         cyl = self.parameterAsBool(parameters, self.CYL, context)
+        #     cyl = 1
+        # else:
+        #     cyl = 0
 
         if pos == 0:
             Fside = 0.22
@@ -840,7 +869,23 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         calculation_mode = "cpu"
         if gpu_bool:
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
+            ):
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch"
+                )
+
+            # If PyTorch is available, execute the GPU path
+            feedback.setProgressText("PyTorch found. Initiating GPU mode...")
             calculation_mode = "gpu"
+
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -882,9 +927,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
         # response to issue #85
         nd = gdal_dsm.GetRasterBand(1).GetNoDataValue()
+        # dsm[dsm == nd] = 0.
         if dsm.min() < 0:
             dsmraise = np.abs(dsm.min())
-            # dsm = dsm + dsmraise #moved to Solweig_run
+            # dsm = dsm + dsmraise
             feedback.setProgressText(
                 "Digital Surface Model (DSM) included negative values. DSM raised with "
                 + str(dsmraise)
@@ -1201,6 +1247,31 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             )
             outgoingLW = 0
 
+        ### Ground cover scheme
+        # Surface temperature parameterization
+        if useGroundScheme:
+            groundscheme = 1
+            feedback.setProgressText(
+                "The surface temperature parameterization from v2026 is activated"
+            )
+        else:
+            groundscheme = 0
+            feedback.setProgressText(
+                "The surface temperature scheme described in 2016 is activated"
+            )
+
+        # Outgoing longwave calculation
+        if useOutgoingLW:
+            feedback.setProgressText(
+                "The upwelling longwave radiation from v2026 is activated"
+            )
+            outgoingLW = 1
+        else:
+            feedback.setProgressText(
+                "The ground cover scheme described in 2016 is activated"
+            )
+            outgoingLW = 0
+
         # % Ts parameterisation maps
         if landcover == 1.0:
             if folderWallScheme:
@@ -1211,14 +1282,14 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                     or np.min(unique_landcover) < 1
                 ):
                     raise QgsProcessingException(
-                        "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
-                        "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
+                        "The land cover grid includes integer values higher (or lower) than UMEP-formatted "
+                        "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
                     )
             else:
                 if np.max(lcgrid) > 7 or np.min(lcgrid) < 1:
                     raise QgsProcessingException(
-                        "The land cover grid includes integer values higher (or lower) than standard UMEP-formatted. "
-                        "Land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
+                        "The land cover grid includes integer values higher (or lower) than UMEP-formatted "
+                        "land cover grid (should be integer between 1 and 7). If other LC-classes should be included they also need to be included in landcoverclasses_2016a.txt"
                     )
             if np.where(lcgrid) == 3 or np.where(lcgrid) == 4:
                 raise QgsProcessingException(
@@ -1294,9 +1365,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "landcover": int(landcover),
             "demforbuild": int(demforbuild),
             "aniso": int(anisotropic_sky),
+            "groundmodel": groundscheme,
+            "outgoingLW": outgoingLW,
             "wallscheme": wallScheme,
             "walltype": wall_type,  #'Brick_wall', #:TODO
-            "groundmodel": groundscheme,
             "outgoingLW": outgoingLW,
             "outputtmrt": int(outputTmrt),
             "outputkup": int(outputKup),
@@ -1368,22 +1440,15 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return self.tr(
-            "SOLWEIG (v2025a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and "
-            "mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model originally followed the "
+            "SOLWEIG (v2026a) is a model which can be used to estimate spatial variations of 3D radiation fluxes and "
+            "mean radiant temperature (Tmrt) in complex urban settings. The SOLWEIG model follows the same "
             "approach commonly adopted to observe Tmrt, with shortwave and longwave radiation fluxes from  "
-            "six directions being individually calculated to derive Tmrt. The model can also consider a person as a "
-            "standing cylinder. The model requires a limited number "
-            "of inputs, such as global shortwave radiation, air temperature, relative "
+            "six directions being individually calculated to derive Tmrt. The model requires a limited number "
+            "of inputs, such as direct, diffuse and global shortwave radiation, air temperature, relative "
             "humidity, urban geometry and geographical information (latitude, longitude and elevation). "
             "Additional vegetation and ground cover information can also be used to imporove the estimation of Tmrt.\n"
             "\n"
-            "Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing section in UMEP\n"
-            "\n"
-            "NOTE:\n"
-            "- Anisotrophic sky models for long- and diffuse shortwave are automatically activated when the *.npz file "
-            "for shadow maps are included.\n"
-            "- Wall scheme model is automatically activated when the .npz-file for wall voxels are included. This will "
-            "slow down the model consideraby as SOLWEIG become a near 3D-model.\n"
+            "Tools to generate sky view factors, wall height and aspect etc. is available in the pre-processing past in UMEP\n"
             "\n"
             "------------\n"
             "\n"

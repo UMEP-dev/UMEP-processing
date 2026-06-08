@@ -26,6 +26,7 @@ repository=https://github.com/UMEP-dev/UMEP-processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
+    3.0.1  : URock: small fixes + avoid difference in output raster resolution (fix #851)
     3.0    : QGIS compatible
     2.2.8  : SOLWEIG: Fixed issue with NetCDF from wall surface temperature (fix #117)
     2.2.7  : New SUEWS version 2026.1.28rc1

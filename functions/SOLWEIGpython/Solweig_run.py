@@ -58,14 +58,29 @@ except:
     pass
 
 
+# import numpy as np
+# from .daylen import daylen
+# from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
+# from ...util.SEBESOLWEIGCommonFiles.diffusefraction import diffusefraction
+# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_13 import shadowingfunction_wallheight_13
+# from ...util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
+# from .gvf_2018a import gvf_2018a
+# from .cylindric_wedge import cylindric_wedge
+# from .TsWaveDelay_2015a import TsWaveDelay_2015a
+# from .Kup_veg_2015a import Kup_veg_2015a
+# # from .Lside_veg_v2015a import Lside_veg_v2015a
+# # from .Kside_veg_v2019a import Kside_veg_v2019a
+# from .Kside_veg_v2022a import Kside_veg_v2022a
+# from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
+# from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
+
+
 def solweig_run(configPath, feedback):
     """
     Input:
     configPath : config file including geodata paths and settings.
     feedback : To communicate with qgis gui. Set to None if standalone
     """
-
-    print("Running cpu")
 
     # Load config file
     configDict = read_solweig_config(configPath)
@@ -400,6 +415,22 @@ def solweig_run(configPath, feedback):
             "poi_field"
         ]  # self.parameterAsString(parameters, self.POI_FIELD, context)
         if standAlone == 0:
+            # vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
+            # idx = vlayer.fields().indexFromName(poi_field)
+            # numfeat = vlayer.featureCount()
+            # poisxy = np.zeros((numfeat, 3)) - 999
+            # ind = 0
+            # for f in vlayer.getFeatures():  # looping through each POI
+            #     y = f.geometry().centroid().asPoint().y()
+            #     x = f.geometry().centroid().asPoint().x()
+            #     poiname.append(f.attributes()[idx])
+            #     poisxy[ind, 0] = ind
+            #     poisxy[ind, 1] = np.round((x - minx) * scale)
+            #     if miny >= 0:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     else:
+            #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
+            #     ind += 1
 
             poi_field = configDict[
                 "woi_field"
@@ -835,6 +866,14 @@ def solweig_run(configPath, feedback):
                     CI = 1.0
             else:
                 CI = 1.0
+
+        # Only if Kdir is derived from horizontal global shortwave and horizontal diffuse shortwave
+        # if altitude[0][i] > 0:
+        #     radI[i] = radI[i]/np.sin(altitude[0][i] * np.pi/180)
+        # else:
+        #     radG[i] = 0.
+        #     radD[i] = 0.
+        #     radI[i] = 0.
 
         # Timestep of the simulation used in the ground scheme calculation
         first_timestep = (

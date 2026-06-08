@@ -37,8 +37,6 @@ def dailyshading(
     waspect,
 ):
 
-    # lon = lonlat[0]
-    # lat = lonlat[1]
     year = tv[0]
     month = tv[1]
     day = tv[2]

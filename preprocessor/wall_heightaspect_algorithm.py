@@ -33,6 +33,7 @@ __revision__ = "$Format:%H$"
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
+    QgsProcessingException,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterRasterLayer,
@@ -44,8 +45,12 @@ from osgeo.gdalconst import *
 
 try:
     import torch
-except:
-    pass
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+
 import os
 from ..functions import wallalgorithms_torch as wa_torch
 from ..functions import wallalgorithms as wa
@@ -132,33 +137,33 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText(str(cmd_folder))
         feedback.setProgressText(str(cmd_folder.parent))
         device = None
+
         if use_gpu:
 
-            # Check if torch is the fake version from torch_fallback.py then tells the
-            # user to install the real pip module
-            if type(torch).__name__ == "MetaMock" or hasattr(
-                torch, "__getattr__"
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
             ):
-                raise ImportError(
-                    "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
-                    "Please install it using: pip install torch in your venv or using osgeo4w"
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch"
                 )
-            try:
-                torch.set_num_threads(max(1, os.cpu_count()))
-                torch.set_num_interop_threads(max(1, os.cpu_count()))
-            except:
-                pass
 
             if torch.cuda.is_available():
                 device = torch.device("cuda")
                 feedback.setProgressText(
-                    "GPU detected and will be used for calculations."
+                    "PyTorch found. Initiating GPU mode..."
                 )
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
-                    "No GPU detected.CPU will be used for calculations."
+                    "PyTorch not found. Initiating CPU mode..."
                 )
+
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())

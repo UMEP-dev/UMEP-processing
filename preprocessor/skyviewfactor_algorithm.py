@@ -52,8 +52,12 @@ import inspect
 
 try:
     import torch
-except:
-    pass
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+
 from pathlib import Path
 import zipfile
 import sys
@@ -293,19 +297,29 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         device = None
 
         if use_gpu:
-            # Check if torch is the fake version from torch_fallback.py then tells the
-            # user to install the real pip module
-            if type(torch).__name__ == "MetaMock" or hasattr(
-                torch, "__getattr__"
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
             ):
-                raise ImportError(
-                    "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
-                    "Please install it using: pip install torch in your venv or using osgeo4w"
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch"
                 )
+
             if torch.cuda.is_available():
                 device = torch.device("cuda")
+                feedback.setProgressText(
+                    "PyTorch found. Initiating GPU mode..."
+                )
             else:
                 device = torch.device("cpu")
+                feedback.setProgressText(
+                    "PyTorch not found. Initiating CPU mode..."
+                )
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())

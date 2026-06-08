@@ -5,7 +5,13 @@
 # Gothenburg University
 
 # sommon imports
+
 from __future__ import absolute_import
+
+try:
+    import torch
+except ImportError:
+    pass
 
 import numpy as np
 from ...util.umep_solweig_export_component import read_solweig_config
@@ -35,10 +41,6 @@ import pandas as pd
 import matplotlib.pylab as plt
 from shutil import copyfile
 
-try:
-    import torch
-except:
-    pass
 # imports from osgeo/qgis dependency
 try:
     from osgeo import gdal
@@ -65,13 +67,6 @@ def solweig_run(configPath, feedback):
     configPath : config file including geodata paths and settings.
     feedback : To communicate with qgis gui. Set to None if standalone
     """
-    # Check if torch is the fake version from torch_fallback.py then tells the
-    # user to install the real pip module
-    if type(torch).__name__ == "MetaMock" or hasattr(torch, "__getattr__"):
-        raise ImportError(
-            "\n[UMEP Error] PyTorch is required to run gpu mode.\n"
-            "Please install it using: pip install torch in your venv or using osgeo4w"
-        )
 
     # Load config file
     configDict = read_solweig_config(configPath)

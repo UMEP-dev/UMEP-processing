@@ -23,14 +23,30 @@
 """
 
 # 1. Initialize fallback immediately to shield all downstream imports
-from .util import torch_fallback
-
 import site
 import sys
 
 user_site = site.getusersitepackages()
 if user_site not in sys.path:
     sys.path.append(user_site)
+
+
+try:
+    import torch
+except ImportError:
+    # Create the local mock right here
+    class MetaMock(type):
+        def __getattr__(cls, name):
+            return cls
+
+        def __call__(cls, *args, **kwargs):
+            return cls
+
+    class LocalMockTorch(metaclass=MetaMock):
+        pass
+
+    # Inject it into Python's module registry BEFORE QGIS loads any sub-files
+    sys.modules["torch"] = LocalMockTorch
 
 __author__ = "Fredrik Lindberg"
 __date__ = "2020-04-02"

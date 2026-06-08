@@ -192,16 +192,16 @@ def svf_for_voxels(
         voxel_y = np.where(voxelTable[:, 1] == i + svf_height)  # +svf_height)
         for temp_y in voxel_y[0]:
             svf_array[temp_y] = svftotal[
-                int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                int(voxelTable[temp_y, 5][0]), int(voxelTable[temp_y, 6][0])
             ]
             svfbu_array[temp_y] = svfbu[
-                int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                int(voxelTable[temp_y, 5][0]), int(voxelTable[temp_y, 6][0])
             ]
             svfveg_array[temp_y] = svfveg[
-                int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                int(voxelTable[temp_y, 5][0]), int(voxelTable[temp_y, 6][0])
             ]
             svfaveg_array[temp_y] = svfaveg[
-                int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
+                int(voxelTable[temp_y, 5][0]), int(voxelTable[temp_y, 6][0])
             ]
             svf_height_array[temp_y] = i + svf_height  # +svf_height
 
@@ -457,6 +457,7 @@ def svf_kmeans(
                 ]  # Get row of unique_wall and highest voxel in voxelTable
                 # get the calculated svf for the wall pixel to check if it is
                 # higher or lower than 0.5
+
                 temp_svf = svftotal[
                     int(voxelTable[temp_y, 5][0]),
                     int(voxelTable[temp_y, 6][0]),
