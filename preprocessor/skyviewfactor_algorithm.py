@@ -304,18 +304,18 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             ):
                 raise QgsProcessingException(
                     "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
-                    "Please install it using: pip install torch"
+                    "Please install it using: pip install torch or with osgeo4w"
                 )
 
             if torch.cuda.is_available():
                 device = torch.device("cuda")
                 feedback.setProgressText(
-                    "PyTorch found. Initiating GPU mode..."
+                    "PyTorch and GPU found. Initiating GPU mode..."
                 )
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
-                    "PyTorch not found. Initiating CPU mode..."
+                    "Pytorch found but GPU not found. Initiating CPU mode..."
                 )
         else:
             # Fall back to standard CPU processing

@@ -853,7 +853,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             parameters, self.OUTPUT_TREEPLANTER, context
         )
         outputKdiff = False
-        # outputSstr = False
 
         # If "Save necessary rasters for TreePlanter tool" is ticked, save the following raster for TreePlanter or Spatial TC
         if outputTreeplanter:
@@ -865,7 +864,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             outputSh = True
             saveBuild = True
             outputKdiff = True
-            # outputSstr = True
 
         calculation_mode = "cpu"
         if gpu_bool:
@@ -876,11 +874,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             ):
                 raise QgsProcessingException(
                     "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
-                    "Please install it using: pip install torch"
+                    "Please install it using: pip install torch or with osgeo4w"
                 )
 
             # If PyTorch is available, execute the GPU path
-            feedback.setProgressText("PyTorch found. Initiating GPU mode...")
             calculation_mode = "gpu"
 
         else:

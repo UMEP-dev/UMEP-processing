@@ -90,11 +90,13 @@ def solweig_run(configPath, feedback):
 
     if configDict["calculation_mode"] == "gpu" and torch.cuda.is_available():
         device = torch.device("cuda")
-        print("using gpu")
-
+        feedback.setProgressText(
+            "PyTorch and GPU found. Initiating GPU mode..."
+        )
     else:
-        print("using cpu")
-
+        feedback.setProgressText(
+            "Pytorch found but GPU not found. Initiating CPU mode..."
+        )
     standAlone = int(configDict["standalone"])
 
     # Load DSM
