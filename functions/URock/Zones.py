@@ -64,43 +64,46 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
         ),
     }
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the process)
+    # Create temporary table names (for tables that will be removed at the end of the process)
     densifiedLinePoints = DataUtil.postfix("DENSIFIED_LINE_POINTS")
     ZonePoints = {
-        DISPLACEMENT_NAME: DISPLACEMENT_NAME
-        + DataUtil.postfix("_ZONE_POINTS"),
-        DISPLACEMENT_VORTEX_NAME: DISPLACEMENT_VORTEX_NAME
-        + DataUtil.postfix("_ZONE_POINTS"),
+        DISPLACEMENT_NAME: (
+            DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POINTS")
+        ),
+        DISPLACEMENT_VORTEX_NAME: (
+            DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POINTS")
+        ),
     }
     ZonePolygons = {
-        DISPLACEMENT_NAME: DISPLACEMENT_NAME
-        + DataUtil.postfix("_ZONE_POLYGONS"),
-        DISPLACEMENT_VORTEX_NAME: DISPLACEMENT_VORTEX_NAME
-        + DataUtil.postfix("_ZONE_POLYGONS"),
+        DISPLACEMENT_NAME: (
+            DISPLACEMENT_NAME + DataUtil.postfix("_ZONE_POLYGONS")
+        ),
+        DISPLACEMENT_VORTEX_NAME: (
+            DISPLACEMENT_VORTEX_NAME + DataUtil.postfix("_ZONE_POLYGONS")
+        ),
     }
 
     # First densify the upwind facades
     cursor.execute(f"""
        DROP TABLE IF EXISTS {densifiedLinePoints};
        CREATE TABLE {densifiedLinePoints}
-           AS SELECT   EXPLOD_ID,
-                       {GEOM_FIELD},
-                       X_MED,
-                       HALF_WIDTH,
+           AS SELECT   EXPLOD_ID, 
+                       {GEOM_FIELD}, 
+                       X_MED, 
+                       HALF_WIDTH, 
                        {DISPLACEMENT_LENGTH_FIELD},
-                       {DISPLACEMENT_LENGTH_VORTEX_FIELD},
+                       {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
                        {UPWIND_FACADE_FIELD}
-           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD},
+           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
                                                             ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
-                                    MAX({DISPLACEMENT_LENGTH_FIELD}) AS {DISPLACEMENT_LENGTH_FIELD},
+                                    MAX({DISPLACEMENT_LENGTH_FIELD}) AS {DISPLACEMENT_LENGTH_FIELD}, 
                                     MAX({DISPLACEMENT_LENGTH_VORTEX_FIELD}) AS {DISPLACEMENT_LENGTH_VORTEX_FIELD},
                                     {UPWIND_FACADE_FIELD},
-                                    MAX(X_MED) AS X_MED,
+                                    MAX(X_MED) AS X_MED, 
                                     MAX(HALF_WIDTH) AS HALF_WIDTH
                            FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
-                                                    {DISPLACEMENT_LENGTH_FIELD},
-                                                    {DISPLACEMENT_LENGTH_VORTEX_FIELD},
+                                                    {DISPLACEMENT_LENGTH_FIELD}, 
+                                                    {DISPLACEMENT_LENGTH_VORTEX_FIELD}, 
                                                     {UPWIND_FACADE_FIELD},
                                                     {STACKED_BLOCK_X_MED} AS X_MED,
                                                     {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
@@ -108,15 +111,13 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
                            GROUP BY {UPWIND_FACADE_FIELD})')
        """)  # nosec B608  # nosec B608
 
-    # Define the names of variables for displacement and displacement vortex
-    # zones
+    # Define the names of variables for displacement and displacement vortex zones
     variablesNames = pd.DataFrame(
         {"L": [DISPLACEMENT_LENGTH_FIELD, DISPLACEMENT_LENGTH_VORTEX_FIELD]},
         index=[DISPLACEMENT_NAME, DISPLACEMENT_VORTEX_NAME],
     )
 
-    # Create the half ellipse for displacement and displacement vortex zones
-    # from the densified upwind facade points
+    # Create the half ellipse for displacement and displacement vortex zones from the densified upwind facade points
     cursor.execute(
         safe(";").join(
             [
@@ -157,16 +158,16 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
             UPWIND_FACADE_ANGLE_FIELD,
             ELLIPSOID_MIN_LENGTH,
         ),
-        DISPLACEMENT_VORTEX_NAME: " b.{0}>RADIANS(90-{1}) AND b.{0}<RADIANS(90+{1}) ".format(
-            UPWIND_FACADE_ANGLE_FIELD, PERPENDICULAR_THRESHOLD_ANGLE
+        DISPLACEMENT_VORTEX_NAME: (
+            " b.{0}>RADIANS(90-{1}) AND b.{0}<RADIANS(90+{1}) ".format(
+                UPWIND_FACADE_ANGLE_FIELD, PERPENDICULAR_THRESHOLD_ANGLE
+            )
         ),
     }
 
-    # Create the zone from the half ellipse and the densified line and then
-    # join missing columns
-    cursor.execute(
-        safe(";").join([f"""
-        {DataUtil.createIndex(tableName=ZonePoints[z],
+    # Create the zone from the half ellipse and the densified line and then join missing columns
+    cursor.execute(safe(";").join([f"""
+        {DataUtil.createIndex(tableName=ZonePoints[z], 
                               fieldName=UPWIND_FACADE_FIELD,
                               isSpatial=False)}
         DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
@@ -175,14 +176,14 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
                         {UPWIND_FACADE_FIELD}
             FROM {ZonePoints[z]}
             GROUP BY {UPWIND_FACADE_FIELD};
-        {DataUtil.createIndex(tableName=ZonePolygons[z],
-                                  fieldName=UPWIND_FACADE_FIELD,
-                                  isSpatial=False)}
-        {DataUtil.createIndex(tableName=upwindWithPropTable,
-                                      fieldName=UPWIND_FACADE_FIELD,
-                                      isSpatial=False)}
+        {DataUtil.createIndex(tableName=ZonePolygons[z], 
+                             fieldName=UPWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        {DataUtil.createIndex(tableName=upwindWithPropTable, 
+                             fieldName=UPWIND_FACADE_FIELD,
+                             isSpatial=False)}
         CREATE TABLE {outputZoneTableNames[z]}
-            AS SELECT   a.{UPWIND_FACADE_FIELD},
+            AS SELECT   a.{UPWIND_FACADE_FIELD}, 
                         a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
                         b.{HEIGHT_FIELD},
                         b.{STACKED_BLOCK_X_MED},
@@ -192,8 +193,7 @@ def displacementZones2(cursor, upwindWithPropTable, srid, prefix=PREFIX_NAME):
             FROM {ZonePolygons[z]} AS a LEFT JOIN {upwindWithPropTable} AS b
             ON a.{UPWIND_FACADE_FIELD} = b.{UPWIND_FACADE_FIELD}
             WHERE ST_AREA(a.{GEOM_FIELD}) > 0 AND {whereCond[z]};
-        """ for z in variablesNames.index])  # nosec B608  # nosec B608
-    )  # nosec B608
+        """ for z in variablesNames.index]))  # nosec B608  # nosec B608
 
     if not DEBUG:
         # Drop intermediate tables
@@ -322,7 +322,7 @@ def displacementZones(
                             -0.5*PI()+ACOS((1-COS(2*PI()/{11}))*R_x
                                   /SQRT(POWER((1-COS(2*PI()/{11}))*R_x,2)
                                         +POWER(SIN(2*PI()/{11})*R_y,2)))
-                   AND EXPLOD_ID = 2
+                   AND EXPLOD_ID = 2 
                    OR   {4}<0.5*PI()
                             -0.5*PI()+ACOS((1-COS(2*PI()/{11}))*R_x
                                   /SQRT(POWER((1-COS(2*PI()/{11}))*R_x,2)
@@ -413,8 +413,7 @@ def cavityAndWakeZones(
         WAKE_NAME: DataUtil.prefix("WAKE_ZONES", prefix=prefix),
     }
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the process)
+    # Create temporary table names (for tables that will be removed at the end of the process)
     densifiedLinePoints = DataUtil.postfix("DENSIFIED_LINE_POINTS")
     ZonePoints = {
         CAVITY_NAME: CAVITY_NAME + DataUtil.postfix("_ZONE_POINTS"),
@@ -429,23 +428,23 @@ def cavityAndWakeZones(
     cursor.execute(f"""
        DROP TABLE IF EXISTS {densifiedLinePoints};
        CREATE TABLE {densifiedLinePoints}
-           AS SELECT   EXPLOD_ID,
-                       {GEOM_FIELD},
-                       X_MED,
-                       HALF_WIDTH,
+           AS SELECT   EXPLOD_ID, 
+                       {GEOM_FIELD}, 
+                       X_MED, 
+                       HALF_WIDTH, 
                        {CAVITY_LENGTH_FIELD},
-                       {WAKE_LENGTH_FIELD},
+                       {WAKE_LENGTH_FIELD}, 
                        {DOWNWIND_FACADE_FIELD}
-           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD},
+           FROM ST_EXPLODE('(SELECT ST_ACCUM(ST_TOMULTIPOINT(ST_DENSIFY({GEOM_FIELD}, 
                                                             ST_LENGTH({GEOM_FIELD})/{CAV_N_WAKE_FACADE_NPOINTS}))) AS {GEOM_FIELD},
-                                    MAX({CAVITY_LENGTH_FIELD}) AS {CAVITY_LENGTH_FIELD},
+                                    MAX({CAVITY_LENGTH_FIELD}) AS {CAVITY_LENGTH_FIELD}, 
                                     MAX({WAKE_LENGTH_FIELD}) AS {WAKE_LENGTH_FIELD},
                                     {DOWNWIND_FACADE_FIELD},
-                                    MAX(X_MED) AS X_MED,
+                                    MAX(X_MED) AS X_MED, 
                                     MAX(HALF_WIDTH) AS HALF_WIDTH
                            FROM ST_EXPLODE(''(SELECT ST_TOMULTISEGMENTS({GEOM_FIELD}) AS {GEOM_FIELD},
-                                                    {CAVITY_LENGTH_FIELD},
-                                                    {WAKE_LENGTH_FIELD},
+                                                    {CAVITY_LENGTH_FIELD}, 
+                                                    {WAKE_LENGTH_FIELD}, 
                                                     {DOWNWIND_FACADE_FIELD},
                                                     {STACKED_BLOCK_X_MED} AS X_MED,
                                                     {STACKED_BLOCK_WIDTH} / 2 AS HALF_WIDTH
@@ -459,8 +458,7 @@ def cavityAndWakeZones(
         index=[CAVITY_NAME, WAKE_NAME],
     )
 
-    # Create the half ellipse for cavity and wake zones from the densified
-    # downwind facade points
+    # Create the half ellipse for cavity and wake zones from the densified downwind facade points
     cursor.execute(
         safe(";").join(
             [
@@ -494,10 +492,9 @@ def cavityAndWakeZones(
         )
     )
 
-    # Create the zone from the half ellipse and the densified line and then
-    # join missing columns
+    # Create the zone from the half ellipse and the densified line and then join missing columns
     cursor.execute(safe(";").join([f"""
-        {DataUtil.createIndex(tableName=ZonePoints[z],
+        {DataUtil.createIndex(tableName=ZonePoints[z], 
                               fieldName=DOWNWIND_FACADE_FIELD,
                               isSpatial=False)}
         DROP TABLE IF EXISTS {ZonePolygons[z]}, {outputZoneTableNames[z]};
@@ -506,22 +503,22 @@ def cavityAndWakeZones(
                         {DOWNWIND_FACADE_FIELD}
             FROM {ZonePoints[z]}
             GROUP BY {DOWNWIND_FACADE_FIELD};
-        {DataUtil.createIndex(tableName=ZonePolygons[z],
-                                  fieldName=DOWNWIND_FACADE_FIELD,
-                                  isSpatial=False)}
-        {DataUtil.createIndex(tableName=downwindWithPropTable,
-                                      fieldName=DOWNWIND_FACADE_FIELD,
-                                      isSpatial=False)}
+        {DataUtil.createIndex(tableName=ZonePolygons[z], 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
+        {DataUtil.createIndex(tableName=downwindWithPropTable, 
+                             fieldName=DOWNWIND_FACADE_FIELD,
+                             isSpatial=False)}
         CREATE TABLE {outputZoneTableNames[z]}
-            AS SELECT   a.{DOWNWIND_FACADE_FIELD},
+            AS SELECT   a.{DOWNWIND_FACADE_FIELD}, 
                         a.{GEOM_FIELD}, b.{ID_FIELD_STACKED_BLOCK},
                         b.{HEIGHT_FIELD},
                         b.{STACKED_BLOCK_X_MED},
                         b.{STACKED_BLOCK_UPSTREAMEST_X},
-                        b.{SIN_BLOCK_LEFT_AZIMUTH},
+                        b.{SIN_BLOCK_LEFT_AZIMUTH}, 
                         b.{COS_BLOCK_LEFT_AZIMUTH},
                         b.{COS_BLOCK_RIGHT_AZIMUTH},
-                        b.{SIN_BLOCK_RIGHT_AZIMUTH},
+                        b.{SIN_BLOCK_RIGHT_AZIMUTH}, 
                         b.{STACKED_BLOCK_WIDTH},
                         b.{ID_FIELD_BLOCK}
             FROM {ZonePolygons[z]} AS a LEFT JOIN {downwindWithPropTable} AS b
@@ -599,26 +596,24 @@ def streetCanyonZones(
     # Name of the output tables
     streetCanyonZoneTable = DataUtil.prefix(outputBaseName, prefix=prefix)
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     intersectTable = DataUtil.postfix("intersect_table")
     canyonExtendTable = DataUtil.postfix("canyon_extend_table")
 
-    # Identify pieces of upwind facades intersected by cavity zones (only when
-    # street canyon angle < 45°)
+    # Identify pieces of upwind facades intersected by cavity zones (only when street canyon angle < 45°)
     cursor.execute(f"""
-        {DataUtil.createIndex(tableName=upwindTable,
+        {DataUtil.createIndex(tableName=upwindTable, 
                               fieldName=GEOM_FIELD,
                               isSpatial=True)};
-        {DataUtil.createIndex(tableName=cavityZonesTable,
-                                  fieldName=GEOM_FIELD,
-                                  isSpatial=True)};
-        {DataUtil.createIndex(tableName=upwindTable,
-                                      fieldName=ID_FIELD_BLOCK,
-                                      isSpatial=False)};
-        {DataUtil.createIndex(tableName=cavityZonesTable,
-                                          fieldName=ID_FIELD_BLOCK,
-                                          isSpatial=False)};
+        {DataUtil.createIndex(tableName=cavityZonesTable, 
+                              fieldName=GEOM_FIELD,
+                              isSpatial=True)};
+        {DataUtil.createIndex(tableName=upwindTable, 
+                              fieldName=ID_FIELD_BLOCK,
+                              isSpatial=False)};
+        {DataUtil.createIndex(tableName=cavityZonesTable, 
+                              fieldName=ID_FIELD_BLOCK,
+                              isSpatial=False)};
         DROP TABLE IF EXISTS {intersectTable};
         CREATE TABLE {intersectTable}
             AS SELECT   b.{ID_FIELD_STACKED_BLOCK} AS {ID_UPSTREAM_STACKED_BLOCK},
@@ -626,7 +621,7 @@ def streetCanyonZones(
                         a.{BASE_HEIGHT_FIELD},
                         a.{HEIGHT_FIELD},
                         a.{UPWIND_FACADE_ANGLE_FIELD},
-                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{GEOM_FIELD},
+                        ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{GEOM_FIELD}, 
                                                              b.{GEOM_FIELD}),
                                              2) AS {GEOM_FIELD},
                         a.{UPWIND_FACADE_FIELD},
@@ -634,7 +629,7 @@ def streetCanyonZones(
             FROM {upwindTable} AS a, {cavityZonesTable} AS b
             WHERE   a.{GEOM_FIELD} && b.{GEOM_FIELD} AND ST_INTERSECTS(a.{GEOM_FIELD},
                                                                        b.{GEOM_FIELD})
-                    AND a.{UPWIND_FACADE_ANGLE_FIELD} >= RADIANS({STREET_CANYON_ANGLE_THRESH})
+                    AND a.{UPWIND_FACADE_ANGLE_FIELD} >= RADIANS({STREET_CANYON_ANGLE_THRESH}) 
                     AND a.{UPWIND_FACADE_ANGLE_FIELD} <= RADIANS(180-{STREET_CANYON_ANGLE_THRESH})
                     AND a.{ID_FIELD_BLOCK} != b.{ID_FIELD_BLOCK}
             """)  # nosec B608
@@ -652,11 +647,11 @@ def streetCanyonZones(
                         a.{11},
                         a.{12},
                         ST_SETSRID(ST_MAKEPOLYGON(ST_MAKELINE(ST_STARTPOINT(a.{4}),
-                    								ST_STARTPOINT(ST_TRANSLATE( a.{4},
-                                                                            0,
+                    								ST_STARTPOINT(ST_TRANSLATE( a.{4}, 
+                                                                            0, 
                                                                             ST_YMAX(b.{4})-ST_YMIN(b.{4})+b.{5})),
                     								ST_ENDPOINT(ST_TRANSLATE(   a.{4},
-                                                                            0,
+                                                                            0, 
                                                                             ST_YMAX(b.{4})-ST_YMIN(b.{4})+b.{5})),
                     								ST_TOMULTIPOINT(ST_REVERSE(a.{4})))),
                                    {16}) AS THE_GEOM,
@@ -820,8 +815,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
         outputBaseNameroofCorner, prefix=prefix
     )
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     temporaryRooftopPerp = DataUtil.postfix("temporary_rooftop_perp")
     temporaryRooftopCorner = DataUtil.postfix("temporary_rooftop_corner")
 
@@ -889,7 +883,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
                                                                 -b.{11}),
                                                    ST_ENDPOINT(a.{3}),
                                                    ST_STARTPOINT(a.{3}))) AS {3}
-            FROM {7} AS a LEFT JOIN {8} AS b ON a.{1} = b.{1}
+            FROM {7} AS a LEFT JOIN {8} AS b ON a.{1} = b.{1} 
             WHERE   a.{5} > RADIANS(90-{13}) AND a.{5} < RADIANS(90+{13})
            """).format(
         temporaryRooftopCorner,
@@ -926,7 +920,7 @@ def rooftopZones(cursor, upwindTable, zonePropertiesTable, prefix=PREFIX_NAME):
         "perp": "b.{0}, b.{1},".format(
             ROOFTOP_PERP_LENGTH, ROOFTOP_PERP_HEIGHT
         ),
-        "corner": """a.{0}, a.{1}, a.{2}, b.{3},
+        "corner": """a.{0}, a.{1}, a.{2}, b.{3}, 
                                     a.GEOM_CORNER_POINT,""".format(
             ROOFTOP_CORNER_LENGTH,
             ROOFTOP_CORNER_FACADE_LENGTH,
@@ -1042,8 +1036,7 @@ def vegetationZones(
         outputBaseNameBuilt, prefix=prefix
     )
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     temporary_built_vegetation = DataUtil.postfix("temporary_built_vegetation")
 
     # Identify vegetation zones being in building wake zones
@@ -1053,8 +1046,8 @@ def vegetationZones(
         {11};
         DROP TABLE IF EXISTS {7};
         CREATE TABLE {7}
-            AS SELECT   ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{1},
-                                                             ST_MAKEVALID(ST_SNAP(b.{1},
+            AS SELECT   ST_COLLECTIONEXTRACT(ST_INTERSECTION(a.{1}, 
+                                                             ST_MAKEVALID(ST_SNAP(b.{1}, 
                                                                                   a.{1},
                                                                                   {13}))),
                                              3) AS {1},
@@ -1123,8 +1116,8 @@ def vegetationZones(
                                                           a.{1})) AND NOT ST_ISEMPTY(b.{1})
                             GROUP BY b.{6}, a.{1})')
             WHERE NOT ST_ISEMPTY({1})
-            UNION ALL
-            SELECT  CAST((row_number() over()) as Integer) AS {8},
+            UNION ALL 
+            SELECT  CAST((row_number() over()) as Integer) AS {8}, 
                     a.{1},
                     a.{3},
                     a.{4},
@@ -1241,8 +1234,7 @@ def identifyImpactingStackedBlocks(
     )
     outputVegetation = DataUtil.prefix("IMPACTING_VEGETATION", prefix=prefix)
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     tabAllBuildZones = DataUtil.postfix("tab_all_build_zones")
     tabTempStack = DataUtil.postfix("tab_temp_stack")
     tabTempBlock = DataUtil.postfix("tab_temp_blocks")
@@ -1320,14 +1312,13 @@ def identifyImpactingStackedBlocks(
         )
     )
 
-    # Identify which blocks are in the cross-wind extend of blocks and
-    # impacted zone
+    # Identify which blocks are in the cross-wind extend of blocks and impacted zone
     cursor.execute(
         safe("""
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT ST_EXPAND(ST_EXTENT(a.{1}), {2}, 0) AS {1}
-            FROM (SELECT {1} FROM {4}
+            FROM (SELECT {1} FROM {4} 
                   UNION ALL
                   SELECT {1} FROM {5}) AS a;
         {6};{7};
@@ -1338,7 +1329,7 @@ def identifyImpactingStackedBlocks(
                     FROM {10} AS a, {0} AS b
                     WHERE a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1})
                     UNION ALL
-                    SELECT {9}
+                    SELECT {9} 
                     FROM {11})
         """).format(
             tabCrossExtBox,
@@ -1429,8 +1420,7 @@ def identifyImpactingStackedBlocks(
     # ------------------------------------------------------------------------
     # 2. MAKE THE CALCULATION FOR THE VEGETATION -----------------------------
     # ------------------------------------------------------------------------
-    # Identify which vegetation patches are in the cross-wind extend of blocks
-    # and impacted zone
+    # Identify which vegetation patches are in the cross-wind extend of blocks and impacted zone
     cursor.execute(
         safe("""
         {0};{1};

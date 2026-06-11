@@ -51,8 +51,7 @@ def CNRRabs_Total(
     #     lat = 33.75;
     #     A = 992;
 
-    # Aeff=0.78 # Effective area of body. 0.78 for standing from Campebll and
-    # Normal (1998) (0.70 for sitting) Moved to main function
+    # Aeff=0.78 # Effective area of body. 0.78 for standing from Campebll and Normal (1998) (0.70 for sitting) Moved to main function
 
     Kin_abs, zen, Kd = CNR_Kinabs_meas(alpha, Kin, L, D, A, lat, d, t, Atr)
     Kup_abs = CNR_Kup(alpha, Kup, L, D)
@@ -82,8 +81,7 @@ def COMFA_RAD_SPATIAL_TC(
     )
 
     Kb = Kin - Kd
-    # Not perpendicular but horrisontal surface in COMFA Kb = (Kin -
-    # Kd)/(np.sin(altitude*deg2rad))
+    # Not perpendicular but horrisontal surface in COMFA Kb = (Kin - Kd)/(np.sin(altitude*deg2rad))
 
     Acs = CRT_Acs(L, D)
 
@@ -158,7 +156,7 @@ def Rad_Total_solweig(
         metload.Solweig_2015a_metdata_noload(metdata, location, utc)
     )
 
-    if Kd is None:  # Kd and Kb is estimated with Reindl et al. 1990
+    if Kd == None:  # Kd and Kb is estimated with Reindl et al. 1990
         Itoa = 1370.0  # Effective solar constant
         D_ = sun_distance(doy)
         I0et = Itoa * np.cos(zen) * D_  # extra terrestial solar radiation
@@ -167,8 +165,7 @@ def Rad_Total_solweig(
         Kb = Kin - Kd
     else:
         Kb = Kin - Kd
-        # Not perpendicular but horrisontal surface in COMFA Kb = (Kin -
-        # Kd)/(np.sin(altitude*deg2rad))
+        # Not perpendicular but horrisontal surface in COMFA Kb = (Kin - Kd)/(np.sin(altitude*deg2rad))
 
     Acs = CRT_Acs(L, D)
 
@@ -349,8 +346,7 @@ def CRT_Acs(L, D):
 def CNR_Kup(alpha, Kup, L, D):
     # Used to calculate the total reflected solar radiation (K) absorbed by the
     # a cylinder with inputs alpha (cylinder albedo), Kup (measured reflected solar
-    # radiation by the CNR net radiometer (W/m2), Acyl (area of the cylinder,
-    # m2)
+    # radiation by the CNR net radiometer (W/m2), Acyl (area of the cylinder, m2)
 
     Acyl = CRT_Acyl(L, D)
     Kup_abs = np.dot(np.dot(np.dot((1 - alpha), Kup), 0.5), Acyl)
@@ -415,7 +411,7 @@ def day_of_year(yyyy, month, day):
     else:
         dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-    doy = np.sum(dayspermonth[0: month - 1]) + day
+    doy = np.sum(dayspermonth[0 : month - 1]) + day
 
     return doy
 

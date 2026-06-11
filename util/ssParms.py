@@ -9,12 +9,10 @@ import numpy as np
 from ..functions import wallalgorithms as wa
 
 # from umep_suewsss_export_component import write_GridLayout_file, create_GridLayout_dict
-from ..util.umep_suewsss_export_component import (
+from .umep_suewsss_export_component import (
     write_GridLayout_file,
     create_GridLayout_dict,
 )
-
-# import matplotlib as plt
 
 
 def ss_calc(build, cdsm, walls, numPixels, feedback):
@@ -108,8 +106,9 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew):
 
     ssDict = create_GridLayout_dict()
 
-    # static levels (taken from interface). Last value > max height
-    if heightMethod == 1:
+    if (
+        heightMethod == 1
+    ):  # static levels (taken from interface). Last value > max height
         ssDict["height"] = vertHeights.append(ssVect[:, 0].max())
         ssDict["nlayer"] = len(ssDict["height"]) - 1
     elif heightMethod == 2:  # always nlayers layer based on percentiles
@@ -141,34 +140,33 @@ def writeGridLayout(ssVect, heightMethod, vertHeights, nlayer, skew):
     ssDict["veg_scale"] = []
 
     index = int(0)
-    # TODO this loop need to be confirmed by Reading
-    for i in range(1, len(ssDict["height"])):
+    for i in range(
+        1, len(ssDict["height"])
+    ):  # TODO this loop need to be confirmed by Reading
         index += 1
         startH = int(ssDict["height"][index - 1])
         endH = int(ssDict["height"][index])
         if index == 1:
-            # first is plan area index of buildings
-            ssDict["building_frac"].append(ssVect[0, 1])
-            # first is plan area index of trees
-            ssDict["veg_frac"].append(ssVect[0, 3])
+            ssDict["building_frac"].append(
+                ssVect[0, 1]
+            )  # first is plan area index of buildings
+            ssDict["veg_frac"].append(
+                ssVect[0, 3]
+            )  # first is plan area index of trees
         else:
-            # intergrated pai_build mean in ith vertical layer
             ssDict["building_frac"].append(
                 np.round(np.mean(ssVect[startH:endH, 1]), 3)
-            )
-            # intergrated pai_veg mean in ith vertical layer
+            )  # intergrated pai_build mean in ith vertical layer
             ssDict["veg_frac"].append(
                 np.round(np.mean(ssVect[startH:endH, 3]), 3)
-            )
+            )  # intergrated pai_veg mean in ith vertical layer
 
-        # intergrated bscale mean in ith vertical layer
         ssDict["building_scale"].append(
             np.round(np.mean(ssVect[startH:endH, 2]), 3)
-        )
-        # intergrated vscale mean in ith vertical layer
+        )  # intergrated bscale mean in ith vertical layer
         ssDict["veg_scale"].append(
             np.round(np.mean(ssVect[startH:endH, 4]), 3)
-        )
+        )  # intergrated vscale mean in ith vertical layer
 
     # TODO here we need to add other parameters based on typology
 

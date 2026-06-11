@@ -1,14 +1,14 @@
 import numpy as np
 import time
+import timeit
+from ..TreePlanter.TreePlanterTreeshade import tsh_gen
 from ..TreePlanter.TreePlanterTreeshade import tsh_gen_ts
 from ..TreePlanter.TreePlanterTreeshade import tsh_gen_mt1, tsh_gen_mt2
 import itertools
 
+
 # This function will look for better shading position for a tree by looking one pixel east, west, north, south of it's
-# current position. It will compare it's position to the other trees in
-# the study area, i.e. other moving trees.
-
-
+# current position. It will compare it's position to the other trees in the study area, i.e. other moving trees.
 def topt(
     y,
     x,
@@ -38,8 +38,7 @@ def topt(
     p_tmrt[0, 3] = t_y
     p_tmrt[0, 4] = t_x
 
-    # Array with movement one step south, one step north, one step west, one
-    # step east
+    # Array with movement one step south, one step north, one step west, one step east
     k_d = 1
 
     yt = t_y + k_d
@@ -96,8 +95,7 @@ def topt(
             if eucl[i, j] < treerasters.euclidean_d:
                 e_bool_sh[j] = 1
 
-    # Boolean of where it's possible and not to move
-    e_bool = np.bool_(e_bool)
+    e_bool = np.bool_(e_bool)  # Boolean of where it's possible and not to move
     t_yx = t_yx[e_bool, :]  # Positions where it's possible to move to
     e_bool_sh = np.bool_(e_bool_sh)
 
@@ -118,8 +116,9 @@ def topt(
 
     e_bool_nmt = np.bool_(e_bool_nmt)
 
-    # y, x, tmrt shade, tmrt sun, tmrt diff, sum tmrt all trees
-    tree_tmrt = np.zeros((t_yx.shape[0] + 1, 5))
+    tree_tmrt = np.zeros(
+        (t_yx.shape[0] + 1, 5)
+    )  # y, x, tmrt shade, tmrt sun, tmrt diff, sum tmrt all trees
     tree_tmrt[-1, :] = p_tmrt
 
     compare_mt = np.zeros((t_yx.shape[0]))
@@ -128,12 +127,8 @@ def topt(
 
         # Check if tree shadows overlap
         treesh_ts_bool_pad, treesh_ts_bool_pad_large, compare = tsh_gen_ts(
-            # Boolean tree shadows for trees that are not moving
-            y_n,
-            x_n,
-            treerasters,
-            treeinput,
-        )
+            y_n, x_n, treerasters, treeinput
+        )  # Boolean tree shadows for trees that are not moving
 
         if (
             compare == 0
@@ -145,16 +140,15 @@ def topt(
                 ((treesh_bool_mt == 1) & (treesh_ts_bool_pad_large == 1))
             ):
                 for j in range(t_yx.shape[0]):
-                    # If boolean distance between coming position of the moving
-                    # tree possibly have overlapping shadows with the other
-                    # trees, continue
-                    if e_bool_sh[j] == 1:
-                        # Y-position of the current position of the currently
-                        # moving tree
-                        y_t = np.array([t_yx[j, 0]])
-                        # X-position of the current position of the currently
-                        # moving tree
-                        x_t = np.array([t_yx[j, 1]])
+                    if (
+                        e_bool_sh[j] == 1
+                    ):  # If boolean distance between coming position of the moving tree possibly have overlapping shadows with the other trees, continue
+                        y_t = np.array(
+                            [t_yx[j, 0]]
+                        )  # Y-position of the current position of the currently moving tree
+                        x_t = np.array(
+                            [t_yx[j, 1]]
+                        )  # X-position of the current position of the currently moving tree
                         treesh_bool_mt_pad, treesh_bool_mt_pad_large, _ = (
                             tsh_gen_ts(y_t, x_t, treerasters, treeinput)
                         )  # Boolean tree shadows for moving tree
@@ -164,8 +158,9 @@ def topt(
                                 & (treesh_bool_mt_pad_large == 1)
                             )
                         ):
-                            # Check if timesteps overlap
-                            for ij in range(treesh_bool_mt_pad.shape[2]):
+                            for ij in range(
+                                treesh_bool_mt_pad.shape[2]
+                            ):  # Check if timesteps overlap
                                 temp_bool = (
                                     (
                                         (treesh_ts_bool_pad[:, :, ij] == 1)
@@ -189,10 +184,9 @@ def topt(
                 if e_bool_sh[j] == 1:
                     y_t = np.array([t_yx[j, 0]])
                     x_t = np.array([t_yx[j, 1]])
-                    # Boolean tree shadows for moving tree
                     treesh_bool_mt_pad = tsh_gen_mt2(
                         y_t, x_t, treerasters, treeinput
-                    )
+                    )  # Boolean tree shadows for moving tree
                     for ij in range(treesh_bool_mt_pad.shape[2]):
                         temp_bool = (
                             (
@@ -214,16 +208,13 @@ def topt(
         y_t = np.array([t_yx[i, 0]])
         x_t = np.array([t_yx[i, 1]])
 
-        # y position of currently moving tree
-        tree_tmrt[i, 3] = y_t
-        # x position of  currently moving tree
-        tree_tmrt[i, 4] = x_t
+        tree_tmrt[i, 3] = y_t  # y position of currently moving tree
+        tree_tmrt[i, 4] = x_t  # x position of  currently moving tree
 
         # Comparison between the currently moving tree and other trees if their shadows overlap
         # If moving tree is overlapping with any of the other trees
 
-        # If any of the none-moving trees are overlapping with each other but
-        # the moving tree is not overlapping with them
+        # If any of the none-moving trees are overlapping with each other but the moving tree is not overlapping with them
         if (compare == 1) & (compare_mt[i] == 0):
             start_time = time.time()
             for j in range(treesh_ts_bool_pad.shape[2]):
@@ -245,30 +236,30 @@ def topt(
             start_time = time.time()
             for j in range(y_n.shape[0]):
                 tree_tmrt[i, 0] += treerasters.tmrt_shade[
-                    y_n[j],
-                    # Tree shade
-                    x_n[j],
-                ]
+                    y_n[j], x_n[j]
+                ]  # Tree shade
                 tree_tmrt[i, 1] += treerasters.tmrt_sun[
                     y_n[j], x_n[j]
                 ]  # Sunlit
                 tree_tmrt[i, 2] += treerasters.d_tmrt[
-                    y_n[j],
-                    # Sunlit - Tree shade
-                    x_n[j],
-                ]
-            # Potential decrease in Tmrt from shade due to other trees
-            tree_tmrt[i, 0] += treerasters.tmrt_shade[y_t, x_t]
-            # Tmrt in sun for the tree shadow
-            tree_tmrt[i, 1] += treerasters.tmrt_sun[y_t, x_t]
-            # Difference in Tmrt between sunlit and shaded
-            tree_tmrt[i, 2] += treerasters.d_tmrt[y_t, x_t]
+                    y_n[j], x_n[j]
+                ]  # Sunlit - Tree shade
+            tree_tmrt[i, 0] += treerasters.tmrt_shade[
+                y_t, x_t
+            ]  # Potential decrease in Tmrt from shade due to other trees
+            tree_tmrt[i, 1] += treerasters.tmrt_sun[
+                y_t, x_t
+            ]  # Tmrt in sun for the tree shadow
+            tree_tmrt[i, 2] += treerasters.d_tmrt[
+                y_t, x_t
+            ]  # Difference in Tmrt between sunlit and shaded
 
     nc = 0  # no change
 
     if np.sum(e_bool) > 0:
-        # Which position has highest tmrt
-        t_max = np.where(tree_tmrt[:, 2] == np.max(tree_tmrt[:, 2]))
+        t_max = np.where(
+            tree_tmrt[:, 2] == np.max(tree_tmrt[:, 2])
+        )  # Which position has highest tmrt
         if t_max[0].__len__() > 1:
             t_rand = np.zeros((t_max[0].__len__()))
             for iy in range(t_max[0].__len__()):
@@ -285,17 +276,16 @@ def topt(
                 y[ti] = t_out[0, 3]
                 x[ti] = t_out[0, 4]
         else:
-            # Position of where tmrt is highest
-            t_out = tree_tmrt[t_max[0], :]
-            # If starting position, i.e. input position is best, don't move
-            if (np.int_(t_out[0, 3]) == t_y) & (np.int_(t_out[0, 4]) == t_x):
+            t_out = tree_tmrt[t_max[0], :]  # Position of where tmrt is highest
+            if (np.int_(t_out[0, 3]) == t_y) & (
+                np.int_(t_out[0, 4]) == t_x
+            ):  # If starting position, i.e. input position is best, don't move
                 nc = 1
             else:
                 y[ti] = t_out[0, 3]
                 x[ti] = t_out[0, 4]
     else:
-        # If tree can't move because of other trees, no move
-        t_out = tree_tmrt
+        t_out = tree_tmrt  # If tree can't move because of other trees, no move
         nc = 1
 
     return t_out, nc, y, x

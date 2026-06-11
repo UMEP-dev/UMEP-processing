@@ -3,8 +3,8 @@ from copy import deepcopy
 from . import emissivity_models
 from . import patch_characteristics
 
-""" This function combines the method to divide the sky vault into patches (Tregenza (1987) and Robinson & Stone (2004))
-    and the approach by Unsworth & Monteith or Martin & Berdahl (1984) or Bliss (1961) to calculate emissivities of the
+""" This function combines the method to divide the sky vault into patches (Tregenza (1987) and Robinson & Stone (2004)) 
+    and the approach by Unsworth & Monteith or Martin & Berdahl (1984) or Bliss (1961) to calculate emissivities of the 
     different parts of the sky vault. """
 
 
@@ -94,12 +94,10 @@ def Lcyl_v2022a(
         # Anisotropic sky
         if anisotropic_sky:
             temp_emissivity = esky_band[skyalt == altitude]
-        # Isotropic sky but with patches (need to switch anisotropic_sky to
-        # False)
+        # Isotropic sky but with patches (need to switch anisotropic_sky to False)
         else:
             temp_emissivity = esky
-        # Estimate longwave radiation on a horizontal surface (Ldown), vertical
-        # surface (Lside) and perpendicular (Lnormal)
+        # Estimate longwave radiation on a horizontal surface (Ldown), vertical surface (Lside) and perpendicular (Lnormal)
         Ldown[patch_altitude == altitude] = (
             ((temp_emissivity * SBC * ((Ta + 273.15) ** 4)) / np.pi)
             * steradian[patch_altitude == altitude]
@@ -122,8 +120,7 @@ def Lcyl_v2022a(
     Lsky_down[:, 2] = Ldown
     Lsky_side[:, 2] = Lside
 
-    # Estimate longwave radiation in each patch based on patch
-    # characteristics, i.e. sky, vegetation or building (shaded or sunlit)
+    # Estimate longwave radiation in each patch based on patch characteristics, i.e. sky, vegetation or building (shaded or sunlit)
     (
         Ldown,
         Lside,
@@ -158,13 +155,5 @@ def Lcyl_v2022a(
         current_step,
     )
 
-    # print('Lside_sky old = ' + str(Lside_sky.max()))
-    # print('Lside_veg old = ' + str(Lside_veg.max()))
-    # print('Lside_sh old = ' + str(Lside_sh.max()))
-    # print('Lside_sun old = ' + str(Lside_sun.max()))
-    # print('Lside_ref old = ' + str(Lside_ref.max()))
-
     return Ldown, Lside, Least_, Lwest_, Lnorth_, Lsouth_
-    # return Ldown, Lside, Lside_sky, Lside_veg, Lside_sh, Lside_sun,
-    # Lside_ref, Lsky_normal, Lsky_down, Lsky_side, Least_, Lwest_, Lnorth_,
-    # Lsouth_
+    # return Ldown, Lside, Lside_sky, Lside_veg, Lside_sh, Lside_sun, Lside_ref, Lsky_normal, Lsky_down, Lsky_side, Least_, Lwest_, Lnorth_, Lsouth_

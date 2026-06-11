@@ -53,6 +53,7 @@ from qgis.core import (
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
@@ -99,8 +100,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             )
         )
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_POINTLAYER,
-        # self.tr("Obtain point of interest from point in vector layer"),
-        # defaultValue=False))
+        # self.tr("Obtain point of interest from point in vector layer"), defaultValue=False))
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT_POINTLAYER,
@@ -140,8 +140,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             )
         )
         # self.addParameter(QgsProcessingParameterBoolean(self.USE_DSMBUILD,
-        # self.tr("Raster DSM (only 3D building or vegetation objects) exist"),
-        # defaultValue=False))
+        #     self.tr("Raster DSM (only 3D building or vegetation objects) exist"), defaultValue=False))
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 self.INPUT_DSM,
@@ -177,8 +176,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
             )
         )
         # self.addParameter(QgsProcessingParameterBoolean(self.SAVE_POINT,
-        # self.tr("Save point of interest as new vector layer"),
-        # defaultValue=False))
+        #     self.tr("Save point of interest as new vector layer"), defaultValue=False))
         self.addParameter(
             QgsProcessingParameterVectorDestination(
                 self.OUTPUT_POINT,
@@ -430,8 +428,7 @@ class ProcessingImageMorphParmsPointAlgorithm(QgsProcessingAlgorithm):
         if z0all < 0.03:
             z0all = 0.03
 
-        # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue #
-        # 164
+        # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
         if paiall > 0.0:
             if faiall == 0.0:
                 faiall = 0.001

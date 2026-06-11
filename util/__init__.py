@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xlinfr'
-from qgis.core import Qgis, QgsMessageLog
-from .umep_installer import locate_py, setup_umep_python
-from qgis.PyQt.QtWidgets import QMessageBox
 import traceback
 
 # The .egg packages shipped with QGIS sometimes appear before the user site dir
@@ -14,6 +11,9 @@ import sys
 
 sys.path.insert(0, site.getusersitepackages())
 
+from qgis.PyQt.QtWidgets import QMessageBox
+from .umep_installer import locate_py, setup_umep_python
+from qgis.core import Qgis, QgsMessageLog
 
 try:
     # import timezonefinder
@@ -24,7 +24,7 @@ try:
         level=Qgis.MessageLevel.Info,
     )
 
-except BaseException:
+except:
     if (
         QMessageBox.question(
             None,

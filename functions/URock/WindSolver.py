@@ -105,8 +105,7 @@ def solver(
     v = v0.copy()
     w = w0.copy()
 
-    # Preallocating lambda and lambda + 1 and set values to 0 on sketch
-    # boundaries
+    # Preallocating lambda and lambda + 1 and set values to 0 on sketch boundaries
     lambdaN = np.ones([nx, ny, nz])
     lambdaN1 = np.ones([nx, ny, nz])
     lambdaN[0, :, :] = 0.0
@@ -347,8 +346,7 @@ def solver(
         #                       e[i, j, k] * lambdaN[i - 1, j, k] + f[i, j, k] * lambdaN1[i + 1, j, k] + A * (
         #                       g[i, j, k] * lambdaN[i, j - 1, k] + h[i, j, k] * lambdaN1[i, j + 1, k]) + B * (
         #                               m[i, j, k] * lambdaN[i, j, k - 1] + n[i, j, k] * lambdaN1[i, j, k + 1]))) / (
-        # 2. * (o[i, j, k] + A * p[i, j, k] + B * q[i, j, k]))) + (1 - omega) *
-        # lambdaN1[i, j, k]
+        #                     2. * (o[i, j, k] + A * p[i, j, k] + B * q[i, j, k]))) + (1 - omega) * lambdaN1[i, j, k]
 
         # else:
         #     for i, j, k in cells4Solver:

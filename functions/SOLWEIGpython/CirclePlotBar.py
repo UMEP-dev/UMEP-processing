@@ -1,14 +1,12 @@
 import numpy as np
 import matplotlib.cm as cmx
-from matplotlib.pyplot import figure
+from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import matplotlib.colors as colors
 
-# def PolarBarPlot(lv, radD, outfolder, YYYY, DOY, XH, hours, XM, minu,
-# iStep, idxStep):
 
-
+# def PolarBarPlot(lv, radD, outfolder, YYYY, DOY, XH, hours, XM, minu, iStep, idxStep):
 def PolarBarPlot(
     lv,
     solar_altitude,
@@ -19,8 +17,7 @@ def PolarBarPlot(
     maxrad,
     plot_type,
 ):
-    # def PolarBarPlot(lv, filename_start, outfolder, YYYY, DOY, XH, hours,
-    # XM, minu, iStep, minrad, maxrad):
+    # def PolarBarPlot(lv, filename_start, outfolder, YYYY, DOY, XH, hours, XM, minu, iStep, minrad, maxrad):
 
     deg2rad = np.pi / 180
 
@@ -34,8 +31,9 @@ def PolarBarPlot(
     else:
         ax.set_theta_direction("anticlockwise")
         # ax.set_theta_direction('clockwise')
-    # Unique altitudes in lv, i.e. unique altitude for the patches
-    skyalt, skyalt_c = np.unique(lv[:, 0], return_counts=True)
+    skyalt, skyalt_c = np.unique(
+        lv[:, 0], return_counts=True
+    )  # Unique altitudes in lv, i.e. unique altitude for the patches
 
     # lvSum = np.sum(lv[:,2])
 
@@ -47,8 +45,9 @@ def PolarBarPlot(
 
     if plot_type:
         jet = cm = plt.get_cmap("jet")
-        # Watts per square meter Steradian
-        cNorm = colors.Normalize(vmin=minrad, vmax=maxrad)
+        cNorm = colors.Normalize(
+            vmin=minrad, vmax=maxrad
+        )  # Watts per square meter Steradian
         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
     else:
         # patch_category = {1.8:'deepskyblue', 2.5:'forestgreen', 3.3:'yellow', 4.5:'peru', 6.0:'grey'}
@@ -69,7 +68,7 @@ def PolarBarPlot(
     radii_sub = 0
     for i in range(skyalt_c.__len__()):
         clrs = lv_norm[lv_alt == skyalt[i]]
-        # print(clrs)
+
         if skyalt_c[i] > 1:
             theta_patch = (
                 np.arange(0, skyalt_c[skyalt == skyalt[i]][0], 1)
@@ -80,11 +79,6 @@ def PolarBarPlot(
                 * (360 * deg2rad)
                 / skyalt_c[skyalt == skyalt[i]][0]
             )
-
-            # if plot_type:
-            #     patch_order_range = range(skyalt_c[skyalt == skyalt[i]][0])
-            # else:
-            #     patch_order_range = reversed(range(skyalt_c[skyalt == skyalt[i]][0]))
 
             patch_order_range = range(skyalt_c[skyalt == skyalt[i]][0])
 
@@ -163,8 +157,9 @@ def PolarBarPlot(
         sm._A = []
         cbaxes = fig.add_axes([0.87, 0.1, 0.03, 0.8])
         cb = plt.colorbar(sm, cax=cbaxes)
-        # Watts per square meter Steradian
-        cb.ax.set_title(r"$W/m^2$ $sr^{-1}$", fontsize=12, fontweight="bold")
+        cb.ax.set_title(
+            r"$W/m^2$ $sr^{-1}$", fontsize=12, fontweight="bold"
+        )  # Watts per square meter Steradian
     else:
         # legend_colors = {'Shaded building wall':'peru', 'Sunlit building wall':'yellow', 'Sky':'deepskyblue', 'Trees':'forestgreen', 'Roof':'black'}
         # legend_colors = {'Building wall':'peru', 'Building roof':'grey', 'Trees':'forestgreen', 'Sky':'deepskyblue'}

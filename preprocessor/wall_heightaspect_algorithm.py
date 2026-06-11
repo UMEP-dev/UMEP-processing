@@ -30,48 +30,49 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
+import gc
+
+import gc
+
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
+    QgsProcessingException,
+    QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterRasterDestination,
 )
 
 from osgeo import gdal
-import numpy as np
+from osgeo.gdalconst import *
+
+try:
+    import torch
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+
 import os
+from ..functions import wallalgorithms_torch as wa_torch
 from ..functions import wallalgorithms as wa
+
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
 from ..util.misc import saverasternd
-
-# def saverasternd(gdal_data, filename, raster):
-#     rows = gdal_data.RasterYSize
-#     cols = gdal_data.RasterXSize
-
-#     outDs = gdal.GetDriverByName("GTiff").Create(filename, cols, rows, int(1), GDT_Float32)
-#     outBand = outDs.GetRasterBand(1)
-
-#     # write the data
-#     outBand.WriteArray(raster, 0, 0)
-#     # flush data to disk, set the NoData value and calculate stats
-#     outBand.FlushCache()
-#     # outBand.SetNoDataValue(-9999)
-
-#     # georeference the image and set the projection
-#     outDs.SetGeoTransform(gdal_data.GetGeoTransform())
-#     outDs.SetProjection(gdal_data.GetProjection())
+import os
 
 
 class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
     INPUT_LIMIT = "INPUT_LIMIT"
     INPUT = "INPUT"
+    USE_GPU = "USE_GPU"
     OUTPUT_HEIGHT = "OUTPUT_HEIGHT"
     OUTPUT_ASPECT = "OUTPUT_ASPECT"
-    # ASPECT_BOOL = 'ASPECT_BOOL'
 
     def initAlgorithm(self, config):
 
@@ -83,9 +84,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 False,
             )
         )
-        # self.addParameter(QgsProcessingParameterBoolean(self.ASPECT_BOOL,
-        #     self.tr("Calculate wall aspect"),
-        #     defaultValue=True))
+
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.INPUT_LIMIT,
@@ -95,6 +94,15 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 minValue=0.0,
             )
         )
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr("Use GPU if available"),
+                None,
+                False,
+            )
+        )
+
         self.addParameter(
             QgsProcessingParameterRasterDestination(
                 self.OUTPUT_HEIGHT,
@@ -113,6 +121,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         )
 
     def processAlgorithm(self, parameters, context, feedback):
+
         outputFileHeight = self.parameterAsOutputLayer(
             parameters, self.OUTPUT_HEIGHT, context
         )
@@ -124,16 +133,41 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
         walllimit = self.parameterAsDouble(
             parameters, self.INPUT_LIMIT, context
         )
+        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         cmd_folder = Path(
             os.path.split(inspect.getfile(inspect.currentframe()))[0]
         )
         feedback.setProgressText(str(cmd_folder))
         feedback.setProgressText(str(cmd_folder.parent))
+        device = None
 
-        # feedback.setProgressText(str(parameters["INPUT"])) # this prints to the processing log tab
-        # QgsMessageLog.logMessage("Testing", "umep", level=Qgis.Info) # This
-        # prints to a umep tab
+        if use_gpu:
+
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
+            ):
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch or with osgeo4w"
+                )
+
+            if torch.cuda.is_available():
+                device = torch.device("cuda")
+                feedback.setProgressText(
+                    "PyTorch and GPU found. Initiating GPU mode..."
+                )
+            else:
+                device = torch.device("cpu")
+                feedback.setProgressText(
+                    "Pytorch found but GPU not found. Initiating CPU mode..."
+                )
+
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         provider = dsmin.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -142,23 +176,65 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgressText("Calculating wall height")
         total = 100.0 / (int(dsm.shape[0] * dsm.shape[1]))
-        # walls = wa.findwalls(dsm, walllimit, feedback, total)
-        walls = wa.findwalls_sp(dsm, walllimit, False)
 
-        wallssave = np.copy(walls)
-        # feedback.setProgressText(outputFileHeight)
+        if use_gpu:
+            walls = wa_torch.findwalls_sp(dsm, walllimit, device, False)
+        else:
+            walls = wa.findwalls_sp(dsm, walllimit, False)
+
+        wallssave = walls
+
+        if use_gpu:
+            wallssave = wallssave.cpu().detach().numpy()
         saverasternd(gdal_dsm, outputFileHeight, wallssave)
 
         if outputFileAspect:
             total = 100.0 / 180.0
             # outputFileAspect = self.parameterAsOutputLayer(parameters, self.OUTPUT_ASPECT, context)
             feedback.setProgressText("Calculating wall aspect")
-            dirwalls = wa.filter1Goodwin_as_aspect_v3(
-                walls, 1, dsm, feedback, total
-            )
-            saverasternd(gdal_dsm, outputFileAspect, dirwalls)
+            if use_gpu:
+                dirwalls = wa_torch.filter1Goodwin_as_aspect_v3(
+                    walls,
+                    torch.tensor(1, device=device),
+                    torch.tensor(dsm, device=device),
+                    feedback,
+                    torch.tensor(total, device=device),
+                    device,
+                )
+
+                if use_gpu:
+                    dirwalls = dirwalls.cpu().detach().numpy()
+                saverasternd(gdal_dsm, outputFileAspect, dirwalls)
+            else:
+
+                if use_gpu:
+                    dirwalls = wa_torch.filter1Goodwin_as_aspect_v3(
+                        walls,
+                        1,
+                        dsm,
+                        feedback,
+                        total,
+                    )
+                else:
+                    dirwalls = wa.filter1Goodwin_as_aspect_v3(
+                        walls,
+                        1,
+                        dsm,
+                        feedback,
+                        total,
+                    )
+                saverasternd(gdal_dsm, outputFileAspect, dirwalls)
         else:
             feedback.setProgressText("Wall aspect not calculated")
+
+        # Aggressive GPU memory cleanup
+        if use_gpu and torch.cuda.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.cuda.synchronize()  # Ensure all GPU operations are complete
+            torch.cuda.empty_cache()  # Clear unused GPU memory
+            torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.cuda.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
 
         return {
             self.OUTPUT_HEIGHT: outputFileHeight,

@@ -8,7 +8,7 @@ Created on Wed Jan 19 13:09:33 2022
 
 try:
     import xarray as xr
-except BaseException:
+except:
     pass
 import os
 import pandas as pd
@@ -88,8 +88,7 @@ def plotSectionalViews(
     else:
         srid_all = srid_lines
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the process)
+    # Create temporary table names (for tables that will be removed at the end of the process)
     allPointsTab = DataUtil.postfix("ALL_POINTS")
     linesTab = DataUtil.postfix("LINES")
     pointsIntersecTab = DataUtil.postfix("POINTS_INTERSECT")
@@ -283,8 +282,8 @@ def plotSectionalViews(
             )
         # Get the resolution of the wind speed data
         cursor.execute(safe("""
-           SELECT ST_DISTANCE(a.{0}, b.{0}) AS dist
-           FROM {1} AS a, {1} AS b
+           SELECT ST_DISTANCE(a.{0}, b.{0}) AS dist 
+           FROM {1} AS a, {1} AS b 
            WHERE a.{2} = 0 AND a.{3} = 0 AND b.{2} = 1 AND b.{3} = 0
            """).format(GEOM_FIELD, allPointsTab, RLON, RLAT))
         horiz_res = round(cursor.fetchall()[0][0])
@@ -376,42 +375,46 @@ def plotSectionalViews(
             ].replace(0, 0 - float(horiz_res) / 2)
             dic_all = {
                 id_line: {
-                    zval: df_selectedPoints[
-                        (df_selectedPoints[idLines.upper()] == id_line)
-                        & (df_selectedPoints[Z.upper()] == zval)
-                    ]
-                    .groupby("DIST")
-                    .mean()
+                    zval: (
+                        df_selectedPoints[
+                            (df_selectedPoints[idLines.upper()] == id_line)
+                            & (df_selectedPoints[Z.upper()] == zval)
+                        ]
+                        .groupby("DIST")
+                        .mean()
+                    )
                     for zval in uniques_z
                 }
                 for id_line in pd.unique(df_selectedPoints[idLines.upper()])
             }
             dic_all = {
                 id_line: {
-                    zval: conditional_interpolate(
-                        dic_all[id_line][zval]
-                        .reindex(
+                    zval: (
+                        conditional_interpolate(
+                            dic_all[id_line][zval]
+                            .reindex(
+                                pd.Index(
+                                    np.arange(
+                                        0,
+                                        dic_all[id_line][zval].index.max(),
+                                        horiz_res,
+                                    )
+                                ).union(dic_all[id_line][zval].index)
+                            )
+                            .sort_index(),
+                            cols=[
+                                WINDSPEED_X.upper(),
+                                WINDSPEED_Y.upper(),
+                                WINDSPEED_Z.upper(),
+                            ],
+                            limit=2,
+                        ).reindex(
                             pd.Index(
                                 np.arange(
                                     0,
                                     dic_all[id_line][zval].index.max(),
                                     horiz_res,
                                 )
-                            ).union(dic_all[id_line][zval].index)
-                        )
-                        .sort_index(),
-                        cols=[
-                            WINDSPEED_X.upper(),
-                            WINDSPEED_Y.upper(),
-                            WINDSPEED_Z.upper(),
-                        ],
-                        limit=2,
-                    ).reindex(
-                        pd.Index(
-                            np.arange(
-                                0,
-                                dic_all[id_line][zval].index.max(),
-                                horiz_res,
                             )
                         )
                     )

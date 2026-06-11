@@ -6,7 +6,7 @@ __copyright__ = "(C) 2021 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
@@ -20,6 +20,7 @@ from qgis.core import (
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import osr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import pandas as pd
@@ -28,6 +29,10 @@ from pathlib import Path
 import datetime
 from ..util.umep_target_export_component import write_config_file
 from ..util.misc import xy2latlon
+import sys
+import shutil
+import traceback
+import math
 
 # from ..functions.target import Target
 # from target import Target
@@ -35,7 +40,7 @@ from ..util.misc import xy2latlon
 try:
     from target_py import Target
     from target_py.ui.utils import read_config
-except BaseException:
+except:
     pass
 
 
@@ -220,8 +225,8 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
 
         # Converting UMEP met-file to target met-file
         try:
-            metfile = pd.read_csv(inputMet, sep="\\s+")
-        except BaseException:
+            metfile = pd.read_csv(inputMet, sep="\s+")
+        except:
             raise QgsProcessingException(
                 "Error: Make sure format of meteorological file is correct. You can"
                 "prepare your data by using 'Prepare Existing Data' in "
@@ -329,16 +334,18 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgressText("Model calculation started.")
         start = datetime.datetime.now()
         tar = Target(
-            # passing the simulation's config file
-            os.path.join(inputDir, "config.ini"),
+            os.path.join(
+                inputDir, "config.ini"
+            ),  # passing the simulation's config file
             progress=True,  # show progress bars in console
         )
         tar.load_config()
 
         # run simulation
         if outputCSV:
-            # save model results in csv format
-            tar.run_simulation(save_csv=True)
+            tar.run_simulation(
+                save_csv=True
+            )  # save model results in csv format
         else:
             tar.run_simulation(save_csv=False)
 
@@ -371,7 +378,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             dataout = np.load(
                 inputDir + "/output/" + runName + ".npy", allow_pickle=True
             )
-            dfin = pd.read_csv(inputMet, sep="\\s+")
+            dfin = pd.read_csv(inputMet, sep="\s+")
             dfin["datetime"] = pd.to_datetime(
                 dfin[["%iy", "id", "it", "imin"]]
                 .astype(str)
@@ -388,8 +395,9 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             )
             index = 1
 
-            # looping through each grid saving data
-            for f in range(0, dataout.shape[1]):
+            for f in range(
+                0, dataout.shape[1]
+            ):  # looping through each grid saving data
                 feedback.setProgress(int((index * 100) / dataout.shape[1]))
                 if feedback.isCanceled():
                     feedback.setProgressText("Calculation cancelled")

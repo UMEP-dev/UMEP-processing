@@ -308,9 +308,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         if vegdsm:
             usevegdem = 1
             feedback.setProgressText("Vegetation scheme activated")
-            # vegdsm = self.parameterAsRasterLayer(parameters, self.INPUT_CDSM, context)
-            # if vegdsm is None:
-            #     raise QgsProcessingException("Error: No valid vegetation DSM selected")
 
             # load raster
             gdal.AllRegister()
@@ -328,10 +325,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
                 )
 
             if vegdsm2:
-                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-
-                # if vegdsm2 is None:
-                #     raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
 
                 # load raster
                 gdal.AllRegister()
@@ -360,8 +353,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
             filePath_tdsm = None
 
         # wall height layer
-        # if whlayer is None:
-        #     raise QgsProcessingException("Error: No valid wall height raster layer is selected")
         provider = whlayer.dataProvider()
         filepath_wh = str(provider.dataSourceUri())
         self.gdal_wh = gdal.Open(filepath_wh)
@@ -378,8 +369,6 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         )[1]
 
         # wall aspectlayer
-        # if walayer is None:
-        #     raise QgsProcessingException("Error: No valid wall aspect raster layer is selected")
         provider = walayer.dataProvider()
         filepath_wa = str(provider.dataSourceUri())
         self.gdal_wa = gdal.Open(filepath_wa)

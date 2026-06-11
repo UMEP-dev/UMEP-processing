@@ -10,11 +10,13 @@ from ...SOLWEIGpython.cylindric_wedge import cylindric_wedge
 # from .TsWaveDelay_2015a import TsWaveDelay_2015a
 # from .Kup_veg_2015a import Kup_veg_2015a
 from ...SOLWEIGpython.Lside_veg_v2015a import Lside_veg_v2015a
+from ..SOLWEIG1D.Kside1D_veg_v2019a import Kside_veg_v2019a
 
 # from ...SOLWEIGpython.Perez_v3_moved import Perez_v3
 from ....util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 
 from .anisotropic_sky import anisotropic_sky as ani_sky
+from copy import deepcopy
 
 
 def Solweig1D_2019a_calc(
@@ -70,8 +72,7 @@ def Solweig1D_2019a_calc(
 ):
 
     # This is the core function of the SOLWEIG1D model, 2019-Jun-21
-    # Fredrik Lindberg, fredrikl@gvc.gu.se, Goteborg Urban Climate Group,
-    # Gothenburg University, Sweden
+    # Fredrik Lindberg, fredrikl@gvc.gu.se, Goteborg Urban Climate Group, Gothenburg University, Sweden
 
     svfE = svf
     svfW = svf
@@ -110,7 +111,7 @@ def Solweig1D_2019a_calc(
         1 - (1 + msteg) * np.exp(-((1.2 + 3.0 * msteg) ** 0.5))
     ) + elvis  # -0.04 old error from Jonsson et al.2006
 
-    if altitude > 0:  # DAYTIME # # # # # #
+    if altitude > 0:  # # # # # # DAYTIME # # # # # #
         # Clearness Index on Earth's surface after Crawford and Dunchon (1999) with a correction
         #  factor for low sun elevations after Lindberg et al.(2008)
         I0, CI, Kt, I0et, CIuncorr = clearnessindex_2013b(
@@ -140,8 +141,9 @@ def Solweig1D_2019a_calc(
 
             aniLum = 0.0
             for idx in range(skyp.shape[0]):
-                # Total relative luminance from sky into each cell
-                aniLum = aniLum + skyp[idx] * lv[idx, 2]
+                aniLum = (
+                    aniLum + skyp[idx] * lv[idx, 2]
+                )  # Total relative luminance from sky into each cell
 
             dRad = (
                 aniLum * radD
@@ -178,11 +180,11 @@ def Solweig1D_2019a_calc(
             # Tg = 0
             Tgwall = 0
 
-        # New estimation of Tg reduction for non - clear situation based on
-        # Reindl et al.1990
+        # New estimation of Tg reduction for non - clear situation based on Reindl et al.1990
         radI0, _ = diffusefraction(I0, altitude, 1.0, Ta, RH)
-        # 20070329 correction of lat, Lindberg et al. 2008
-        corr = 0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
+        corr = (
+            0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
+        )  # 20070329 correction of lat, Lindberg et al. 2008
         CI_Tg = (radG / radI0) + (1 - corr)
         if (CI_Tg > 1) or (CI_Tg == np.inf):
             CI_Tg = 1
@@ -197,14 +199,12 @@ def Solweig1D_2019a_calc(
         Tg = Tg * CI_TgG  # new estimation
         Tgwall = Tgwall * CI_TgG
         # if landcover == 1:
-        # Tg[Tg < 0] = 0  # temporary for removing low Tg during morning
-        # 20130205
+        #    Tg[Tg < 0] = 0  # temporary for removing low Tg during morning 20130205
 
         # gvf = shadow
 
         # Lup = SBC * eground * ((gvf + Ta + Tg + 273.15) ** 4)
-        # Ground always in shade, i.e. ground longwave radiation based on
-        # ground emissivity and air temperature
+        # Ground always in shade, i.e. ground longwave radiation based on ground emissivity and air temperature
         Lup = SBC * eground * ((Ta + 273.15) ** 4)
         LupE = Lup * 0.5
         LupS = Lup * 0.5
@@ -212,8 +212,9 @@ def Solweig1D_2019a_calc(
         LupN = Lup * 0.5
 
         # Building height angle from svf
-        # Fraction shadow on building walls based on sun alt and svf
-        F_sh = cylindric_wedge(zen, svfalfa, 1, 1)
+        F_sh = cylindric_wedge(
+            zen, svfalfa, 1, 1
+        )  # Fraction shadow on building walls based on sun alt and svf
         F_sh[np.isnan(F_sh)] = 0.5
 
         # # # # # # # Calculation of shortwave daytime radiative fluxes # # # # # # #
@@ -233,8 +234,7 @@ def Solweig1D_2019a_calc(
         )
 
         # Kup, KupE, KupS, KupW, KupN = Kup_veg_2015a(radI, radD, radG, altitude, svf, albedo_b, F_sh, gvfalb,
-        # gvfalbE, gvfalbS, gvfalbW, gvfalbN, gvfalbnosh, gvfalbnoshE,
-        # gvfalbnoshS, gvfalbnoshW, gvfalbnoshN)
+        #             gvfalbE, gvfalbS, gvfalbW, gvfalbN, gvfalbnosh, gvfalbnoshE, gvfalbnoshS, gvfalbnoshW, gvfalbnoshN)
 
         # Keast, Ksouth, Kwest, Knorth, KsideI, KsideD = Kside_veg_v2019a(radI, radD, radG, shadow, svfS, svfW, svfN, svfE,
         #             svfEveg, svfSveg, svfWveg, svfNveg, azimuth, altitude, psi, t, albedo_b, F_sh, Kup, Kup, Kup,
@@ -264,8 +264,7 @@ def Solweig1D_2019a_calc(
         # # # # Lup # # # #
         Lup = SBC * eground * ((Knight + Ta + Tg + 273.15) ** 4)
         # if landcover == 1:
-        # Lup[lc_grid == 3] = SBC * 0.98 * (Twater + 273.15) ** 4  # nocturnal
-        # Water temp
+        #     Lup[lc_grid == 3] = SBC * 0.98 * (Twater + 273.15) ** 4  # nocturnal Water temp
         LupE = Lup * 0.5
         LupS = Lup * 0.5
         LupW = Lup * 0.5

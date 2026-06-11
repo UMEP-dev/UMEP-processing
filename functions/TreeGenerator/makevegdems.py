@@ -18,8 +18,7 @@ def vegunitsgeneration(
     sizey,
     scale,
 ):
-    # This function creates the shape of each vegetation unit and locates it a
-    # grid.
+    # This function creates the shape of each vegetation unit and locates it a grid.
 
     vegdemtemp = np.zeros([sizey, sizex])
     vegdem2temp = np.copy(vegdemtemp)

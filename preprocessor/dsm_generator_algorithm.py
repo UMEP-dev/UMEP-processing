@@ -61,10 +61,13 @@ from qgis.core import (
 from qgis.analysis import QgsZonalStatistics
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr, ogr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
+import sys
+from ..util import misc
 from ..util.misc import saveraster
 import requests
 from ..functions.URock.DataUtil import safe
@@ -228,8 +231,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         dem_maxx = dem_extent.xMaximum()
         dem_minx = dem_extent.xMinimum()
 
-        # Coordinate systems of input extent (can be map canvas, drawn
-        # rectangle or layer) and DEM layer.
+        # Coordinate systems of input extent (can be map canvas, drawn rectangle or layer) and DEM layer.
         dem_crs = osr.SpatialReference()
         crs_temp = demlayer.crs().toWkt()
         dem_crs.ImportFromWkt(crs_temp)
@@ -249,34 +251,46 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                     "POINT (" + str(maxx) + " " + str(maxy) + ")"
                 )
                 maxext.Transform(transformExtent)
-                # If smaller than zero = warning #changed to gdal 3
-                extent_difference_minx = minext.GetX() - dem_minx
-                # If smaller than zero = warning #changed to gdal 3
-                extent_difference_miny = minext.GetY() - dem_miny
-                # If larger than zero = warning #changed to gdal 3
-                extent_difference_maxx = maxext.GetX() - dem_maxx
-                # If larger than zero = warning #changed to gdal 3
-                extent_difference_maxy = maxext.GetY() - dem_maxy
+                extent_difference_minx = (
+                    minext.GetX() - dem_minx
+                )  # If smaller than zero = warning #changed to gdal 3
+                extent_difference_miny = (
+                    minext.GetY() - dem_miny
+                )  # If smaller than zero = warning #changed to gdal 3
+                extent_difference_maxx = (
+                    maxext.GetX() - dem_maxx
+                )  # If larger than zero = warning #changed to gdal 3
+                extent_difference_maxy = (
+                    maxext.GetY() - dem_maxy
+                )  # If larger than zero = warning #changed to gdal 3
             else:
                 input_xymin = transformExtent.TransformPoint(minx, miny)
                 input_xymax = transformExtent.TransformPoint(maxx, maxy)
-                # If smaller than zero = warning #changed to gdal 2
-                extent_difference_minx = input_xymin[0] - dem_minx
-                # If smaller than zero = warning #changed to gdal 2
-                extent_difference_miny = input_xymin[1] - dem_miny
-                # If larger than zero = warning #changed to gdal 2
-                extent_difference_maxx = input_xymax[0] - dem_maxx
-                # If larger than zero = warning #changed to gdal 2
-                extent_difference_maxy = input_xymax[1] - dem_maxy
+                extent_difference_minx = (
+                    input_xymin[0] - dem_minx
+                )  # If smaller than zero = warning #changed to gdal 2
+                extent_difference_miny = (
+                    input_xymin[1] - dem_miny
+                )  # If smaller than zero = warning #changed to gdal 2
+                extent_difference_maxx = (
+                    input_xymax[0] - dem_maxx
+                )  # If larger than zero = warning #changed to gdal 2
+                extent_difference_maxy = (
+                    input_xymax[1] - dem_maxy
+                )  # If larger than zero = warning #changed to gdal 2
         else:
-            # If smaller than zero = warning #changed to gdal 3
-            extent_difference_minx = minx - dem_minx
-            # If smaller than zero = warning #changed to gdal 3
-            extent_difference_miny = miny - dem_miny
-            # If larger than zero = warning #changed to gdal 3
-            extent_difference_maxx = maxx - dem_maxx
-            # If larger than zero = warning #changed to gdal 3
-            extent_difference_maxy = maxy - dem_maxy
+            extent_difference_minx = (
+                minx - dem_minx
+            )  # If smaller than zero = warning #changed to gdal 3
+            extent_difference_miny = (
+                miny - dem_miny
+            )  # If smaller than zero = warning #changed to gdal 3
+            extent_difference_maxx = (
+                maxx - dem_maxx
+            )  # If larger than zero = warning #changed to gdal 3
+            extent_difference_maxy = (
+                maxy - dem_maxy
+            )  # If larger than zero = warning #changed to gdal 3
 
         if (
             extent_difference_minx < -0.1
@@ -308,7 +322,6 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             "Meters",
             "m",
             "ft",
-            # Possible units
             "US survey foot",
             "feet",
             "Feet",
@@ -316,7 +329,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             "Foot",
             "ftUS",
             "International foot",
-        ]
+        ]  # Possible units
         if not dem_unit in possible_units:
             raise QgsProcessingException(
                 "Error! Raster projection is not in meters or feet. Please reproject."
@@ -345,8 +358,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
         )
 
         if useOsm:
-            # Coordinate system of input DEM layer used for creation of OSM
-            # shapefile
+            # Coordinate system of input DEM layer used for creation of OSM shapefile
             ras_crs = osr.SpatialReference()
             dsm_ref = demlayer.crs().toWkt()
             ras_crs.ImportFromWkt(dsm_ref)
@@ -368,8 +380,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             osm_crs = osr.SpatialReference()
             osm_crs.ImportFromWkt(wgs84_wkt)
 
-            # Transform to convert from input extent coordinate system to Open
-            # Street Map coordinate system
+            # Transform to convert from input extent coordinate system to Open Street Map coordinate system
             transform = osr.CoordinateTransformation(input_crs, osm_crs)
 
             gdalver = float(gdal.__version__[0])
@@ -388,8 +399,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                 latmin = lonlatmin.GetX()
                 latmax = lonlatmax.GetX()
                 # lonlatmin = transform.TransformPoint(miny, minx) #changed to gdal 3
-                # lonlatmax = transform.TransformPoint(maxy, maxx) #changed to
-                # gdal 3
+                # lonlatmax = transform.TransformPoint(maxy, maxx) #changed to gdal 3
             else:
                 lonlatmin = transform.TransformPoint(minx, miny)
                 lonlatmax = transform.TransformPoint(maxx, maxy)
@@ -473,8 +483,9 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             driver.DeleteDataSource(temp_dir + "points.shp")
 
             osmPolygonPath = temp_dir + "multipolygons.shp"
-            # Reads temp file made from OSM data
-            vlayer = QgsVectorLayer(osmPolygonPath, "multipolygons", "ogr")
+            vlayer = QgsVectorLayer(
+                osmPolygonPath, "multipolygons", "ogr"
+            )  # Reads temp file made from OSM data
             fileInfo = QFileInfo(vlayer.source())
             polygon_ln = fileInfo.baseName()
 
@@ -518,21 +529,21 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                             feature.fieldNameIndex("bld_height"),
                             float(str(feature["height"])),
                         )
-                    except BaseException:
+                    except:
                         counterNone += 1
-                # Tries with possible building height data (other tag for
-                # height??)
-                elif feature["bld_hght"]:
+                elif feature[
+                    "bld_hght"
+                ]:  # Tries with possible building height data (other tag for height??)
                     try:
                         feature.setAttribute(
                             feature.fieldNameIndex("bld_height"),
                             float(str(feature["bld_hght"])),
                         )
-                    except BaseException:
+                    except:
                         counterNone += 1
-                # If no height or building height then make building height
-                # from stories
-                elif feature["bld_levels"]:
+                elif feature[
+                    "bld_levels"
+                ]:  # If no height or building height then make building height from stories
                     try:
                         temp = (
                             float(str(feature["bld_levels"]))
@@ -541,7 +552,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
                         feature.setAttribute(
                             feature.fieldNameIndex("bld_height"), temp
                         )
-                    except BaseException:
+                    except:
                         counterNone += 1
                 else:
                     counterNone += 1
@@ -551,8 +562,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
             counterDiff = counter - counterNone
 
         else:
-            # If not OSM data, input polygon layer with building heights should
-            # be used
+            # If not OSM data, input polygon layer with building heights should be used
             vlayer = shapelayer
             fileInfo = QFileInfo(vlayer.source())
             polygon_ln = fileInfo.baseName()
@@ -591,8 +601,7 @@ class ProcessingDSMGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         vlayer.commitChanges()
 
-        # Sort vlayer ascending to prevent lower buildings from overwriting
-        # higher buildings in some complexes
+        # Sort vlayer ascending to prevent lower buildings from overwriting higher buildings in some complexes
         sortPoly = temp_dir + "sortPoly.shp"
 
         if useOsm:

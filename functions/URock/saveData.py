@@ -23,6 +23,7 @@ from osgeo.gdal import (
     GridOptions,
     FillNodata,
     Open,
+    GA_Update,
     GetDriverByName,
 )
 from .GlobalVariables import (
@@ -34,6 +35,8 @@ from .GlobalVariables import (
     TEMPO_HORIZ_WIND_FILE,
     VERT_WIND_SPEED,
     GEOM_FIELD,
+    OUTPUT_DIRECTORY,
+    MESH_SIZE,
     OUTPUT_FILENAME,
     DELETE_OUTPUT_IF_EXISTS,
     OUTPUT_RASTER_EXTENSION,
@@ -45,6 +48,7 @@ from .GlobalVariables import (
     RLAT,
     LON,
     LAT,
+    LEVELS,
     WINDSPEED_X,
     WINDSPEED_Y,
     WINDSPEED_Z,
@@ -94,8 +98,8 @@ def saveBasicOutputs(
     if saveNetcdf:
         # Get the coordinate in lat/lon of each point
         # WARNING : for now keep the data in local coordinates)
-        cursor.execute(safe("""
-           SELECT ST_X({0}) AS LON, ST_Y({0}) AS LAT FROM
+        cursor.execute(safe(""" 
+           SELECT ST_X({0}) AS LON, ST_Y({0}) AS LAT FROM 
            (SELECT ST_TRANSFORM(ST_SETSRID({0},{2}), 4326) AS {0} FROM {1})
            """).format(GEOM_FIELD, gridName, srid))
         coord = np.array(cursor.fetchall())
@@ -162,11 +166,11 @@ def saveBasicOutputs(
             {
                 HORIZ_WIND_SPEED: ((ufin**2 + vfin**2) ** 0.5).flatten("F"),
                 WIND_SPEED: (
-                    (ufin**2 + vfin**2 + wfin**2) ** 0.5
-                ).flatten("F"),
-                HORIZ_WIND_DIRECTION: radToDeg(
-                    windDirectionFromXY(ufin, vfin)
-                ).flatten("F"),
+                    ((ufin**2 + vfin**2 + wfin**2) ** 0.5).flatten("F")
+                ),
+                HORIZ_WIND_DIRECTION: (
+                    radToDeg(windDirectionFromXY(ufin, vfin)).flatten("F")
+                ),
                 VERT_WIND_SPEED: wfin.flatten("F"),
             }
         ).rename_axis(ID_POINT)
@@ -183,7 +187,7 @@ def saveBasicOutputs(
             {0}{1}
             DROP TABLE IF EXISTS {2};
             CREATE TABLE {2}
-                AS SELECT   a.{3}, {4}, b.{5},
+                AS SELECT   a.{3}, {4}, b.{5}, 
                             b.{6}, b.{7}, b.{11}
                 FROM {8} AS a
                 LEFT JOIN {9} AS b
@@ -229,11 +233,10 @@ def saveBasicOutputs(
             )
 
             # -------------------------------------------------------------------
-            # SAVE RASTER -----------------------------------------------------
+            # SAVE RASTER -------------------------------------------------------
             # -------------------------------------------------------------------
             if saveRaster:
-                # Save the all direction, horizontal and vertical wind speeds
-                # into a a different raster
+                # Save the all direction, horizontal and vertical wind speeds into a a different raster
                 for var in [WIND_SPEED, HORIZ_WIND_SPEED, VERT_WIND_SPEED]:
                     saveRasterFile(
                         cursor=cursor,
@@ -517,8 +520,7 @@ def saveRasterFile(
             extension=OUTPUT_RASTER_EXTENSION,
         )
 
-    # Whether or not a raster output is given as input, the rasterization
-    # process is slightly different
+    # Whether or not a raster output is given as input, the rasterization process is slightly different
     if outputRaster:
         outputRasterExtent = outputRaster.extent()
         resX = (
@@ -534,8 +536,7 @@ def saveRasterFile(
         tmp_file = os.path.join(
             tmp_dir, f"interp_before_fillna_{var2save}.tif"
         )
-        # If a single output raster cell contains more than 4 points, average
-        # instead of interpolate
+        # If a single output raster cell contains more than 4 points, average instead of interpolate
         if resX * resY > 4 * meshSize**2:
             Grid(
                 destName=tmp_file,
@@ -695,8 +696,7 @@ def interp_vec_to_rast(
     # grid_values = grid_values[::-1, :]
 
     # # Define raster metadata
-    # transform = from_origin(xmin, ymax, resolution, resolution)  # origin is
-    # top-left
+    # transform = from_origin(xmin, ymax, resolution, resolution)  # origin is top-left
 
     # # Save the interpolated grid to a raster file
     # interp_out = os.path.join(TEMPO_DIRECTORY,"interp_out.tif")
@@ -705,8 +705,7 @@ def interp_vec_to_rast(
     #                     count=1, dtype=grid_values.dtype, crs=gdf.crs, transform=transform) as dst:
     #     dst.write(grid_values, 1)
 
-    # Change the order of the points to make the TIN interpolation faster and
-    # working for all conditions
+    # Change the order of the points to make the TIN interpolation faster and working for all conditions
     order_changed = processing.run(
         "native:orderbyexpression",
         {
@@ -743,8 +742,7 @@ def interp_vec_to_rast(
 
     # If there are buildings in the study area, need to set wind speed = 0
     if os.stat(stacked_blocks).st_size > 0:
-        # Rasterize the stacked blocks keeping the value of each stacked block
-        # base
+        # Rasterize the stacked blocks keeping the value of each stacked block base
         block_base = processing.run(
             "gdal:rasterize",
             {
@@ -766,8 +764,7 @@ def interp_vec_to_rast(
             },
         )["OUTPUT"]
 
-        # Rasterize the stacked blocks keeping the value of each stacked block
-        # top
+        # Rasterize the stacked blocks keeping the value of each stacked block top
         block_top = processing.run(
             "gdal:rasterize",
             {
@@ -805,15 +802,18 @@ def interp_vec_to_rast(
                 "BAND_E": None,
                 "INPUT_F": None,
                 "BAND_F": None,
-                "FORMULA": f"((A == -9999) + (A < {z_i})) * ((B == -9999) + (B < {z_i})) * C",
+                "FORMULA": (
+                    f"((A == -9999) + (A < {z_i})) * ((B == -9999) + (B < {z_i})) * C"
+                ),
                 "NO_DATA": None,
                 "EXTENT_OPT": 0,
                 "PROJWIN": None,
                 "RTYPE": 5,
                 "OPTIONS": "",
                 "EXTRA": "",
-                "OUTPUT": outputFilePathAndNameBaseRaster
-                + OUTPUT_RASTER_EXTENSION,
+                "OUTPUT": (
+                    outputFilePathAndNameBaseRaster + OUTPUT_RASTER_EXTENSION
+                ),
             },
         )["OUTPUT"]
     # Else directly save the result of the interpolation

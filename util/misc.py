@@ -7,9 +7,8 @@ from pandas import read_csv, to_datetime
 import os
 import re
 
+
 # Slope and aspect used in SEBE and Wall aspect
-
-
 def get_ders(dsm, scale):
     # dem,_,_=read_dem_grid(dem_file)
     dx = 1 / scale

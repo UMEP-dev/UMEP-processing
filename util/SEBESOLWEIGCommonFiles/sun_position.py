@@ -105,7 +105,6 @@ def sun_position(time, location):
     # 1. Calculate the Julian Day, and Century. Julian Ephemeris day, century
     # and millenium are calculated using a mean delta_t of 33.184 seconds.
     julian = julian_calculation(time)
-    # print(julian)
 
     # 2. Calculate the Earth heliocentric longitude, latitude, and radius
     # vector (L, B, and R)

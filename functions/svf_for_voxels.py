@@ -251,6 +251,13 @@ def svf_kmeans(
     feedback,
 ):
 
+    try:
+        from sklearn.cluster import KMeans
+    except:
+        raise ImportError(
+            "[UMEP-processing Error] pleas install sklearn via pip install scikit-learn or via osgeo4w"
+        )
+
     # Calculate where there are buildings and not. Used to elevate dem.
     ground = dsm - dem
     # Ground == 1 = ground
@@ -451,9 +458,9 @@ def svf_kmeans(
                 # get the calculated svf for the wall pixel to check if it is
                 # higher or lower than 0.5
 
-
                 temp_svf = svftotal[
-                    int(voxelTable[temp_y, 5][0]), int(voxelTable[temp_y, 6][0])
+                    int(voxelTable[temp_y, 5][0]),
+                    int(voxelTable[temp_y, 6][0]),
                 ]
                 if (
                     temp_svf < 0.5
@@ -510,7 +517,7 @@ def svf_kmeans(
     return voxelTable, cluster_heights
 
 
-def interpolate_svf(voxelTable, cluster_heights, kmeans):
+def interpolate_svf(voxelTable):
 
     unique_wall_pixels = np.unique(voxelTable[:, 4])
     unique_wall_pixels = unique_wall_pixels[unique_wall_pixels != 0]

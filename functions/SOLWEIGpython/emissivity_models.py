@@ -38,8 +38,7 @@ def model1(sky_patches, esky, Ta):
     # Natural log of optical water depth
     log_owp = np.log(owp)
 
-    # Emissivity of each zenith angle, i.e. the zenith angle of each band of
-    # patches
+    # Emissivity of each zenith angle, i.e. the zenith angle of each band of patches
     esky_band = a_c + b_c * log_owp
 
     # Altitudes of the Robinson & Stone patches
@@ -115,15 +114,13 @@ def model3(sky_patches, esky, Ta):
     # Unique zeniths for the patches
     skyzen = 90 - skyalt
 
-    # Constant, can (should?) be changed. Model gave unsatisfactory results in
-    # Nahon et al., 2019
+    # Constant, can (should?) be changed. Model gave unsatisfactory results in Nahon et al., 2019
     b_c = 1.8
 
     # Estimate emissivites at different altitudes/zenith angles
     esky_band = 1 - (1 - esky) ** (1 / (b_c * np.cos(skyzen * deg2rad)))
 
-    # Estimating longwave radiation for each patch to a horizontal or vertical
-    # surface
+    # Estimating longwave radiation for each patch to a horizontal or vertical surface
 
     # Altitudes of the Robinson & Stone patches
     p_alt = sky_patches[:, 0]
