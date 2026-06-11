@@ -30,6 +30,10 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
+import gc
+
+import gc
+
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
@@ -222,6 +226,15 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 saverasternd(gdal_dsm, outputFileAspect, dirwalls)
         else:
             feedback.setProgressText("Wall aspect not calculated")
+
+        # Aggressive GPU memory cleanup
+        if use_gpu and torch.cuda.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.cuda.synchronize()  # Ensure all GPU operations are complete
+            torch.cuda.empty_cache()  # Clear unused GPU memory
+            torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.cuda.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
 
         return {
             self.OUTPUT_HEIGHT: outputFileHeight,

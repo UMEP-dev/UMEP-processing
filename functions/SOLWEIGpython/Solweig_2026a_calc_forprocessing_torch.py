@@ -250,6 +250,7 @@ def Solweig_2026a_calc(
         )
         if (CI > 1) or (CI == torch.inf):
             CI = 1
+        del I0et, CIuncorr
 
         # Estimation of radD and radI if not measured after Reindl et al.(1990)
         if onlyglobal == 1:
@@ -258,6 +259,7 @@ def Solweig_2026a_calc(
             )
             if (CI > 1) or (CI == torch.inf):
                 CI = 1
+            del I0et, CIuncorr
 
             radI, radD = diffusefraction(radG, altitude, Kt, Ta, RH)
 
@@ -285,6 +287,7 @@ def Solweig_2026a_calc(
             dRad = (
                 aniLum * radD
             )  # Total diffuse radiation from sky into each cell
+            del aniLum, pc_, pb_
         else:
             dRad = radD * svfbuveg
             patchchoice = 1
@@ -309,6 +312,7 @@ def Solweig_2026a_calc(
                 )
             )
             shadow = sh - (1 - vegsh) * (1 - psi)
+            del sh, vegsh, wallsh, wallshve, facesun, wallsh_
         else:
             sh, wallsh, wallsun, facesh, facesun, wallsh_ = (
                 shadowingfunction_wallheight_13(
@@ -323,6 +327,7 @@ def Solweig_2026a_calc(
                 )
             )
             shadow = sh
+            del sh, wallsh, facesun, wallsh_
 
         # Building height angle from svf
         F_sh = cylindric_wedge(
@@ -333,10 +338,12 @@ def Solweig_2026a_calc(
         # New estimation of Tgwall with reduction for non-clear situation based on Reindl et al. 1990
         radI0, _ = diffusefraction(I0, altitude, 1.0, Ta, RH)
         radG0 = radI0 * (torch.sin(altitude * deg2rad)) + _
+        del radI0, _
         corr = (
             0.1473 * torch.log(90 - (zen / torch.pi * 180)) + 0.3454
         )  # 20070329 correction of lat, Lindberg et al. 2008
         CI_TgG = (radG / radG0) + (1 - corr)
+        del radG0
         if (CI_TgG > 1) or (CI_TgG == torch.inf):
             CI_TgG = 1
 
@@ -425,6 +432,7 @@ def Solweig_2026a_calc(
             _, timeadd, Tg = TsWaveDelay_2015a(
                 TgTemp, firstdaytime, timeadd, timestepdec, Tg
             )  # timeadd only here v2021a
+            del TgTemp, Tgdiff
 
             if landcover == 1:
                 Tg[Tg < 0] = (
@@ -803,6 +811,7 @@ def Solweig_2026a_calc(
             z = torch.transpose(torch.atleast_2d(patch_emissivities))
 
             L_patches = torch.append(torch.append(x, y, axis=1), z, axis=1)
+            del skyvaultalt, skyvaultazi, patch_emissivities, x, y, z
 
         else:
             L_patches = deepcopy(lv)
@@ -810,6 +819,7 @@ def Solweig_2026a_calc(
         # Calculate steradians for patches if it is the first model iteration
         if i == 0:
             steradians, skyalt, patch_altitude = patch_steradians(L_patches)
+            del skyalt, patch_altitude
 
         # Create lv from L_patches if nighttime, i.e. lv does not exist
         if altitude < 0:
@@ -929,6 +939,9 @@ def Solweig_2026a_calc(
         Lwest += Lwest_
         Lnorth += Lnorth_
         Lsouth += Lsouth_
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     return (
         Tmrt,

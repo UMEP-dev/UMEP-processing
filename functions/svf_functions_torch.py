@@ -15,11 +15,6 @@ def _to_tensor(x, device, dtype=torch.float32):
     return torch.tensor(x, dtype=dtype, device=device)
 
 
-def _sync_if_cuda(device):
-    if device is not None and device.type == "cuda":
-        torch.cuda.synchronize()
-
-
 # from ..functions.wallalgorithms import findwalls
 from . import wallalgorithms_torch as wa
 from . import svf_for_voxels_torch as svfv
@@ -46,6 +41,8 @@ def annulus_weight(altitude, aziinterval, device):
         * torch.sin((torch.pi * (2.0 * annulus - 1.0)) / (2.0 * n))
     )
     weight = steprad * w
+    del n, w
+    torch.cuda.empty_cache()
 
     return weight
 
@@ -126,7 +123,8 @@ def svf_angles_100121(device):
         device=device,
     )
     angleresult = {"iazimuth": iazimuth, "aziinterval": aziinterval}
-
+    del iazimuth, aziinterval
+    torch.cuda.empty_cache()
     return angleresult
 
 
@@ -482,9 +480,29 @@ def svfForProcessing153(
             "walls": walls,
         }
 
-        # ,
-        # 'vbshvegshmat': vbshvegshmat, 'wallshmat': wallshmat, 'wallsunmat': wallsunmat,
-        # 'wallshvemat': wallshvemat, 'facesunmat': facesunmat}
+        # Delete input and intermediate tensors not needed outside
+        del dsm, vegdem, vegdem2, demlayer, bush, vegmax, amaxvalue, last
+
+        # Delete patch configuration tensors
+        del (
+            skyvaultalt,
+            skyvaultazi,
+            annulino,
+            skyvaultaltint,
+            aziinterval,
+            skyvaultaziint,
+            azistart,
+            iazimuth,
+            aziintervalaniso,
+        )
+
+        # Delete wall scheme temporary variables
+        del (voxelTable, walls)
+
+        # Delete loop-specific matrices already reference-copied into svfresult
+        del shmat, vegshmat, vbshvegshmat, all_voxelId
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
         return svfresult
 
 
@@ -676,4 +694,21 @@ def svfForProcessing655(
             "svfWaveg": svfWaveg,
             "svfNaveg": svfNaveg,
         }
+
+        # Delete input and intermediate tensors not needed outside
+        del dsm, vegdem, vegdem2, bush, vegmax, amaxvalue, last
+
+        # Delete angle and patch tensors
+        del (
+            noa,
+            step,
+            iangle,
+            annulino,
+            angleresult,
+            aziinterval,
+            iazimuth,
+            aziintervalaniso,
+        )
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
         return svfresult

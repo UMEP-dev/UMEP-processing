@@ -59,41 +59,6 @@ def findwalls_sp(arr_dsm, walllimit, device, footprint=None):
     return walls
 
 
-def findwalls(a, walllimit, feedback, total):
-    # This function identifies walls based on a DSM and a wall-height limit
-    # Walls are represented by outer pixels within building footprints
-    #
-    # Fredrik Lindberg, Goteborg Urban Climate Group
-    # fredrikl@gvc.gu.se
-    # 20150625
-
-    col, row = a.shape
-    walls = torch.zeros((col, row))
-    domain = torch.tensor([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
-    index = 0
-    for i in torch.arange(1, row - 1):
-        if feedback.isCanceled():
-            feedback.setProgressText("Calculation cancelled")
-            break
-        for j in torch.arange(1, col - 1):
-            dom = a[j - 1 : j + 2, i - 1 : i + 2]
-            walls[j, i] = torch.max(
-                dom[torch.where(domain == 1)]
-            )  # new 20171006
-            index = index + 1
-            feedback.setProgress(int(index * total))
-
-    walls = torch.clone(walls - a)  # new 20171006
-    walls[(walls < walllimit)] = 0
-
-    walls[0 : walls.shape[0], 0] = 0
-    walls[0 : walls.shape[0], walls.shape[1] - 1] = 0
-    walls[0, 0 : walls.shape[0]] = 0
-    walls[walls.shape[0] - 1, 0 : walls.shape[1]] = 0
-
-    return walls
-
-
 def filter1Goodwin_as_aspect_v3(
     walls_for_dir, scale, a, feedback, total, device, tile_size=2048
 ):
@@ -362,6 +327,26 @@ def filter1Goodwin_as_aspect_v3(
     if feedback is not None:
         feedback.setProgress(int(total))
 
+    del (
+        filtmatrix,
+        buildfilt,
+        filtmatrix_list,
+        buildfilt1_list,
+        buildfilt2_list,
+    )
+    del all_kernels_walls, all_kernels_dsm1, all_kernels_dsm2
+    del (
+        final_x,
+        walls_binary,
+        a_device,
+        border_mask,
+        valid_mask,
+        grad,
+        asp,
+        asp_device,
+    )
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return final_y
 
 

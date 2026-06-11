@@ -57,7 +57,8 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
     Ssurf = hkil + ukil
 
     F_sh = (2 * torch.pi * ba - Ssurf) / (2 * torch.pi * ba)  # Xa
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return F_sh
 
 
@@ -108,5 +109,6 @@ def cylindric_wedge_voxel(zen, svfalfa):
     Ssurf = hkil + ukil
 
     F_sh = (2 * torch.pi * ba - Ssurf) / (2 * torch.pi * ba)  # Xa
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return F_sh

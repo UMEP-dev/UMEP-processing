@@ -56,6 +56,8 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, device):
     sh = (sh > 0).float()
     sh = 1.0 - sh
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return sh, wallsh, wallsun, facesh, facesun
 
 
@@ -162,6 +164,9 @@ def shadowingfunction_wallheight_13(
             azimuth, aspect_scheme, walls_scheme, a, f, device
         )
         shade_on_wall = wallsh_.clone()
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
         return (sh, wallsh, wallsun, facesh, facesun, shade_on_wall)
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return (sh, wallsh, wallsun, facesh, facesun)

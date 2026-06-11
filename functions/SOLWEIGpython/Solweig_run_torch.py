@@ -177,6 +177,10 @@ def solweig_run(configPath, feedback):
         vegdsm = 0
         vegdsm2 = 0
 
+    # Clean up intermediate tensors after vegetation loading
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     # Land cover
     landcover = int(configDict["landcover"])
     if landcover == 1:
@@ -219,6 +223,10 @@ def solweig_run(configPath, feedback):
             dem = dem + demraise
         else:
             demraise = 0
+
+    # Clean up DEM intermediate tensors
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     # SVF
     zip = zipfile.ZipFile(configDict["input_svf"], "r")
@@ -395,6 +403,10 @@ def solweig_run(configPath, feedback):
         svfEaveg = torch.ones((rows, cols)).to(device)
         svfWaveg = torch.ones((rows, cols)).to(device)
 
+    # Clean up after SVF loading
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     tmp = svf + svfveg - 1.0
     tmp[tmp < 0.0] = 0.0
     # %matlab crazyness around 0
@@ -456,22 +468,6 @@ def solweig_run(configPath, feedback):
             "poi_field"
         ]  # self.parameterAsString(parameters, self.POI_FIELD, context)
         if standAlone == 0:
-            # vlayer = QgsVectorLayer(configDict['poi_file'], 'point', 'ogr')
-            # idx = vlayer.fields().indexFromName(poi_field)
-            # numfeat = vlayer.featureCount()
-            # poisxy = torch.zeros((numfeat, 3)) - 999
-            # ind = 0
-            # for f in vlayer.getFeatures():  # looping through each POI
-            #     y = f.geometry().centroid().asPoint().y()
-            #     x = f.geometry().centroid().asPoint().x()
-            #     poiname.append(f.attributes()[idx])
-            #     poisxy[ind, 0] = ind
-            #     poisxy[ind, 1] = torch.round((x - minx) * scale)
-            #     if miny >= 0:
-            #         poisxy[ind, 2] = torch.round((miny + rows * (1. / scale) - y) * scale)
-            #     else:
-            #         poisxy[ind, 2] = torch.round((miny + rows * (1. / scale) - y) * scale)
-            #     ind += 1
 
             poi_field = configDict[
                 "woi_field"
@@ -595,6 +591,10 @@ def solweig_run(configPath, feedback):
         bush = torch.zeros([rows, cols]).to(device)
         amaxvalue = 0
 
+    # Clean up vegetation processing tensors
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     # Initialization of maps
     Knight = torch.zeros((rows, cols)).to(device)
     Tgmap1 = torch.zeros((rows, cols)).to(device)
@@ -704,6 +704,7 @@ def solweig_run(configPath, feedback):
 
     # Parameterization for the 2026 ground scheme
     groundSurface = int(configDict["groundmodel"])
+
     if groundSurface == 1:
         # Initiate the maps if the surface temperature is available
         if configDict["input_surf"] != "":
@@ -853,6 +854,10 @@ def solweig_run(configPath, feedback):
         # thermal_effusivity = 0
         walls_scheme = torch.ones((rows, cols)).to(device) * 10.0
         dirwalls_scheme = torch.ones((rows, cols)).to(device) * 10.0
+
+    # Clean up wall scheme setup tensors
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     # Initialisation of time related variables
     if Ta.__len__() == 1:
@@ -1205,6 +1210,10 @@ def solweig_run(configPath, feedback):
                 )
                 f_handle.close()
 
+        # Clean up POI tensor after writing
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+
         # If wall temperature parameterization scheme is in use
         if (
             configDict["wallscheme"] == 1
@@ -1302,6 +1311,9 @@ def solweig_run(configPath, feedback):
                         fmt=woi_numformat,
                     )
                     f_handle.close()
+                    del wall_data, temp_all  # Clean up wall data tensors
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
 
             # Save wall temperature/radiation as NetCDF TODO: fix for standAlone?
             if configDict["wallnetcdf"] == "1":  # wallNetCDF:
@@ -1438,6 +1450,32 @@ def solweig_run(configPath, feedback):
                     dsm_crs,
                 )
 
+        # Clean up iteration tensors after output
+        if device.type == "cuda":
+            del (
+                Tmrt,
+                Kdown,
+                Kup,
+                Ldown,
+                Lup,
+                Keast,
+                Ksouth,
+                Kwest,
+                Knorth,
+                Least,
+                Lsouth,
+                Lwest,
+                Lnorth,
+                KsideI,
+                radIout,
+                radDout,
+                Lside,
+                KsideD,
+                dRad,
+                Kside,
+            )
+            torch.cuda.empty_cache()
+
         # Sky view image of patches
         if (anisotropic_sky == 1) & (i == 0) & (not poisxy is None):
             for k in range(poisxy.shape[0]):
@@ -1550,3 +1588,6 @@ def solweig_run(configPath, feedback):
             dsm_transf,
             dsm_crs,
         )
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()

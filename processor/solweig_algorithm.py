@@ -34,7 +34,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
-    QgsProcessingParameterString,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterFolderDestination,
@@ -58,6 +57,7 @@ try:
 except ImportError:
     torch = None
     TORCH_AVAILABLE = False
+
 # import pandas as pd
 from osgeo import gdal
 from osgeo.gdalconst import *
@@ -67,6 +67,7 @@ import inspect
 from pathlib import Path
 from ..util.misc import xy2latlon_fromraster
 import zipfile
+import gc
 
 from ..util.umep_solweig_export_component import (
     read_solweig_config,
@@ -631,7 +632,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterBoolean(
                 self.USE_GPU,
                 self.tr(
-                    "Use GPU for calculations (if not ticked, CPU will be used)"
+                    "Use GPU for SOLWEIG 2026 calculations (if not ticked, CPU will be used)"
                 ),
                 defaultValue=False,
                 optional=False,
@@ -736,15 +737,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         )
         walayer = self.parameterAsRasterLayer(
             parameters, self.INPUT_ASPECT, context
-        )
-        useGroundScheme = self.parameterAsString(
-            parameters, self.USE_GROUNDSCHEME, context
-        )
-        useOutgoingLW = self.parameterAsString(
-            parameters, self.USE_OUTGOINGLW, context
-        )
-        groundTempFile = self.parameterAsString(
-            parameters, self.INPUT_GROUNDSCHEME, context
         )
         trunkr = self.parameterAsDouble(
             parameters, self.INPUT_THEIGHT, context
@@ -866,7 +858,8 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             outputKdiff = True
 
         calculation_mode = "cpu"
-        if gpu_bool:
+
+        if gpu_bool and (useGroundScheme == "true" or useOutgoingLW == "true"):
             # Safely identify if we are dealing with the local mock class
             if (
                 type(torch).__name__ == "MetaMock"
@@ -1244,31 +1237,6 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             )
             outgoingLW = 0
 
-        ### Ground cover scheme
-        # Surface temperature parameterization
-        if useGroundScheme:
-            groundscheme = 1
-            feedback.setProgressText(
-                "The surface temperature parameterization from v2026 is activated"
-            )
-        else:
-            groundscheme = 0
-            feedback.setProgressText(
-                "The surface temperature scheme described in 2016 is activated"
-            )
-
-        # Outgoing longwave calculation
-        if useOutgoingLW:
-            feedback.setProgressText(
-                "The upwelling longwave radiation from v2026 is activated"
-            )
-            outgoingLW = 1
-        else:
-            feedback.setProgressText(
-                "The ground cover scheme described in 2016 is activated"
-            )
-            outgoingLW = 0
-
         # % Ts parameterisation maps
         if landcover == 1.0:
             if folderWallScheme:
@@ -1392,12 +1360,22 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Main function
         feedback.setProgressText("Executing main model")
 
-        if gpu_bool:
+        if gpu_bool and (useGroundScheme == "true" or useOutgoingLW == "true"):
+
             sr_torch.solweig_run(outputDir + "/configsolweig.ini", feedback)
         else:
             sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
 
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
+
+        # Aggressive GPU memory cleanup
+        if gpu_bool and torch.cuda.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.cuda.synchronize()  # Ensure all GPU operations are complete
+            torch.cuda.empty_cache()  # Clear unused GPU memory
+            torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.cuda.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
 
         return {self.OUTPUT_DIR: outputDir}
 

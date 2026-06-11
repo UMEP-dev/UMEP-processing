@@ -29,5 +29,6 @@ def daylen(DOY, XLAT):
     DAYL = 12.0 + 24.0 * torch.arcsin(SOC) / torch.pi
     SNUP = 12.0 - DAYL / 2.0
     SNDN = 12.0 + DAYL / 2.0
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return DAYL, DEC, SNDN, SNUP

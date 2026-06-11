@@ -6,8 +6,6 @@ try:
 except:
     pass
 
-# import matplotlib.pylab as plt
-
 
 def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg, device):
     cos_incidence = torch.cos(aspect - azimuth)
@@ -35,6 +33,9 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, shvoveg, device):
     mask_neg = wallsun < 0
     wallshve[mask_neg] = 0
     wallsun[mask_neg] = 0
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     return wallsh, wallsun, wallshve, facesh, facesun
 
@@ -230,6 +231,9 @@ def shadowingfunction_wallheight_23(
         shade_on_wall[shade_on_wall < wallshve_] = wallshve_[
             shade_on_wall < wallshve_
         ]
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     return (
         (

@@ -218,6 +218,8 @@ def initiate_groundScheme(
             # For water bodies
             Tg[Tg == i] = Ta[0]
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return (
         Tg,
         Tm,

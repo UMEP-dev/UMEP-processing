@@ -264,8 +264,8 @@ def Lside_veg_v2022a(
         Lrefl = (Ldown + LupN) * (viktrefl) * (1 - ewall) * 0.5
         Lnorth = Lsky + Lwallsun + Lwallsh + Lveg + Lground + Lrefl
 
-    # clear alfaB betaB betasun Lsky Lwallsh Lwallsun Lveg Lground Lrefl viktveg viktwall viktsky
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return Least, Lsouth, Lwest, Lnorth
 
 
@@ -506,6 +506,6 @@ def Lside_veg_v2026(
         Lrefl = Ldown * (viktrefl) * (1 - ewall) * 0.5
         Lnorth = Lsky + Lwallsun + Lwallsh + Lveg + Lrefl
 
-        # clear alfaB betaB betasun Lsky Lwallsh Lwallsun Lveg Lground Lrefl viktveg viktwall viktsky
-
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
         return Least, Lsouth, Lwest, Lnorth

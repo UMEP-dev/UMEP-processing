@@ -103,6 +103,10 @@ def create_patches(patch_option, device):
             skyvaultalt = skyvaultalt + (skyvaultaltint[j],)
             skyvaultazi = skyvaultazi + (k * skyvaultaziint[j] + azistart[j],)
 
+    del deg2rad
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     return (
         skyvaultalt,
         skyvaultazi,

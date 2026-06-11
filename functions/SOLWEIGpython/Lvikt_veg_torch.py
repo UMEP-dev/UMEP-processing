@@ -79,4 +79,7 @@ def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
     ) / vikttot
     viktveg = viktveg - viktwall
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     return viktveg, viktwall, viktsky, viktrefl

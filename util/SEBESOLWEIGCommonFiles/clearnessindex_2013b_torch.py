@@ -108,4 +108,6 @@ def clearnessindex_2013b(zen, jday, Ta, RH, radG, location, P):
     if math.isnan(CI):
         CI = float("Inf")
 
+    del p, D, m, Trpg, G, Td, u, Tw, Tar, corr, device
+
     return I0, CI, Kt, I0et, CIuncorr

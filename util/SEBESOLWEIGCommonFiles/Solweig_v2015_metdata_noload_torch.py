@@ -101,22 +101,6 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
         zen[0, i] = sun_zenith * (torch.pi / 180.0)
         azimuth[0, i] = sun_azimuth
 
-        # day of year and check for leap year
-        if calendar.isleap(time["year"]):
-            dayspermonth = torch.atleast_2d(
-                torch.tensor(
-                    [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-                    device=device,
-                )
-            )
-        else:
-            dayspermonth = torch.atleast_2d(
-                torch.tensor(
-                    [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-                    device=device,
-                )
-            )
-        # jday[0, i] = torch.sum(dayspermonth[0, 0:time['month']-1]) + time['day'] # bug when a new day 20191015
         YYYY[0, i] = met[i, 0]
         doy = YMD.timetuple().tm_yday
         jday[0, i] = doy
@@ -124,5 +108,8 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
             leafon[0, i] = 1
         else:
             leafon[0, i] = 0
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     return YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax

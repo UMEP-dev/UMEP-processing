@@ -10,14 +10,13 @@ def read_solweig_config(config_file_path):
 
     config = ConfigParser()
     config.read(config_file_path)
-
     return config.defaults()
 
 
 """
-input: 
+input:
 TargetDict: dictonary with all relevant inputs
-refdir = outputfolder      
+refdir = outputfolder
 """
 
 
@@ -107,12 +106,11 @@ def write_solweig_config(configDict, refdir):
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
     f.write("# use the surface temperature parameterization v2026a\n")
-    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))
-    f.write("# use the surface temperature parameterization v2026a\n")
     f.write("groundmodel={}\n".format(configDict["groundmodel"]))
     f.write(
         "# use the outgoing longwave radiation computation scheme v2026a\n"
     )
+    f.write("outgoinglongwave={}\n".format(configDict["outgoingLW"]))
     f.write(
         "# use wall surface temperature scheme (Wallenberg et al. 2025, GMD)\n"
     )

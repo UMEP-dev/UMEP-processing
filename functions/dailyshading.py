@@ -241,7 +241,6 @@ def dailyshading(
                 saveraster(gdal_data, filenamewallshve, wallshve)
 
     shadowresult = {"shfinal": shfinal, "time_vector": time_vector}
-
     return shadowresult
 
 

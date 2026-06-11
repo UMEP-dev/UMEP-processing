@@ -267,7 +267,8 @@ def julian_calculation(t_input):
     julian["century"] = (julian["day"] - 2451545) / 36525
     julian["ephemeris_century"] = (julian["ephemeris_day"] - 2451545) / 36525
     julian["ephemeris_millenium"] = (julian["ephemeris_century"]) / 10
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     return julian
 
 
@@ -655,6 +656,9 @@ def earth_heliocentric_position_calculation(julian):
         + (L4 * torch.pow(JME, 4))
     ) / 1e8
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     return earth_heliocentric_position
 
 
@@ -678,6 +682,7 @@ def sun_geocentric_position_calculation(earth_heliocentric_position):
     sun_geocentric_position["latitude"] = set_to_range(
         sun_geocentric_position["latitude"], 0, 360
     )
+
     return sun_geocentric_position
 
 
@@ -930,6 +935,9 @@ def nutation_calculation(julian):
     # Nutation in obliquity
     nutation["obliquity"] = torch.sum(delta_obliquity) / 36000000
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     return nutation
 
 
@@ -979,6 +987,9 @@ def true_obliquity_calculation(julian, nutation):
     )
 
     true_obliquity = (mean_obliquity / 3600) + nutation["obliquity"]
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     return true_obliquity
 

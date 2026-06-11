@@ -568,4 +568,7 @@ def Kside_veg_v2022a(
         ) * 0.5
         Knorth = KnorthI + KnorthDG
 
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+
     return Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside
