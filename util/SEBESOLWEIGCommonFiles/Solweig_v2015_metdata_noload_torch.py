@@ -111,5 +111,7 @@ def Solweig_2015a_metdata_noload(inputdata, location, UTC):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
 
     return YYYY, altitude, azimuth, zen, jday, leafon, dectime, altmax

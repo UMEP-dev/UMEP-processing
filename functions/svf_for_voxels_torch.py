@@ -118,7 +118,11 @@ def wallscheme_prepare(
     wall_dict[0] = 0.0
 
     # Convert specific lists to match original return signature formats if downstream requires it
-    torch.cuda.empty_cache()
+    
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return (
         voxelTable,
         voxelId_list,
@@ -273,8 +277,10 @@ def svf_for_voxels(
                 svfaveg_array,
             ]
         )
-        torch.cuda.empty_cache()
-
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return voxelTable
 
 
@@ -552,8 +558,10 @@ def svf_kmeans(
                 svfaveg_array,
             ]
         )
-        torch.cuda.empty_cache()
-
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return voxelTable, cluster_heights
 
 
@@ -587,6 +595,8 @@ def interpolate_svf(voxelTable):
                 continue
 
             voxelTable_np[wall_mask, -4] = new_svf
-        torch.cuda.empty_cache()
-
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return torch.from_numpy(voxelTable_np).to(device)

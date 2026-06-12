@@ -314,6 +314,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 feedback.setProgressText(
                     "PyTorch and GPU found. Initiating GPU mode..."
                 )
+            elif torch.xpu.is_available():
+                device = torch.device("xpu")
+                feedback.setProgressText(
+                    "PyTorch and GPU found. Initiating GPU mode..."
+                )    
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
@@ -467,6 +472,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
 
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
             else:
                 print("cpu version")
                 ret = svf.svfForProcessing655(
@@ -545,7 +552,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 del svftotal, svfbu, svfveg, svfaveg, voxel_y
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
-
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
+    
             if kmeans:
 
                 if use_gpu:
@@ -612,6 +621,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 )
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
 
             # Loop for exact SVF at heights (increase DEM)
             # if demlayer:
@@ -673,7 +684,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     )
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
-
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 # Remove rows where svfbu, sfveg and svfaveg is zero
                 if usevegdem == 1:
                     voxelTable = voxelTable[
@@ -765,7 +777,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 del svfbuE, svfbuS, svfbuW, svfbuN
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
-
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
             if os.path.isfile(outputDir + "/" + "svfs.zip"):
                 os.remove(outputDir + "/" + "svfs.zip")
 
@@ -917,7 +930,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     )
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
-
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 zippo = zipfile.ZipFile(outputDir + "/" + "svfs.zip", "a")
                 zippo.write(outputDir + "/" + "svfveg.tif", "svfveg.tif")
                 zippo.write(outputDir + "/" + "svfEveg.tif", "svfEveg.tif")
@@ -952,6 +966,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 del svftotal, svfbu, svfveg
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
             else:
                 misc.saveraster(gdal_dsm, filename, svftotal)
 
@@ -971,6 +987,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     del shmat, vegshmat, vbshvegshmat
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 else:
                     np.savez_compressed(
                         outputDir + "/" + "shadowmats.npz",
@@ -992,6 +1010,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     del voxelId, voxelTable
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 else:
                     np.savez_compressed(
                         outputDir + "/" + "wallScheme.npz",
@@ -1003,6 +1023,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         if use_gpu:
             if device.type == "cuda":
                 torch.cuda.empty_cache()
+            elif device.type == "xpu":
+                torch.xpu.empty_cache()
 
         # Aggressive GPU memory cleanup
         if use_gpu and torch.cuda.is_available():
@@ -1012,7 +1034,14 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.cuda.empty_cache()  # Clear again to be sure
             gc.collect()  # Force Python garbage collection
-
+        elif use_gpu and torch.xpu.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.xpu.synchronize()  # Ensure all GPU operations are complete
+            torch.xpu.empty_cache()  # Clear unused GPU memory
+            torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.xpu.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
+            
         feedback.setProgressText(
             "Sky View Factor: SVF grid(s) successfully generated"
         )

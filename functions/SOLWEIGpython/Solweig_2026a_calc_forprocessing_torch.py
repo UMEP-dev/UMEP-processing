@@ -226,7 +226,7 @@ def Solweig_2026a_calc(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
         )
     )
 
@@ -942,6 +942,8 @@ def Solweig_2026a_calc(
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
 
     return (
         Tmrt,

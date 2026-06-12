@@ -93,6 +93,11 @@ def solweig_run(configPath, feedback):
         feedback.setProgressText(
             "PyTorch and GPU found. Initiating GPU mode..."
         )
+    elif configDict["calculation_mode"] == "gpu" and torch.xpu.is_available():
+        device = torch.device("xpu")
+        feedback.setProgressText(
+            "PyTorch and GPU found. Initiating GPU mode..."
+        )
     else:
         feedback.setProgressText(
             "Pytorch found but GPU not found. Initiating CPU mode..."
@@ -180,7 +185,8 @@ def solweig_run(configPath, feedback):
     # Clean up intermediate tensors after vegetation loading
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     # Land cover
     landcover = int(configDict["landcover"])
     if landcover == 1:
@@ -227,7 +233,8 @@ def solweig_run(configPath, feedback):
     # Clean up DEM intermediate tensors
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     # SVF
     zip = zipfile.ZipFile(configDict["input_svf"], "r")
     zip.extractall(configDict["working_dir"])
@@ -406,7 +413,8 @@ def solweig_run(configPath, feedback):
     # Clean up after SVF loading
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     tmp = svf + svfveg - 1.0
     tmp[tmp < 0.0] = 0.0
     # %matlab crazyness around 0
@@ -594,7 +602,8 @@ def solweig_run(configPath, feedback):
     # Clean up vegetation processing tensors
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     # Initialization of maps
     Knight = torch.zeros((rows, cols)).to(device)
     Tgmap1 = torch.zeros((rows, cols)).to(device)
@@ -858,7 +867,8 @@ def solweig_run(configPath, feedback):
     # Clean up wall scheme setup tensors
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     # Initialisation of time related variables
     if Ta.__len__() == 1:
         timestepdec = 0
@@ -1213,7 +1223,8 @@ def solweig_run(configPath, feedback):
         # Clean up POI tensor after writing
         if device.type == "cuda":
             torch.cuda.empty_cache()
-
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         # If wall temperature parameterization scheme is in use
         if (
             configDict["wallscheme"] == 1
@@ -1314,7 +1325,8 @@ def solweig_run(configPath, feedback):
                     del wall_data, temp_all  # Clean up wall data tensors
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
-
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
             # Save wall temperature/radiation as NetCDF TODO: fix for standAlone?
             if configDict["wallnetcdf"] == "1":  # wallNetCDF:
                 netcdf_output = configDict["outputDir"] + "/walls.nc"
@@ -1451,7 +1463,7 @@ def solweig_run(configPath, feedback):
                 )
 
         # Clean up iteration tensors after output
-        if device.type == "cuda":
+        if device.type == "cuda" or device.type == "xpu":
             del (
                 Tmrt,
                 Kdown,
@@ -1474,7 +1486,10 @@ def solweig_run(configPath, feedback):
                 dRad,
                 Kside,
             )
-            torch.cuda.empty_cache()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            elif device.type == "xpu":
+                torch.xpu.empty_cache()
 
         # Sky view image of patches
         if (anisotropic_sky == 1) & (i == 0) & (not poisxy is None):
@@ -1591,3 +1606,5 @@ def solweig_run(configPath, feedback):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()

@@ -183,7 +183,7 @@ def sun_position(time, location):
 
 
 def julian_calculation(t_input):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     """
     % This function compute the julian day and julian century from the local
     % time and timezone information. Ephemeris are calculated with a delta_t=0
@@ -269,11 +269,13 @@ def julian_calculation(t_input):
     julian["ephemeris_millenium"] = (julian["ephemeris_century"]) / 10
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return julian
 
 
 def earth_heliocentric_position_calculation(julian):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     """
     % This function compute the earth position relative to the sun, using
     % tabulated values.
@@ -658,7 +660,8 @@ def earth_heliocentric_position_calculation(julian):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return earth_heliocentric_position
 
 
@@ -687,7 +690,7 @@ def sun_geocentric_position_calculation(earth_heliocentric_position):
 
 
 def nutation_calculation(julian):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     """
     % This function compute the nutation in longtitude and in obliquity, in
     % degrees.
@@ -937,12 +940,14 @@ def nutation_calculation(julian):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
 
     return nutation
 
 
 def true_obliquity_calculation(julian, nutation):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     """
     This function compute the true obliquity of the ecliptic.
 
@@ -990,7 +995,8 @@ def true_obliquity_calculation(julian, nutation):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return true_obliquity
 
 

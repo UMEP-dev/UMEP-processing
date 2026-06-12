@@ -18,7 +18,7 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
     device = (
         svfalfa.device
         if isinstance(svfalfa, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     )
     beta = zen
     # alfa=svfalfa
@@ -59,6 +59,8 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
     F_sh = (2 * torch.pi * ba - Ssurf) / (2 * torch.pi * ba)  # Xa
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return F_sh
 
 
@@ -81,7 +83,7 @@ def cylindric_wedge_voxel(zen, svfalfa):
     device = (
         svfalfa.device
         if isinstance(svfalfa, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     )
 
     qa = torch.zeros((svfalfa.shape[0]), device=device)
@@ -111,4 +113,6 @@ def cylindric_wedge_voxel(zen, svfalfa):
     F_sh = (2 * torch.pi * ba - Ssurf) / (2 * torch.pi * ba)  # Xa
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return F_sh

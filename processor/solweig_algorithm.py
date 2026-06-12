@@ -1376,6 +1376,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.cuda.empty_cache()  # Clear again to be sure
             gc.collect()  # Force Python garbage collection
+        elif gpu_bool and torch.xpu.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.xpu.synchronize()  # Ensure all GPU operations are complete
+            torch.xpu.empty_cache()  # Clear unused GPU memory
+            torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.xpu.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection  
 
         return {self.OUTPUT_DIR: outputDir}
 

@@ -159,6 +159,11 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 feedback.setProgressText(
                     "PyTorch and GPU found. Initiating GPU mode..."
                 )
+            elif torch.xpu.is_available():
+                device = torch.device("xpu")
+                feedback.setProgressText(
+                    "PyTorch and GPU found. Initiating GPU mode..."
+                )   
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
@@ -235,7 +240,14 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.cuda.empty_cache()  # Clear again to be sure
             gc.collect()  # Force Python garbage collection
-
+        elif use_gpu and torch.xpu.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.xpu.synchronize()  # Ensure all GPU operations are complete
+            torch.xpu.empty_cache()  # Clear unused GPU memory
+            torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.xpu.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
+            
         return {
             self.OUTPUT_HEIGHT: outputFileHeight,
             self.OUTPUT_ASPECT: outputFileAspect,

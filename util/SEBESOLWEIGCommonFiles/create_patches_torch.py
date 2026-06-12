@@ -106,6 +106,8 @@ def create_patches(patch_option, device):
     del deg2rad
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
 
     return (
         skyvaultalt,

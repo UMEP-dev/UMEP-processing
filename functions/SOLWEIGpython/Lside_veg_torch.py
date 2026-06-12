@@ -45,7 +45,7 @@ def Lside_veg_v2022a(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            else torch.device("cuda" if torch.cuda.is_available() else  "xpu" if torch.xpu.is_available() else "cpu")
         )
     )
 
@@ -266,6 +266,8 @@ def Lside_veg_v2022a(
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return Least, Lsouth, Lwest, Lnorth
 
 
@@ -303,7 +305,7 @@ def Lside_veg_v2026(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
         )
     )
 
@@ -508,4 +510,6 @@ def Lside_veg_v2026(
 
         if device.type == "cuda":
             torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return Least, Lsouth, Lwest, Lnorth

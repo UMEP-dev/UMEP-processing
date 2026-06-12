@@ -58,6 +58,8 @@ def shade_on_walls(azimuth, aspect, walls, dsm, f, device):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return sh, wallsh, wallsun, facesh, facesun
 
 
@@ -166,7 +168,11 @@ def shadowingfunction_wallheight_13(
         shade_on_wall = wallsh_.clone()
         if device.type == "cuda":
             torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return (sh, wallsh, wallsun, facesh, facesun, shade_on_wall)
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return (sh, wallsh, wallsun, facesh, facesun)

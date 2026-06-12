@@ -42,8 +42,10 @@ def annulus_weight(altitude, aziinterval, device):
     )
     weight = steprad * w
     del n, w
-    torch.cuda.empty_cache()
-
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return weight
 
 
@@ -124,7 +126,10 @@ def svf_angles_100121(device):
     )
     angleresult = {"iazimuth": iazimuth, "aziinterval": aziinterval}
     del iazimuth, aziinterval
-    torch.cuda.empty_cache()
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return angleresult
 
 
@@ -503,6 +508,8 @@ def svfForProcessing153(
         del shmat, vegshmat, vbshvegshmat, all_voxelId
         if device.type == "cuda":
             torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return svfresult
 
 
@@ -711,4 +718,6 @@ def svfForProcessing655(
         )
         if device.type == "cuda":
             torch.cuda.empty_cache()
+        elif device.type == "xpu":
+            torch.xpu.empty_cache()
         return svfresult

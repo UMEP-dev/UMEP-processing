@@ -347,6 +347,8 @@ def filter1Goodwin_as_aspect_v3(
     )
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return final_y
 
 

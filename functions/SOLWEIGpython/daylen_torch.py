@@ -13,7 +13,7 @@ def daylen(DOY, XLAT):
     device = (
         DOY.device
         if isinstance(DOY, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
     )
     if not isinstance(XLAT, torch.Tensor):
         XLAT = torch.tensor(XLAT, device=device)
@@ -31,4 +31,6 @@ def daylen(DOY, XLAT):
     SNDN = 12.0 + DAYL / 2.0
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return DAYL, DEC, SNDN, SNUP

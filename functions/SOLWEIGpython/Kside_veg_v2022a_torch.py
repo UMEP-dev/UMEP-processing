@@ -47,7 +47,7 @@ def Kside_veg_v2022a(
         else (
             azimuth.device
             if isinstance(azimuth, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
         )
     )
 
@@ -570,5 +570,6 @@ def Kside_veg_v2022a(
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return Keast, Ksouth, Kwest, Knorth, KsideI, KsideD, Kside

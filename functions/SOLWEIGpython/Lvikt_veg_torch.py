@@ -13,7 +13,7 @@ def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
     elif isinstance(svfaveg, torch.Tensor):
         device = svfaveg.device
     else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
 
     svf = torch.as_tensor(svf, device=device)
     svfveg = torch.as_tensor(svfveg, device=device)
@@ -81,5 +81,6 @@ def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
-
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return viktveg, viktwall, viktsky, viktrefl

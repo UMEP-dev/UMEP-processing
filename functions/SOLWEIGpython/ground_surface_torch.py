@@ -220,6 +220,8 @@ def initiate_groundScheme(
 
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    elif device.type == "xpu":
+        torch.xpu.empty_cache()
     return (
         Tg,
         Tm,
