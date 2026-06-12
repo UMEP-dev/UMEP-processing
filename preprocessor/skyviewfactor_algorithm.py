@@ -54,11 +54,9 @@ import inspect
 
 try:
     import torch
-
-    TORCH_AVAILABLE = True
 except ImportError:
     torch = None
-    TORCH_AVAILABLE = False
+    ipex = None
 
 from pathlib import Path
 import zipfile
@@ -306,7 +304,9 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             ):
                 raise QgsProcessingException(
                     "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
-                    "Please install it using: pip install torch or with osgeo4w"
+                    "Please install it using: pip install torch or with osgeo4w.\n"
+                    "Note:  setup for intel GPU require a more complex setup :\n"
+                    "pip install torch --index-url https://download.pytorch.org/whl/xpu"
                 )
 
             if torch.cuda.is_available():
@@ -314,11 +314,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 feedback.setProgressText(
                     "PyTorch and GPU found. Initiating GPU mode..."
                 )
-            elif torch.xpu.is_available():
+            elif hasattr(torch, "xpu") and torch.xpu.is_available():
                 device = torch.device("xpu")
                 feedback.setProgressText(
                     "PyTorch and GPU found. Initiating GPU mode..."
-                )    
+                )
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
@@ -554,7 +554,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                     torch.cuda.empty_cache()
                 elif device.type == "xpu":
                     torch.xpu.empty_cache()
-    
+
             if kmeans:
 
                 if use_gpu:
@@ -1041,7 +1041,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.xpu.empty_cache()  # Clear again to be sure
             gc.collect()  # Force Python garbage collection
-            
+
         feedback.setProgressText(
             "Sky View Factor: SVF grid(s) successfully generated"
         )

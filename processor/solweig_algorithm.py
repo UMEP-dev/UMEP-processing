@@ -52,11 +52,9 @@ import numpy as np
 
 try:
     import torch
-
-    TORCH_AVAILABLE = True
 except ImportError:
     torch = None
-    TORCH_AVAILABLE = False
+    ipex = None
 
 # import pandas as pd
 from osgeo import gdal
@@ -867,7 +865,9 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             ):
                 raise QgsProcessingException(
                     "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
-                    "Please install it using: pip install torch or with osgeo4w"
+                    "Please install it using: pip install torch or with osgeo4w.\n"
+                    "Note:  setup for intel GPU require a more complex setup :\n"
+                    "pip install torch --index-url https://download.pytorch.org/whl/xpu"
                 )
 
             # If PyTorch is available, execute the GPU path
@@ -1382,7 +1382,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             torch.xpu.empty_cache()  # Clear unused GPU memory
             torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.xpu.empty_cache()  # Clear again to be sure
-            gc.collect()  # Force Python garbage collection  
+            gc.collect()  # Force Python garbage collection
 
         return {self.OUTPUT_DIR: outputDir}
 

@@ -1,5 +1,6 @@
 try:
     import torch
+
 except:
     pass
 
@@ -13,7 +14,15 @@ def Lvikt_veg(svf, svfveg, svfaveg, vikttot):
     elif isinstance(svfaveg, torch.Tensor):
         device = svfaveg.device
     else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+        torch.device(
+            "cuda"
+            if torch.cuda.is_available()
+            else (
+                "xpu"
+                if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                else "cpu"
+            )
+        )
 
     svf = torch.as_tensor(svf, device=device)
     svfveg = torch.as_tensor(svfveg, device=device)

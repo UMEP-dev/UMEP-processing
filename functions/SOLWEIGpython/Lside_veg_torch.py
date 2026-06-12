@@ -3,6 +3,7 @@ from .Lvikt_veg_torch import Lvikt_veg
 
 try:
     import torch
+
 except:
     pass
 
@@ -45,7 +46,15 @@ def Lside_veg_v2022a(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else  "xpu" if torch.xpu.is_available() else "cpu")
+            else torch.device(
+                "cuda"
+                if torch.cuda.is_available()
+                else (
+                    "xpu"
+                    if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                    else "cpu"
+                )
+            )
         )
     )
 
@@ -305,7 +314,15 @@ def Lside_veg_v2026(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+            else torch.device(
+                "cuda"
+                if torch.cuda.is_available()
+                else (
+                    "xpu"
+                    if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                    else "cpu"
+                )
+            )
         )
     )
 

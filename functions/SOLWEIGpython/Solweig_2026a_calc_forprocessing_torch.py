@@ -34,6 +34,7 @@ from copy import deepcopy
 
 try:
     import torch
+
 except:
     pass
 
@@ -226,7 +227,15 @@ def Solweig_2026a_calc(
         else (
             Ta.device
             if isinstance(Ta, torch.Tensor)
-            else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+            else torch.device(
+                "cuda"
+                if torch.cuda.is_available()
+                else (
+                    "xpu"
+                    if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                    else "cpu"
+                )
+            )
         )
     )
 

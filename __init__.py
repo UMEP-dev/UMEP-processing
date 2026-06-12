@@ -37,6 +37,8 @@ except ImportError:
     # Create the local mock right here
     class MetaMock(type):
         def __getattr__(cls, name):
+            if name == "is_available":
+                return lambda: False
             return cls
 
         def __call__(cls, *args, **kwargs):
@@ -47,7 +49,6 @@ except ImportError:
 
     # Inject it into Python's module registry BEFORE QGIS loads any sub-files
     sys.modules["torch"] = LocalMockTorch
-
 __author__ = "Fredrik Lindberg"
 __date__ = "2020-04-02"
 __copyright__ = "(C) 2020 by Fredrik Lindberg"

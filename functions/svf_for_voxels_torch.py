@@ -118,7 +118,7 @@ def wallscheme_prepare(
     wall_dict[0] = 0.0
 
     # Convert specific lists to match original return signature formats if downstream requires it
-    
+
     if device.type == "cuda":
         torch.cuda.empty_cache()
     elif device.type == "xpu":

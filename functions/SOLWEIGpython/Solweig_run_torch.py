@@ -87,20 +87,25 @@ def solweig_run(configPath, feedback):
 
     # --- Load on CPU or GPU config
     device = torch.device("cpu")
-
     if configDict["calculation_mode"] == "gpu" and torch.cuda.is_available():
         device = torch.device("cuda")
         feedback.setProgressText(
-            "PyTorch and GPU found. Initiating GPU mode..."
+            "PyTorch and NVIDIA/AMD GPU found. Initiating CUDA mode..."
         )
-    elif configDict["calculation_mode"] == "gpu" and torch.xpu.is_available():
+
+    elif (
+        configDict["calculation_mode"] == "gpu"
+        and hasattr(torch, "xpu")
+        and torch.xpu.is_available()
+    ):
         device = torch.device("xpu")
         feedback.setProgressText(
-            "PyTorch and GPU found. Initiating GPU mode..."
+            "PyTorch and Intel GPU found. Initiating XPU mode..."
         )
+
     else:
         feedback.setProgressText(
-            "Pytorch found but GPU not found. Initiating CPU mode..."
+            "PyTorch found but compatible GPU not found. Initiating CPU mode..."
         )
     standAlone = int(configDict["standalone"])
 

@@ -49,11 +49,9 @@ from osgeo.gdalconst import *
 
 try:
     import torch
-
-    TORCH_AVAILABLE = True
 except ImportError:
     torch = None
-    TORCH_AVAILABLE = False
+    ipex = None
 
 import os
 from ..functions import wallalgorithms_torch as wa_torch
@@ -151,7 +149,9 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             ):
                 raise QgsProcessingException(
                     "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
-                    "Please install it using: pip install torch or with osgeo4w"
+                    "Please install it using: pip install torch or with osgeo4w.\n"
+                    "Note:  setup for intel GPU require a more complex setup :\n"
+                    "pip install torch --index-url https://download.pytorch.org/whl/xpu"
                 )
 
             if torch.cuda.is_available():
@@ -159,11 +159,11 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
                 feedback.setProgressText(
                     "PyTorch and GPU found. Initiating GPU mode..."
                 )
-            elif torch.xpu.is_available():
+            elif hasattr(torch, "xpu") and torch.xpu.is_available():
                 device = torch.device("xpu")
                 feedback.setProgressText(
-                    "PyTorch and GPU found. Initiating GPU mode..."
-                )   
+                    "PyTorch and GPU found. Initiating intel GPU mode..."
+                )
             else:
                 device = torch.device("cpu")
                 feedback.setProgressText(
@@ -247,7 +247,7 @@ class ProcessingWallHeightAscpetAlgorithm(QgsProcessingAlgorithm):
             torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
             torch.xpu.empty_cache()  # Clear again to be sure
             gc.collect()  # Force Python garbage collection
-            
+
         return {
             self.OUTPUT_HEIGHT: outputFileHeight,
             self.OUTPUT_ASPECT: outputFileAspect,

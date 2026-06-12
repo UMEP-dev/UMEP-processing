@@ -1,5 +1,6 @@
 try:
     import torch
+
 except:
     pass
 
@@ -13,7 +14,15 @@ def daylen(DOY, XLAT):
     device = (
         DOY.device
         if isinstance(DOY, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+        else torch.device(
+            "cuda"
+            if torch.cuda.is_available()
+            else (
+                "xpu"
+                if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                else "cpu"
+            )
+        )
     )
     if not isinstance(XLAT, torch.Tensor):
         XLAT = torch.tensor(XLAT, device=device)

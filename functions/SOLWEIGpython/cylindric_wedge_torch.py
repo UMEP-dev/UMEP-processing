@@ -18,7 +18,15 @@ def cylindric_wedge(zen, svfalfa, rows, cols):
     device = (
         svfalfa.device
         if isinstance(svfalfa, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+        else torch.device(
+            "cuda"
+            if torch.cuda.is_available()
+            else (
+                "xpu"
+                if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                else "cpu"
+            )
+        )
     )
     beta = zen
     # alfa=svfalfa
@@ -83,7 +91,15 @@ def cylindric_wedge_voxel(zen, svfalfa):
     device = (
         svfalfa.device
         if isinstance(svfalfa, torch.Tensor)
-        else torch.device("cuda" if torch.cuda.is_available() else "xpu" if torch.xpu.is_available() else "cpu")
+        else torch.device(
+            "cuda"
+            if torch.cuda.is_available()
+            else (
+                "xpu"
+                if (hasattr(torch, "xpu") and torch.xpu.is_available())
+                else "cpu"
+            )
+        )
     )
 
     qa = torch.zeros((svfalfa.shape[0]), device=device)
