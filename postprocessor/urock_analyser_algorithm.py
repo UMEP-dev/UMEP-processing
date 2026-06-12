@@ -108,8 +108,7 @@ class URockAnalyserAlgorithm(QgsProcessingAlgorithm):
                 optional=True,
             )
         )
-        # Booleans to let the user decide the type of plotting (stream or
-        # arrows)
+        # Booleans to let the user decide the type of plotting (stream or arrows)
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.IS_STREAM,

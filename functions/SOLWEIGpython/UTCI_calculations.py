@@ -330,8 +330,7 @@ def utci_calculator_grid(Ta, RH, Tmrt, va10m, feedback):
                 # Set UTCI to NaN (-999) if Tmrt or wind speed is NaN
                 if Tmrt[iy, ix] <= -999 or va10m[iy, ix] <= -999:
                     UTCI_approx[iy, ix] = -9999
-                # Calculate 6th order polynomial as approximation if wind speed
-                # is above zero
+                # Calculate 6th order polynomial as approximation if wind speed is above zero
                 elif va10m[iy, ix] > 0:
                     UTCI_approx[iy, ix] = utci_polynomial(
                         D_Tmrt, Ta, va10m[iy, ix], Pa

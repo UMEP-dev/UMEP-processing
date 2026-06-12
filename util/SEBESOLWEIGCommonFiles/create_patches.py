@@ -80,10 +80,6 @@ def create_patches(patch_option):
                 skyvaultazi, k * skyvaultaziint[j] + azistart[j]
             )
 
-    # skyvaultzen = (90 - skyvaultalt) * deg2rad
-    # skyvaultalt = skyvaultalt * deg2rad
-    # skyvaultazi = skyvaultazi * deg2rad
-
     return (
         skyvaultalt,
         skyvaultazi,

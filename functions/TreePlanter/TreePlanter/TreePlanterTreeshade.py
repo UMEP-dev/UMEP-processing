@@ -2,10 +2,8 @@ import numpy as np
 
 # from ..TreePlanter.adjustments import tree_slice
 
-# This function returns a raster with a boolean shadow and the regional
-# group shadow for the tree in position y,x
 
-
+# This function returns a raster with a boolean shadow and the regional group shadow for the tree in position y,x
 def tsh_gen(y, x, treerasters, treeinput):
     tsh_pos_pad = np.zeros((treeinput.rows, treeinput.cols, y.__len__()))
     tsh_pos_bool_pad = np.zeros((treeinput.rows, treeinput.cols, y.__len__()))

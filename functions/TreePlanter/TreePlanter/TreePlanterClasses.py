@@ -11,8 +11,7 @@ def spatialReferenceData(self, feedback):
     old_cs = osr.SpatialReference()
     dsm_ref = self.dataSet.GetProjectionRef()
 
-    # dsm_ref = QgsRasterLayer(self.dataSet.GetDescription()).crs().toWkt() #
-    # This method requires lonlat = transform.TransformPoint(minx, miny)
+    # dsm_ref = QgsRasterLayer(self.dataSet.GetDescription()).crs().toWkt() # This method requires lonlat = transform.TransformPoint(minx, miny)
 
     old_cs.ImportFromWkt(dsm_ref)
 
@@ -100,20 +99,27 @@ class Inputdata:
             float
         )  # Building raster
         self.buildings = self.buildings == 1.0
-        # Rows of input rasters from SOLWEIG
-        self.rows = self.buildings.shape[0]
-        # Cols of input rasters from SOLWEIG
-        self.cols = self.buildings.shape[1]
-        # Canopy digital surface model
-        self.cdsm = np.zeros((self.rows, self.cols))
-        # Canopy digital surface model
-        self.cdsm_b = np.zeros((self.rows, self.cols))
-        # Shadow rasters
-        self.shadow = np.zeros((self.rows, self.cols, r_range.__len__()))
-        # Tmrt for each timestep
-        self.tmrt_ts = np.zeros((self.rows, self.cols, r_range.__len__()))
-        # Sum of tmrt for all timesteps
-        self.tmrt_s = np.zeros((self.rows, self.cols))
+        self.rows = self.buildings.shape[
+            0
+        ]  # Rows of input rasters from SOLWEIG
+        self.cols = self.buildings.shape[
+            1
+        ]  # Cols of input rasters from SOLWEIG
+        self.cdsm = np.zeros(
+            (self.rows, self.cols)
+        )  # Canopy digital surface model
+        self.cdsm_b = np.zeros(
+            (self.rows, self.cols)
+        )  # Canopy digital surface model
+        self.shadow = np.zeros(
+            (self.rows, self.cols, r_range.__len__())
+        )  # Shadow rasters
+        self.tmrt_ts = np.zeros(
+            (self.rows, self.cols, r_range.__len__())
+        )  # Tmrt for each timestep
+        self.tmrt_s = np.zeros(
+            (self.rows, self.cols)
+        )  # Sum of tmrt for all timesteps
 
         # Loading DEm, DSM (and CDSM) rasters
         dataSet = gdal.Open(infolder + "/DSM.tif")
@@ -179,7 +185,7 @@ class Inputdata:
             del dataSetSel
             os.remove(infolder + "/selected_area.tif")
             print("Successfully removed selected_area.tif")
-        except BaseException:
+        except:
             print("Could not remove selected_area.tif")
 
         # Buffer zone to remove potential edge effects
@@ -237,8 +243,7 @@ class Treerasters:
             1 - treeshade_bool[shy_min:shy_max, shx_min:shx_max, :]
         )
         self.cdsm = cdsm[shy_min:shy_max, shx_min:shx_max]
-        # y, x = np.where(cdsm_clip == treedata.height)  # Position of tree in
-        # clipped shadow image
+        # y, x = np.where(cdsm_clip == treedata.height)  # Position of tree in clipped shadow image
         self.buffer_y = np.zeros((2))
         self.buffer_x = np.zeros((2))
         self.buffer_y[0] = np.int_(y)
@@ -261,10 +266,9 @@ class Treerasters:
         b[2, :] = np.array(
             (self.treeshade.shape[1] - 1, 0)
         )  # Upper right corner
-        # Lower right corner
         b[3, :] = np.array(
             (self.treeshade.shape[0] - 1, self.treeshade.shape[1] - 1)
-        )
+        )  # Lower right corner
         eucl = np.zeros((b.shape[0], 1))
         for i in range(b.shape[0]):
             eucl[i, 0] = np.linalg.norm(a - b[i, :])
@@ -286,8 +290,7 @@ class Treerasters:
 
 class Position:
     # Class containing y and x positions of trees and their corresponding sum of Tmrt in shade and sum of Tmrt in same area as shade but sunlit
-    # as well as a unique number for each position. Also a matrix with the
-    # unique number in each y,x position in the matrix.
+    # as well as a unique number for each position. Also a matrix with the unique number in each y,x position in the matrix.
     __slots__ = ("pos", "pos_m")
 
     def __init__(self, vector, rows, cols):
@@ -301,8 +304,7 @@ class Position:
 
 
 class Treedata:
-    # Class containing data for the tree that is used in Tree planter, i.e.
-    # the tree that is being "planted" and studied
+    # Class containing data for the tree that is used in Tree planter, i.e. the tree that is being "planted" and studied
     __slots__ = ("ttype", "height", "trunk", "dia", "treey", "treex")
 
     def __init__(self, ttype, height, trunk, dia, treey, treex):
@@ -327,54 +329,54 @@ class Regional_groups:
         t_r = range(range_.__len__())
         t_l = t_r.__len__()
 
-        # Unique values in summation matrix for tree shadows
-        shade_u = np.unique(shadow_)
-        # Maximum value of unique values
-        shade_max = np.max(shade_u)
+        shade_u = np.unique(
+            shadow_
+        )  # Unique values in summation matrix for tree shadows
+        shade_max = np.max(shade_u)  # Maximum value of unique values
 
-        # Loop over all unique values
-        for i in range(1, shade_u.shape[0]):
-            # Boolean shadow for each timestep i
-            shade_b = shadow_ == shade_u[i]
-            # Create regional groups
-            shade_r = label(shade_b)
-            # Find out how many regional groups, i.e. unique values
-            shade_r_u = np.unique(shade_r[0])
-            # If more than there groups, i.e. 0, 1, 2, ... , continue
-            if np.sum(shade_r_u) > 1:
-                # Loop over the unique values and give all but 1 new values
-                for j in range(2, shade_r_u.shape[0]):
-                    # Boolean of shadow for each unique value
-                    shade_b2 = shade_r[0] == shade_r_u[j]
-                    # Add +1 to the maximum value of unique values, continues
-                    # (creates new unique values)
-                    shade_max += 1
-                    # Add these to the building summation matrix
-                    shadow_[shade_b2] = shade_max
+        for i in range(1, shade_u.shape[0]):  # Loop over all unique values
+            shade_b = (
+                shadow_ == shade_u[i]
+            )  # Boolean shadow for each timestep i
+            shade_r = label(shade_b)  # Create regional groups
+            shade_r_u = np.unique(
+                shade_r[0]
+            )  # Find out how many regional groups, i.e. unique values
+            if (
+                np.sum(shade_r_u) > 1
+            ):  # If more than there groups, i.e. 0, 1, 2, ... , continue
+                for j in range(
+                    2, shade_r_u.shape[0]
+                ):  # Loop over the unique values and give all but 1 new values
+                    shade_b2 = (
+                        shade_r[0] == shade_r_u[j]
+                    )  # Boolean of shadow for each unique value
+                    shade_max += 1  # Add +1 to the maximum value of unique values, continues (creates new unique values)
+                    shadow_[shade_b2] = (
+                        shade_max  # Add these to the building summation matrix
+                    )
 
-        # New unique values of regional groups
-        shade_u_u = np.unique(shadow_)
-        # Empty array for storing which timesteps are found in each regional
-        # group
-        sh_vec_t = np.zeros((shade_u_u.shape[0], t_l + 1))
-        # Adding the unique regional groups to the first column
-        sh_vec_t[:, 0] = shade_u_u
+        shade_u_u = np.unique(shadow_)  # New unique values of regional groups
+        sh_vec_t = np.zeros(
+            (shade_u_u.shape[0], t_l + 1)
+        )  # Empty array for storing which timesteps are found in each regional group
+        sh_vec_t[:, 0] = (
+            shade_u_u  # Adding the unique regional groups to the first column
+        )
         tmrt_t = np.zeros((shade_u_u.shape[0], 2))
         tmrt_t[:, 0] = shade_u_u
 
-        # Loop over the unique values
-        for i in range(1, shade_u_u.shape[0]):
-            # Boolean of each regional group
-            shade_b = shadow_ == shade_u_u[i]
+        for i in range(1, shade_u_u.shape[0]):  # Loop over the unique values
+            shade_b = shadow_ == shade_u_u[i]  # Boolean of each regional group
             for j in t_r:  # Loop over each timestep
-                # Boolean of shadow for each timestep
-                shade_b2 = shadow_ts[:, :, j].copy() == 1
-                # Find out where they overlap, i.e. which timesteps are found
-                # in each regional group
-                shade_b3 = (shade_b) & (shade_b2)
+                shade_b2 = (
+                    shadow_ts[:, :, j].copy() == 1
+                )  # Boolean of shadow for each timestep
+                shade_b3 = (shade_b) & (
+                    shade_b2
+                )  # Find out where they overlap, i.e. which timesteps are found in each regional group
                 if np.sum(shade_b3) > 0:  # If they overlap, continue
-                    # Add 1 to timestep column
-                    sh_vec_t[i, 1 + j] = 1
+                    sh_vec_t[i, 1 + j] = 1  # Add 1 to timestep column
                     tmrt_t[i, 1] += tmrt[j, 0]
 
         sh_vec_unique = np.unique(sh_vec_t[:, 1:], axis=0)

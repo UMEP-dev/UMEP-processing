@@ -34,7 +34,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
-    QgsProcessingParameterString,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterFolderDestination,
@@ -51,6 +50,12 @@ from qgis.core import (
 # from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
 
+try:
+    import torch
+except ImportError:
+    torch = None
+    ipex = None
+
 # import pandas as pd
 from osgeo import gdal
 from osgeo.gdalconst import *
@@ -60,38 +65,16 @@ import inspect
 from pathlib import Path
 from ..util.misc import xy2latlon_fromraster
 import zipfile
+import gc
 
-# from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import Solweig_2015a_metdata_noload
-# from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
 from ..util.umep_solweig_export_component import (
     read_solweig_config,
     write_solweig_config,
 )
-
-# from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import clearnessindex_2013b
-# from ..functions.SOLWEIGpython.Tgmaps_v1 import Tgmaps_v1
-# from ..functions.SOLWEIGpython import Solweig_2022a_calc_forprocessing as so
-# from ..functions.SOLWEIGpython import WriteMetadataSOLWEIG
-# from ..functions.SOLWEIGpython import PET_calculations as p
-# from ..functions.SOLWEIGpython import UTCI_calculations as utci
-# from ..functions.SOLWEIGpython.CirclePlotBar import PolarBarPlot
-# from ..functions.SOLWEIGpython.wall_surface_temperature import load_walls
-
-# from ..functions.SOLWEIGpython.wallOfInterest import wallOfInterest
-# from ..functions.SOLWEIGpython.wallsAsNetCDF import walls_as_netcdf
-
+from ..functions.SOLWEIGpython import Solweig_run_torch as sr_torch
 from ..functions.SOLWEIGpython import Solweig_run as sr
 
-# import matplotlib.pyplot as plt
 import json
-
-# For "Save necessary rasters for TreePlanter tool"
-# from shutil import copyfile
-
-# import time
-
-#
-# import datetime
 
 
 class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
@@ -159,6 +142,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
     POI_FILE = "POI_FILE"
     POI_FIELD = "POI_FIELD"
     CYL = "CYL"
+    USE_GPU = "USE_GPU"
 
     # Output
     OUTPUT_DIR = "OUTPUT_DIR"
@@ -301,7 +285,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 self.INPUT_DEM,
                 self.tr("Digital Elevation Model (DEM)"),
                 "",
-                optional=True,
+                optional=False,
             )
         )
         self.addParameter(
@@ -642,6 +626,17 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(shei)
 
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr(
+                    "Use GPU for SOLWEIG 2026 calculations (if not ticked, CPU will be used)"
+                ),
+                defaultValue=False,
+                optional=False,
+            )
+        )
+
         # OUTPUT
         self.addParameter(
             QgsProcessingParameterBoolean(
@@ -685,6 +680,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=False,
             )
         )
+
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.OUTPUT_TREEPLANTER,
@@ -768,7 +764,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         )
         useOutgoingLW = self.parameterAsString(
             parameters, self.USE_OUTGOINGLW, context
-        )     
+        )
         groundTempFile = self.parameterAsString(
             parameters, self.INPUT_GROUNDSCHEME, context
         )
@@ -840,11 +836,13 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         outputLdown = self.parameterAsBool(
             parameters, self.OUTPUT_LDOWN, context
         )
+
+        gpu_bool = self.parameterAsBool(parameters, self.USE_GPU, context)
+
         outputTreeplanter = self.parameterAsBool(
             parameters, self.OUTPUT_TREEPLANTER, context
         )
         outputKdiff = False
-        # outputSstr = False
 
         # If "Save necessary rasters for TreePlanter tool" is ticked, save the following raster for TreePlanter or Spatial TC
         if outputTreeplanter:
@@ -856,7 +854,28 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             outputSh = True
             saveBuild = True
             outputKdiff = True
-            # outputSstr = True
+
+        calculation_mode = "cpu"
+
+        if gpu_bool and (useGroundScheme == "true" or useOutgoingLW == "true"):
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
+            ):
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch or with osgeo4w.\n"
+                    "Note:  setup for intel GPU require a more complex setup :\n"
+                    "pip install torch --index-url https://download.pytorch.org/whl/xpu"
+                )
+
+            # If PyTorch is available, execute the GPU path
+            calculation_mode = "gpu"
+
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
@@ -1192,7 +1211,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         else:
             feedback.setProgressText("Isotropic sky")
             anisotropic_sky = 0
-        
+
         ### Ground cover scheme
         # Surface temperature parameterization
         if useGroundScheme:
@@ -1315,6 +1334,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "outgoingLW": outgoingLW,
             "wallscheme": wallScheme,
             "walltype": wall_type,  #'Brick_wall', #:TODO
+            "outgoingLW": outgoingLW,
             "outputtmrt": int(outputTmrt),
             "outputkup": int(outputKup),
             "outputkdown": int(outputKdown),
@@ -1325,6 +1345,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             "outputkdiff": int(outputKdiff),
             "outputtreeplanter": int(outputTreeplanter),
             "wallnetcdf": int(wallNetCDF),
+            "calculation_mode": calculation_mode,
             "date1": "2018,5,1,0",  # used in standalone
             "date2": "2018,8,1,18",  # used in standalone
         }
@@ -1339,9 +1360,29 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         # Main function
         feedback.setProgressText("Executing main model")
 
-        sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
+        if gpu_bool and (useGroundScheme == "true" or useOutgoingLW == "true"):
+
+            sr_torch.solweig_run(outputDir + "/configsolweig.ini", feedback)
+        else:
+            sr.solweig_run(outputDir + "/configsolweig.ini", feedback)
 
         feedback.setProgressText("SOLWEIG: Model calculation finished.")
+
+        # Aggressive GPU memory cleanup
+        if gpu_bool and torch.cuda.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.cuda.synchronize()  # Ensure all GPU operations are complete
+            torch.cuda.empty_cache()  # Clear unused GPU memory
+            torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.cuda.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
+        elif gpu_bool and torch.xpu.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.xpu.synchronize()  # Ensure all GPU operations are complete
+            torch.xpu.empty_cache()  # Clear unused GPU memory
+            torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.xpu.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
 
         return {self.OUTPUT_DIR: outputDir}
 

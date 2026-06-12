@@ -45,11 +45,14 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
 )
 from qgis.PyQt.QtGui import QIcon
-from osgeo import osr, ogr
+from osgeo import gdal, osr, ogr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
+import sys
+from ..util import misc
 
 # from ..util import RoughnessCalcFunctionV2 as rg
 # from ..util import imageMorphometricParms_v1 as morph
@@ -65,24 +68,26 @@ import glob
 import datetime
 
 # import scipy as sp
+from scipy.ndimage import label
 
 # Import UMEP tools
+from ..util.SEBESOLWEIGCommonFiles.Solweig_v2015_metdata_noload import (
+    Solweig_2015a_metdata_noload,
+)
 
-# from ..util.SEBESOLWEIGCommonFiles import Solweig_v2015_metdata_noload as metload
+from ..util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
+    clearnessindex_2013b,
+)
 
 from ..functions.TreeGenerator import makevegdems as makevegdems
 
-# from ..functions.TreePlanter.SOLWEIG.shadowingfunction_wallheight_23 import shadowingfunction_wallheight_23
 from ..util.SEBESOLWEIGCommonFiles.shadowingfunction_wallheight_23 import (
     shadowingfunction_wallheight_23,
 )
 
-# from ..functions.TreePlanter.SOLWEIG1D import Solweig1D_2019a_calc as so
 
-# from ..functions.TreePlanter.SOLWEIG.misc import saveraster
 from ..util.misc import saveraster
 
-# Import functions and classes for Tree planter
 from ..functions.TreePlanter.TreePlanter import TreePlanterPrepare
 from ..functions.TreePlanter.TreePlanter import TreePlanterHillClimber
 from ..functions.TreePlanter.TreePlanter.TreePlanterClasses import (
@@ -94,13 +99,7 @@ from ..functions.TreePlanter.TreePlanter.TreePlanterClasses import (
 )
 from ..functions.TreePlanter.TreePlanter import GreedyAlgorithm
 
-# from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG_1D import tmrt_1d_fun
 from ..functions.TreePlanter.SOLWEIG1D.SOLWEIG1D_2023a import tmrt_1d_fun
-
-# from ..functions.TreePlanter.treeplanterclasses import Treedata
-# from ..functions.TreePlanter.treeplanterclasses import Regional_groups
-# from ..functions.TreePlanter.treeplanterclasses import ClippedInputdata
-# from ..functions.TreePlanter.treeplanterclasses import Treerasters
 
 
 class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
@@ -248,9 +247,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         # )
 
         # self.addParameter(QgsProcessingParameterRasterDestination(self.OUTPUT_OCCURRENCE,
-        # self.tr("Occurrence map (Only available when running with random or
-        # genetic and more than one tree)"), optional=True,
-        # createByDefault=False))
+        #     self.tr("Occurrence map (Only available when running with random or genetic and more than one tree)"), optional=True, createByDefault=False))
 
         self.addParameter(
             QgsProcessingParameterBoolean(
@@ -433,7 +430,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         h_start = h_start + "00"
         h_end = h_end + "00"
 
-        # List shadow and tmrt files in infolder
+        ## List shadow and tmrt files in infolder
         sh_fl = [f for f in sorted(glob.glob(infolder + "/Shadow_*.tif"))]
         tmrt_fl = [f for f in sorted(glob.glob(infolder + "/Tmrt_*.tif"))]
 
@@ -488,12 +485,12 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         tmrt_1d = np.around(tmrt_1d, decimals=1)  # Round Tmrt to one decimal
 
         # Create tree in empty matrix
-        # Y-position of tree in empty setting. Y-position is in the middle of
-        # Y.
-        treey = math.ceil(tree_input.rows / 2)
-        # X-position of tree in empty setting. X-position is in the middle of
-        # X.
-        treex = math.ceil(tree_input.cols / 2)
+        treey = math.ceil(
+            tree_input.rows / 2
+        )  # Y-position of tree in empty setting. Y-position is in the middle of Y.
+        treex = math.ceil(
+            tree_input.cols / 2
+        )  # X-position of tree in empty setting. X-position is in the middle of X.
 
         # Create Treedata class object
         treedata = Treedata(ttype, height, trunk, dia, treey, treex)
@@ -506,10 +503,12 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
 
         cdsm_ = np.zeros((tree_input.rows, tree_input.cols))  # Empty cdsm
         tdsm_ = np.zeros((tree_input.rows, tree_input.cols))  # Empty tdsm
-        # Empty dsm raster
-        dsm_empty = np.ones((tree_input.rows, tree_input.cols))
-        # Empty building raster
-        buildings_empty = np.ones((tree_input.rows, tree_input.cols))
+        dsm_empty = np.ones(
+            (tree_input.rows, tree_input.cols)
+        )  # Empty dsm raster
+        buildings_empty = np.ones(
+            (tree_input.rows, tree_input.cols)
+        )  # Empty building raster
 
         rowcol = tree_input.rows * tree_input.cols
 
@@ -530,26 +529,29 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Create shadows for new tree
-        # Empty tree bush matrix
-        treebush = np.zeros((tree_input.rows, tree_input.cols))
+        treebush = np.zeros(
+            (tree_input.rows, tree_input.cols)
+        )  # Empty tree bush matrix
 
-        # Empty tree walls matrix
-        treewalls = np.zeros((tree_input.rows, tree_input.cols))
-        # Empty tree walls direction matrix
-        treewallsdir = np.zeros((tree_input.rows, tree_input.cols))
+        treewalls = np.zeros(
+            (tree_input.rows, tree_input.cols)
+        )  # Empty tree walls matrix
+        treewallsdir = np.zeros(
+            (tree_input.rows, tree_input.cols)
+        )  # Empty tree walls direction matrix
 
-        # Shade for each timestep, shade = 0
         treesh_ts1 = np.zeros(
             (tree_input.rows, tree_input.cols, r_range.__len__())
-        )
-        # Shade for each timestep, shade = 1
+        )  # Shade for each timestep, shade = 0
         treesh_ts2 = np.zeros(
             (tree_input.rows, tree_input.cols, r_range.__len__())
-        )
-        # Sum of shade for all timesteps
-        treesh_sum_sh = np.zeros((tree_input.rows, tree_input.cols))
-        # Sum of tmrt for all timesteps
-        treesh_sum_tmrt = np.zeros((tree_input.rows, tree_input.cols))
+        )  # Shade for each timestep, shade = 1
+        treesh_sum_sh = np.zeros(
+            (tree_input.rows, tree_input.cols)
+        )  # Sum of shade for all timesteps
+        treesh_sum_tmrt = np.zeros(
+            (tree_input.rows, tree_input.cols)
+        )  # Sum of tmrt for all timesteps
 
         dem_temp = np.ones((tree_input.rows, tree_input.cols))
 
@@ -579,7 +581,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             )
             i_c += 1
 
-        # Regional groups for tree shadows
+        ## Regional groups for tree shadows
         shadow_rg = Regional_groups(
             r_range, treesh_sum_sh, treesh_ts2, tmrt_1d
         )
@@ -605,8 +607,7 @@ class ProcessingTreePlanterAlgorithm(QgsProcessingAlgorithm):
             )
         else:
             # Hill climbing algorithm
-            # Creating matrices with Tmrt for tree shadows at each possible
-            # position
+            # Creating matrices with Tmrt for tree shadows at each possible position
             treerasters, positions = TreePlanterPrepare.treeplanter(
                 cropped_rasters, treedata, treerasters, tmrt_1d
             )

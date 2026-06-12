@@ -6,16 +6,16 @@ from ..TreePlanter.TreePlanterTreeshade import tree_slice
 
 def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
 
-    # Remove all Tmrt values that are in shade or on top of buildings
-    treeinput.tmrt_s = treeinput.tmrt_s * treeinput.buildings
+    treeinput.tmrt_s = (
+        treeinput.tmrt_s * treeinput.buildings
+    )  # Remove all Tmrt values that are in shade or on top of buildings
 
     bld_copy = treeinput.buildings.copy()
 
     # Creating boolean for where it is possible to plant a tree
     bd_b = np.int_(np.ceil((treedata.dia / 2) / treeinput.gt[1]))
 
-    # Buffer on building raster so that trees can't be planted next to walls.
-    # Can be planted one radius from walls.
+    # Buffer on building raster so that trees can't be planted next to walls. Can be planted one radius from walls.
     for i1 in range(bd_b):
         walls = np.zeros((treeinput.rows, treeinput.cols))
         domain = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
@@ -44,14 +44,16 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
     tmrt_max = 0
 
     # Calculating sum of Tmrt in shade for each possible position in the Tmrt matrix
-    # Empty matrix for sum of Tmrt in tree shadow
-    sum_tmrt_tsh = np.zeros((treeinput.rows, treeinput.cols))
-    # Empty matrix for sum of Tmrt in sun under tree shadow
-    sum_tmrt = np.zeros((treeinput.rows, treeinput.cols))
+    sum_tmrt_tsh = np.zeros(
+        (treeinput.rows, treeinput.cols)
+    )  # Empty matrix for sum of Tmrt in tree shadow
+    sum_tmrt = np.zeros(
+        (treeinput.rows, treeinput.cols)
+    )  # Empty matrix for sum of Tmrt in sun under tree shadow
 
-    # Coordinates for where it is possible to plant a tree (buildings, area of
-    # interest excluded)
-    res_y, res_x = np.where(bld_copy == 1)
+    res_y, res_x = np.where(
+        bld_copy == 1
+    )  # Coordinates for where it is possible to plant a tree (buildings, area of interest excluded)
 
     for tree in range(trees):
         if feedback.isCanceled():
@@ -94,8 +96,7 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
                     * tmrt_1d[j, 0]
                 )
 
-        # Adding sum_tmrt and sum_tmrt_tsh to the Treerasters class as well as
-        # calculating the difference between sunlit and shaded
+        # Adding sum_tmrt and sum_tmrt_tsh to the Treerasters class as well as calculating the difference between sunlit and shaded
         treerasters.tmrt(sum_tmrt, sum_tmrt_tsh)
 
         if tree == 0:
@@ -113,8 +114,7 @@ def greedyplanter(treeinput, treedata, treerasters, tmrt_1d, trees, feedback):
         best_y[tree] = temp_y[0]
         best_x[tree] = temp_x[0]
 
-        # Add new tree shade and remove Tmrt from Tmrt.SOLWEIG where there is
-        # shade from new tree
+        # Add new tree shade and remove Tmrt from Tmrt.SOLWEIG where there is shade from new tree
         y1 = np.int_(temp_y[0] - treerasters.buffer_y[0])
         y2 = np.int_(temp_y[0] + treerasters.buffer_y[1])
         x1 = np.int_(temp_x[0] - treerasters.buffer_x[0])

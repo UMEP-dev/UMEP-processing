@@ -27,8 +27,9 @@ def gvf_2018a(
     lc_grid,
     landcover,
 ):
-    # Search directions for Ground View Factors (GVF)
-    azimuthA = np.arange(5, 359, 20)
+    azimuthA = np.arange(
+        5, 359, 20
+    )  # Search directions for Ground View Factors (GVF)
 
     #### Ground View Factors ####
     gvfLup = np.zeros((rows, cols))

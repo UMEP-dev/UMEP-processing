@@ -51,7 +51,8 @@ from qgis.core import (
 )
 
 from qgis.PyQt.QtGui import QIcon
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
@@ -362,8 +363,12 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 feature = layer.GetFeature(0)
                 geom = feature.GetGeometryRef()
                 minX, maxX, minY, maxY = geom.GetEnvelope()
-                # Reorder bbox to use with gdal_translate
-                bbox = (minX, maxY, maxX, minY)
+                bbox = (
+                    minX,
+                    maxY,
+                    maxX,
+                    minY,
+                )  # Reorder bbox to use with gdal_translate
                 Vector.Destroy()
 
             if useDsmBuild:  # Only building heights
@@ -635,8 +640,7 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 if z0all == 0.0:
                     z0all = 0.03
 
-                # If pai is larger than 0 and fai is zero, set fai to 0.001.
-                # Issue # 164
+                # If pai is larger than 0 and fai is zero, set fai to 0.001. Issue # 164
                 if paiall > 0.0:
                     if faiall == 0.0:
                         faiall = 0.001
@@ -647,14 +651,16 @@ class ProcessingImageMorphParmsAlgorithm(QgsProcessingAlgorithm):
                 numPixels = len(dsm_array[np.where(dsm_array != nd)])
                 buildDSM = np.copy(dsm_array) - np.copy(dem_array)
                 buildDSM[buildDSM == nd] = 0
-                # building should be higher than 2 meter. Changed to 3 meters
-                # #784
-                buildDSM[(buildDSM < 3.0)] = 0
-                # 0.5 meter difference in kernel filter identify a wall
-                walls = wa.findwalls(buildDSM, 0.5, feedback, total)
+                buildDSM[(buildDSM < 3.0)] = (
+                    0  # building should be higher than 2 meter. Changed to 3 meters #784
+                )
+                walls = wa.findwalls(
+                    buildDSM, 0.5, feedback, total
+                )  # 0.5 meter difference in kernel filter identify a wall
                 wallarea = np.sum(walls)
-                # changed to work for irregular grids
-                gridArea = numPixels * geotransform[1] * abs(geotransform[5])
+                gridArea = (
+                    numPixels * geotransform[1] * abs(geotransform[5])
+                )  # changed to work for irregular grids
                 wai = wallarea / gridArea
 
                 arr2 = np.array(

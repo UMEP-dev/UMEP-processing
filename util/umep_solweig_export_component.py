@@ -105,9 +105,7 @@ def write_solweig_config(configDict, refdir):
         "# use anisotrphic sky (Wallenberg et al. XXXX and Wallenberg et al. XXXX)\n"
     )
     f.write("aniso={}\n".format(configDict["aniso"]))
-    f.write(
-        "# use the surface temperature parameterization v2026a\n"
-    )
+    f.write("# use the surface temperature parameterization v2026a\n")
     f.write("groundmodel={}\n".format(configDict["groundmodel"]))
     f.write(
         "# use the outgoing longwave radiation computation scheme v2026a\n"
@@ -132,6 +130,8 @@ def write_solweig_config(configDict, refdir):
     f.write("outputkdiff={}\n".format(configDict["outputkdiff"]))
     f.write("outputtreeplanter={}\n".format(configDict["outputtreeplanter"]))
     f.write("wallnetcdf={}\n".format(configDict["wallnetcdf"]))
+    f.write("# calculation mode (cpu or gpu)\n")
+    f.write("calculation_mode={}\n".format(configDict["calculation_mode"]))
     f.write("#-------------------------------------------------------\n")
     f.write("# dates - used if an EPW-file is used\n")
     f.write("#-------------------------------------------------------\n")

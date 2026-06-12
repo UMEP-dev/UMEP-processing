@@ -51,6 +51,7 @@ from qgis.core import (
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, ogr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
@@ -313,16 +314,19 @@ class ProcessingLandCoverFractionAlgorithm(QgsProcessingAlgorithm):
             if imid == 1:
                 bbox = (x - r, y + r, x + r, y - r)
             else:
-                # Remove gdalwarp cuttoline with gdal.Translate. Cut to
-                # envelope of polygon feature
+                # Remove gdalwarp cuttoline with gdal.Translate. Cut to envelope of polygon feature
                 VectorDriver = ogr.GetDriverByName("ESRI Shapefile")
                 Vector = VectorDriver.Open(self.dir_poly, 0)  # self.dir_poly
                 layer = Vector.GetLayer()
                 feature = layer.GetFeature(0)
                 geom = feature.GetGeometryRef()
                 minX, maxX, minY, maxY = geom.GetEnvelope()
-                # Reorder bbox to use with gdal_translate
-                bbox = (minX, maxY, maxX, minY)
+                bbox = (
+                    minX,
+                    maxY,
+                    maxX,
+                    minY,
+                )  # Reorder bbox to use with gdal_translate
                 Vector.Destroy()
 
             # Remove gdalwarp with gdal.Translate

@@ -26,13 +26,12 @@ imp_point = used to communicate with QGIS
 import numpy as np
 import scipy.ndimage.interpolation as sc
 
-# import matplotlib as plt
-
 
 def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
 
-    # too deal with irregular grids
-    numPixels = len(dsm[np.where(dsm != -9999)])
+    numPixels = len(
+        dsm[np.where(dsm != -9999)]
+    )  # too deal with irregular grids
 
     build = dsm - dem
     build[(build < 3.0)] = (
@@ -80,8 +79,7 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
             feedback.setProgress(int(angle / 3.6))
 
         # Rotating buildings
-        # d = sc.rotate(build, angle, order=0, reshape=False, mode='nearest')
-        # #old
+        # d = sc.rotate(build, angle, order=0, reshape=False, mode='nearest') #old
         a = sc.rotate(
             build, angle, order=0, reshape=True, mode="constant", cval=-99
         )
@@ -92,14 +90,14 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
         n = c.shape[1]
         imid = np.floor((n / 2.0))
 
-        # filter for fai. Moved inside loop since size change if grid is
-        # irregular
+        # filter for fai. Moved inside loop since size change if grid is irregular
         filt1 = np.ones((n, 1)) * -1.0
         filt2 = np.ones((n, 1))
         filt = np.array(np.hstack((filt1, filt2))).conj().T
         buildZero = np.copy(a)
-        # remove -99 to avoid one 99 meter tall building wall
-        buildZero[buildZero == -99] = 0
+        buildZero[buildZero == -99] = (
+            0  # remove -99 to avoid one 99 meter tall building wall
+        )
 
         for i in np.arange(1, c.shape[0]):
             c[int(i) - 1, :] = np.sum(
@@ -118,13 +116,13 @@ def imagemorphparam_v2(dsm, dem, scale, mid, dtheta, feedback, imp_point):
         bld = lineMid[np.where(lineMid > -99)]
         wall = walltemp[np.where(lineMid > -99)]
         ly = bld.shape[0]  # number of pixels to consider in NtoS
-        # !TODO should this consider full length (EtoW) of grid and if so, how?
-        lx = 1
+        lx = 1  #!TODO should this consider full length (EtoW) of grid and if so, how?
 
         wall = wall[np.where(wall > 2)]  # wall vector
         fai[j] = np.sum(wall) / ((lx * ly) / scale)
-        # building vector: change from 0 to 2  : 20150906
-        bld = bld[np.where(bld > 2)]
+        bld = bld[
+            np.where(bld > 2)
+        ]  # building vector: change from 0 to 2  : 20150906
         pai[j] = np.float32(bld.shape[0]) / (lx * ly)
         deg[j] = angle
         if np.float32(bld.shape[0]) == 0:

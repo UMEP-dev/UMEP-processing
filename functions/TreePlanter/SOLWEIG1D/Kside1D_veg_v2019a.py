@@ -133,11 +133,8 @@ def Kside_veg_v2019a(
             )  # Solid angle / Steradian
 
             radTot = radTot + (
-                # Radiance fraction normalization
-                aniLum[ix]
-                * phiVar[ix]
-                * np.sin(aniAlt[ix] * deg2rad)
-            )
+                aniLum[ix] * phiVar[ix] * np.sin(aniAlt[ix] * deg2rad)
+            )  # Radiance fraction normalization
 
         lumChi = (aniLum * radD) / radTot  # Radiance fraction normalization
 
@@ -146,15 +143,11 @@ def Kside_veg_v2019a(
                 anglIncC = np.cos(aniAlt[idx] * deg2rad) * np.cos(0) * np.sin(
                     np.pi / 2
                 ) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
-                    # Angle of incidence, np.cos(0) because cylinder - always
-                    # perpendicular
-                    np.pi
-                    / 2
-                )
-                # Diffuse vertical radiation
+                    np.pi / 2
+                )  # Angle of incidence, np.cos(0) because cylinder - always perpendicular
                 KsideD = (
                     KsideD + diffsh[idx] * lumChi[idx] * anglIncC * phiVar[idx]
-                )
+                )  # Diffuse vertical radiation
             Keast = (
                 albedo * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh))
                 + KupE

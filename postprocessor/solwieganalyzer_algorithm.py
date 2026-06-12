@@ -21,6 +21,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
@@ -355,7 +356,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #         daymean[self.build == 0] = -9999
 
         #     self.saveraster(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
-        # self.dlg.comboBoxSpecificMean.currentText() + '_mean.tif', daymean)
+        #                     self.dlg.comboBoxSpecificMean.currentText() + '_mean.tif', daymean)
 
         #     if self.dlg.checkBoxIntoCanvas.isChecked():
         #         self.intoCanvas(self.folderPathSave[0] + '/' + self.var +'_' + self.dlg.comboBoxSpecificMean.currentText() + '_mean.tif')
@@ -398,7 +399,7 @@ class ProcessingSolweigAnalyzerAlgorithm(QgsProcessingAlgorithm):
         #         daymean[self.build == 0] = -9999
 
         #     self.saveraster(gdal_dsm, self.folderPathSave[0] + '/' + self.var + '_' +
-        # self.dlg.comboBoxSpecificMin.currentText() + '_min.tif', daymean)
+        #                     self.dlg.comboBoxSpecificMin.currentText() + '_min.tif', daymean)
 
         #     if self.dlg.checkBoxIntoCanvas.isChecked():
         #         self.intoCanvas(self.folderPathSave[0] + '/' + self.var + '_' + self.dlg.comboBoxSpecificMin.currentText() + '_min.tif')

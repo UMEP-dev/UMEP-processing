@@ -43,8 +43,9 @@ from ..util.misc import saveraster
 # from ..util.umep_uwg_export_component import read_uwg_file
 
 try:
+    from target_py import Target
     from target_py.ui.utils import read_config
-except BaseException:
+except:
     pass
 
 
@@ -299,11 +300,11 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # prov = vlayer.dataProvider()
 
         path = vlayer.dataProvider().dataSourceUri()
-        # polygonpath = path [:path.rfind('|')] # work around. Probably other
-        # solution exists
+        # polygonpath = path [:path.rfind('|')] # work around. Probably other solution exists
         if path.rfind("|") > 0:
-            # work around. Probably other solution exists
-            polygonpath = path[: path.rfind("|")]
+            polygonpath = path[
+                : path.rfind("|")
+            ]  # work around. Probably other solution exists
         else:
             polygonpath = path
 
@@ -318,8 +319,7 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
         startD = int(startDate.strftime("%j"))
         endD = int(endDate.strftime("%j"))
 
-        # for i in range(0, self.idgrid.shape[0]): # loop over vector grid
-        # instead
+        # for i in range(0, self.idgrid.shape[0]): # loop over vector grid instead
         index = 1
         nGrids = vlayer.featureCount()
         for f in vlayer.getFeatures():
@@ -349,21 +349,24 @@ class ProcessingTARGETAnalyzerAlgorithm(QgsProcessingAlgorithm):
                 ending = np.max(np.where(datawhole[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(datawhole[:, 1] == endD))
-            # + 12 to include whole final night
-            data1 = datawhole[start : int(ending + 12), :]
+            data1 = datawhole[
+                start : int(ending + 12), :
+            ]  # + 12 to include whole final night
 
             # cut ref data
             if endD > np.max(dataref[:, 1]):
                 ending = np.max(np.where(dataref[:, 1] == endD - 1))
             else:
                 ending = np.min(np.where(dataref[:, 1] == endD))
-            # + 12 to include whole final night
-            data2 = dataref[start : int(ending + 12), :]
+            data2 = dataref[
+                start : int(ending + 12), :
+            ]  # + 12 to include whole final night
 
             # Select depending of time of day for ref data
             if dayTypeStr == "1":
-                # 14 is position for global radiation
-                data1 = data1[np.where(data1[:, 14] > 1.0), :]
+                data1 = data1[
+                    np.where(data1[:, 14] > 1.0), :
+                ]  # 14 is position for global radiation
                 data1 = data1[0][:]
                 data2 = data2[np.where(data2[:, 14] > 1.0), :]
                 data2 = data2[0][:]

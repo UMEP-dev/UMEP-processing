@@ -30,6 +30,8 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
+import gc
+
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessingAlgorithm,
@@ -45,13 +47,23 @@ from qgis.core import (
 # from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
+
+try:
+    import torch
+except ImportError:
+    torch = None
+    ipex = None
+
 from pathlib import Path
 import zipfile
 import sys
 from ..util import misc
+from ..functions import svf_functions_torch as svf_torch
+from ..functions import svf_for_voxels_torch as svfv_torch
 from ..functions import svf_functions as svf
 from ..functions import svf_for_voxels as svfv
 
@@ -70,6 +82,8 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     INPUT_THEIGHT = "INPUT_THEIGHT"
     ANISO = "ANISO"
     KMEANS = "KMEANS"
+    USE_GPU = "USE_GPU"
+
     CLUSTERS = "CLUSTERS"
     WALL_SCHEME = "WALL_SCHEME"
     INPUT_DEM = "INPUT_DEM"
@@ -122,6 +136,16 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 maxValue=99.9,
             )
         )
+
+        # Wall parameterization
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.USE_GPU,
+                self.tr("Use GPU"),
+                defaultValue=False,
+            ),
+        )
+
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.ANISO,
@@ -244,6 +268,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_THEIGHT, context
         )
         aniso = self.parameterAsBool(parameters, self.ANISO, context)
+        use_gpu = self.parameterAsBool(parameters, self.USE_GPU, context)
 
         # Wall parameterization settings
         demlayer = self.parameterAsRasterLayer(
@@ -253,10 +278,12 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             parameters, self.INPUT_SVFHEIGHT, context
         )
 
-        # If K-means will be used or not (true or false)
-        kmeans = self.parameterAsBool(parameters, self.KMEANS, context)
-        # + 1 because ground areas will be one cluster when dsm - dem
-        clusters = self.parameterAsInt(parameters, self.CLUSTERS, context) + 1
+        kmeans = self.parameterAsBool(
+            parameters, self.KMEANS, context
+        )  # If K-means will be used or not (true or false)
+        clusters = (
+            self.parameterAsInt(parameters, self.CLUSTERS, context) + 1
+        )  # + 1 because ground areas will be one cluster when dsm - dem
         wallScheme = self.parameterAsBool(
             parameters, self.WALL_SCHEME, context
         )
@@ -266,6 +293,40 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         if parameters["OUTPUT_DIR"] == "TEMPORARY_OUTPUT":
             if not (os.path.isdir(outputDir)):
                 os.mkdir(outputDir)
+
+        device = None
+
+        if use_gpu:
+            # Safely identify if we are dealing with the local mock class
+            if (
+                type(torch).__name__ == "MetaMock"
+                or getattr(torch, "__name__", "") == "LocalMockTorch"
+            ):
+                raise QgsProcessingException(
+                    "\n[UMEP Error] PyTorch is required to run GPU mode.\n"
+                    "Please install it using: pip install torch or with osgeo4w.\n"
+                    "Note:  setup for intel GPU require a more complex setup :\n"
+                    "pip install torch --index-url https://download.pytorch.org/whl/xpu"
+                )
+
+            if torch.cuda.is_available():
+                device = torch.device("cuda")
+                feedback.setProgressText(
+                    "PyTorch and GPU found. Initiating GPU mode..."
+                )
+            elif hasattr(torch, "xpu") and torch.xpu.is_available():
+                device = torch.device("xpu")
+                feedback.setProgressText(
+                    "PyTorch and GPU found. Initiating GPU mode..."
+                )
+            else:
+                device = torch.device("cpu")
+                feedback.setProgressText(
+                    "Pytorch found but GPU not found. Initiating CPU mode..."
+                )
+        else:
+            # Fall back to standard CPU processing
+            feedback.setProgressText("Running in CPU mode...")
 
         provider = dsmlayer.dataProvider()
         filepath_dsm = str(provider.dataSourceUri())
@@ -285,9 +346,11 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
         pixel_resolution = geotransform[1]
         scale = 1 / pixel_resolution
 
+        if use_gpu:
+            dsm = torch.from_numpy(dsm).to(device)
+
         if wallScheme:
-            # Load DEM layer if calculating exact SVFs for wall surface
-            # temperature scheme
+            # Load DEM layer if calculating exact SVFs for wall surface temperature scheme
             if demlayer:
                 provider = demlayer.dataProvider()
                 filepath_dem = str(provider.dataSourceUri())
@@ -333,10 +396,6 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 )
 
             if vegdsm2:
-                # vegdsm2 = self.parameterAsRasterLayer(parameters, self.INPUT_TDSM, context)
-                # if vegdsm2 is None:
-                # raise QgsProcessingException("Error: No valid Trunk zone DSM selected")
-
                 # load raster
                 gdal.AllRegister()
                 provider = vegdsm2.dataProvider()
@@ -358,33 +417,88 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             rows = dsm.shape[0]
             cols = dsm.shape[1]
             vegdsm = np.zeros([rows, cols])
+            if use_gpu:
+                vegdsm = torch.from_numpy(vegdsm).to(device)
             vegdsm2 = 0.0
             usevegdem = 0
 
         if aniso == 1:
             feedback.setProgressText("Calculating SVF using 153 iterations")
-            ret = svf.svfForProcessing153(
-                dsm,
-                vegdsm,
-                vegdsm2,
-                scale,
-                usevegdem,
-                pixel_resolution,
-                wallScheme,
-                dem,
-                feedback,
-            )
+
+            if use_gpu:
+                print("gpu version")
+
+                ret = svf_torch.svfForProcessing153(
+                    dsm,
+                    vegdsm,
+                    vegdsm2,
+                    scale,
+                    usevegdem,
+                    pixel_resolution,
+                    wallScheme,
+                    dem,
+                    feedback,
+                    device,
+                )
+            else:
+                print("cpu version")
+                ret = svf.svfForProcessing153(
+                    dsm,
+                    vegdsm,
+                    vegdsm2,
+                    scale,
+                    usevegdem,
+                    pixel_resolution,
+                    wallScheme,
+                    dem,
+                    feedback,
+                )
+
         else:
             feedback.setProgressText("Calculating SVF using 655 iterations")
-            ret = svf.svfForProcessing655(
-                dsm, vegdsm, vegdsm2, scale, usevegdem, feedback
-            )
+
+            if use_gpu:
+                print("gpu version")
+
+                ret = svf_torch.svfForProcessing655(
+                    dsm,
+                    vegdsm,
+                    vegdsm2,
+                    scale,
+                    usevegdem,
+                    feedback,
+                    device=device,
+                )
+
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
+            else:
+                print("cpu version")
+                ret = svf.svfForProcessing655(
+                    dsm,
+                    vegdsm,
+                    vegdsm2,
+                    scale,
+                    usevegdem,
+                    feedback,
+                )
+
+        # Clean up large intermediate tensors after SVF calculation
+        if use_gpu:
+            del dsm, vegdsm, vegdsm2
+            if dem is not None:
+                del dem
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
 
         # print('Time to finish first SVF calculation = ' + str(run_time))
         if wallScheme == 1:
             voxelTable = ret["voxelTable"]
-            # Remove where wall height is zero, i.e. there is no wall...
-            voxelTable = voxelTable[voxelTable[:, 2] != 0, :]
+            voxelTable = voxelTable[
+                voxelTable[:, 2] != 0, :
+            ]  # Remove where wall height is zero, i.e. there is no wall...
             wallHeights = ret["walls"]
             svfbu = ret["svf"]
             if usevegdem == 0:
@@ -402,7 +516,22 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfbu_array = np.zeros((voxelTable.shape[0]))
             svfveg_array = np.zeros((voxelTable.shape[0]))
             svfaveg_array = np.zeros((voxelTable.shape[0]))
-            voxel_y = np.where(voxelTable[:, 1] == svf_height)
+
+            if use_gpu:
+                svf_array = torch.from_numpy(svf_array).to(device)
+                svf_height_array = torch.from_numpy(svf_height_array).to(
+                    device
+                )
+                svfbu_array = torch.from_numpy(svfbu_array).to(device)
+                svfveg_array = torch.from_numpy(svfveg_array).to(device)
+                svfaveg_array = torch.from_numpy(svfaveg_array).to(device)
+
+            voxel_y = None
+            if use_gpu:
+                voxel_y = torch.where(voxelTable[:, 2] != 0)
+            else:
+                voxel_y = np.where(voxelTable[:, 2] != 0)
+
             for temp_y in voxel_y[0]:
                 svf_array[temp_y] = svftotal[
                     int(voxelTable[temp_y, 5]), int(voxelTable[temp_y, 6])
@@ -418,32 +547,82 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 ]
                 svf_height_array[temp_y] = svf_height
 
+            # Clean up large SVF arrays after extraction
+            if use_gpu:
+                del svftotal, svfbu, svfveg, svfaveg, voxel_y
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
+
             if kmeans:
-                voxelTable, cluster_heights = svfv.svf_kmeans(
-                    dsm,
-                    dem,
-                    vegdsm,
-                    vegdsm2,
-                    wallHeights,
-                    transVeg,
-                    scale,
-                    usevegdem,
-                    pixel_resolution,
-                    voxelTable,
-                    clusters,
-                    svf_height,
+
+                if use_gpu:
+                    print("gpu version")
+
+                    voxelTable, cluster_heights = svfv_torch.svf_kmeans(
+                        dsm,
+                        dem,
+                        vegdsm,
+                        vegdsm2,
+                        wallHeights,
+                        transVeg,
+                        scale,
+                        usevegdem,
+                        pixel_resolution,
+                        voxelTable,
+                        clusters,
+                        svf_height,
+                        svf_array,
+                        svfbu_array,
+                        svfveg_array,
+                        svfaveg_array,
+                        svf_height_array,
+                        feedback,
+                        device=device,
+                    )
+
+                    # Interpolate for voxels where SVF has not been calculated
+                    voxelTable = svfv_torch.interpolate_svf(voxelTable)
+                else:
+
+                    voxelTable, cluster_heights = svfv.svf_kmeans(
+                        dsm,
+                        dem,
+                        vegdsm,
+                        vegdsm2,
+                        wallHeights,
+                        transVeg,
+                        scale,
+                        usevegdem,
+                        pixel_resolution,
+                        voxelTable,
+                        clusters,
+                        svf_height,
+                        svf_array,
+                        svfbu_array,
+                        svfveg_array,
+                        svfaveg_array,
+                        svf_height_array,
+                        feedback,
+                    )
+
+                    # Interpolate for voxels where SVF has not been calculated
+                    voxelTable = svfv.interpolate_svf(voxelTable)
+
+            # Clean up k-means result tensors
+            if use_gpu:
+                del (
                     svf_array,
                     svfbu_array,
                     svfveg_array,
                     svfaveg_array,
                     svf_height_array,
-                    feedback,
                 )
-
-                # Interpolate for voxels where SVF has not been calculated
-                voxelTable = svfv.interpolate_svf(
-                    voxelTable, cluster_heights, kmeans
-                )
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
 
             # Loop for exact SVF at heights (increase DEM)
             # if demlayer:
@@ -451,25 +630,62 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 feedback.setProgressText(
                     "Calculating SVF for wall surface temperature parameterization"
                 )
-                voxelTable = svfv.svf_for_voxels(
-                    dsm,
-                    dem,
-                    vegdsm,
-                    vegdsm2,
-                    transVeg,
-                    scale,
-                    usevegdem,
-                    pixel_resolution,
-                    voxelTable,
-                    svf_height,
-                    svf_array,
-                    svfbu_array,
-                    svfveg_array,
-                    svfaveg_array,
-                    svf_height_array,
-                    feedback,
-                )
 
+                if use_gpu:
+                    print("gpu version")
+                    voxelTable = svfv_torch.svf_for_voxels(
+                        dsm,
+                        dem,
+                        vegdsm,
+                        vegdsm2,
+                        transVeg,
+                        scale,
+                        usevegdem,
+                        pixel_resolution,
+                        voxelTable,
+                        svf_height,
+                        svf_array,
+                        svfbu_array,
+                        svfveg_array,
+                        svfaveg_array,
+                        svf_height_array,
+                        feedback,
+                        device=device,
+                    )
+                else:
+                    print("cpu version")
+                    voxelTable = svfv.svf_for_voxels(
+                        dsm,
+                        dem,
+                        vegdsm,
+                        vegdsm2,
+                        transVeg,
+                        scale,
+                        usevegdem,
+                        pixel_resolution,
+                        voxelTable,
+                        svf_height,
+                        svf_array,
+                        svfbu_array,
+                        svfveg_array,
+                        svfaveg_array,
+                        svf_height_array,
+                        feedback,
+                    )
+
+                # Clean up voxel processing result tensors
+                if use_gpu:
+                    del (
+                        svf_array,
+                        svfbu_array,
+                        svfveg_array,
+                        svfaveg_array,
+                        svf_height_array,
+                    )
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 # Remove rows where svfbu, sfveg and svfaveg is zero
                 if usevegdem == 1:
                     voxelTable = voxelTable[
@@ -501,12 +717,68 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
             svfbuW = ret["svfW"]
             svfbuN = ret["svfN"]
 
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svf.tif", svfbu)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfE.tif", svfbuE)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfS.tif", svfbuS)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfW.tif", svfbuW)
-            misc.saveraster(gdal_dsm, outputDir + "/" + "svfN.tif", svfbuN)
+            if use_gpu:
 
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svf.tif",
+                    svfbu.cpu().detach().numpy(),
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfE.tif",
+                    svfbuE.cpu().detach().numpy(),
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfS.tif",
+                    svfbuS.cpu().detach().numpy(),
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfW.tif",
+                    svfbuW.cpu().detach().numpy(),
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfN.tif",
+                    svfbuN.cpu().detach().numpy(),
+                )
+
+            else:
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svf.tif",
+                    svfbu,
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfE.tif",
+                    svfbuE,
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfS.tif",
+                    svfbuS,
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfW.tif",
+                    svfbuW,
+                )
+                misc.saveraster(
+                    gdal_dsm,
+                    outputDir + "/" + "svfN.tif",
+                    svfbuN,
+                )
+
+            # Clean up main SVF tensors after saving
+            if use_gpu:
+                del svfbuE, svfbuS, svfbuW, svfbuN
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
             if os.path.isfile(outputDir + "/" + "svfs.zip"):
                 os.remove(outputDir + "/" + "svfs.zip")
 
@@ -539,37 +811,127 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 svfWaveg = ret["svfWaveg"]
                 svfNaveg = ret["svfNaveg"]
 
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfveg.tif", svfveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfEveg.tif", svfEveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfSveg.tif", svfSveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfWveg.tif", svfWveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfNveg.tif", svfNveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfaveg.tif", svfaveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfEaveg.tif", svfEaveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfSaveg.tif", svfSaveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfWaveg.tif", svfWaveg
-                )
-                misc.saveraster(
-                    gdal_dsm, outputDir + "/" + "svfNaveg.tif", svfNaveg
-                )
+                if use_gpu:
 
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfveg.tif",
+                        svfveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfEveg.tif",
+                        svfEveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfSveg.tif",
+                        svfSveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfWveg.tif",
+                        svfWveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfNveg.tif",
+                        svfNveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfaveg.tif",
+                        svfaveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfEaveg.tif",
+                        svfEaveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfSaveg.tif",
+                        svfSaveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfWaveg.tif",
+                        svfWaveg.cpu().detach().numpy(),
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfNaveg.tif",
+                        svfNaveg.cpu().detach().numpy(),
+                    )
+                else:
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfveg.tif",
+                        svfveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfEveg.tif",
+                        svfEveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfSveg.tif",
+                        svfSveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfWveg.tif",
+                        svfWveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfNveg.tif",
+                        svfNveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfaveg.tif",
+                        svfaveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfEaveg.tif",
+                        svfEaveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfSaveg.tif",
+                        svfSaveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfWaveg.tif",
+                        svfWaveg,
+                    )
+                    misc.saveraster(
+                        gdal_dsm,
+                        outputDir + "/" + "svfNaveg.tif",
+                        svfNaveg,
+                    )
+
+                # Clean up vegetation SVF tensors after saving
+                if use_gpu:
+                    del (
+                        svfEveg,
+                        svfSveg,
+                        svfWveg,
+                        svfNveg,
+                        svfaveg,
+                        svfEaveg,
+                        svfSaveg,
+                        svfWaveg,
+                        svfNaveg,
+                    )
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
                 zippo = zipfile.ZipFile(outputDir + "/" + "svfs.zip", "a")
                 zippo.write(outputDir + "/" + "svfveg.tif", "svfveg.tif")
                 zippo.write(outputDir + "/" + "svfEveg.tif", "svfEveg.tif")
@@ -597,36 +959,88 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
                 trans = transVeg / 100.0
                 svftotal = svfbu - (1 - svfveg) * (1 - trans)
 
-            misc.saveraster(gdal_dsm, filename, svftotal)
+            if use_gpu:
+                misc.saveraster(
+                    gdal_dsm, filename, svftotal.cpu().detach().numpy()
+                )
+                del svftotal, svfbu, svfveg
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif device.type == "xpu":
+                    torch.xpu.empty_cache()
+            else:
+                misc.saveraster(gdal_dsm, filename, svftotal)
 
             # Save shadow images for SOLWEIG 2019a
             if aniso == 1:
                 shmat = ret["shmat"]
                 vegshmat = ret["vegshmat"]
                 vbshvegshmat = ret["vbshvegshmat"]
-                # wallshmat = ret["wallshmat"]
-                # wallsunmat = ret["wallsunmat"]
-                # wallshvemat = ret["wallshvemat"]
-                # facesunmat = ret["facesunmat"]
 
-                np.savez_compressed(
-                    outputDir + "/" + "shadowmats.npz",
-                    shadowmat=shmat,
-                    vegshadowmat=vegshmat,
-                    vbshmat=vbshvegshmat,
-                )  # ,
-                # vbshvegshmat=vbshvegshmat, wallshmat=wallshmat, wallsunmat=wallsunmat,
-                # facesunmat=facesunmat, wallshvemat=wallshvemat)
+                if use_gpu:
+                    np.savez_compressed(
+                        outputDir + "/" + "shadowmats.npz",
+                        shadowmat=shmat.cpu().detach().numpy(),
+                        vegshadowmat=vegshmat.cpu().detach().numpy(),
+                        vbshmat=vbshvegshmat.cpu().detach().numpy(),
+                    )  # ,
+                    del shmat, vegshmat, vbshvegshmat
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
+                else:
+                    np.savez_compressed(
+                        outputDir + "/" + "shadowmats.npz",
+                        shadowmat=shmat,
+                        vegshadowmat=vegshmat,
+                        vbshmat=vbshvegshmat,
+                    )  # ,
 
             if wallScheme == 1:
                 voxelId = ret["voxelIds"]
                 voxelTable = ret["voxelTable"]
 
-                np.savez_compressed(
-                    outputDir + "/" + "wallScheme.npz",
-                    voxelId=voxelId,
-                    voxelTable=voxelTable,
-                )
+                if use_gpu:
+                    np.savez_compressed(
+                        outputDir + "/" + "wallScheme.npz",
+                        voxelId=voxelId.cpu().detach().numpy(),
+                        voxelTable=voxelTable.cpu().detach().numpy(),
+                    )
+                    del voxelId, voxelTable
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
+                    elif device.type == "xpu":
+                        torch.xpu.empty_cache()
+                else:
+                    np.savez_compressed(
+                        outputDir + "/" + "wallScheme.npz",
+                        voxelId=voxelId,
+                        voxelTable=voxelTable,
+                    )
+
+        # Final GPU memory cleanup
+        if use_gpu:
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            elif device.type == "xpu":
+                torch.xpu.empty_cache()
+
+        # Aggressive GPU memory cleanup
+        if use_gpu and torch.cuda.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.cuda.synchronize()  # Ensure all GPU operations are complete
+            torch.cuda.empty_cache()  # Clear unused GPU memory
+            torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.cuda.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
+        elif use_gpu and torch.xpu.is_available():
+            feedback.setProgressText("Clearing GPU memory...")
+            torch.xpu.synchronize()  # Ensure all GPU operations are complete
+            torch.xpu.empty_cache()  # Clear unused GPU memory
+            torch.xpu.reset_peak_memory_stats()  # Reset peak memory tracking
+            torch.xpu.empty_cache()  # Clear again to be sure
+            gc.collect()  # Force Python garbage collection
 
         feedback.setProgressText(
             "Sky View Factor: SVF grid(s) successfully generated"

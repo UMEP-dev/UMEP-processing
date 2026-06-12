@@ -52,6 +52,7 @@ from qgis.core import (
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect

@@ -188,8 +188,7 @@ def tmrt_1d_fun(metfilepath, infolder, tau, lon, lat, dsm, r_range):
 
         # diffsh = np.zeros((145))
 
-        # Creating skyvault of patches of constant radians (Tregeneza and
-        # Sharples, 1993)
+        # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
         skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(patch_option)
 
         diffsh = np.zeros((skyvaultalt.shape[0]))

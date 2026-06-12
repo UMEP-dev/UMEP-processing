@@ -119,11 +119,10 @@ def writeRunInfo(
             )
             file.write("\n")
             if trunkfile == 1:
-                # FO# zrunk -> trunk
                 file.write(
                     "Digital vegetation trunk zone model (TDSM): "
                     + filePath_tdsm
-                )
+                )  # FO# zrunk -> trunk
                 file.write("\n")
             else:
                 file.write("Trunkzone estimated from CDSM")
@@ -225,8 +224,9 @@ def writeRunInfo(
             )
             file.write("\n")
         if cyl == 1:
-            # FO# '' -> standing
-            file.write("Human considered as a standing cylinder")
+            file.write(
+                "Human considered as a standing cylinder"
+            )  # FO# '' -> standing
         else:
             file.write("Human considered as a standing cube")
         file.write("\n")

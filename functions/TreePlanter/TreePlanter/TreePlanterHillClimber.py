@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+from scipy.ndimage import label
 from ..TreePlanter import HillClimberAlgorithm
 from ..TreePlanter.adjustments import treenudge
 from ..TreePlanter import StartingPositions
@@ -26,12 +27,15 @@ def treeoptinit(
 
     dia = treedata.dia  # Diameter of tree canopy
 
-    # Empty vector to be filled with Tmrt values for each tree
-    i_tmrt = np.zeros((r_iters))
-    # Empty vector to be filled with corresponding y position of the above
-    i_y = np.zeros((r_iters, trees))
-    # Empty vector to be filled with corresponding x position of the above
-    i_x = np.zeros((r_iters, trees))
+    i_tmrt = np.zeros(
+        (r_iters)
+    )  # Empty vector to be filled with Tmrt values for each tree
+    i_y = np.zeros(
+        (r_iters, trees)
+    )  # Empty vector to be filled with corresponding y position of the above
+    i_x = np.zeros(
+        (r_iters, trees)
+    )  # Empty vector to be filled with corresponding x position of the above
 
     tree_pos_all = np.zeros((r_iters, trees))
 
@@ -63,8 +67,7 @@ def treeoptinit(
         d_tmrt_p = np.zeros((trees))
         i_tmrt_max = np.max(i_tmrt)
 
-    # Iterate for r_iters number of iterations. Will find optimal positions
-    # for trees and return the positions and decrease in tmrt
+    # Iterate for r_iters number of iterations. Will find optimal positions for trees and return the positions and decrease in tmrt
     for counter in range(r_iters):
         # Check if plugin is cancelled
         if feedback.isCanceled():
@@ -86,8 +89,7 @@ def treeoptinit(
 
             # Creating starting positions.
             # If sa = 0, random restart, i
-            # If sa = 1 evolutionary restart, i.e. y or x is random, the other
-            # is kept from previous run (previous local optimum)
+            # If sa = 1 evolutionary restart, i.e. y or x is random, the other is kept from previous run (previous local optimum)
             if sa == 0:
                 tree_pos, tp_c, break_loop = StartingPositions.random_start(
                     positions.pos[:, 0], trees, tree_pos_all, r_iters
@@ -119,10 +121,12 @@ def treeoptinit(
                 break
 
             if (counter == 0) | (sa == 0):
-                # Random y-positions for trees
-                tree_pos_y = np.zeros((trees), dtype=int)
-                # Random x-positions for trees
-                tree_pos_x = np.zeros((trees), dtype=int)
+                tree_pos_y = np.zeros(
+                    (trees), dtype=int
+                )  # Random y-positions for trees
+                tree_pos_x = np.zeros(
+                    (trees), dtype=int
+                )  # Random x-positions for trees
 
                 # Y and X positions of starting positions
                 for i2 in range(tree_pos.__len__()):
@@ -133,8 +137,7 @@ def treeoptinit(
                         positions.pos[:, 0] == tree_pos[i2], 2
                     ]
 
-            # Euclidean distance between random positions so that trees are not
-            # too close to each other
+            # Euclidean distance between random positions so that trees are not too close to each other
             it_comb = combine(tree_pos, 2)
             eucl_dist = np.zeros((it_comb.__len__(), 1))
 
@@ -157,15 +160,16 @@ def treeoptinit(
         if break_loop == (r_iters + 1):
             break
 
-        # 1 if tree is in the same position as in previous iteration, otherwise
-        # 0
-        tp_nc = np.zeros((trees, 1))
-        # 1 if tree is stuck but have been checked for better position and none
-        # was found, otherwise 0
-        tp_nc_a = np.zeros((trees))
+        tp_nc = np.zeros(
+            (trees, 1)
+        )  # 1 if tree is in the same position as in previous iteration, otherwise 0
+        tp_nc_a = np.zeros(
+            (trees)
+        )  # 1 if tree is stuck but have been checked for better position and none was found, otherwise 0
 
-        # Iterator to move between trees moving around in the study area
-        ti = itertools.cycle(range(trees))
+        ti = itertools.cycle(
+            range(trees)
+        )  # Iterator to move between trees moving around in the study area
 
         # Create matrices for tree paths and add starting positions
         tree_paths_temp = np.zeros((treerasters.rows, treerasters.cols, trees))
@@ -202,8 +206,7 @@ def treeoptinit(
 
                 tp_nc_a[i] = 0
 
-            # Possibly moving trees that are stuck, where tree shadows
-            # intersect
+            # Possibly moving trees that are stuck, where tree shadows intersect
             elif (tp_nc_a[i] == 0) & (tp_nc[i, 0] == 1):
                 y_out, x_out, tp_nc, tp_nc_a, t1 = treenudge(
                     y_out,
@@ -232,8 +235,7 @@ def treeoptinit(
                 i_x[counter, :] = tree_pos_x[:]
                 i_y[counter, :] = tree_pos_y[:]
 
-        # Check whether there is a new equal or worse position for each
-        # individual tree.
+        # Check whether there is a new equal or worse position for each individual tree.
         if sa == 1:
             if i_tmrt[counter] > i_tmrt_max:
                 i_tmrt_max = np.max(i_tmrt)
@@ -252,8 +254,9 @@ def treeoptinit(
                 high_p = d_tmrt_temp > d_tmrt_p
                 tree_pos_c[high_p] = 0
 
-        # Path of trees with best positions from starting to ending
-        if i_tmrt[counter] == np.max(i_tmrt):
+        if i_tmrt[counter] == np.max(
+            i_tmrt
+        ):  # Path of trees with best positions from starting to ending
             tree_paths = tree_paths_temp.copy()
 
         if tp_c == 100:
@@ -266,8 +269,7 @@ def treeoptinit(
     i_y_all = i_y.copy()
     i_x_all = i_x.copy()
 
-    # Finding best position from all r_iters iteration, i.e. if r_iters = 1000
-    # then best position out of 1000 runs
+    # Finding best position from all r_iters iteration, i.e. if r_iters = 1000 then best position out of 1000 runs
     t_max = np.max(i_tmrt)
     y = np.where(i_tmrt == t_max)
 
