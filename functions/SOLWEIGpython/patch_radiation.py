@@ -32,8 +32,7 @@ def longwave_from_sky(sky, Lsky_side, Lsky_down, patch_azimuth):
     Lwest = np.zeros((sky.shape[0], sky.shape[1]))
     Lnorth = np.zeros((sky.shape[0], sky.shape[1]))
 
-    # Portion into cardinal directions to be used for standing box or POI
-    # output
+    # Portion into cardinal directions to be used for standing box or POI output
     if (patch_azimuth > 360) or (patch_azimuth < 180):
         Least = sky * Lsky_side * np.cos((90 - patch_azimuth) * deg2rad)
     if (patch_azimuth > 90) and (patch_azimuth < 270):
@@ -87,8 +86,7 @@ def longwave_from_veg(
     Lwest = np.zeros((vegetation.shape[0], vegetation.shape[1]))
     Lnorth = np.zeros((vegetation.shape[0], vegetation.shape[1]))
 
-    # Portion into cardinal directions to be used for standing box or POI
-    # output
+    # Portion into cardinal directions to be used for standing box or POI output
     if (patch_azimuth > 360) or (patch_azimuth < 180):
         Least = (
             vegetation_surface
@@ -161,8 +159,6 @@ def longwave_from_buildings(
         and (azimuth_difference < 270)
         and (solar_altitude > 0)
     ):
-        # Calculate which patches defined as buildings that are sunlit or shaded
-        # sunlit_patches, shaded_patches = sunlit_shaded_patches.shaded_or_sunlit(solar_altitude, solar_azimuth, patch_altitude, patch_azimuth, asvf)
 
         # Calculate longwave radiation from sunlit walls to vertical surface
         Lside_sun = (
@@ -198,8 +194,7 @@ def longwave_from_buildings(
             * building
         )
 
-        # Portion into cardinal directions to be used for standing box or POI
-        # output
+        # Portion into cardinal directions to be used for standing box or POI output
         if (patch_azimuth > 360) or (patch_azimuth < 180):
             Least = (
                 sunlit_surface
@@ -270,18 +265,15 @@ def longwave_from_buildings(
             )
 
     else:
-        # Calculate longwave radiation from shaded walls reaching a vertical
-        # surface
+        # Calculate longwave radiation from shaded walls reaching a vertical surface
         Lside_sh = shaded_surface * steradian * angle_of_incidence * building
         Lside_sun = np.zeros((Lside_sh.shape[0], Lside_sh.shape[1]))
 
-        # Calculate longwave radiation from shaded walls reaching a horizontal
-        # surface
+        # Calculate longwave radiation from shaded walls reaching a horizontal surface
         Ldown_sh = shaded_surface * steradian * angle_of_incidence_h * building
         Ldown_sun = np.zeros((Lside_sh.shape[0], Lside_sh.shape[1]))
 
-        # Portion into cardinal directions to be used for standing box or POI
-        # output
+        # Portion into cardinal directions to be used for standing box or POI output
         if (patch_azimuth > 360) or (patch_azimuth < 180):
             Least = (
                 shaded_surface
@@ -349,19 +341,14 @@ def longwave_from_buildings_wallScheme(
     Lwest = np.zeros((voxelMaps.shape[0], voxelMaps.shape[1]))
     Lnorth = np.zeros((voxelMaps.shape[0], voxelMaps.shape[1]))
 
-    # print(voxelMaps)
-    # print(voxelTable.head())
     l = list(np.unique(voxelMaps)[1:])
-    # print(l)
     a = dict(voxelTable.loc[l, "LongwaveRadiation"])
-    # print(a)
     patch_radiation = np.vectorize(a.get)(voxelMaps).astype(float)
     patch_radiation[np.isnan(patch_radiation)] = 0
     Lside += patch_radiation * steradian * angle_of_incidence
     Ldown += patch_radiation * steradian * angle_of_incidence_h
 
-    # Portion into cardinal directions to be used for standing box or POI
-    # output
+    # Portion into cardinal directions to be used for standing box or POI output
     if (patch_azimuth > 360) or (patch_azimuth < 180):
         Least = (
             patch_radiation
@@ -441,8 +428,7 @@ def reflected_longwave(
         (reflecting_surface.shape[0], reflecting_surface.shape[1])
     )
 
-    # Portion into cardinal directions to be used for standing box or POI
-    # output
+    # Portion into cardinal directions to be used for standing box or POI output
     if (patch_azimuth > 360) or (patch_azimuth < 180):
         Least = (
             reflected_radiation

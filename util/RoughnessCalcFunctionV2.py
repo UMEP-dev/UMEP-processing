@@ -1,28 +1,27 @@
 #### Function that calculates z0 and zd according to different methods ####
-#### INPUTS####
-# Roughness Methods:
+####INPUTS####
+##Roughness Methods:
 # 'RT'  - Rule of thumb
 # 'Rau' - Raupach (1994/95)
 # 'Bot' - Simplified Bottema (1995)
 # 'Mac' - MacDonald et al. (1998)
 # 'Mho' - Millward-Hopkins et al. (2011) [SIMPLIFIED]
 # 'Kan' - Kanda et al. (2013)
-# Building information
+##Building information
 # zH - average building height,
 # fai - frontal area,
 # pai - plan area,
 # zMax - max building height,
 # zSdev - standard dev of building heights
-#### OUTPUTS####
+####OUTPUTS####
 # zd = zero-plane displacement height
 # z0 = roughness length
 
 import numpy as np
 import math
 
-#### FUNCTION####
 
-
+####FUNCTION####
 def RoughnessCalcMany(Roughnessmethod, zH, fai, pai, zMax, zSdev):
 
     z_d_output = np.zeros((fai.shape[0], 1)) - 999.0

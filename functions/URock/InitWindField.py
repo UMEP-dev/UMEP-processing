@@ -6,6 +6,11 @@ Created on Wed Feb  3 15:39:07 2021
 @author: Jérémy Bernard, University of Gothenburg
 """
 
+from . import DataUtil
+from .DataUtil import safe
+import pandas as pd
+
+idx = pd.IndexSlice
 from .GlobalVariables import (
     ALONG_WIND_ZONE_EXTEND,
     CROSS_WIND_ZONE_EXTEND,
@@ -108,14 +113,9 @@ from .GlobalVariables import (
     IS_UPSTREAM_UPSTREAM_WEIGHTING,
     CANYON_DELTAH_FIELD,
 )
-import os
-import numpy as np
 import math
-from . import DataUtil
-from .DataUtil import safe
-import pandas as pd
-
-idx = pd.IndexSlice
+import numpy as np
+import os
 
 
 def createGrid(
@@ -185,8 +185,8 @@ def createGrid(
                         ST_Y({1}) AS {10}
             FROM ST_MAKEGRIDPOINTS((SELECT ST_EXPAND(ST_EXTENT({1}),
                                                       {2},
-                                                      {3}) FROM ({5})),
-                                    {4},
+                                                      {3}) FROM ({5})), 
+                                    {4}, 
                                     {4})""").format(
         gridTable,
         GEOM_FIELD,
@@ -234,7 +234,7 @@ def affectsPointToBuildZone(
                 Vertical lines (not along z but along the grid "north-south")
                 useful for future calculations"""
     print(
-        """Affects each grid point to a building Rockle zone and calculates needed
+        """Affects each grid point to a building Rockle zone and calculates needed 
           variables for 3D wind speed"""
     )
 
@@ -322,7 +322,7 @@ def affectsPointToBuildZone(
             )
         elif t == ROOFTOP_CORN_NAME:
             columnsToKeepQuery = safe(
-                """b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7},
+                """b.{0}, a.{1}, a.{2}, b.{3}, a.{4}, a.{5}, a.{6}, a.{7}, 
                                    a.GEOM_CORNER_POINT,
                                    b.{8}
                                    """
@@ -339,7 +339,7 @@ def affectsPointToBuildZone(
             )
 
         query.append(
-            safe("""
+            safe(""" 
             {5};
             DROP TABLE IF EXISTS {2};
             CREATE TABLE {2}
@@ -369,11 +369,11 @@ def affectsPointToBuildZone(
 
     # For Rockle zones that needs relative point distance, extra calculation is needed
     # First creates vertical lines
-    endOfQuery = safe("""
+    endOfQuery = safe(""" 
         {6};
         {7};
         DROP TABLE IF EXISTS {0};
-        CREATE TABLE {0}
+        CREATE TABLE {0} 
             AS SELECT   a.{1},
                         ST_MAKELINE(b.{2}, a.{2}) AS {2},
                         b.{4},
@@ -406,7 +406,7 @@ def affectsPointToBuildZone(
                                     b.{1},
                                     a.{2},
                                     b.{6},
-                                    ST_YMIN(ST_INTERSECTION(a.{3},
+                                    ST_YMIN(ST_INTERSECTION(a.{3}, 
                                                             ST_TOMULTILINE(b.{3}))
                                             ) AS {5},
                                     ST_LENGTH(ST_INTERSECTION(a.{3}, b.{3})) AS {4}
@@ -423,7 +423,7 @@ def affectsPointToBuildZone(
                                     b.{1},
                                     a.{2},
                                     b.{6},
-                                    ST_YMIN(ST_INTERSECTION(a.{3},
+                                    ST_YMIN(ST_INTERSECTION(a.{3}, 
                                                             ST_TOMULTILINE(b.{3}))
                                             ) AS {5},
                                     ST_LENGTH(ST_INTERSECTION(a.{3}, b.{3})) AS {4}
@@ -439,14 +439,14 @@ def affectsPointToBuildZone(
         CAVITY_NAME: """b.{0},
                                     b.{1},
                                     a.{2},
-                                    ST_YMAX(ST_INTERSECTION(a.{3},
+                                    ST_YMAX(ST_INTERSECTION(a.{3}, 
                                                             b.{3})
                                             ) AS {5},
                                     a.{6},
-                                    CASE WHEN ST_DIMENSION(ST_INTERSECTION(a.{3},
+                                    CASE WHEN ST_DIMENSION(ST_INTERSECTION(a.{3}, 
                                                                            b.{3}))=0
                                         THEN 0
-                                        ELSE ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{3},
+                                        ELSE ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{3}, 
                                                                                           b.{3})
                                                                                    )
                                                                    )
@@ -455,11 +455,11 @@ def affectsPointToBuildZone(
                                     b.{7},
                                     CASE WHEN a.{8} > b.{9}
                                         THEN b.{10}
-                                        ELSE b.{11}
+                                        ELSE b.{11} 
                                         END AS {12},
                                     CASE WHEN a.{8} > b.{9}
                                         THEN b.{13}
-                                        ELSE b.{14}
+                                        ELSE b.{14} 
                                         END AS {15},
                                     POWER((b.{16}/2-ABS(a.{8}-b.{18}))/(b.{16}/2),0.5) AS {17}
                                     """.format(
@@ -486,13 +486,13 @@ def affectsPointToBuildZone(
         WAKE_NAME: """b.{0},
                                     b.{1},
                                     a.{2},
-                                    ST_YMAX(ST_INTERSECTION(a.{3},
+                                    ST_YMAX(ST_INTERSECTION(a.{3}, 
                                                             b.{3})
                                             ) AS {5},
-                                    CASE WHEN ST_DIMENSION(ST_INTERSECTION(a.{3},
+                                    CASE WHEN ST_DIMENSION(ST_INTERSECTION(a.{3}, 
                                                                            b.{3}))=0
                                         THEN 0
-                                        ELSE ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{3},
+                                        ELSE ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{3}, 
                                                                                           b.{3})
                                                                                    )
                                                                    )
@@ -508,31 +508,33 @@ def affectsPointToBuildZone(
             Y_WALL,
             ID_FIELD_STACKED_BLOCK,
         ),
-        STREET_CANYON_NAME: f"""b.{idZone[STREET_CANYON_NAME]},
+        STREET_CANYON_NAME: (
+            f"""b.{idZone[STREET_CANYON_NAME]},
                                     b.{UPSTREAM_HEIGHT_FIELD},
                                     LEAST(b.{DOWNSTREAM_HEIGHT_FIELD}, b.{UPSTREAM_HEIGHT_FIELD}) AS {MAX_CANYON_HEIGHT_FIELD},
                                     b.{DOWNSTREAM_HEIGHT_FIELD}-b.{UPSTREAM_HEIGHT_FIELD} AS {CANYON_DELTAH_FIELD},
                                     b.{UPWIND_FACADE_ANGLE_FIELD},
                                     a.{ID_POINT_X},
                                     b.{BASE_HEIGHT_FIELD},
-                                    ST_YMAX(ST_INTERSECTION(a.{GEOM_FIELD},
+                                    ST_YMAX(ST_INTERSECTION(a.{GEOM_FIELD}, 
                                                             b.{GEOM_FIELD})) AS {Y_WALL},
                                     ST_LENGTH(ST_MAKELINE(ST_TOMULTIPOINT(ST_INTERSECTION(a.{GEOM_FIELD},
                                                                                           b.{GEOM_FIELD})
                                                                           )
                                                           )
-                                              ) AS {LENGTH_ZONE_FIELD + STREET_CANYON_NAME[0]},
+                                              ) AS {LENGTH_ZONE_FIELD+STREET_CANYON_NAME[0]},
                                     b.{UPWIND_FACADE_FIELD},
                                     b.{ID_UPSTREAM_STACKED_BLOCK},
                                     a.{ID_POINT_Y},
                                     b.{DOWNWIND_FACADE_FIELD}
-                                    """,
+                                    """
+        ),
         ROOFTOP_PERP_NAME: """b.{0},
                                     b.{1},
                                     a.{2},
                                     b.{3},
                                     b.{4},
-                                    ST_YMAX(ST_INTERSECTION(a.{5},
+                                    ST_YMAX(ST_INTERSECTION(a.{5}, 
                                                             b.{5})
                                             ) AS {6}
                                     """.format(
@@ -556,7 +558,7 @@ def affectsPointToBuildZone(
         CREATE TABLE {0}
             AS SELECT   {5}
             FROM    {3} AS a, {2} AS b
-            WHERE   a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1}) AND
+            WHERE   a.{1} && b.{1} AND ST_INTERSECTS(a.{1}, b.{1}) AND 
                     ST_DIMENSION(ST_INTERSECTION(a.{1}, b.{1})) > 0;
                   """).format(
                 dicOfPrefixZoneLim[t],
@@ -579,8 +581,7 @@ def affectsPointToBuildZone(
 
     # The cavity zone length is needed for the wind speed calculation of
     # wake zone points and for the upper height limit of the street canyon
-    # while the wake zone length is needed for cavity zone wind speed
-    # calculation
+    # while the wake zone length is needed for cavity zone wind speed calculation
     cursor.execute(
         safe("""
        {idx1}
@@ -588,40 +589,40 @@ def affectsPointToBuildZone(
        {idx3}
        {idx4}
        DROP TABLE IF EXISTS TEMPO_WAKE;
-       CREATE TABLE TEMPO_WAKE
-           AS SELECT   a.*,
-                       b.{len_cav},
-                       b.{cos_az}, b.{sin_az},
+       CREATE TABLE TEMPO_WAKE 
+           AS SELECT   a.*, 
+                       b.{len_cav}, 
+                       b.{cos_az}, b.{sin_az}, 
                        b.{rel_pos}
-           FROM     {wake_table} AS a LEFT JOIN {cavity_table} AS b
-                    ON  a.{downwind_f} = b.{downwind_f}
+           FROM     {wake_table} AS a LEFT JOIN {cavity_table} AS b 
+                    ON  a.{downwind_f} = b.{downwind_f} 
                         AND a.{id_px} = b.{id_px};
        DROP TABLE IF EXISTS {wake_table};
        ALTER TABLE TEMPO_WAKE RENAME TO {wake_table};
-
+       
        {idx5}
        {idx6}
        {idx7}
        {idx8}
        DROP TABLE IF EXISTS TEMPO_CANYON;
-       CREATE TABLE TEMPO_CANYON
-           AS SELECT   a.*,
+       CREATE TABLE TEMPO_CANYON 
+           AS SELECT   a.*, 
                        b.{len_cav}
-           FROM     {canyon_table} AS a LEFT JOIN {cavity_table} AS b
+           FROM     {canyon_table} AS a LEFT JOIN {cavity_table} AS b 
                     ON  a.{downwind_f} = b.{downwind_f}
                         AND a.{id_px} = b.{id_px};
        DROP TABLE IF EXISTS {canyon_table};
        ALTER TABLE TEMPO_CANYON RENAME TO {canyon_table};
-
+       
        {idx9}
        {idx10}
        {idx11}
        {idx12}
        DROP TABLE IF EXISTS TEMPO_CAV;
-       CREATE TABLE TEMPO_CAV
-           AS SELECT   a.*,
+       CREATE TABLE TEMPO_CAV 
+           AS SELECT   a.*, 
                        b.{len_wake}
-           FROM     {cavity_table} AS a LEFT JOIN {wake_table} AS b
+           FROM     {cavity_table} AS a LEFT JOIN {wake_table} AS b 
                     ON  a.{downwind_f} = b.{downwind_f}
                         AND a.{id_px} = b.{id_px};
        DROP TABLE IF EXISTS {cavity_table};
@@ -954,8 +955,7 @@ def affectsPointToBuildZone(
         )
     )
 
-    # Special treatment for rooftop corners which have not been calculated
-    # previously
+    # Special treatment for rooftop corners which have not been calculated previously
     cursor.execute(
         safe("""DROP TABLE IF EXISTS {rooftop_table};
            CREATE TABLE {rooftop_table}
@@ -1031,8 +1031,10 @@ def affectsPointToVegZone(
                 Dictionary having as key the type of vegetation Rockle zone and as value
                 the name of the table containing points corresponding to the vegetation zone
     """
-    print("""Affects each grid point to a vegetation Rockle zone and calculates
-          needed variables for 3D wind speed""")
+    print(
+        """Affects each grid point to a vegetation Rockle zone and calculates 
+          needed variables for 3D wind speed"""
+    )
 
     # Name of the output tables
     dicOfOutputTables = {
@@ -1051,9 +1053,9 @@ def affectsPointToVegZone(
     cursor.execute(
         safe(";").join(
             [
-                safe("""
+                safe(""" 
         {12};
-        {13};
+        {13};           
         DROP TABLE IF EXISTS {0};
         CREATE TABLE {0}
             AS SELECT a.{1}, a.{2}, MAX(b.{3}) AS {7}
@@ -1167,8 +1169,7 @@ def removeBuildZonePoints(
 
     # 1. IDENTIFY BUILDINGS PARTS (X POSITION) HAVING THEIR DOWNSTREAM FACADE INCLUDED WITHIN AN
     #    UPSTREAM CAVITY ZONE
-    # First identify the coordinate of the upstreamer point for each X
-    # coordinate to each cavity zone
+    # First identify the coordinate of the upstreamer point for each X coordinate to each cavity zone
     cursor.execute(
         safe("""
            {5}{6}
@@ -1196,8 +1197,7 @@ def removeBuildZonePoints(
         )
     )
 
-    # Then identify the maximum height of the cavity zone for each of these
-    # points
+    # Then identify the maximum height of the cavity zone for each of these points
     cursor.execute(
         safe("""
            {9}{10}{11}{12}{13}{14}
@@ -1297,8 +1297,7 @@ def removeBuildZonePoints(
         )
     )
 
-    # Add all remaining cavity zones (having no other cavity zone contained in
-    # their cavity zone)
+    # Add all remaining cavity zones (having no other cavity zone contained in their cavity zone)
     cursor.execute(
         safe("""
            {7}{8}{9}{10}
@@ -1449,8 +1448,7 @@ def removeBuildZonePoints(
         WAKE_NAME: [ID_FIELD_STACKED_BLOCK, ID_POINT_X],
         CAVITY_NAME: [ID_UPSTREAM_STACKED_BLOCK, ID_POINT_X],
     }
-    # Take all points from a 't' zone which have not been deleted by a cavity
-    # zone
+    # Take all points from a 't' zone which have not been deleted by a cavity zone
     cursor.execute(
         safe(";").join(
             [
@@ -1519,8 +1517,7 @@ def removeBuildZonePoints(
         )
     )
 
-    # At the end only one point per position is conserved, the points from the
-    # more downstream zone
+    # At the end only one point per position is conserved, the points from the more downstream zone
     cursor.execute(
         safe("""
            {5}{6}{7}{8}
@@ -1567,7 +1564,7 @@ def removeBuildZonePoints(
     cursor.execute(
         safe(";").join(
             [
-                safe("""
+                safe(""" 
            {8};
            {9};
            {10};
@@ -1617,7 +1614,7 @@ def removeBuildZonePoints(
     cursor.execute(
         safe(";").join(
             [
-                safe("""
+                safe(""" 
            {5};
            {6};
            {7};
@@ -1668,7 +1665,7 @@ def removeBuildZonePoints(
     cursor.execute(
         safe(";").join(
             [
-                safe("""
+                safe(""" 
            DROP TABLE IF EXISTS {0};
            ALTER TABLE {1} RENAME TO {0}
            """).format(
@@ -1795,7 +1792,7 @@ def manageBackwardZones(
            {8}{9}{10}{11}{12}{13}
            DROP TABLE IF EXISTS {14};
            CREATE TABLE {14}
-               AS SELECT   a.{1}, a.{2}, a.{3}, a.{4}, b.{17}-b.{18} AS {17}, b.{18}, b.{19},
+               AS SELECT   a.{1}, a.{2}, a.{3}, a.{4}, b.{17}-b.{18} AS {17}, b.{18}, b.{19}, 
                            TRUNC(b.{16} / {21}) + 1 AS {22}, b.{20}
                FROM {0} AS a LEFT JOIN {5} AS b
                ON a.{1} = b.{1} AND a.{3} = b.{3} AND a.{4} = b.{4}
@@ -2111,8 +2108,7 @@ def calculates3dBuildWindFactor(
     # Temporary tables (and prefix for temporary tables)
     zValueTable = DataUtil.postfix("Z_VALUES")
 
-    # Identify the maximum height where wind speed may be affected by building
-    # obstacles
+    # Identify the maximum height where wind speed may be affected by building obstacles
     maxHeightQuery = {
         DISPLACEMENT_NAME: "MAX({0}) AS MAX_HEIGHT".format(
             UPPER_VERTICAL_THRESHOLD
@@ -2152,8 +2148,7 @@ def calculates3dBuildWindFactor(
     )
     maxHeight = cursor.fetchall()[0][0]
 
-    # Creates the table of z levels impacted by building obstacles (start at
-    # dz/2)
+    # Creates the table of z levels impacted by building obstacles (start at dz/2)
     if maxHeight:
         if maxHeight > float(dz) / 2:
             listOfZ = [
@@ -2361,7 +2356,7 @@ def calculates3dBuildWindFactor(
             UPPER_VERTICAL_THRESHOLD,
             UPPER_VERTICAL_THRESHOLD + CAVITY_NAME[0],
         ),
-        STREET_CANYON_NAME: """b.{0} < a.{1}
+        STREET_CANYON_NAME: """b.{0} < a.{1} 
                                         AND b.{0} < a.{2}""".format(
             Z, UPPER_VERTICAL_THRESHOLD, MAX_CANYON_HEIGHT_FIELD
         ),
@@ -2369,7 +2364,7 @@ def calculates3dBuildWindFactor(
                                         AND b.{0} > a.{1}""".format(
             Z, HEIGHT_FIELD, ROOFTOP_PERP_VAR_HEIGHT
         ),
-        ROOFTOP_CORN_NAME: """b.{0} < a.{1}+a.{2}
+        ROOFTOP_CORN_NAME: """b.{0} < a.{1}+a.{2} 
                                         AND b.{0} > a.{1}""".format(
             Z, HEIGHT_FIELD, ROOFTOP_CORNER_VAR_HEIGHT
         ),
@@ -2554,7 +2549,7 @@ def calculates3dVegWindFactor(
             [
                 safe("""
            {10};
-           {11};
+           {11};           
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}
                AS SELECT b.{9}, a.{1}, {2} AS {3}
@@ -2893,8 +2888,7 @@ def manageSuperimposition(
         )
     )
 
-    # Deal with superimposition when duplicated points between backward cavity
-    # and wake zones
+    # Deal with superimposition when duplicated points between backward cavity and wake zones
     upstreamBackPrioritiesTempoTable = manageUpstreamSuperimposition(
         cursor,
         dicAllWeightFactorsTables=dicBackwardWeighted,
@@ -2913,7 +2907,7 @@ def manageSuperimposition(
       {idx2}
       DROP TABLE IF EXISTS {result_table};
       CREATE TABLE {result_table}
-          AS SELECT   a.*
+          AS SELECT   a.* 
           FROM     {upstream_table} AS a LEFT JOIN {weighted_table} AS b
                    ON a.{id_p} = b.{id_p} AND a.{id_z} = b.{id_z}
           WHERE b.{id_p} IS NOT NULL AND b.{id_z} IS NOT NULL
@@ -3171,7 +3165,7 @@ def manageUpstreamSuperimposition(
           CREATE TABLE {10}
               AS SELECT   {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {16}
               FROM        {1}
-              UNION ALL
+              UNION ALL   
               SELECT    a.{2}, a.{3}, a.{4}, a.{5}, a.{6}, a.{7},
                           NULL AS {8},
                           {11} AS {9},
@@ -3298,8 +3292,7 @@ def manageUpstreamSuperimposition(
         )
     )
 
-    # Join the upstream priority weigthted points to the upstream priority
-    # non-weighted ones
+    # Join the upstream priority weigthted points to the upstream priority non-weighted ones
     cursor.execute(
         safe("""
           {10};
@@ -3426,9 +3419,8 @@ def identifyUpstreamer(
     tempoAllPointsTable = DataUtil.postfix("TEMPO_3D_ALL", suffix=prefix)
     tempoUniquePointsTable = DataUtil.postfix("TEMPO_3D_UNIQUE", suffix=prefix)
 
-    # If priorities should be used, recover list of tables and add columns to
-    # keep
-    if isinstance(tablesToConsider, type(pd.DataFrame())):
+    # If priorities should be used, recover list of tables and add columns to keep
+    if type(tablesToConsider) == type(pd.DataFrame()):
         listOfTables = tablesToConsider.index
         defineCol2Add = "{0} INTEGER, {1} INTEGER, {2} INTEGER,".format(
             REF_HEIGHT_FIELD, PRIORITY_FIELD, IS_UPSTREAM_FIELD
@@ -3444,15 +3436,15 @@ def identifyUpstreamer(
     for t in listOfTables:
         selectQueryDownstream[t] = """
                 SELECT  CAST((row_number() over()) as Integer) AS {0}, {1}, {2},
-                        {3}, {4},
+                        {3}, {4}, 
                 """.format(
             ID_3D_POINT, ID_POINT, ID_POINT_Z, HEIGHT_FIELD, Y_WALL
         )
 
         # If priorities should be used, add columns to keep
-        if isinstance(tablesToConsider, type(pd.DataFrame())):
+        if type(tablesToConsider) == type(pd.DataFrame()):
             selectQueryDownstream[t] += """
-                {0} AS {2},
+                {0} AS {2}, 
                 {1} AS {3},
                 {4} AS {5},
                 """.format(
@@ -3492,7 +3484,7 @@ def identifyUpstreamer(
         safe("""
            DROP TABLE IF EXISTS {0};
            CREATE TABLE {0}({1} BIGINT AUTO_INCREMENT, {2} INTEGER, {3} INTEGER,
-                            {4} INTEGER, {5} INTEGER, {6}
+                            {4} INTEGER, {5} INTEGER, {6} 
                             {7} DOUBLE, {8} DOUBLE, {9} DOUBLE)
                AS {10}
            """).format(
@@ -3571,7 +3563,7 @@ def identifyUpstreamer(
       CREATE TABLE {unique_table}
           AS SELECT a.*
           FROM     {all_points_table} AS a RIGHT JOIN {unique_points_table} AS b
-                   ON a.{id_3d} = b.{id_3d} AND
+                   ON a.{id_3d} = b.{id_3d} AND 
                       a.{id_p} = b.{id_p}
       """).format(
             idx1=DataUtil.createIndex(
@@ -3902,7 +3894,7 @@ def setInitialWindField(
     # Get the wind speed at each building height value...
     cursor.execute(safe(""" SELECT DISTINCT({0}) AS {0}
                        FROM {1}
-                       WHERE {0} IS NOT NULL;
+                       WHERE {0} IS NOT NULL;                   
                    """).format(HEIGHT_FIELD, initializedWindFactorTable))
     buildingHeightList = cursor.fetchall()
     if len(buildingHeightList) > 0:
@@ -3969,16 +3961,16 @@ def setInitialWindField(
                AS SELECT   a.{5},
                            a.{2},
                            CASE WHEN  a.{3}=1
-                               THEN    (SELECT   c.{6}
+                               THEN    (SELECT   c.{6} 
                                        FROM     {10} AS c
                                        WHERE    a.{11} = c.{11})
                            WHEN a.{3} = 2
                                THEN        {7}
                            WHEN a.{3} = 3
-                               THEN      (SELECT   b.{6}
+                               THEN      (SELECT   b.{6} 
                                          FROM     {1} AS b
                                          WHERE    a.{2} = b.{2})
-                               ELSE      (SELECT   5 * b.{6}
+                               ELSE      (SELECT   5 * b.{6} 
                                          FROM     {1} AS b
                                          WHERE    a.{2} = b.{2})
                            END AS WIND_SPEED,
@@ -4101,8 +4093,7 @@ def setInitialWindField(
         )
 
     # Renormalize wind speed at each height to make sure there is no offset of
-    # wind speed between the wind profile and the initialization before the
-    # balance of wind
+    # wind speed between the wind profile and the initialization before the balance of wind
     if REMOVE_INITIALIZATION_OFFSET:
         max_zi = df_wind0_rockle.index.get_level_values("ID_Z").max()
         for z_i in verticalWindSpeedProfile.index[1 : max_zi + 1]:
@@ -4218,8 +4209,7 @@ def identifyBuildPoints(
            """).format(HEIGHT_FIELD, stackedBlocksWithBaseHeight))
     buildMaxHeight = cursor.fetchall()[0][0]
 
-    # Set a list of the level height (and indice) which can intersect with
-    # buildings
+    # Set a list of the level height (and indice) which can intersect with buildings
     if buildMaxHeight:
         levelHeightList = [
             str(j + 1) + "," + str(i)
@@ -4251,8 +4241,7 @@ def identifyBuildPoints(
                CREATE TABLE {0}({1} INTEGER, {2} DOUBLE);
                """).format(tempoLevelHeightPointTable, ID_POINT_Z, Z))
 
-    # Identify the third dimension of points intersecting buildings and save
-    # it...
+    # Identify the third dimension of points intersecting buildings and save it...
     cursor.execute(
         safe("""
            {9};
@@ -4315,8 +4304,7 @@ def identifyBuildPoints(
         df_gridBuil.index.levels[1] - 1, level=1
     )
 
-    # Consider as buildings points which are surrounded by 3 vertical walls
-    # (leads to numerical issues... See issue #)
+    # Consider as buildings points which are surrounded by 3 vertical walls (leads to numerical issues... See issue #)
     ind2remove = (
         df_wall_left.intersection(df_wall_right)
         .intersection(df_wall_behind)

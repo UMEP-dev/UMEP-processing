@@ -13,6 +13,7 @@ Created on Tue Feb  9 14:34:12 2021
 from . import DataUtil
 from .DataUtil import safe
 from .GlobalVariables import *
+import pandas as pd
 
 
 def obstacleProperties(cursor, obstaclesTable, prefix=PREFIX_NAME):
@@ -58,7 +59,7 @@ def obstacleProperties(cursor, obstaclesTable, prefix=PREFIX_NAME):
     # obstacle area and envelope area
     query = safe("""
 
-       DROP TABLE IF EXISTS {0};
+       DROP TABLE IF EXISTS {0}; 
        CREATE TABLE {0}
            AS SELECT   {1},
                        {2},
@@ -131,8 +132,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix=PREFIX_NAME):
     # Name of the output table
     zoneLengthTable = DataUtil.prefix(outputBaseName, prefix=prefix)
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the process)
+    # Create temporary table names (for tables that will be removed at the end of the process)
     tempoStackedLengthTab = DataUtil.postfix("TEMPO_STACKED_LENGTH_TAB")
     pointsStackedBlocks = DataUtil.postfix("POINTS_STACKED_BLOCKS")
     stackedBlocksXExt = DataUtil.postfix("STACKED_BLOCKS_X_EXT")
@@ -265,7 +265,7 @@ def zoneProperties(cursor, obstaclePropertiesTable, prefix=PREFIX_NAME):
            {0}{1}
            DROP TABLE IF EXISTS {2};
            CREATE TABLE {2}
-               AS SELECT   a.{3}, ST_X(a.{4}) AS {5},
+               AS SELECT   a.{3}, ST_X(a.{4}) AS {5}, 
                            ST_AZIMUTH(b.{4}_MIN, a.{4})-PI()/2 AS THETA_LEFT,
                            ST_AZIMUTH(a.{4}, b.{4}_MAX)-PI()/2 AS THETA_RIGHT
                FROM {6} AS a LEFT JOIN {7} AS b
@@ -421,7 +421,7 @@ def studyAreaProperties(
     )  # nosec B608
     cursor.execute(
         safe("""
-           SELECT   EXP(1.0 / SUM(OBSTACLE_HEIGHT_TAB.AREA) *
+           SELECT   EXP(1.0 / SUM(OBSTACLE_HEIGHT_TAB.AREA) * 
                         SUM(OBSTACLE_HEIGHT_TAB.AREA * LOG(OBSTACLE_HEIGHT_TAB.HEIGHT))) AS H_r,
                     MAX(OBSTACLE_HEIGHT_TAB.HEIGHT) AS H_max
             FROM (SELECT    MAX({0}) AS HEIGHT,

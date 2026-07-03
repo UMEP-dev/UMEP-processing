@@ -47,6 +47,7 @@ from processing.gui.wrappers import WidgetWrapper
 from qgis.PyQt.QtWidgets import QDateEdit, QTimeEdit
 import numpy as np
 from osgeo import gdal, osr
+from osgeo.gdalconst import *
 import os
 from ..functions import dailyshading as dsh
 from qgis.PyQt.QtGui import QIcon

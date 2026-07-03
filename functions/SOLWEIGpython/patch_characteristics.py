@@ -1,8 +1,9 @@
 import numpy as np
+from copy import deepcopy
 from . import sunlit_shaded_patches
 
-""" This function defines if a patch seen from a pixel is sky, building or vegetation.
-    It also calculates if a building patch is sunlit or shaded. From this it estimates
+""" This function defines if a patch seen from a pixel is sky, building or vegetation. 
+    It also calculates if a building patch is sunlit or shaded. From this it estimates 
     corresponding longwave radiation originating from each surface."""
 
 
@@ -53,8 +54,7 @@ def define_patch_characteristics(
     Lnorth = np.zeros((rows, cols))
     Lsouth = np.zeros((rows, cols))
 
-    # Define patch characteristics (sky, vegetation or building, and sunlit or
-    # shaded if building)
+    # Define patch characteristics (sky, vegetation or building, and sunlit or shaded if building)
     for idx in range(patch_altitude.shape[0]):
         # Calculations for patches on sky, shmat = 1 = sky is visible
         temp_sky = (shmat[:, :, idx] == 1) & (vegshmat[:, :, idx] == 1)
@@ -65,8 +65,7 @@ def define_patch_characteristics(
         # Longwave radiation from sky to horizontal surface
         Lside_sky += temp_sky * Lsky_side[idx, 2]
 
-        # Calculations for patches that are vegetation, vegshmat = 0 = shade
-        # from vegetation
+        # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
         temp_vegsh = (vegshmat[:, :, idx] == 0) | (
             vbshvegshmat[:, :, idx] == 0
         )
@@ -89,8 +88,7 @@ def define_patch_characteristics(
             * temp_vegsh
         )
 
-        # Portion into cardinal directions to be used for standing box or POI
-        # output
+        # Portion into cardinal directions to be used for standing box or POI output
         if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
             Least += (
                 temp_sky
@@ -144,8 +142,7 @@ def define_patch_characteristics(
                 * np.cos((0 - patch_azimuth[idx]) * deg2rad)
             )
 
-        # Calculations for patches that are buildings, shmat = 0 = shade from
-        # buildings
+        # Calculations for patches that are buildings, shmat = 0 = shade from buildings
         temp_vbsh = (1 - shmat[:, :, idx]) * vbshvegshmat[:, :, idx]
         temp_sh = temp_vbsh == 1
         azimuth_difference = np.abs(solar_azimuth - patch_azimuth[idx])
@@ -159,8 +156,7 @@ def define_patch_characteristics(
             and (azimuth_difference < 270)
             and (solar_altitude > 0)
         ):
-            # Calculate which patches defined as buildings that are sunlit or
-            # shaded
+            # Calculate which patches defined as buildings that are sunlit or shaded
             sunlit_patches, shaded_patches = (
                 sunlit_shaded_patches.shaded_or_sunlit(
                     solar_altitude,
@@ -171,8 +167,7 @@ def define_patch_characteristics(
                 )
             )
 
-            # Calculate longwave radiation from sunlit walls to vertical
-            # surface
+            # Calculate longwave radiation from sunlit walls to vertical surface
             Lside_sun += (
                 sunlit_surface
                 * sunlit_patches
@@ -180,8 +175,7 @@ def define_patch_characteristics(
                 * np.cos(patch_altitude[idx] * deg2rad)
                 * temp_sh
             )
-            # Calculate longwave radiation from shaded walls to vertical
-            # surface
+            # Calculate longwave radiation from shaded walls to vertical surface
             Lside_sh += (
                 shaded_surface
                 * shaded_patches
@@ -190,8 +184,7 @@ def define_patch_characteristics(
                 * temp_sh
             )
 
-            # Calculate longwave radiation from sunlit walls to horizontal
-            # surface
+            # Calculate longwave radiation from sunlit walls to horizontal surface
             Ldown_sun += (
                 sunlit_surface
                 * sunlit_patches
@@ -199,8 +192,7 @@ def define_patch_characteristics(
                 * np.sin(patch_altitude[idx] * deg2rad)
                 * temp_sh
             )
-            # Calculate longwave radiation from shaded walls to horizontal
-            # surface
+            # Calculate longwave radiation from shaded walls to horizontal surface
             Ldown_sh += (
                 shaded_surface
                 * shaded_patches
@@ -209,8 +201,7 @@ def define_patch_characteristics(
                 * temp_sh
             )
 
-            # Portion into cardinal directions to be used for standing box or
-            # POI output
+            # Portion into cardinal directions to be used for standing box or POI output
             if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
                 Least += (
                     sunlit_surface
@@ -281,8 +272,7 @@ def define_patch_characteristics(
                 )
 
         else:
-            # Calculate longwave radiation from shaded walls reaching a
-            # vertical surface
+            # Calculate longwave radiation from shaded walls reaching a vertical surface
             Lside_sh += (
                 shaded_surface
                 * steradian[idx]
@@ -290,8 +280,7 @@ def define_patch_characteristics(
                 * temp_sh
             )
 
-            # Calculate longwave radiation from shaded walls reaching a
-            # horizontal surface
+            # Calculate longwave radiation from shaded walls reaching a horizontal surface
             Ldown_sh += (
                 shaded_surface
                 * steradian[idx]
@@ -299,8 +288,7 @@ def define_patch_characteristics(
                 * temp_sh
             )
 
-            # Portion into cardinal directions to be used for standing box or
-            # POI output
+            # Portion into cardinal directions to be used for standing box or POI output
             if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
                 Least += (
                     shaded_surface
@@ -359,8 +347,7 @@ def define_patch_characteristics(
             * temp_sh
         )
 
-        # Portion into cardinal directions to be used for standing box or POI
-        # output
+        # Portion into cardinal directions to be used for standing box or POI output
         if (patch_azimuth[idx] > 360) or (patch_azimuth[idx] < 180):
             Least += (
                 reflected_on_surfaces
@@ -394,12 +381,10 @@ def define_patch_characteristics(
                 * np.cos((0 - patch_azimuth[idx]) * deg2rad)
             )
 
-    # Sum of all Lside components (sky, vegetation, sunlit and shaded
-    # buildings, reflected)
+    # Sum of all Lside components (sky, vegetation, sunlit and shaded buildings, reflected)
     Lside = Lside_sky + Lside_veg + Lside_sh + Lside_sun + Lside_ref
 
-    # Sum of all Lside components (sky, vegetation, sunlit and shaded
-    # buildings, reflected)
+    # Sum of all Lside components (sky, vegetation, sunlit and shaded buildings, reflected)
     Ldown = Ldown_sky + Ldown_veg + Ldown_sh + Ldown_sun + Ldown_ref
 
     return (
@@ -426,11 +411,9 @@ def hemispheric_image(poi, sh, vegsh, vbshvegsh, voxelmat, wallScheme):
         for idy in range(sh.shape[2]):
             # Calculations for patches on sky, shmat = 1 = sky is visible
             temp_sky = (sh[:, :, idy] == 1) & (vegsh[:, :, idy] == 1)
-            # Calculations for patches that are vegetation, vegshmat = 0 =
-            # shade from vegetation
+            # Calculations for patches that are vegetation, vegshmat = 0 = shade from vegetation
             temp_vegsh = (vegsh[:, :, idy] == 0) | (vbshvegsh[:, :, idy] == 0)
-            # Calculations for patches that are buildings, shmat = 0 = shade
-            # from buildings
+            # Calculations for patches that are buildings, shmat = 0 = shade from buildings
             temp_vbsh = (1 - sh[:, :, idy]) * vbshvegsh[:, :, idy]
             temp_sh = temp_vbsh == 1
             if wallScheme:

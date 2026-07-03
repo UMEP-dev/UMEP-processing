@@ -112,12 +112,10 @@ def anisotropic_sky(
         # Anisotropic sky
         if anisotropic_sky_:
             temp_emissivity = esky_band[skyalt == temp_altitude]
-        # Isotropic sky but with patches (need to switch anisotropic_sky to
-        # False)
+        # Isotropic sky but with patches (need to switch anisotropic_sky to False)
         else:
             temp_emissivity = esky
-        # Estimate longwave radiation on a horizontal surface (Ldown), vertical
-        # surface (Lside) and perpendicular (Lnormal)
+        # Estimate longwave radiation on a horizontal surface (Ldown), vertical surface (Lside) and perpendicular (Lnormal)
         Ldown[patch_altitude == temp_altitude] = (
             ((temp_emissivity * SBC * ((Ta + 273.15) ** 4)) / np.pi)
             * steradians[patch_altitude == temp_altitude]
@@ -148,12 +146,11 @@ def anisotropic_sky(
         radTot = np.zeros(1)
         # Radiance fraction normalization
         for i in np.arange(patch_altitude.shape[0]):
-            # Radiance fraction normalization
             radTot += (
                 patch_luminance[i]
                 * steradians[i]
                 * np.sin(patch_altitude[i] * deg2rad)
-            )
+            )  # Radiance fraction normalization
         lumChi = (patch_luminance * radD) / radTot
 
     for i in np.arange(patch_altitude.shape[0]):
@@ -184,8 +181,7 @@ def anisotropic_sky(
         )
 
         if cyl == 1:
-            # Angle of incidence, np.cos(0) because cylinder - always
-            # perpendicular
+            # Angle of incidence, np.cos(0) because cylinder - always perpendicular
             angle_of_incidence = np.cos(patch_altitude[i] * deg2rad) * np.cos(
                 0
             )  # * np.sin(np.pi / 2) \
@@ -273,13 +269,13 @@ def anisotropic_sky(
             #     Lside_sun_temp, Lside_sh_temp, \
             #     Ldown_sun_temp, Ldown_sh_temp, \
             #     Least_temp, Lsouth_temp, Lwest_temp, Lnorth_temp = patch_radiation.longwave_from_buildings_wallScheme(temp_sh_w, voxelTable, steradians[i], angle_of_incidence, angle_of_incidence_h,
-            # patch_azimuth[i])
+            #                                                                                              patch_azimuth[i])
 
             #     Lside_sun_r_temp, Lside_sh_r_temp, \
             #     Ldown_sun_r_temp, Ldown_sh_r_temp, \
             #     Least_r_temp, Lsouth_r_temp, Lwest_r_temp, Lnorth_r_temp = patch_radiation.longwave_from_buildings(temp_sh_roof, steradians[i], angle_of_incidence, angle_of_incidence_h,
             #                                                                                              patch_azimuth[i], sunlit_patches, shaded_patches,
-            # azimuth_difference, solar_altitude, ewall, Ta, Tgwall)
+            #                                                                                              azimuth_difference, solar_altitude, ewall, Ta, Tgwall)
 
             #     Lside_sun_temp += Lside_sun_r_temp
             #     Lside_sh_temp += Lside_sh_r_temp
@@ -434,16 +430,14 @@ def anisotropic_sky(
         Lwest += Lwest_temp
         Lnorth += Lnorth_temp
 
-    # Sum of all Lside components (sky, vegetation, sunlit and shaded
-    # buildings, reflected)
+    # Sum of all Lside components (sky, vegetation, sunlit and shaded buildings, reflected)
     Lside = Lside_sky + Lside_veg + Lside_sh + Lside_sun + Lside_ref
 
-    # Sum of all Lside components (sky, vegetation, sunlit and shaded
-    # buildings, reflected)
+    # Sum of all Lside components (sky, vegetation, sunlit and shaded buildings, reflected)
     Ldown = Ldown_sky + Ldown_veg + Ldown_sh + Ldown_sun + Ldown_ref
 
     ### Direct radiation ###
-    if cyl == 1:  # Kside with cylinder ###
+    if cyl == 1:  ### Kside with cylinder ###
         KsideI = shadow * radI * np.cos(solar_altitude * deg2rad)
 
     if solar_altitude > 0:

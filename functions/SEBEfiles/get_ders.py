@@ -2,17 +2,23 @@ from __future__ import division
 from __future__ import print_function
 
 try:
-    pass
-except BaseException:
+    from osgeo import gdal, gdal_array
+    from osgeo.gdalconst import (
+        GDT_Float64,
+        GDT_Float32,
+        GDT_UInt32,
+        GDT_UInt16,
+        GDT_Byte,
+    )
+except:
     use_gdal = False
 else:
     use_gdal = True
 
 import numpy
-import subprocess
-import os
+import subprocess, os
 import tempfile
-from math import pi
+from math import pi, sin
 from ..data_io.data_io import read_dem_grid
 
 GDALDEM = r"gdaldem"
@@ -22,11 +28,11 @@ def get_temp_file(suffix=""):
     fd, temp_filename = tempfile.mkstemp(suffix=suffix)
     try:
         os.close(fd)
-    except BaseException:
+    except:
         pass
     try:
         os.remove(temp_filename)
-    except BaseException:
+    except:
         pass
     # fix_print_with_import
     print(temp_filename)

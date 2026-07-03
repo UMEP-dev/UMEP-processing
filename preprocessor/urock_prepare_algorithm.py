@@ -197,12 +197,11 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorDestination(
                 self.OUTPUT_VEGETATION_FILE,
-                # ,defaultValue = os.path.join(TEMPO_DIRECTORY, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")
                 self.tr("Output vegetation vector file"),
                 optional=True,
                 createByDefault=False,
             )
-        )
+        )  # ,defaultValue = os.path.join(TEMPO_DIRECTORY, f"veg_vector{OUTPUT_VECTOR_EXTENSION}")
         self.addParameter(
             QgsProcessingParameterString(
                 self.OUTPUT_VEG_HEIGHT_FIELD,
@@ -218,8 +217,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
-        # Get the tmp directory to save some intermediate results with a known
-        # file name
+        # Get the tmp directory to save some intermediate results with a known file name
         tmp_dir = tempfile.gettempdir()
 
         # Get building and vegetation layers
@@ -268,7 +266,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             parameters, self.OUTPUT_VEG_HEIGHT_FIELD, context
         )
 
-        # If output not set, create temporary files for building and vegetation
+        #  If output not set, create temporary files for building and vegetation
         veg_out_basepath = outputVegFilepath.split(".")[0]
         veg_out_ext = outputVegFilepath.split(".")[-1].lower()
         build_out_basepath = outputBuildFilepath.split(".")[0]
@@ -277,7 +275,11 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             outputVegFilepath = os.path.join(
                 tmp_dir, f"veg_vector{OUTPUT_VECTOR_EXTENSION}"
             )
-        elif (veg_out_ext != "geojson") and (veg_out_ext != "shp") and (veg_out_ext != "fgb"):
+        elif (
+            (veg_out_ext != "geojson")
+            and (veg_out_ext != "shp")
+            and (veg_out_ext != "fgb")
+        ):
             outputVegFilepath = veg_out_basepath + OUTPUT_VECTOR_EXTENSION
             feedback.pushWarning(
                 f".gpkg format is currently not available, output vegetation file extension has been changed to {OUTPUT_VECTOR_EXTENSION}"
@@ -286,18 +288,20 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             outputBuildFilepath = os.path.join(
                 tmp_dir, f"build_vector{OUTPUT_VECTOR_EXTENSION}"
             )
-        elif (build_out_ext != "geojson") and (build_out_ext != "shp") and (build_out_ext != "fgb"):
+        elif (
+            (build_out_ext != "geojson")
+            and (build_out_ext != "shp")
+            and (build_out_ext != "fgb")
+        ):
             outputBuildFilepath = build_out_basepath + OUTPUT_VECTOR_EXTENSION
             feedback.pushWarning(
                 f".gpkg format is currently not available, output building file extension has been changed to {OUTPUT_VECTOR_EXTENSION}"
             )
 
         # BUILDING LAYER CREATION
-        # Create the building vector layer if at least building footprint and
-        # building dsm have been provided
+        # Create the building vector layer if at least building footprint and building dsm have been provided
         if inputBuildinglayer and build_dsm:
-            # Reproject the building DSM to the building vector projection if
-            # needed
+            # Reproject the building DSM to the building vector projection if needed
             srid_vbuild = inputBuildinglayer.crs().postgisSrid()
             srid_dsm_build = build_dsm.crs().postgisSrid()
             if srid_vbuild != srid_dsm_build:
@@ -323,12 +327,10 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                         "OUTPUT": os.path.join(tmp_dir, "build_dsm"),
                     },
                 )["OUTPUT"]
-                # Set file name since they are used in raster calculator
-                # formula later
+                # Set file name since they are used in raster calculator formula later
                 build_dsm_fieldname = "build_dsm"
             else:
-                # Get file name since they are used in raster calculator
-                # formula later
+                # Get file name since they are used in raster calculator formula later
                 build_dsm_filename = (
                     str(build_dsm.dataProvider().dataSourceUri())
                     .split(os.sep)[-1]
@@ -340,8 +342,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
 
             # Create DSM above ground if a DEM is provided
             if build_dem:
-                # Reproject the building DEM to the building vector projection
-                # if needed
+                # Reproject the building DEM to the building vector projection if needed
                 srid_dem_build = build_dem.crs().postgisSrid()
                 if srid_vbuild != srid_dem_build:
                     build_dem = processing.run(
@@ -366,13 +367,11 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                             "OUTPUT": os.path.join(tmp_dir, "build_dem"),
                         },
                     )["OUTPUT"]
-                    # Set file name since they are used in raster calculator
-                    # formula later
+                    # Set file name since they are used in raster calculator formula later
                     build_dem_fieldname = "build_dem"
 
                 else:
-                    # Get file name since they are used in raster calculator
-                    # formula later
+                    # Get file name since they are used in raster calculator formula later
                     build_dem_filename = (
                         str(build_dem.dataProvider().dataSourceUri())
                         .split(os.sep)[-1]
@@ -382,8 +381,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                         "[-0123456789]", "", build_dem_filename
                     )[0:11]
 
-                # Calculate the difference between DSM and DEM (set negative
-                # values to 0)
+                # Calculate the difference between DSM and DEM (set negative values to 0)
                 diff_expression = '("{0}@1">"{1}@1") * ("{0}@1"-"{1}@1") + ("{0}@1" <= "{1}@1") * 0'.format(
                     build_dsm_fieldname, build_dem_fieldname
                 )
@@ -418,8 +416,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                 {"INPUT": inputBuildinglayer, "OUTPUT": "TEMPORARY_OUTPUT"},
             )["OUTPUT"]
 
-            # Calculate the median height of the DSM within each building
-            # footprint
+            # Calculate the median height of the DSM within each building footprint
             tempoBuildinglayer2 = processing.run(
                 "native:zonalstatisticsfb",
                 {
@@ -450,8 +447,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
             )
 
         # VEGETATION LAYER CREATION
-        # Create the vegetation vector layer if vegetation DSM has been
-        # provided
+        # Create the vegetation vector layer if vegetation DSM has been provided
         if veg_dsm and inputVeglayer:
             raise QgsProcessingException(
                 "A single vegetation input should be provided, either DSM or vector"
@@ -577,7 +573,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                                                         then 0
                                                      when {0} is null and {1} is not null
                                                          then {1}*{2}
-                                                     else {0}
+                                                     else {0} 
                                                  end
                                                 """.format(
                             radiusVegField, heightVegField, vegetationAspect
@@ -607,8 +603,7 @@ class URockPrepareAlgorithm(QgsProcessingAlgorithm):
                             "OUTPUT": "TEMPORARY_OUTPUT",
                         },
                     )["OUTPUT"]
-                    # Calculates tree height when field do not exists or to
-                    # null (using radius field)
+                    # Calculates tree height when field do not exists or to null (using radius field)
                     outputVegFilepath = processing.run(
                         "native:fieldcalculator",
                         {

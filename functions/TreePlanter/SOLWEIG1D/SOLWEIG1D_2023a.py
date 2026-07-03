@@ -11,6 +11,8 @@ from ....util.SEBESOLWEIGCommonFiles import (
 from ..SOLWEIG1D import Solweig1D_2023a_calc as so
 from ....util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
+from ...SOLWEIGpython.CirclePlotBar import PolarBarPlot
+
 
 def tmrt_1d_fun(metfilepath, infolder, tau, lon, lat, dsm, r_range, outputDir):
 
@@ -177,8 +179,7 @@ def tmrt_1d_fun(metfilepath, infolder, tau, lon, lat, dsm, r_range, outputDir):
         # Always use 153 patches
         patch_option = 2
 
-        # Creating skyvault of patches of constant radians (Tregeneza and
-        # Sharples, 1993)
+        # Creating skyvault of patches of constant radians (Tregeneza and Sharples, 1993)
         skyvaultalt, skyvaultazi, _, _, _, _, _ = create_patches(patch_option)
 
         # Unique altitudes for patches

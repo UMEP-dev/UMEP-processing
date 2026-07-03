@@ -22,6 +22,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import pandas as pd
@@ -44,15 +45,14 @@ def load_grid(filepath, feedback):
     try:
         temp_grid = gdal.Open(filepath)  # Open raster with GDAL
         feedback.setProgressText("Successfully loaded " + filepath)
-    except BaseException:
+    except:
         raise QgsProcessingException(
             "Error: Could not load "
             + filepath
             + ". File does not exist. Check path!"
         )
 
-    # Return gdal raster layer as numpy array, number of rows and columns in
-    # raster
+    # Return gdal raster layer as numpy array, number of rows and columns in raster
     return (
         temp_grid.ReadAsArray().astype(float),
         temp_grid.ReadAsArray().astype(float).shape[0],
@@ -317,8 +317,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         solweig_path = os.path.dirname(
             os.path.abspath(filepath_tmrt)
         )  # issue #702
-        # solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG
-        # output folder, i.e. where Tmrt raster is located
+        # solweig_path = filepath_tmrt.split('Tmrt')[0] # Path to SOLWEIG output folder, i.e. where Tmrt raster is located
         _, solweigfile = os.path.split(filepath_tmrt)
         # solweig_path = os.path.dirname(filepath_tmrt) # issue 31
 
@@ -328,7 +327,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             filepath_build = solweig_path + "/buildings.tif"
             gdal_buildings = gdal.Open(filepath_build)
             build = gdal_buildings.ReadAsArray().astype(float)
-        except BaseException:
+        except:
             raise QgsProcessingException(
                 "Error: No building raster found. It should be located in the same folder as the output"
                 " folder specified when SOLWEIG was executed. Make sure you ticked in 'Save necessary rasters for"
@@ -343,7 +342,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             metdata = np.loadtxt(
                 solweig_path + "/metforcing.txt", skiprows=1, delimiter=" "
             )
-        except BaseException:
+        except:
             raise QgsProcessingException(
                 "Error: Make sure format of meteorological file is correct. You can "
                 "prepare your data by using 'Prepare Existing Data' in "
@@ -372,10 +371,12 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         # Ws = self.metdata[:, 9]
 
         # Derive metdata from Trmt raster name
-        # int(filepath_tmrt[-18:-14]) #issue 571
-        yyyyTmrt = int(solweigfile.split("_")[-3])
-        # int(filepath_tmrt[-13:-10])
-        doyTmrt = int(solweigfile.split("_")[-2])
+        yyyyTmrt = int(
+            solweigfile.split("_")[-3]
+        )  # int(filepath_tmrt[-18:-14]) #issue 571
+        doyTmrt = int(
+            solweigfile.split("_")[-2]
+        )  # int(filepath_tmrt[-13:-10])
         hoursTmrt = int(filepath_tmrt[-9:-7])
         minuTmrt = int(filepath_tmrt[-7:-5])
 
@@ -499,8 +500,9 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
         activity = self.parameterAsDouble(
             parameters, self.ACTIVITY, context
         )  # Activity in watt
-        # Sex, #TODO CHECK SO SAME FOR PET AND COMFA
-        sex = self.parameterAsInt(parameters, self.SEX, context) + 1
+        sex = (
+            self.parameterAsInt(parameters, self.SEX, context) + 1
+        )  # Sex, #TODO CHECK SO SAME FOR PET AND COMFA
 
         if tcType == 0:
             feedback.setProgressText(
@@ -537,8 +539,7 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             )
 
         elif tcType == 2:
-            # If True = COMFA-kid (Cheng & Brown, 2020), if False = regular
-            # COMFA
+            # If True = COMFA-kid (Cheng & Brown, 2020), if False = regular COMFA
             if comfa_kid:
                 feedback.setProgressText(
                     "Calculating energy balance (COMFA-kid (Cheng and Brown, 2020)) for all ground level pixels"
@@ -552,16 +553,13 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             # Atr = 0.7 # atmospheric transmittance
             alpha = 0.37  # Albedo of the cylinder
             emis = 0.95  # Emissivity of the cylinder
-            # Effective area of body. 0.78 for standing from Campbell and
-            # Normal (1998) (0.70 for sitting)
-            Aeff = 0.78
+            Aeff = 0.78  # Effective area of body. 0.78 for standing from Campbell and Normal (1998) (0.70 for sitting)
             L = 0.1  # length of cylinder (cm)
             D = 0.01  # Diameter of cylinder (cm)
             ht = self.parameterAsDouble(
                 parameters, self.HEIGHT, context
             )  # Height of person in cm
-            # Calculate COMFA radiation using SOLWEIG output L, D, Lin, Lup,
-            # Kin, Kup, emis, alpha, Aeff, Kd, metdata, location, utc
+            # Calculate COMFA radiation using SOLWEIG output L, D, Lin, Lup, Kin, Kup, emis, alpha, Aeff, Kd, metdata, location, utc
             Rabs = COMFA_rad(
                 L,
                 D,
@@ -583,14 +581,12 @@ class ProcessingSpatialTCAlgorithm(QgsProcessingAlgorithm):
             Mact, Mact_PET = COMFA_Mact(mbody, ht, sex, age, activity, "W")
             # Activity speed
             va = 0.0
-            # Rco: rco = Icl * 186.6. Or convert from conductivity based on 1
-            # Clo = 0.1555 (m 2K W-1).
+            # Rco: rco = Icl * 186.6. Or convert from conductivity based on 1 Clo = 0.1555 (m 2K W-1).
             rco = clo * 186.6
             # Rcvo: Can convert from a conductivity value of Icl, where Icl is found in tables for specific clothing ensembles from ISO (2007).
             # 1) convert from Icl to Re,cl (m2 kPa W-1):  Re,cl = Icl (m 2K W-1)*0.18 (constant from ISO 9920 pg 12 based on 1 or 2-layer clothing ensembles).
             # 2) Convert Re,cl to rcvo:  rcvo = Re,cl*18,400, where 18400 is a conversion factor from Re,cl (vapour resistance, in m2kPaW-1)
-            # to rcvo, using Lv = 2.5*106 J kg-1, rho = 1.16 kg m-3, and Pa =
-            # 98kPa.
+            # to rcvo, using Lv = 2.5*106 J kg-1, rho = 1.16 kg m-3, and Pa = 98kPa.
             rcvo = clo * 0.18 * 18400
 
             MET = np.zeros((Rabs.shape[0], Rabs.shape[1]))

@@ -5,7 +5,6 @@
 from __future__ import absolute_import
 
 import numpy as np
-import matplotlib.pyplot as plt
 from .daylen import daylen
 from ...util.SEBESOLWEIGCommonFiles.clearnessindex_2013b import (
     clearnessindex_2013b,
@@ -22,22 +21,15 @@ from .cylindric_wedge import cylindric_wedge
 from .TsWaveDelay_2015a import TsWaveDelay_2015a
 from .Kup_veg_2015a import Kup_veg_2015a
 
-# from .Lside_veg_v2015a import Lside_veg_v2015a
-# from .Kside_veg_v2019a import Kside_veg_v2019a
 from .Kside_veg_v2022a import Kside_veg_v2022a
 from ...util.SEBESOLWEIGCommonFiles.Perez_v3 import Perez_v3
 from ...util.SEBESOLWEIGCommonFiles.create_patches import create_patches
 
 # Anisotropic longwave
-from .Lcyl_v2022a import Lcyl_v2022a
 from .Lside_veg import Lside_veg_v2022a, Lside_veg_v2026
 from .anisotropic_sky import anisotropic_sky as ani_sky
 from .patch_radiation import patch_steradians
 from copy import deepcopy
-import time
-
-# Wall surface temperature scheme
-from .wall_surface_temperature import wall_surface_temperature
 
 # Ground surface temperature
 from .ground_surface import (

@@ -44,13 +44,13 @@ def Kside_veg_v2019a(
     KsideD = np.zeros((rows, cols))
 
     ### Direct radiation ###
-    if cyl == 1:  # Kside with cylinder ###
+    if cyl == 1:  ### Kside with cylinder ###
         KsideI = shadow * radI * np.cos(altitude * deg2rad)
         KeastI = 0
         KsouthI = 0
         KwestI = 0
         KnorthI = 0
-    else:  # Kside with weights ###
+    else:  ### Kside with weights ###
         if azimuth > (360 - t) or azimuth <= (180 - t):
             KeastI = (
                 radI
@@ -130,15 +130,12 @@ def Kside_veg_v2019a(
 
             phiVar[ix] = (aziDel * deg2rad) * (
                 np.sin((aniAlt[ix] + 6) * deg2rad)
-                -
-                # Solid angle / Steradian
-                np.sin((aniAlt[ix] - 6) * deg2rad)
-            )
+                - np.sin((aniAlt[ix] - 6) * deg2rad)
+            )  # Solid angle / Steradian
 
-            # Radiance fraction normalization
             radTot = radTot + (
                 aniLum[ix] * phiVar[ix] * np.sin(aniAlt[ix] * deg2rad)
-            )
+            )  # Radiance fraction normalization
 
         lumChi = (aniLum * radD) / radTot  # Radiance fraction normalization
 
@@ -146,19 +143,13 @@ def Kside_veg_v2019a(
             for idx in range(0, 145):
                 anglIncC = np.cos(aniAlt[idx] * deg2rad) * np.cos(0) * np.sin(
                     np.pi / 2
-                ) + np.sin(
-                    # Angle of incidence, np.cos(0) because cylinder - always
-                    # perpendicular
-                    aniAlt[idx]
-                    * deg2rad
-                ) * np.cos(
+                ) + np.sin(aniAlt[idx] * deg2rad) * np.cos(
                     np.pi / 2
-                )
-                # Diffuse vertical radiation
+                )  # Angle of incidence, np.cos(0) because cylinder - always perpendicular
                 KsideD = (
                     KsideD
                     + diffsh[:, :, idx] * lumChi[idx] * anglIncC * phiVar[idx]
-                )
+                )  # Diffuse vertical radiation
             Keast = (
                 albedo * (svfviktbuvegE * (radG * (1 - F_sh) + radD * F_sh))
                 + KupE

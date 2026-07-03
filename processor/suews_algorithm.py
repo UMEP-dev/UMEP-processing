@@ -49,13 +49,12 @@ try:
     from supy.data_model import init_config_from_yaml
 #     import supy as sp
 #     from supy import __version__ as ver_supy
-except BaseException:
+except:
     pass
 from pathlib import Path
 
 # from ..util import f90nml
-import sys
-import os
+import sys, os
 from qgis.PyQt.QtGui import QIcon
 import inspect
 from pathlib import Path
@@ -459,7 +458,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         try:
             import supy as sp
             from supy import __version__ as ver_supy
-        except BaseException:
+        except:
             raise QgsProcessingException(
                 "This plugin requires the supy package "
                 "to be installed OR upgraded. Please consult the FAQ in the manual "
@@ -542,7 +541,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         with open(infile, "w") as file:
             yaml.dump(yaml_dict, file, sort_keys=False)
 
-        #######################################################################
+        #####################################################################################
         # SuPy
         feedback.setProgressText("Initiating model")
 
@@ -566,10 +565,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         else:
             chunkDay = 3660
 
-        #######################################################################
+        #####################################################################################
         # SuPy initialisation
-        # Path(pathtoplugin + f'/Input/{filecode}_suews_simple.yml')
-        yaml_path = infile
+        yaml_path = infile  # Path(pathtoplugin + f'/Input/{filecode}_suews_simple.yml')
         # from supy.data_model import init_config_from_yaml
         # from supy import SUEWSKernelError
 
@@ -602,7 +600,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         #     df_output,
         #     df_state_final,
         #     path_dir_save = yaml_dict['model']['control']['output_file']['path'])
-        #######################################################################
+        #####################################################################################
 
         feedback.setProgressText("Model finished")
 

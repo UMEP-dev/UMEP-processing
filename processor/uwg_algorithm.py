@@ -23,7 +23,9 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QIcon
 
 # from osgeo import gdal, osr, ogr
+from osgeo.gdalconst import *
 import os
+import sys
 import numpy as np
 import inspect
 from pathlib import Path
@@ -34,7 +36,7 @@ from ..util.umep_uwg_export_component import get_uwg_file, read_uwg_file
 
 try:
     from uwg import UWG
-except BaseException:
+except:
     pass
 
 
@@ -142,8 +144,9 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
 
         try:
+            import uwg
+        except:
             pass
-        except BaseException:
             raise QgsProcessingException(
                 "uwg python library not found: Instructions on how to install missing python libraries using the pip command: https://umep-docs.readthedocs.io/en/latest/Getting_Started.html"
             )
@@ -217,7 +220,7 @@ class ProcessingUWGProcessorAlgorithm(QgsProcessingAlgorithm):
             if numtype[0] == 0.0:
                 attr = int(f.attributes()[idx])
 
-            # generate input files for UWG
+            ## generate input files for UWG
             uwgDict = read_uwg_file(inputDir, prefix + "_" + str(attr))
             uwgDict["Month"] = mm
             uwgDict["Day"] = dd

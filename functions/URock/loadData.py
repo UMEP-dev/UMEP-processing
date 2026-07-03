@@ -63,8 +63,7 @@ def loadData(
     None"""
     print("Load input data")
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     buildTablePreSrid = DataUtil.postfix("build_pre_srid")
     vegTablePreSrid = DataUtil.postfix("veg_pre_srid")
 
@@ -165,7 +164,7 @@ def loadData(
 
             # Create an ID FIELD if None.
             if idFieldBuild is None or idFieldBuild == "":
-                cursor.execute(safe("""
+                cursor.execute(safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
                    """).format(buildTablePreSrid, ID_FIELD_BUILD))
@@ -210,7 +209,7 @@ def loadData(
 
             # Create an ID FIELD if None.
             if idVegetation is None or idVegetation == "":
-                cursor.execute(safe("""
+                cursor.execute(safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} BIGINT AUTO_INCREMENT;
                    """).format(vegTablePreSrid, ID_VEGETATION))
@@ -222,7 +221,7 @@ def loadData(
                 or vegetationAttenuationFactor == ""
             ):
                 cursor.execute(
-                    safe("""
+                    safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE DEFAULT {2};
                    """).format(
@@ -236,7 +235,7 @@ def loadData(
             # of the maximum height if no attribute for base height
             if vegetationBaseHeight is None or vegetationBaseHeight == "":
                 cursor.execute(
-                    safe("""
+                    safe(""" 
                    ALTER TABLE {0} DROP COLUMN IF EXISTS {1};
                    ALTER TABLE {0} ADD COLUMN {1} DOUBLE;
                    UPDATE {0} SET {1} = {2} * {3};
@@ -307,8 +306,7 @@ def loadData(
         cursor.execute(importQuery)
 
     # 3. SET VEGETATION AND BUILDING TABLE SRID AND REMOVE SMALL OBSTACLES
-    # If H2GIS does not identify any SRID for the tables, set the ones
-    # identied by GDAL
+    # If H2GIS does not identify any SRID for the tables, set the ones identied by GDAL
     if h2gisBuildSrid == 0 and h2gisVegSrid == 0:
         buildSrid = srid
         vegSrid = srid
@@ -386,15 +384,14 @@ def loadFile(cursor, filePath, tableName, srid=None, srid_repro=None):
     None"""
     print("Load table '{0}'".format(tableName))
 
-    # Get the input building file extension and the appropriate h2gis read
-    # function name
+    # Get the input building file extension and the appropriate h2gis read function name
     fileExtension = filePath.split(".")[-1]
     readFunction = DataUtil.readFunction(fileExtension)
 
     if readFunction == "CSVREAD":
         cursor.execute(safe("""
            DROP TABLE IF EXISTS {0};
-           CREATE TABLE {0}
+           CREATE TABLE {0} 
                AS SELECT * FROM {2}('{1}');
             """).format(tableName, filePath, readFunction))
     else:  # Import and then copy into a new table to remove all constraints (primary keys...)
@@ -475,8 +472,7 @@ def fromShp3dTo2_5(
             None"""
     print("From 3D to 2.5D geometries")
 
-    # Create temporary table names (for tables that will be removed at the end
-    # of the IProcess)
+    # Create temporary table names (for tables that will be removed at the end of the IProcess)
     trianglesWithId = DataUtil.postfix("triangles_with_id")
     trees2d = DataUtil.postfix("trees_2d")
     buildings2d = DataUtil.postfix("buildings_2d")
@@ -485,9 +481,9 @@ def fromShp3dTo2_5(
 
     # Add ID to the input data and remove vertical polygons...
     cursor.execute(safe("""
-       DROP TABLE IF EXISTS {0};
-       CREATE TABLE {0}(ID BIGINT AUTO_INCREMENT, {1} GEOMETRY)
-            AS (SELECT CAST((row_number() over()) as Integer) AS ID, {1}
+       DROP TABLE IF EXISTS {0}; 
+       CREATE TABLE {0}(ID BIGINT AUTO_INCREMENT, {1} GEOMETRY) 
+            AS (SELECT CAST((row_number() over()) as Integer) AS ID, {1} 
                 FROM ST_EXPLODE('(SELECT * FROM {2} WHERE ST_AREA({1})>0)'))
             """).format(trianglesWithId, GEOM_FIELD, triangles3d))
 
@@ -498,8 +494,8 @@ def fromShp3dTo2_5(
            {6};
            {7};
            DROP TABLE IF EXISTS {0};
-           CREATE TABLE {0}
-                AS SELECT   a.ID, ST_FORCE2D(a.{1}) AS {1},
+           CREATE TABLE {0} 
+                AS SELECT   a.ID, ST_FORCE2D(a.{1}) AS {1}, 
                             CAST(ST_ZMAX(a.{1}) AS INT) AS {2},
                             CAST(ST_ZMIN(a.{1}) AS INT) AS {3}
                 FROM    {4} AS a, {5} AS b
@@ -528,7 +524,7 @@ def fromShp3dTo2_5(
             {5};
             {6};
             DROP TABLE IF EXISTS {0};
-            CREATE TABLE {0}
+            CREATE TABLE {0} 
                 AS SELECT   a.ID, ST_FORCE2D(a.{1}) AS {1},
                             CAST(ST_ZMAX(a.{1}) AS INT) AS {2}
                 FROM    {3} AS a LEFT JOIN {4} AS b
@@ -557,14 +553,14 @@ def fromShp3dTo2_5(
             {10};
             {11};
             DROP TABLE IF EXISTS {0};
-            CREATE TABLE {0}
+            CREATE TABLE {0} 
                 AS SELECT   b.ID AS ID
                 FROM    {3} AS a, {3} AS b
-                WHERE   a.{1} && b.{1} AND
+                WHERE   a.{1} && b.{1} AND 
                         (ST_COVERS(a.{1}, b.{1}) AND a.{2} > b.{2} OR
                         ST_EQUALS(a.{1}, b.{1}) AND a.{2} = b.{2} AND a.ID < b.ID)
                 GROUP BY b.ID;
-           CREATE INDEX IF NOT EXISTS id_ID_{0} ON {0}(ID);
+           CREATE INDEX IF NOT EXISTS id_ID_{0} ON {0}(ID);   
            DROP TABLE IF EXISTS {4};
            CREATE TABLE {4}
                AS SELECT    a.ID AS {5}, a.{1}, a.{2}, 0 AS {6}, {7} AS {8}
@@ -600,8 +596,8 @@ def fromShp3dTo2_5(
         cursor.execute(
             safe("""
            DROP TABLE IF EXISTS {0};
-           CREATE TABLE {0}
-                AS SELECT   ID, ST_FORCE2D({1}) AS {1},
+           CREATE TABLE {0} 
+                AS SELECT   ID, ST_FORCE2D({1}) AS {1}, 
                             CAST(ST_ZMAX({1}) AS INT) AS {2}
                 FROM    {3}
                 """).format(
@@ -617,17 +613,17 @@ def fromShp3dTo2_5(
         {7};
         {8};
         DROP TABLE IF EXISTS {0};
-        CREATE TABLE {0}
+        CREATE TABLE {0} 
             AS SELECT   b.ID AS ID
             FROM    {3} AS a, {3} AS b
-            WHERE   a.{1} && b.{1} AND
+            WHERE   a.{1} && b.{1} AND 
                     (ST_COVERS(a.{1}, b.{1}) AND a.{2} > b.{2} OR
                     ST_EQUALS(a.{1}, b.{1}) AND a.{2} = b.{2} AND a.ID < b.ID)
             GROUP BY b.ID;
-        {9};
+        {9};   
         DROP TABLE IF EXISTS {4};
         CREATE TABLE {4}
-            AS SELECT    a.ID AS {5}, a.{1}, a.{2}
+            AS SELECT    a.ID AS {5}, a.{1}, a.{2} 
             FROM         {3} AS a LEFT JOIN {0} AS b
                          ON a.ID = b.ID
         WHERE    b.ID IS NULL

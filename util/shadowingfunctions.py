@@ -3,8 +3,6 @@
 import numpy as np
 from math import radians
 
-# from numba import jit
-
 
 def shadowingfunctionglobalradiation(
     a, azimuth, altitude, scale, feedback, forsvf
@@ -48,11 +46,7 @@ def shadowingfunctionglobalradiation(
     while amaxvalue >= dz and np.abs(dx) < sizex and np.abs(dy) < sizey:
         if forsvf == 0:
             feedback.setProgress(int(index * total))
-            # dlg.progressBar.setValue(index)
-        # while np.logical_and(np.logical_and(amaxvalue >= dz, np.abs(dx) <= sizex), np.abs(dy) <= sizey):(np.logical_and(amaxvalue >= dz, np.abs(dx) <= sizex), np.abs(dy) <= sizey):
-        # if np.logical_or(np.logical_and(pibyfour <= azimuth, azimuth <
-        # threetimespibyfour), np.logical_and(fivetimespibyfour <= azimuth,
-        # azimuth < seventimespibyfour)):
+
         if (
             pibyfour <= azimuth
             and azimuth < threetimespibyfour
@@ -83,8 +77,6 @@ def shadowingfunctionglobalradiation(
         temp[int(xp1) - 1 : int(xp2), int(yp1) - 1 : int(yp2)] = (
             a[int(xc1) - 1 : int(xc2), int(yc1) - 1 : int(yc2)] - dz
         )
-        # f = np.maximum(f, temp)  # bad performance in python3. Replaced with
-        # fmax
         f = np.fmax(f, temp)
         index += 1.0
 
@@ -93,9 +85,6 @@ def shadowingfunctionglobalradiation(
     sh = np.double(f)
 
     return sh
-
-
-# @jit(nopython=True)
 
 
 def shadowingfunction_20(
@@ -110,22 +99,6 @@ def shadowingfunction_20(
     feedback,
     forsvf,
 ):
-
-    # plt.ion()
-    # fig = plt.figure(figsize=(24, 7))
-    # plt.axis('image')
-    # ax1 = plt.subplot(2, 3, 1)
-    # ax2 = plt.subplot(2, 3, 2)
-    # ax3 = plt.subplot(2, 3, 3)
-    # ax4 = plt.subplot(2, 3, 4)
-    # ax5 = plt.subplot(2, 3, 5)
-    # ax6 = plt.subplot(2, 3, 6)
-    # ax1.title.set_text('fabovea')
-    # ax2.title.set_text('gabovea')
-    # ax3.title.set_text('vegsh at ' + str(altitude))
-    # ax4.title.set_text('lastfabovea')
-    # ax5.title.set_text('lastgabovea')
-    # ax6.title.set_text('vegdem')
 
     # This function casts shadows on buildings and vegetation units.
     # New capability to deal with pergolas 20210827
@@ -144,8 +117,6 @@ def shadowingfunction_20(
         barstep = np.max([sizex, sizey])
         total = 100.0 / barstep
         feedback.setProgress(0)
-        # dlg.progressBar.setRange(0, barstep)
-        # dlg.progressBar.setValue(0)
 
     # initialise parameters
     dx = 0.0
@@ -250,21 +221,6 @@ def shadowingfunction_20(
         vegsh[(vegsh * sh > 0.0)] = 0.0
         vbshvegsh = vegsh + vbshvegsh  # removing shadows 'behind' buildings
 
-        # im1 = ax1.imshow(fabovea)
-        # im2 = ax2.imshow(gabovea)
-        # im3 = ax3.imshow(vegsh)
-        # im4 = ax4.imshow(lastfabovea)
-        # im5 = ax5.imshow(lastgabovea)
-        # im6 = ax6.imshow(vegshtest)
-        # im1 = ax1.imshow(tempvegdem)
-        # im2 = ax2.imshow(tempvegdem2)
-        # im3 = ax3.imshow(vegsh)
-        # im4 = ax4.imshow(templastfabovea)
-        # im5 = ax5.imshow(templastgabovea)
-        # im6 = ax6.imshow(vegshtest)
-        # plt.show()
-        # plt.pause(0.05)
-
         index += 1.0
 
     sh = 1.0 - sh
@@ -272,27 +228,6 @@ def shadowingfunction_20(
     vbshvegsh = vbshvegsh - vegsh
     vegsh = 1.0 - vegsh
     vbshvegsh = 1.0 - vbshvegsh
-
-    # plt.close()
-    # plt.ion()
-    # fig = plt.figure(figsize=(24, 7))
-    # plt.axis('image')
-    # ax1 = plt.subplot(1, 3, 1)
-    # im1 = ax1.imshow(vegsh)
-    # plt.colorbar(im1)
-
-    # ax2 = plt.subplot(1, 3, 2)
-    # im2 = ax2.imshow(vegdem2)
-    # plt.colorbar(im2)
-    # plt.title('TDSM')
-
-    # ax3 = plt.subplot(1, 3, 3)
-    # im3 = ax3.imshow(vegdem)
-    # plt.colorbar(im3)
-    # plt.tight_layout()
-    # plt.title('CDSM')
-    # plt.show()
-    # plt.pause(0.05)
 
     shadowresult = {"sh": sh, "vegsh": vegsh, "vbshvegsh": vbshvegsh}
 
@@ -580,9 +515,6 @@ def shadowingfunction_findwallID(
         # yet (saved in previous iteration).
         buildIDSeen = (temp2 > 0) * temp3 * tempwallID + buildIDSeen
 
-        # voxelHeight = (temp2 > 0) * temp3 * temp2 + voxelHeight # seen wall
-        # heights
-
         # voxelHeight = the elevation on a wall that is seen from a pixel with the given altitude and azimuth (only above ground leve, i.e. (temp2 > 0)).
         # voxelHeight = wall height - descending wall, i.e. temp_wallHeight -
         # temp2. Only applicable to pixels where there is no value from
@@ -590,8 +522,6 @@ def shadowingfunction_findwallID(
         voxelHeight = (temp2 > 0) * temp3 * (
             temp_wallHeight - temp2
         ) + voxelHeight
-        # voxelHeight = (temp2 > 0) * temp3 * (temp_wallHeight - (temp2 *
-        # (temp2 > 0))) + voxelHeight # seen wall heights
 
         # Remember pixels previous iteration that walls have not progressed
         # into yet.
@@ -621,11 +551,7 @@ def shadowingfunction_findwallID(
     # Find unique values in c
     d = np.unique(c, axis=0)
     # Remove rows where both columns are zero
-    # d = d[((d[:,0] > 0) & (d[:,1] > 0)), :]
-    # d = d[d[:,:] > 0, :]
     d = d[~np.all(d == 0, axis=1)]
-    # d = d[d[:, 0] > 0, :]
-    # d = d[d[:, 1] > 0, :]
 
     not_in_list = 0
     in_list = 0
@@ -650,55 +576,9 @@ def shadowingfunction_findwallID(
                 (buildIDSeen == temp_id) & (voxelHeight_ceil == temp_height)
             ] = 0
 
-        # if ((np.any(buildIDSeen == temp_id) & ~np.all(voxelHeight_ceil == temp_height)) or (~np.all(buildIDSeen == temp_id) & np.any(voxelHeight_ceil == temp_height))):
-        #     print('temp_id = ' + str(temp_id))
-        #     print('temp_height = ' + str(temp_height))
-
-    # ax = plt.subplot(1, 2, 1)
-    # im = ax.imshow(buildIDSeen, vmin=0, vmax=uniqueWallIDs.max())
-    # ax1 = plt.subplot(1, 2, 2)
-    # im = ax1.imshow(voxelHeight, vmin=0, vmax=40)
-    # plt.pause(0.1) # In interactive mode, need a small delay to get the plot to appear
-    # plt.draw()
-
     # Correct for shadows, i.e. remove weird pixels on top of buildings etc
     buildIDSeen = buildIDSeen * (1 - sh)
     voxelHeight = voxelHeight * (1 - sh)
     voxelId = voxelId * (1 - sh)
 
     return buildIDSeen, voxelHeight, voxelId
-
-
-# temp[xp1:xp2, yp1:yp2] = dsm[xc1:xc2, yc1:yc2] - dz
-# f = np.fmax(f, temp) #Moving building shadow
-
-# if index == 1: #Remove walls on "wrong" side of buildings during first
-# iteration
-
-#     firstMove = (f-dsm) > 0
-#     if (pibyfour <= azimuth and azimuth < threetimespibyfour) or \
-#         (fivetimespibyfour <= azimuth and azimuth < seventimespibyfour):
-#         dy = signsinazimuth * index
-#         dx = -1 * signcosazimuth
-#     else:
-#         dy = signsinazimuth
-#         dx = -1 * signcosazimuth * index
-
-#     absdx = np.abs(dx)
-#     absdy = np.abs(dy)
-
-#     xc1b = int((dx+absdx)/2)
-#     xc2b = int(rows+(dx-absdx)/2)
-#     yc1b = int((dy+absdy)/2)
-#     yc2b = int(cols+(dy-absdy)/2)
-
-#     xp1b = int(-((dx-absdx)/2))
-#     xp2b = int(rows-(dx+absdx)/2)
-#     yp1b = int(-((dy-absdy)/2))
-#     yp2b = int(cols-(dy+absdy)/2)
-
-#     temp[xp1b:xp2b, yp1b:yp2b] = dsm[xc1b:xc2b, yc1b:yc2b]
-
-# wallSeen = temp-dsm
-# wallSeen[wallSeen > 0] = 1
-# wallSeen[wallSeen < 0] = 0

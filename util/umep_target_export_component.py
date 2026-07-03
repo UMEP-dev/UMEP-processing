@@ -1,9 +1,9 @@
 import os
 
 """
-input:
+input: 
 TargetDict: dictonary with all relevant inputs
-refdir = outputfolder
+refdir = outputfolder      
 """
 
 

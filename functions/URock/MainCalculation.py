@@ -22,7 +22,7 @@ from . import WindSolver
 import datetime
 import time
 import numpy as np
-import math
+from shutil import rmtree
 
 try:
     from numba import jit
@@ -77,12 +77,11 @@ def main(
     profileType=PROFILE_TYPE,
     verticalProfileFile=None,
 ):
-    # If the function is called within QGIS, a feedback is sent into the QGIS
-    # interface
+    # If the function is called within QGIS, a feedback is sent into the QGIS interface
     if feedback:
         feedback.setProgressText("Initiating algorithm")
 
-    ################################ INIT OUTPUT VARIABLES ###################
+    ################################ INIT OUTPUT VARIABLES ############################
     # Create the temporary directory if not exists
     tmp_dir_unique = os.path.join(
         TEMPO_DIRECTORY,
@@ -171,9 +170,9 @@ def main(
         i: os.path.abspath(outputDataRel[i]) for i in outputDataRel
     }
 
-    ##########################################################################
-    ################################ SCRIPT ##################################
-    ##########################################################################
+    ############################################################################
+    ################################ SCRIPT ####################################
+    ############################################################################
     # ----------------------------------------------------------------------
     # 1. SET H2GIS DATABASE ENVIRONMENT AND LOAD DATA
     # ----------------------------------------------------------------------
@@ -215,7 +214,7 @@ def main(
     timeStartCalculation = time.time()
 
     # -----------------------------------------------------------------------------------
-    # 2. CREATES OBSTACLE GEOMETRIES -----------------------------------------
+    # 2. CREATES OBSTACLE GEOMETRIES ----------------------------------------------------
     # -----------------------------------------------------------------------------------
     if feedback:
         feedback.setProgressText(
@@ -374,7 +373,7 @@ def main(
     )
 
     # -----------------------------------------------------------------------------------
-    # 4. CREATES THE 2D ROCKLE ZONES -----------------------------------------
+    # 4. CREATES THE 2D ROCKLE ZONES ----------------------------------------------------
     # -----------------------------------------------------------------------------------
     if feedback:
         feedback.setProgressText("Creates the 2D Röckle zones")
@@ -611,8 +610,7 @@ def main(
         prefix=prefix,
     )
 
-    # Affects each 2D point to a build Rockle zone and calculates needed
-    # variables for 3D wind speed factors
+    # Affects each 2D point to a build Rockle zone and calculates needed variables for 3D wind speed factors
     dicOfInitBuildZoneGridPoint, verticalLineTable = (
         InitWindField.affectsPointToBuildZone(
             cursor=cursor,
@@ -637,8 +635,7 @@ def main(
         prefix=prefix,
     )
 
-    # Manage backward cavity and wake zones in the leeward zone of tall
-    # buildings
+    # Manage backward cavity and wake zones in the leeward zone of tall buildings
     dicOfBuildZoneGridPoint, facadeWithinCavity = (
         InitWindField.manageBackwardZones(
             cursor=cursor,
@@ -654,7 +651,7 @@ def main(
     )
 
     # -----------------------------------------------------------------------------------
-    # 6. INITIALIZE THE 3D WIND FACTORS IN THE ROCKLE ZONES ------------------
+    # 6. INITIALIZE THE 3D WIND FACTORS IN THE ROCKLE ZONES -------------------------------
     # -----------------------------------------------------------------------------------
     if feedback:
         feedback.setProgressText("Initializes the 3D grid within Röckle zones")
@@ -766,8 +763,7 @@ def main(
     # ----------------------------------------------------------------
     # 7. DEALS WITH SUPERIMPOSED ZONES -------------------------------
     # ----------------------------------------------------------------
-    # Calculates the final weighting factor for each point, dealing with
-    # duplicates (superimposition)
+    # Calculates the final weighting factor for each point, dealing with duplicates (superimposition)
     dicAllWeightFactorsTables = dicOfBuildZone3DWindFactor.copy()
     dicAllWeightFactorsTables[ALL_VEGETATION_NAME] = (
         vegetationWeightFactorTable
@@ -866,8 +862,7 @@ def main(
             cursor.close()
             feedback.setProgressText("Calculation cancelled by user")
             return {}
-    # Set the ground as "building" (understand solid wall) - after getting
-    # grid size
+    # Set the ground as "building" (understand solid wall) - after getting grid size
     nx, ny, nz = nPoints.values()
     df_gridBuil = df_gridBuil.reindex(
         df_gridBuil.index.append(

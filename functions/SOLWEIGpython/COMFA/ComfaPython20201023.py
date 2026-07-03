@@ -46,7 +46,7 @@ if leapyear == 1:
 else:
     dayspermonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-doy = np.sum(dayspermonth[0: month - 1]) + day  # day of year (Jan 1 = 1)
+doy = np.sum(dayspermonth[0 : month - 1]) + day  # day of year (Jan 1 = 1)
 
 # Lubbock 33.5779,-101.8552
 
@@ -61,9 +61,7 @@ emis = 0.95  # emissivity of the cylinder
 L = 0.1  # length of cylinder (cm)
 D = 0.01  # Diameter of cylinder (cm)
 
-# Effective area of body. 0.78 for standing from Campebll and Normal
-# (1998) (0.70 for sitting)
-Aeff = 0.78
+Aeff = 0.78  # Effective area of body. 0.78 for standing from Campebll and Normal (1998) (0.70 for sitting)
 
 
 Total_CNRRabs_solweig, zensolweig, Kdsolweig = Rad_Total_solweig(

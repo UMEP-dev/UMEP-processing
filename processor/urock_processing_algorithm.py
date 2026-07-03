@@ -31,6 +31,7 @@ __copyright__ = "(C) 2021 by Jérémy Bernard / University of Gothenburg"
 __revision__ = "$Format:%H$"
 
 import os
+from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
     QgsProcessing,
@@ -59,6 +60,7 @@ from qgis.PyQt.QtGui import QIcon
 import inspect
 import processing
 import re
+import subprocess
 
 
 from ..functions.URock import MainCalculation
@@ -69,11 +71,11 @@ from ..functions.URock.H2gisConnection import (
     saveJavaDir,
 )
 from ..functions.URock import WriteMetadataURock
+from ..functions.URock import DataUtil
+
 
 # All SQL identifiers are validated via saf_id() to prevent injection.
 # No user input is used directly in SQL construction.
-
-
 def saf_id(name):
     if name:
         if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
@@ -350,19 +352,19 @@ class URockAlgorithm(QgsProcessingAlgorithm):
         """
 
         try:
-            pass
-        except BaseException:
+            import jaydebeapi
+        except:
             raise QgsProcessingException(
                 "'jaydebeapi' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install."
             )
         try:
-            pass
+            import numba
         except Exception:
             raise QgsProcessingException(
                 "'numba' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install."
             )
         try:
-            pass
+            import xarray
         except Exception:
             raise QgsProcessingException(
                 "'xarray' Python package is missing. Most tools still work. Visit the UMEP manual (Getting Started) for instructions on how to install."
@@ -573,12 +575,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 outputRaster.extent().yMaximum()
                 - outputRaster.extent().yMinimum()
             ) / outputRaster.height()
-            if xres != yres:
-                raise QgsProcessingException(
-                    "The output raster template should have the same x and y resolution"
-                )
-            # If there is a raster and no meshSize, take the mean of x and y
-            # raster resolution
+            # If there is a raster and no meshSize, take the mean of x and y raster resolution
             if not meshSize:
                 meshSize = float(xres + yres) / 2
         elif not meshSize:

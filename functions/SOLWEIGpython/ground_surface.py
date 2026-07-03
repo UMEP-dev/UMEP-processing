@@ -4,7 +4,6 @@
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 
 # Stefan-Boltzmann s constant
 SBC = 5.67e-8
@@ -400,7 +399,6 @@ def outgoingLongwave_calc(
 
     # Boolean array 1 if the pixel is a wall, 0 if not
     wallbol = walls > 0
-    
     # The alb grids only take into account the sunlit surfaces in the alb calculation albnosh calculate it for all the surfaces
     albsunlit = alb * shadow
 
@@ -412,7 +410,6 @@ def outgoingLongwave_calc(
 
     # Grid of the outgoing longwave radiation coming from the ground
     Lup = (SBC * emis * (Tg + 273.15) ** 4 + Ldown * (1 - emis)) * buildings
-    
     ### Initialize the ground view factor grids as np.zeros()
     # Upwelling longwave radiation
     gvfLup = np.zeros((rows, cols))
@@ -459,10 +456,10 @@ def outgoingLongwave_calc(
 
         # Boolean array 1 if the pixel is (or was) a wall, 0 if not
         pastwalls = np.copy(wallbol)
-        
+
         # Grid of the longwave radiation emitted by the walls
         Lwall = SBC * emis_wall * (Tgwall + Ta + 273.15) ** 4 * wallbol
-        
+
         # Initialisation of the tables
         # First the ones containing the translated rasters (temporary)
         building_temp = np.copy(buildings)
@@ -586,7 +583,6 @@ def outgoingLongwave_calc(
                 int(x_select_start) : math.ceil(x_select_end),
                 int(y_select_start) : math.ceil(y_select_end),
             ]
-            
             # Change the boolean building grid, if the px was already a building it remains one (px value = 0)
             building_copy = np.min([building_copy, building_temp], axis=0)
 
@@ -597,7 +593,6 @@ def outgoingLongwave_calc(
             Lup_sum += Lup_temp * view_factor * building_copy / 20
             albsun_sum += albsun_temp * view_factor * building_copy / 20
             albtot_sum += albtot_temp * view_factor * building_copy / 20
-            
             # Create a boolean grid to assert that the sunlit walls are not inside a building
             onlywall_temp = np.logical_and(
                 walls_temp, np.logical_not(pastwalls)
@@ -623,7 +618,6 @@ def outgoingLongwave_calc(
                 / zs
                 * np.sqrt((r + sizepx / 2) ** 2 + zs**2)
             )
-            
             # Then add the radiation incoming from those walls
             Lup_sum += (
                 onlywall_temp
@@ -642,7 +636,6 @@ def outgoingLongwave_calc(
             albtot_sum += (
                 onlywall_temp * alb_wall * viewfactor_wall * building_copy / 20
             )
-            
             # Finally add the radiation in Lside
             dphi = np.arctan((r + step) / zs) - np.arctan(r / zs)
             dtrigo = zs / np.sqrt(r**2 + zs**2) * r / np.sqrt(
@@ -650,7 +643,6 @@ def outgoingLongwave_calc(
             ) - zs / np.sqrt((r + step) ** 2 + zs**2) * (r + step) / np.sqrt(
                 (r + step) ** 2 + zs**2
             )
-            
             # Calculation of the solid angle for each of the cardinal points
             # plus add the radiation from a potential wall
             steradiansW, steradiansS, steradiansE, steradiansN = 0, 0, 0, 0

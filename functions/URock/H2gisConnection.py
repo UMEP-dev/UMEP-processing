@@ -17,6 +17,7 @@ from .GlobalVariables import (
     INSTANCE_PASS,
     JAVA_PATH_FILENAME,
     TEMPO_DIRECTORY,
+    NEW_DB,
 )
 import subprocess
 import re
@@ -145,8 +146,7 @@ def startH2gisInstance(
                 A connection object to the database
             localH2InstanceDir: String
                 File directory of the database to delete (without extension)"""
-    # Define where are the jar of the DB and the H2GIS instance (in absolute
-    # paths)
+    # Define where are the jar of the DB and the H2GIS instance (in absolute paths)
     localH2JarDir = dbDirectory + os.sep + H2GIS_UNZIPPED_NAME
     localH2InstanceDir = dbInstanceDir + os.sep + instanceName + suffix
 
@@ -156,15 +156,13 @@ def startH2gisInstance(
     print("Connecting to database\n	->%s" % (localH2InstanceDir))
     print(localH2JarDir)
 
-    # If the DB already exists and if 'newDB' is set to True, delete all the
-    # DB files
+    # If the DB already exists and if 'newDB' is set to True, delete all the DB files
     if isDbExist:
         os.remove(localH2InstanceDir + DB_EXTENSION)
         if os.path.exists(localH2InstanceDir + DB_TRACE_EXTENSION):
             os.remove(localH2InstanceDir + DB_TRACE_EXTENSION)
 
-    # get a connection, if a connect cannot be made an exception will be
-    # raised here
+    # get a connection, if a connect cannot be made an exception will be raised here
     conn = jaydebeapi.connect(
         "org.h2.Driver",
         "jdbc:h2:" + localH2InstanceDir + ";AUTO_SERVER=TRUE;",
@@ -172,8 +170,7 @@ def startH2gisInstance(
         localH2JarDir,
     )
 
-    # conn.cursor will return a cursor object, you can use this cursor to
-    # perform queries
+    # conn.cursor will return a cursor object, you can use this cursor to perform queries
     cur = conn.cursor()
     print("Connected!\n")
 
@@ -254,7 +251,7 @@ def getJavaDir(pluginDirectory):
     # Java home set. This should be associated to None
     if javaPath:
         if javaPath[0] == "%":
-            javaPath is None
+            javaPath == None
     if not javaPath:
         if os.path.exists(javaPathFile):
             javaFilePath = open(javaPathFile, "r")
@@ -317,8 +314,7 @@ def identifyJavaDir(java_path_os_list):
         JAVA variable path"""
     JavaExists = False
     i = 0
-    # Test some common folder paths to check whether a Java installation
-    # exists and stops once found
+    # Test some common folder paths to check whether a Java installation exists and stops once found
     while not (JavaExists or i >= len(java_path_os_list)):
         javaBaseDir = java_path_os_list[i]
         JavaExists = os.path.exists(javaBaseDir)
@@ -327,7 +323,7 @@ def identifyJavaDir(java_path_os_list):
         listJavaVersion = os.listdir(javaBaseDir)
         listSplit = pd.Series()
         for i, v in enumerate(listJavaVersion):
-            tempo_split = re.split("\\.|\\-", v)
+            tempo_split = re.split("\.|\-", v)
             # Previous command supposed to split version number based on usual characters.
             # If unusual need the following...
             if len(tempo_split) != 3:
@@ -385,8 +381,7 @@ def getJavaHome(os_type):
             stdin=subprocess.PIPE,
         )
         output, err = proc.communicate()
-        # Identify the string corresponding to the java_home in the resulting
-        # line
+        # Identify the string corresponding to the java_home in the resulting line
         javaPath = os.path.abspath(
             str(output).split("java.home = ")[1].split("\\n")[0]
         )
@@ -416,7 +411,7 @@ def getJavaHome(os_type):
                         java_key = winreg.OpenKey(
                             winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\JavaSoft\JDK"
                         )
-                    except BaseException:
+                    except:
                         print("Java not found")
                         exit()
 

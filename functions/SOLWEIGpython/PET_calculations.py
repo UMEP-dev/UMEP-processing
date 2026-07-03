@@ -40,8 +40,7 @@ def calculate_PET_grid(Ta, RH, Tmrt, va, pet, feedback):
     pet_index = np.zeros_like(Tmrt)
     total = 100.0 / (int(pet_index.shape[0] * pet_index.shape[1]))
     index = 0
-    # print(Tmrt.shape)
-    # print(va.shape)
+
     for y in range(pet_index.shape[0]):
         if feedback.isCanceled():
             feedback.setProgressText("Calculation cancelled")

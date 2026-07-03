@@ -16,31 +16,26 @@ def COMFA_Mact(weight, height, sex, age, activity, activity_unit):
     # activity_time = 30
 
     ### METABOLIC HEAT CALCULATION FOR CHILDREN ###
-    # Body surface area of child or adult (different for infant according to
-    # Haylock et al. (1978))
+    # Body surface area of child or adult (different for infant according to Haylock et al. (1978))
     BSA = weight**0.5378 * height**0.3964 * 0.0242
 
     if activity_unit == "MET":
 
         if sex == 2:
             if (age >= 3) and (age <= 10):
-                # Resting metabolic rate of a 3-10 year old girl (kJ/day)
-                # (Cheng & Brown, 2020)
+                # Resting metabolic rate of a 3-10 year old girl (kJ/day) (Cheng & Brown, 2020)
                 RMR_J = 16.97 * weight + 1.618 * height + 371.2
             elif (age > 10) and (age <= 18):
-                # Resting metabolic rate of a 10-18 year old girl (kJ/day)
-                # (Cheng & Brown, 2020)
+                # Resting metabolic rate of a 10-18 year old girl (kJ/day) (Cheng & Brown, 2020)
                 RMR_J = 8.365 * weight + 4.65 * height + 200
             else:
                 RMR_J = 8.365 * weight + 4.65 * height + 200
         elif sex == 1:
             if (age >= 3) and (age <= 10):
-                # Resting metabolic rate of a 3-10 year old boy (kJ/day) (Cheng
-                # & Brown, 2020)
+                # Resting metabolic rate of a 3-10 year old boy (kJ/day) (Cheng & Brown, 2020)
                 RMR_J = 19.6 * weight + 1.033 * height + 414.9
             elif (age > 10) and (age <= 18):
-                # Resting metabolic rate of a 10-18 year old boy (kJ/day)
-                # (Cheng & Brown, 2020)
+                # Resting metabolic rate of a 10-18 year old boy (kJ/day) (Cheng & Brown, 2020)
                 RMR_J = 16.25 * weight + 1.372 * height + 515.5
             else:
                 RMR_J = 8.365 * weight + 4.65 * height + 200
@@ -181,8 +176,7 @@ def COMFA_ra(vw, va):
     # A[H] = 0.0266
     # n[H] = 0.805
 
-    # Written by N. Kenny April 2006. Translated from MATLAB to Python by Nils
-    # Wallenberg 2022.
+    # Written by N. Kenny April 2006. Translated from MATLAB to Python by Nils Wallenberg 2022.
 
     return ra
 
@@ -227,8 +221,7 @@ def COMFA_rsk(Mact, Ta, RH, age, kid):
     # 1212 is volumetric heat capacity (or rho.*Cp)
     rsk = (1212) / (0.13 * Es + 15)
 
-    # See Kenny et al. (2009b) pg 434 for derivation of rsk based on Kerslake
-    # 1972.
+    # See Kenny et al. (2009b) pg 434 for derivation of rsk based on Kerslake 1972.
 
     return rsk
 
@@ -293,8 +286,7 @@ def COMFA_CONV(Mact, Ta, RH, vw, va, rco, weight, height, age, kid):
         # Body to surface area of kid
         BSA_k = weight**0.5378 * height**0.3964 * 0.0242
         BMI_k = weight / (height / 100) ** 2
-        # Body-to-surface area of adult (weight = 65 kg and height = 176 cm,
-        # according to Cheng & Brown, 2020)
+        # Body-to-surface area of adult (weight = 65 kg and height = 176 cm, according to Cheng & Brown, 2020)
         adult_weight = 65
         adult_height = 176
         BSA_a = adult_weight**0.5378 * adult_height**0.3964 * 0.0242
@@ -525,8 +517,7 @@ def COMFA_EVAP(Mact, Ta, RH, vw, va, rco, rcvo, age, kid):
 
 def COMFA_Ts(Mact, Ta, RH, vw, va, rco, age, kid):
     # Calculates the average surface temperature of a clothed person (degrees C) with inputs Tair (air
-    # temperature, degrees C), rco (clothing resistance,  s/m), vw (air
-    # velocity, s/m), Mact (Metabolic Activity, W/m2)
+    # temperature, degrees C), rco (clothing resistance,  s/m), vw (air velocity, s/m), Mact (Metabolic Activity, W/m2)
 
     rc = COMFA_rc(va, rco)
     # Resistance of boundary layer (s/m)
@@ -573,24 +564,22 @@ def COMFA_BUDGET(Mact, Ta, RH, vw, va, rco, rcvo, weight, height, age, kid):
     # Wind Velocity (m/s), activity velocity (va, m s-1), static clothing resistance (rco, sm-1), static clothing vapor reistance (rcvo, s m-1).
     # Note can also make Rabs an input. See below.
 
-    # This COFMA model is general for people at or near comfort, and is not
-    # tested yet on extreme conditions.
+    ### This COFMA model is general for people at or near comfort, and is not
+    ### tested yet on extreme conditions.
 
     # %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%%
     # %%%% CLOTHING - generally can estimate Icl value (clo) and convert them to
     # %%%% resistances as follows:
 
-    # Rco: rco = Icl * 186.6. Or convert from conductivity based on 1 Clo =
-    # 0.1555 (m 2K W-1).
+    # Rco: rco = Icl * 186.6. Or convert from conductivity based on 1 Clo = 0.1555 (m 2K W-1).
 
-    # NOTE: Icl values can be found in clo or conductivity values from ISO
-    # 9920 2007.
+    # NOTE: Icl values can be found in clo or conductivity values from ISO 9920 2007.
 
     # Rcvo: Can convert from a conductivity value of Icl, where Icl is found in tables for specific clothing ensembles from ISO (2007).
     # 1) convert from Icl to Re,cl (m2 kPa W-1):  Re,cl = Icl (m 2K W-1)*0.18 (constant from ISO 9920 pg 12 based on 1 or 2-layer clothing ensembles).
     # 2) Convert Re,cl to rcvo:  rcvo = Re,cl*18,400, where 18400 is a conversion factor from Re,cl (vapour resistance, in m2kPaW-1)
     # to rcvo, using Lv = 2.5*106 J kg-1, rho = 1.16 kg m-3, and Pa = 98kPa.
-    # %%%%%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%
+    # %%%%%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%% %%%%%%%%%%%
 
     # W m-2 %%%%random value ... Here you need to link to another dataset that calcs Rabs or bring o link to more doce.
     # Rabs = 400

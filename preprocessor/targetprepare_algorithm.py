@@ -230,7 +230,7 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
         param["res"]["value"] = res
 
         # Start loop of polygon grids
-        # land cover and morphology
+        ##land cover and morphology
         index = 0
         for feature in vlayer.getFeatures():
             feedback.setProgress(int((index * 100) / nGrids))
@@ -250,13 +250,15 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
                             conc = split[1] * fracConc
                             road = split[1] - conc
                             irr = split[5] * fracIrr
-                            # bare soil is classed as dry grass
-                            dry = split[6] + split[5] - irr
+                            dry = (
+                                split[6] + split[5] - irr
+                            )  # bare soil is classed as dry grass
                         else:
                             road = split[1]
                             conc = split[9]
-                            # bare soil is classed as dry grass
-                            dry = split[5] + split[6]
+                            dry = (
+                                split[5] + split[6]
+                            )  # bare soil is classed as dry grass
                             irr = split[8]
 
                         roof = split[2]
@@ -303,8 +305,7 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
 
         arrmatsave = arrmat[1 : arrmat.shape[0], :]
         print(arrmatsave)
-        # adding zavg (and z0m later) in parameter file. Weighted avg from
-        # lc-file
+        # adding zavg (and z0m later) in parameter file. Weighted avg from lc-file
         zavg = 0
         fracsum = sum(arrmatsave[:, 1])
         for i in range(0, index):
@@ -312,11 +313,13 @@ class ProcessingTARGETPrepareAlgorithm(QgsProcessingAlgorithm):
 
         param["zavg"]["value"] = zavg
 
-        # 'C:/temp/targettests/my_site/parameterstest.json'
-        jsonout = json.dumps(param, indent=4)
+        jsonout = json.dumps(
+            param, indent=4
+        )  #'C:/temp/targettests/my_site/parameterstest.json'
         path = os.path.join(outputDir, siteName)
-        # create directory if it doesn’t exist. Response to #767
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(
+            path, exist_ok=True
+        )  # create directory if it doesn’t exist. Response to #767
         with open(path + "/parameters.json", "w") as jsn2:
             jsn2.write(jsonout)
 

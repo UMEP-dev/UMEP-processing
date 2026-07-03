@@ -1,19 +1,19 @@
-def Kvikt_veg(svf, svfveg, vikttot):
+def Kvikt_veg(input_svf, svfveg, vikttot):
 
     # Least
     viktwall = (
         vikttot
         - (
-            63.227 * svf**6
-            - 161.51 * svf**5
-            + 156.91 * svf**4
-            - 70.424 * svf**3
-            + 16.773 * svf**2
-            - 0.4863 * svf
+            63.227 * input_svf**6
+            - 161.51 * input_svf**5
+            + 156.91 * input_svf**4
+            - 70.424 * input_svf**3
+            + 16.773 * input_svf**2
+            - 0.4863 * input_svf
         )
     ) / vikttot
 
-    svfvegbu = svfveg + svf - 1  # Vegetation plus buildings
+    svfvegbu = svfveg + input_svf - 1  # Vegetation plus buildings
     viktveg = (
         vikttot
         - (

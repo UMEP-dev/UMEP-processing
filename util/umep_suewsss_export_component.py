@@ -18,47 +18,96 @@ def create_GridLayout_dict():
     ssDict["nlayer"] = 3  # number of vertical layers
 
     # geom
-    # TODO  height of top of each layer (start with 0 i.e. one more than
-    # nlayers)
-    ssDict["height"] = [0.0, 11.0, 15.0, 22.0]
-    # TODO  fraction of building coverage of each layer; the first one is plan
-    # area index of buildings
-    ssDict["building_frac"] = [0.43, 0.38, 0.2]
-    # TODO  fraction of vegetation coverage of each layer
-    ssDict["veg_frac"] = [0.01, 0.02, 0.01]
-    # TODO building scale of each layer [m]
-    ssDict["building_scale"] = [50.0, 50.0, 50]
-    # TODO  vegetation scale of each layer [m]
-    ssDict["veg_scale"] = [10.0, 10.0, 10]
+    ssDict["height"] = [
+        0.0,
+        11.0,
+        15.0,
+        22.0,
+    ]  # TODO  height of top of each layer (start with 0 i.e. one more than nlayers)
+    ssDict["building_frac"] = [
+        0.43,
+        0.38,
+        0.2,
+    ]  # TODO  fraction of building coverage of each layer; the first one is plan area index of buildings
+    ssDict["veg_frac"] = [
+        0.01,
+        0.02,
+        0.01,
+    ]  # TODO  fraction of vegetation coverage of each layer
+    ssDict["building_scale"] = [
+        50.0,
+        50.0,
+        50,
+    ]  # TODO building scale of each layer [m]
+    ssDict["veg_scale"] = [
+        10.0,
+        10.0,
+        10,
+    ]  # TODO  vegetation scale of each layer [m]
 
     # roof
-    # TODO how? fraction of roofs of each layer (sum should be 1)
-    ssDict["sfr_roof"] = [0.3, 0.3, 0.4]
-    # TODO? how?  initial temperatures of roofs [degC]
-    ssDict["tin_roof"] = [5, 5, 6]
+    ssDict["sfr_roof"] = [
+        0.3,
+        0.3,
+        0.4,
+    ]  # TODO how? fraction of roofs of each layer (sum should be 1)
+    ssDict["tin_roof"] = [
+        5,
+        5,
+        6,
+    ]  # TODO? how?  initial temperatures of roofs [degC]
     ssDict["alb_roof"] = [0.5, 0.5, 0.2]  # TODO albedo of roofs
     ssDict["emis_roof"] = [0.95, 0.95, 0.95]  # TODO emissivity of roofs
-    # initial surface water depth state of roofs [mm]
-    ssDict["state_roof"] = [0.0, 0.0, 0.0]
-    # surface water depth state limit of roofs [mm]
-    ssDict["statelimit_roof"] = [5, 5, 5]
-    # surface water depth threshold of roofs (used in latent heat flux
-    # calculation) [mm]
-    ssDict["wetthresh_roof"] = [5, 5, 5]
+    ssDict["state_roof"] = [
+        0.0,
+        0.0,
+        0.0,
+    ]  # initial surface water depth state of roofs [mm]
+    ssDict["statelimit_roof"] = [
+        5,
+        5,
+        5,
+    ]  # surface water depth state limit of roofs [mm]
+    ssDict["wetthresh_roof"] = [
+        5,
+        5,
+        5,
+    ]  # surface water depth threshold of roofs (used in latent heat flux calculation) [mm]
     ssDict["soilstore_roof"] = [20, 20, 20]  # soil water store of roofs [mm]
-    # soil water store capacity of roofs [mm]
-    ssDict["soilstorecap_roof"] = [120, 120, 120]
-    # initial surface water depth state of roofs [mm]
-    ssDict["roof_albedo_dir_mult_fact"] = [1.0, 1.0, 1.0]
+    ssDict["soilstorecap_roof"] = [
+        120,
+        120,
+        120,
+    ]  # soil water store capacity of roofs [mm]
+    ssDict["roof_albedo_dir_mult_fact"] = [
+        1.0,
+        1.0,
+        1.0,
+    ]  # initial surface water depth state of roofs [mm]
 
     # The following parameters are used to calculate the heat flux from the roof
     # first roof facet
-    # TODO thickness of each layer (strictly five lyaers in total) [m]
-    ssDict["dz_roof1"] = [0.2, 0.1, 0.1, 0.01, 0.01]
-    # TODO thermal conductivity of each layer [W/m/K]
-    ssDict["k_roof1"] = [1.2, 1.2, 1.2, 1.2, 1.2]
-    # TODO specific heat capacity of each layer [J/kg/K]
-    ssDict["cp_roof1"] = [2e6, 2e6, 2e6, 2e6, 2e6]
+    ssDict["dz_roof1"] = [
+        0.2,
+        0.1,
+        0.1,
+        0.01,
+        0.01,
+    ]  # TODO thickness of each layer (strictly five lyaers in total) [m]
+    ssDict["k_roof1"] = [
+        1.2,
+        1.2,
+        1.2,
+        1.2,
+        1.2,
+    ]  # TODO thermal conductivity of each layer [W/m/K]
+    ssDict["cp_roof1"] = [
+        2e6,
+        2e6,
+        2e6,
+        2e6,
+        2e6,
+    ]  # TODO specific heat capacity of each layer [J/kg/K]
 
     ssDict["dz_roof2"] = [0.2, 0.1, 0.1, 0.01, 0.01]  # TODO
     ssDict["k_roof2"] = [2.2, 1.2, 1.2, 1.2, 1.2]  # TODO

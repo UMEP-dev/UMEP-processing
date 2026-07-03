@@ -93,7 +93,7 @@ def sunonsurface_2018a(
     signsinazimuth = np.sign(sinazimuth)
     signcosazimuth = np.sign(cosazimuth)
 
-    # The Shadow casting algoritm
+    ## The Shadow casting algoritm
     for n in np.arange(0, second):
         if (pibyfour <= azimuth and azimuth < threetimespibyfour) or (
             fivetimespibyfour <= azimuth and azimuth < seventimespibyfour
@@ -119,24 +119,20 @@ def sunonsurface_2018a(
         yp1 = -((dy - absdy) / 2)
         yp2 = sizey - (dy + absdy) / 2
 
-        tempbu[int(xp1): int(xp2), int(yp1): int(yp2)] = buildings[
-            int(xc1): int(xc2),
-            # moving building
-            int(yc1): int(yc2),
-        ]
-        tempsh[int(xp1): int(xp2), int(yp1): int(yp2)] = shadow[
-            int(xc1): int(xc2), int(yc1): int(yc2)
+        tempbu[int(xp1) : int(xp2), int(yp1) : int(yp2)] = buildings[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
+        ]  # moving building
+        tempsh[int(xp1) : int(xp2), int(yp1) : int(yp2)] = shadow[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
         ]  # moving shadow
-        tempLupsh[int(xp1): int(xp2), int(yp1): int(yp2)] = Lup[
-            int(xc1): int(xc2), int(yc1): int(yc2)
+        tempLupsh[int(xp1) : int(xp2), int(yp1) : int(yp2)] = Lup[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
         ]  # moving Lup/shadow
-        tempalbsh[int(xp1): int(xp2), int(yp1): int(yp2)] = albshadow[
-            int(xc1): int(xc2),
-            # moving Albedo/shadow
-            int(yc1): int(yc2),
-        ]
-        tempalbnosh[int(xp1): int(xp2), int(yp1): int(yp2)] = alb[
-            int(xc1): int(xc2), int(yc1): int(yc2)
+        tempalbsh[int(xp1) : int(xp2), int(yp1) : int(yp2)] = albshadow[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
+        ]  # moving Albedo/shadow
+        tempalbnosh[int(xp1) : int(xp2), int(yp1) : int(yp2)] = alb[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
         ]  # moving Albedo
         f = np.min([f, tempbu], axis=0)  # utsmetning av buildings
 
@@ -152,11 +148,9 @@ def sunonsurface_2018a(
         albnosh = tempalbnosh * f
         weightsumalbnosh = weightsumalbnosh + albnosh
 
-        tempwallsun[int(xp1): int(xp2), int(yp1): int(yp2)] = sunwall[
-            int(xc1): int(xc2),
-            # moving buildingwall insun image
-            int(yc1): int(yc2),
-        ]
+        tempwallsun[int(xp1) : int(xp2), int(yp1) : int(yp2)] = sunwall[
+            int(xc1) : int(xc2), int(yc1) : int(yc2)
+        ]  # moving buildingwall insun image
         tempb = tempwallsun * f
         tempbwall = f * -1 + 1
         tempbub = ((tempb + tempbub) > 0) * 1
@@ -201,8 +195,9 @@ def sunonsurface_2018a(
         )
     elif azilow < 0 and azihigh <= 2 * np.pi:  # 0 to 90
         azilow = azilow + 2 * np.pi
-        # (SHADOW)    # check for the -1
-        facesh = np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1
+        facesh = (
+            np.logical_or(aspect > azilow, aspect <= azihigh) * -1 + 1
+        )  # (SHADOW)    # check for the -1
     elif azilow > 0 and azihigh >= 2 * np.pi:  # 270 to 360
         azihigh = azihigh - 2 * np.pi
         facesh = (

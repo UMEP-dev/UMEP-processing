@@ -1,5 +1,6 @@
 import numpy as np
 from qgis.core import QgsVectorLayer
+from osgeo.gdalconst import *
 
 
 def pointOfInterest(poilyr, poi_field, scale, gdal_dsm):

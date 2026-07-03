@@ -30,7 +30,7 @@ __copyright__ = "(C) 2020 by Fredrik Lindberg"
 
 __revision__ = "$Format:%H$"
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
@@ -45,13 +45,16 @@ from qgis.core import (
 
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal, osr
+from osgeo.gdalconst import *
 import os
 import numpy as np
 import inspect
 from pathlib import Path
+import sys
 
 from ..util.misc import saverasternd
 from ..functions.TreeGenerator import makevegdems
+from ..util import misc
 
 
 class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
@@ -307,7 +310,6 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             "Meters",
             "m",
             "ft",
-            # Possible units
             "US survey foot",
             "feet",
             "Feet",
@@ -315,7 +317,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             "Foot",
             "ftUS",
             "International foot",
-        ]
+        ]  # Possible units
         if not temp_unit in possible_units:
             raise QgsProcessingException(
                 "Error! Raster data is currently in "
@@ -411,8 +413,7 @@ class ProcessingTreeGeneratorAlgorithm(QgsProcessingAlgorithm):
             # feedback.setProgressText("rowa= " + str(rowa))
             # feedback.setProgressText("rows= " + str(rows))
 
-            # Check if there are trees with a tree canopy diameter smaller than
-            # the pixel resolution of the input raster data
+            # Check if there are trees with a tree canopy diameter smaller than the pixel resolution of the input raster data
             if dia < geotransform[1]:
                 raise QgsProcessingException(
                     "Error! You have tree canopy diameters that are smaller than the pixel resolution."

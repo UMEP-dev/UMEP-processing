@@ -24,8 +24,6 @@ def atm_P(A=None, *args, **kwargs):
 # Pa=Po.*(1-.0000225577.*A).^5.25588;
 
 # A = altitude, units don't matter because it cancels with Ao (which is 0 at surface).
-# Therefore, it will be exp^-1, and Po is surface pressure, which is 1bar,
-# or 100kPa.
+# Therefore, it will be exp^-1, and Po is surface pressure, which is 1bar, or 100kPa.
 
-# equation from:
-# http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html
+# equation from: http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html

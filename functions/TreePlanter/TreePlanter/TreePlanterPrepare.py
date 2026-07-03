@@ -5,16 +5,16 @@ from ..TreePlanter.TreePlanterTreeshade import tree_slice
 
 def treeplanter(treeinput, treedata, treerasters, tmrt_1d):
 
-    # Remove all Tmrt values that are in shade or on top of buildings
-    treeinput.tmrt_s = treeinput.tmrt_s * treeinput.buildings
+    treeinput.tmrt_s = (
+        treeinput.tmrt_s * treeinput.buildings
+    )  # Remove all Tmrt values that are in shade or on top of buildings
 
     bld_copy = treeinput.buildings.copy()
 
     # Creating boolean for where it is possible to plant a tree
     bd_b = np.int_(np.ceil((treedata.dia / 2) / treeinput.gt[1]))
 
-    # Buffer on building raster so that trees can't be planted next to walls.
-    # Can be planted one radius from walls.
+    # Buffer on building raster so that trees can't be planted next to walls. Can be planted one radius from walls.
     for i1 in range(bd_b):
         walls = np.zeros((treeinput.rows, treeinput.cols))
         domain = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
@@ -32,18 +32,20 @@ def treeplanter(treeinput, treedata, treerasters, tmrt_1d):
     bld_copy = bld_copy * treeinput.selected_area
 
     # Calculating sum of Tmrt in shade for each possible position in the Tmrt matrix
-    # Empty matrix for sum of Tmrt in tree shadow
-    sum_tmrt_tsh = np.zeros((treeinput.rows, treeinput.cols))
-    # Empty matrix for sum of Tmrt in sun under tree shadow
-    sum_tmrt = np.zeros((treeinput.rows, treeinput.cols))
+    sum_tmrt_tsh = np.zeros(
+        (treeinput.rows, treeinput.cols)
+    )  # Empty matrix for sum of Tmrt in tree shadow
+    sum_tmrt = np.zeros(
+        (treeinput.rows, treeinput.cols)
+    )  # Empty matrix for sum of Tmrt in sun under tree shadow
 
-    # Coordinates for where it is possible to plant a tree (buildings, area of
-    # interest excluded)
-    res_y, res_x = np.where(bld_copy == 1)
+    res_y, res_x = np.where(
+        bld_copy == 1
+    )  # Coordinates for where it is possible to plant a tree (buildings, area of interest excluded)
 
-    # Length of vectors with y and x positions. Will have x and y positions,
-    # tmrt in shade and in sun and an id for each position
-    pos_ls = np.zeros((res_y.__len__(), 6))
+    pos_ls = np.zeros(
+        (res_y.__len__(), 6)
+    )  # Length of vectors with y and x positions. Will have x and y positions, tmrt in shade and in sun and an id for each position
 
     index = 0
 
@@ -82,30 +84,27 @@ def treeplanter(treeinput, treedata, treerasters, tmrt_1d):
                 * tmrt_1d[j, 0]
             )
 
-        # X position of tree
-        pos_ls[index, 1] = res_x[i]
-        # Y position of tree
-        pos_ls[index, 2] = res_y[i]
-        # Sum of Tmrt in tree shade - vector
-        pos_ls[index, 3] = sum_tmrt_tsh[res_y[i], res_x[i]]
-        # Sum of Tmrt in same area as tree shade but sunlit - vector
-        pos_ls[index, 4] = sum_tmrt[res_y[i], res_x[i]]
+        pos_ls[index, 1] = res_x[i]  # X position of tree
+        pos_ls[index, 2] = res_y[i]  # Y position of tree
+        pos_ls[index, 3] = sum_tmrt_tsh[
+            res_y[i], res_x[i]
+        ]  # Sum of Tmrt in tree shade - vector
+        pos_ls[index, 4] = sum_tmrt[
+            res_y[i], res_x[i]
+        ]  # Sum of Tmrt in same area as tree shade but sunlit - vector
         pos_ls[index, 5] = 1
 
         index += 1
 
     pos_bool = pos_ls[:, 3] != 0
     pos_ls = pos_ls[pos_bool, :]
-    # Gives a unique value ranging from 1 to length of pos_ls.shape[0]+1, for
-    # each position where it is possible to plant a tree
+    # Gives a unique value ranging from 1 to length of pos_ls.shape[0]+1, for each position where it is possible to plant a tree
     pos_ls[:, 0] = np.arange(1, pos_ls.shape[0] + 1)
 
-    # Adding sum_tmrt and sum_tmrt_tsh to the Treerasters class as well as
-    # calculating the difference between sunlit and shaded
+    # Adding sum_tmrt and sum_tmrt_tsh to the Treerasters class as well as calculating the difference between sunlit and shaded
     treerasters.tmrt(sum_tmrt, sum_tmrt_tsh)
 
-    # Adding pos_ls and adding all unique values from pos_ls to their
-    # respective positions in a 2D matrix and returns a Positions class
+    # Adding pos_ls and adding all unique values from pos_ls to their respective positions in a 2D matrix and returns a Positions class
     positions = Position(pos_ls, treeinput.rows, treeinput.cols)
 
     return treerasters, positions

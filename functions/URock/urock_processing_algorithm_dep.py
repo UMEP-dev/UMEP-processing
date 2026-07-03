@@ -38,6 +38,7 @@ from qgis.core import (
     QgsProcessingParameterField,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
+    QgsProcessingParameterMatrix,
     QgsProcessingParameterFolderDestination,
     QgsProcessingParameterString,
     QgsProcessingParameterRasterLayer,
@@ -51,6 +52,7 @@ from qgis.core import (
     QgsProcessingException,
 )
 from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.utils import iface
 from pathlib import Path
 import subprocess
 import pandas as pd
@@ -63,12 +65,14 @@ try:
     subprocess.check_call(
         [str(path_pybin), "-m", "pip", "install", "jaydebeapi"]
     )
+    import jaydebeapi
 except Exception:
     QMessageBox.critical(
         None,
         "Error",
         "'jaydebeapi' Python package is missing, cannot connect to H2 Driver",
     )
+    pass
 
 from . import MainCalculation
 from .GlobalVariables import *
@@ -517,8 +521,7 @@ class URockAlgorithm(QgsProcessingAlgorithm):
                 outputRaster.extent().yMaximum()
                 - outputRaster.extent().yMinimum()
             ) / outputRaster.height()
-            # If there is a raster and no meshSize, take the mean of x and y
-            # raster resolution
+            # If there is a raster and no meshSize, take the mean of x and y raster resolution
             if not meshSize:
                 meshSize = float(xres + yres) / 2
         elif not meshSize:

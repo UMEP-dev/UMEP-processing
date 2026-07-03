@@ -196,11 +196,11 @@ def createIndex(tableName, fieldName, isSpatial):
     spatialKeyWord = ""
     if isSpatial:
         spatialKeyWord = " SPATIAL "
-    if isinstance(fieldName, type([])):
-        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{"_".join(fieldName)}_{tableName}
+    if type(fieldName) == type([]):
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{"_".join(fieldName)}_{tableName} 
                 ON {tableName}({",".join(fieldName)});"""
     else:
-        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{fieldName}_{tableName}
+        query = f"""CREATE {spatialKeyWord} INDEX IF NOT EXISTS id_{fieldName}_{tableName} 
                 ON {tableName}({fieldName});"""
     return query
 
@@ -250,7 +250,7 @@ def windDirectionFromXY(windSpeedEast, windSpeedNorth):
     # Calculate the angle in Radian in a [-pi/2, pi/2]
     radAngle = np.zeros(windSpeedEast.shape)
     radAngle[windSpeedEast == 0] = 0
-    if isinstance(windSpeedEast, type(pd.Series())):
+    if type(windSpeedEast) == type(pd.Series()):
         radAngle[windSpeedEast != 0] = np.arctan(
             windSpeedNorth[windSpeedEast != 0].divide(
                 windSpeedEast[windSpeedEast != 0]
@@ -374,9 +374,7 @@ def getExtremumPoint(
     return extremumPointTable
 
 
-# SHOULD BE DELETED SINCE ALREADY IN UMEP !!!
-
-
+####### SHOULD BE DELETED SINCE ALREADY IN UMEP !!!
 def locate_py():
     # get Python version
     str_ver_qgis = sys.version.split(" ")[0]
@@ -394,11 +392,13 @@ def locate_py():
     # pre-defined paths for python executable
     dict_pybin = {
         "Darwin": path_py / "bin" / "python3",
-        "Windows": path_py
-        / (
-            "../../bin/pythonw.exe"
-            if version.parse(str_ver_qgis) >= version.parse("3.9.1")
-            else "pythonw.exe"
+        "Windows": (
+            path_py
+            / (
+                "../../bin/pythonw.exe"
+                if version.parse(str_ver_qgis) >= version.parse("3.9.1")
+                else "pythonw.exe"
+            )
         ),
         "Linux": path_py,
     }
@@ -426,8 +426,7 @@ def validate_sql_inputs(
     """
     Validate inputs to prevent SQL injection.
     """
-    # Validate field names: must be valid SQL identifiers (alphanumeric +
-    # underscore, start with letter or underscore)
+    # Validate field names: must be valid SQL identifiers (alphanumeric + underscore, start with letter or underscore)
     identifier_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
     if idLines and not identifier_pattern.match(idLines):

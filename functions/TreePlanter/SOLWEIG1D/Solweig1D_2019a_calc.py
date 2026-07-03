@@ -63,8 +63,7 @@ def Solweig1D_2019a_calc(
 ):
 
     # This is the core function of the SOLWEIG1D model, 2019-Jun-21
-    # Fredrik Lindberg, fredrikl@gvc.gu.se, Goteborg Urban Climate Group,
-    # Gothenburg University, Sweden
+    # Fredrik Lindberg, fredrikl@gvc.gu.se, Goteborg Urban Climate Group, Gothenburg University, Sweden
 
     svfE = svf
     svfW = svf
@@ -100,7 +99,7 @@ def Solweig1D_2019a_calc(
         1 - (1 + msteg) * np.exp(-((1.2 + 3.0 * msteg) ** 0.5))
     ) + elvis  # -0.04 old error from Jonsson et al.2006
 
-    if altitude > 0:  # DAYTIME # # # # # #
+    if altitude > 0:  # # # # # # DAYTIME # # # # # #
         # Clearness Index on Earth's surface after Crawford and Dunchon (1999) with a correction
         #  factor for low sun elevations after Lindberg et al.(2008)
         I0, CI, Kt, I0et, CIuncorr = clearnessindex_2013b(
@@ -130,8 +129,9 @@ def Solweig1D_2019a_calc(
 
             aniLum = 0.0
             for idx in range(0, 145):
-                # Total relative luminance from sky into each cell
-                aniLum = aniLum + diffsh[idx] * lv[0][idx][2]
+                aniLum = (
+                    aniLum + diffsh[idx] * lv[0][idx][2]
+                )  # Total relative luminance from sky into each cell
 
             dRad = (
                 aniLum * radD
@@ -150,39 +150,33 @@ def Solweig1D_2019a_calc(
             * np.sin(
                 (
                     ((dectime - np.floor(dectime)) - SNUP / 24)
-                    / (
-                        # 2015 a, based on max sun altitude
-                        TmaxLST / 24
-                        - SNUP / 24
-                    )
+                    / (TmaxLST / 24 - SNUP / 24)
                 )
                 * np.pi
                 / 2
             )
             + Tstart
-        )
+        )  # 2015 a, based on max sun altitude
         Tgwall = Tgampwall * np.sin(
             (
                 ((dectime - np.floor(dectime)) - SNUP / 24)
-                / (
-                    # 2015a, based on max sun altitude
-                    TmaxLST_wall / 24
-                    - SNUP / 24
-                )
+                / (TmaxLST_wall / 24 - SNUP / 24)
             )
             * np.pi
             / 2
-        ) + (Tstart_wall)
+        ) + (
+            Tstart_wall
+        )  # 2015a, based on max sun altitude
 
         if Tgwall < 0:  # temporary for removing low Tg during morning 20130205
             # Tg = 0
             Tgwall = 0
 
-        # New estimation of Tg reduction for non - clear situation based on
-        # Reindl et al.1990
+        # New estimation of Tg reduction for non - clear situation based on Reindl et al.1990
         radI0, _ = diffusefraction(I0, altitude, 1.0, Ta, RH)
-        # 20070329 correction of lat, Lindberg et al. 2008
-        corr = 0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
+        corr = (
+            0.1473 * np.log(90 - (zen / np.pi * 180)) + 0.3454
+        )  # 20070329 correction of lat, Lindberg et al. 2008
         CI_Tg = (radI / radI0) + (1 - corr)
         if (CI_Tg > 1) or (CI_Tg == np.inf):
             CI_Tg = 1
@@ -200,8 +194,9 @@ def Solweig1D_2019a_calc(
         LupN = Lup
 
         # Building height angle from svf
-        # Fraction shadow on building walls based on sun alt and svf
-        F_sh = cylindric_wedge(zen, svfalfa, 1, 1)
+        F_sh = cylindric_wedge(
+            zen, svfalfa, 1, 1
+        )  # Fraction shadow on building walls based on sun alt and svf
         F_sh[np.isnan(F_sh)] = 0.5
 
         # # # # # # # Calculation of shortwave daytime radiative fluxes # # # # # # #
@@ -221,8 +216,7 @@ def Solweig1D_2019a_calc(
         )
 
         # Kup, KupE, KupS, KupW, KupN = Kup_veg_2015a(radI, radD, radG, altitude, svf, albedo_b, F_sh, gvfalb,
-        # gvfalbE, gvfalbS, gvfalbW, gvfalbN, gvfalbnosh, gvfalbnoshE,
-        # gvfalbnoshS, gvfalbnoshW, gvfalbnoshN)
+        #             gvfalbE, gvfalbS, gvfalbW, gvfalbN, gvfalbnosh, gvfalbnoshE, gvfalbnoshS, gvfalbnoshW, gvfalbnoshN)
 
         Keast, Ksouth, Kwest, Knorth, KsideI, KsideD = Kside_veg_v2019a(
             radI,
@@ -279,8 +273,7 @@ def Solweig1D_2019a_calc(
         # # # # Lup # # # #
         Lup = SBC * eground * ((Knight + Ta + Tg + 273.15) ** 4)
         # if landcover == 1:
-        # Lup[lc_grid == 3] = SBC * 0.98 * (Twater + 273.15) ** 4  # nocturnal
-        # Water temp
+        #     Lup[lc_grid == 3] = SBC * 0.98 * (Twater + 273.15) ** 4  # nocturnal Water temp
         LupE = Lup
         LupS = Lup
         LupW = Lup
@@ -340,8 +333,9 @@ def Solweig1D_2019a_calc(
     )
 
     # # # # Calculation of radiant flux density and Tmrt # # # #
-    # Human body considered as a cylinder with Perez et al. (1993)
-    if cyl == 1 and ani == 1:
+    if (
+        cyl == 1 and ani == 1
+    ):  # Human body considered as a cylinder with Perez et al. (1993)
         Sstr = absK * (
             (KsideI + KsideD) * Fcyl
             + (Kdown + Kup) * Fup

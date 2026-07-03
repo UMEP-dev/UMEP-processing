@@ -46,6 +46,9 @@ from qgis.core import (
 )
 
 from qgis.PyQt.QtGui import QIcon
+from osgeo.gdalconst import *
+from osgeo import gdal, osr, ogr
+import numpy as np
 import os
 import inspect
 from pathlib import Path
@@ -215,8 +218,9 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
 
         path = vlayer.dataProvider().dataSourceUri()
         if path.rfind("|") > 0:
-            # work around. Probably other solution exists
-            polygonpath = path[: path.rfind("|")]
+            polygonpath = path[
+                : path.rfind("|")
+            ]  # work around. Probably other solution exists
         else:
             polygonpath = path
 
@@ -235,8 +239,9 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             vlayerBT = polyBT
             pathBT = vlayerBT.dataProvider().dataSourceUri()
             if pathBT.rfind("|") > 0:
-                # work around. Probably other solution exists
-                polygonpathBT = pathBT[: pathBT.rfind("|")]
+                polygonpathBT = pathBT[
+                    : pathBT.rfind("|")
+                ]  # work around. Probably other solution exists
             else:
                 polygonpathBT = pathBT
 
@@ -285,7 +290,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
             time_field = parin["OVERLAY_FIELDS_PREFIX"] + "uwgTime"
 
         # Start loop of polygon grids
-        # land cover and morphology
+        ##land cover and morphology
         index = 0
         for feature in vlayer.getFeatures():
             feedback.setProgress(int((index * 100) / nGrids))
@@ -325,20 +330,23 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                         break
 
             # Populate dict from UMEP
-            # average building height (m)
-            uwgDict["bldHeight"] = IMP_heights_mean
-            # urban area building plan density (0-1)
-            uwgDict["bldDensity"] = LCF_buildings
-            # urban area vertical to horizontal ratio
-            uwgDict["verToHor"] = IMP_wai
-            # Fraction of the urban ground covered in grass/shrubs only (0-1)
-            uwgDict["grasscover"] = LCF_grass
-            # Fraction of the urban ground covered in trees (0-1)
+            uwgDict["bldHeight"] = (
+                IMP_heights_mean  # average building height (m)
+            )
+            uwgDict["bldDensity"] = (
+                LCF_buildings  # urban area building plan density (0-1)
+            )
+            uwgDict["verToHor"] = (
+                IMP_wai  # urban area vertical to horizontal ratio
+            )
+            uwgDict["grasscover"] = (
+                LCF_grass  # Fraction of the urban ground covered in grass/shrubs only (0-1)
+            )
             uwgDict["treeCover"] = str(
                 float(LCF_decidious) + float(LCF_evergreen)
-            )
+            )  # Fraction of the urban ground covered in trees (0-1)
 
-            # urban type fractions
+            ## urban type fractions
             if vlayerBT:
                 fracDict = {}
                 totarea = 0.0
@@ -369,8 +377,6 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                     "Pre80",
                     "Pst80",
                     "Pst80",
-                    # this should also come from an unique post for each
-                    # polygon...
                     "Pst80",
                     "Pst80",
                     "Pst80",
@@ -379,7 +385,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                     "Pst80",
                     "Pst80",
                     "Pst80",
-                ]
+                ]  # this should also come from an unique post for each polygon...
                 fractions = [
                     0.0,
                     0.0,
@@ -402,8 +408,7 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                 fracDict = dict(zip(types, fractions))
                 timeDict = dict(zip(types, buildtime))
 
-                # populate dict with area for each available urban type within
-                # grid
+                # populate dict with area for each available urban type within grid
                 for featureType in vlayertype.getFeatures():
                     if feat_id == int(featureType.attribute(poly_field[0])):
                         area = featureType.geometry().area()
@@ -425,10 +430,11 @@ class ProcessingUWGPrepareAlgorithm(QgsProcessingAlgorithm):
                     uwgDict["bld"][1][i] = timeDict[types[i]]
                     uwgDict["bld"][2][i] = fracDict[types[i]]
 
-            # Fraction of the rural ground covered by vegetation
-            uwgDict["rurVegCover"] = rurVegCover
+            uwgDict["rurVegCover"] = (
+                rurVegCover  # Fraction of the rural ground covered by vegetation
+            )
 
-            # generate input files for UWG
+            ## generate input files for UWG
             _name = prefix + "_" + str(feat_id)
             get_uwg_file(uwgDict, outputDir + "/", _name)
 

@@ -231,12 +231,13 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         self.YYYY = str(startday).split("-")[0]
 
         if self.YYYY not in years:
-            raise QgsProcessingException(f"Selected year '{
-                    self.YYYY}' is not present in the data.\n Availible years are {
-                    str(years)}")
+            raise QgsProcessingException(
+                f"Selected year '{self.YYYY}' is not present in the data.\n Availible years are {str(years)}"
+            )
 
-        # self.dlg.comboBox_SpatialVariable.currentIndex() - 1
-        self.id = int(variaIn)
+        self.id = int(
+            variaIn
+        )  # self.dlg.comboBox_SpatialVariable.currentIndex() - 1
 
         poly_field = idField
 
@@ -249,14 +250,14 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         statvectemp = [0]
         statresult = [0]
         idvec = [0]
-        # QgsVectorLayer(poly.source(), "polygon", "ogr")
-        vlayer = inputPolygonlayer
+        vlayer = inputPolygonlayer  # QgsVectorLayer(poly.source(), "polygon", "ogr")
         prov = vlayer.dataProvider()
         fields = prov.fields()
         path = vlayer.dataProvider().dataSourceUri()
         if path.rfind("|") > 0:
-            # work around. Probably other solution exists
-            polygonpath = path[: path.rfind("|")]
+            polygonpath = path[
+                : path.rfind("|")
+            ]  # work around. Probably other solution exists
         else:
             polygonpath = path
 

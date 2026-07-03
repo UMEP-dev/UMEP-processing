@@ -1,7 +1,7 @@
 try:
     import xarray as xr
     import rioxarray
-except BaseException:
+except:
     pass
 
 import numpy as np
@@ -14,8 +14,7 @@ def walls_as_netcdf(
     # rows = number of rows (latitudinal position)
     # cols = number of columns (longitudinal position)
     # level = number of voxel levels (elevation position)
-    # raster_path is used to load an existing .tif layer and create arrays
-    # with latitudes and longitudes to be used in xarray/NetCDF
+    # raster_path is used to load an existing .tif layer and create arrays with latitudes and longitudes to be used in xarray/NetCDF
 
     # Highest number of voxels used to determine z/height level of NetCDF
     # levels = voxelTable.loc[voxelTable['voxelHeight'] == voxelTable['voxelHeight'].max(), 'voxelHeight'].to_numpy()[0].astype(int)
@@ -33,14 +32,11 @@ def walls_as_netcdf(
     # Range of height levels
     height_levels = np.arange(1, levels + 1)
 
-    # Create empty numpy array to fill with wall temperatures from current
-    # time step
+    # Create empty numpy array to fill with wall temperatures from current time step
     wallTemperature = np.full((cols, rows, levels), np.nan, dtype=np.float32)
 
     # Add current time step wall temperature and longwave radiation to numpy array, which will be used to update the NetCDF.
-    # for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int),
-    # voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int),
-    # voxelTable['wallTemperature'].astype(np.float32)):
+    # for y, x, z, wallTemp in zip(voxelTable['ypos'].astype(int), voxelTable['xpos'].astype(int), voxelTable['voxelHeight'].astype(int), voxelTable['wallTemperature'].astype(np.float32)):
     for y, x, z, wallTemp in zip(
         voxelTable["ypos"].astype(int),
         voxelTable["xpos"].astype(int),
@@ -76,8 +72,7 @@ def walls_as_netcdf(
             attrs={"crs": raster_file.rio.crs.to_string()},
         )
 
-        # Update wall temperature and longwave radiation for current timestep
-        # (iteration)
+        # Update wall temperature and longwave radiation for current timestep (iteration)
         data_xr.wall_temperature[:, :, :, iteration] = wallTemperature
 
         encodings = {var: comp for var in data_xr.data_vars}

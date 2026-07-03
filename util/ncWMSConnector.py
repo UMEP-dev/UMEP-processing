@@ -12,7 +12,7 @@ try:
     import netCDF4 as nc4
     from requests.auth import HTTPDigestAuth
     import requests
-except BaseException:
+except:
     pass
 
 from collections import OrderedDict
@@ -40,18 +40,18 @@ class NCWMS_Connector(object):
             "Snowf",
             "SWdown",
         ]
-        # The first data point available in the dataset on the server
-        self.start_date = dt(1979, 0o1, 0o1, 00, 00, 00)
-        # The final data point available in the dataset on the server
-        self.end_date = dt(2015, 12, 31, 21, 00, 00)
+        self.start_date = dt(
+            1979, 0o1, 0o1, 00, 00, 00
+        )  # The first data point available in the dataset on the server
+        self.end_date = dt(
+            2015, 12, 31, 21, 00, 00
+        )  # The final data point available in the dataset on the server
         self.time_res = 3600 * 3  # Time resolution of data in seconds
-        # Number of days of data to request at a time from server (helps manage
-        # load on server and produce a progress bar)
-        self.request_length = 200
+        self.request_length = 200  # Number of days of data to request at a time from server (helps manage load on server and produce a progress bar)
         self.request_params = {}  # Holds a dict of request parameters
-        # Stores a list of downloaded netCDF files for different time subsets,
-        # with start datetime as key
-        self.results = OrderedDict()
+        self.results = (
+            OrderedDict()
+        )  # Stores a list of downloaded netCDF files for different time subsets, with start datetime as key
         self.killed = False  # Aborts execution if needed
 
     def kill(self):
@@ -190,14 +190,12 @@ class NCWMS_Connector(object):
                 upperright_lon,
             ],
         }
-        # start_dates = pd.date_range(start_date, end_date, freq='%dD' %
-        # (self.request_length,)).to_datetime()  # to_datetime() not needed...
+        # start_dates = pd.date_range(start_date, end_date, freq='%dD' % (self.request_length,)).to_datetime()  # to_datetime() not needed...
         start_dates = pd.date_range(
             start_date, end_date, freq="%dD" % (self.request_length,)
         )
 
-        # Create queue of retrievals, and safeguard against over-running
-        # dataset end date
+        # Create queue of retrievals, and safeguard against over-running dataset end date
         for s in range(0, len(start_dates)):
             if self.killed:
                 break
@@ -215,18 +213,19 @@ class NCWMS_Connector(object):
                 final_date = True
                 end_date_candidate = self.end_date
 
-            # Get data from start date to next start date minus time resolution
             self.results[start_dates[s]] = self.retrieve(
                 start_dates[s], end_date_candidate
-            )
+            )  # Get data from start date to next start date minus time resolution
             if update is not None:
                 update.emit(
                     {
                         "progress": 100 * float(s) / float(len(start_dates)),
-                        "message": " (%s to %s)"
-                        % (
-                            start_dates[s].strftime("%Y-%m-%d"),
-                            end_date_candidate.strftime("%Y-%m-%d"),
+                        "message": (
+                            " (%s to %s)"
+                            % (
+                                start_dates[s].strftime("%Y-%m-%d"),
+                                end_date_candidate.strftime("%Y-%m-%d"),
+                            )
                         ),
                     }
                 )
@@ -320,13 +319,13 @@ class NCWMS_Connector(object):
         time_bins = nc4.num2date(times[:], units=times.units)
 
         # Workaround: The server currently has a slightly wobble in time bins, which we know to be precise
-        # re-do them. The first one tends to be correct, and drift sets in
-        # later.
+        # re-do them. The first one tends to be correct, and drift sets in later.
         time_bins = pd.date_range(
             time_bins[0], periods=len(time_bins), freq=str(self.time_res) + "s"
         )
-        # Assume all requested variables have the same shape
-        dim = combined_data.variables[self.vars[0]][:].shape
+        dim = combined_data.variables[self.vars[0]][
+            :
+        ].shape  # Assume all requested variables have the same shape
 
         if period is None:
             new_time_bins = time_bins
@@ -339,8 +338,7 @@ class NCWMS_Connector(object):
             ).index
         new_dim = [len(new_time_bins), dim[1], dim[2]]
 
-        # Duplicate all non-time dimensions from original file, and add new
-        # time dimension
+        # Duplicate all non-time dimensions from original file, and add new time dimension
         for dname, the_dim in combined_data.dimensions.items():
             if dname == "time":
                 t = new_data.createDimension(dname, len(new_time_bins))
@@ -356,17 +354,18 @@ class NCWMS_Connector(object):
             )
             try:
                 if v_name == "time":
-                    # Replace seconds with hours (if seconds) to save data
-                    outVar.units = varin.units.replace("seconds", "hours")
+                    outVar.units = varin.units.replace(
+                        "seconds", "hours"
+                    )  # Replace seconds with hours (if seconds) to save data
                 else:
                     outVar.units = varin.units
-            except BaseException:
+            except:
                 pass
             try:
                 outVar.setncatts(
                     {k: varin.getncattr(k) for k in varin.ncattrs()}
                 )
-            except BaseException:
+            except:
                 pass
 
             # Perform time-averaging and add data to new file
@@ -405,8 +404,9 @@ class NCWMS_Connector(object):
 
         new_data.close()
         combined_data.close()
-        # Remove individual files as no longer needed
-        [os.remove(v) for v in list(self.results.values())]
+        [
+            os.remove(v) for v in list(self.results.values())
+        ]  # Remove individual files as no longer needed
         return tmp  # Return path to combined file
 
     def retrieve(self, start_period, end_period):
@@ -416,19 +416,23 @@ class NCWMS_Connector(object):
         """
         baseURL = "http://data.urban-climate.net:8080/umep/download"
         parms = {
-            "BBOX": "%f,%f,%f,%f"
-            % (
-                float(self.request_params["bbox"][1]),
-                float(self.request_params["bbox"][0]),
-                float(self.request_params["bbox"][3]),
-                float(self.request_params["bbox"][2]),
+            "BBOX": (
+                "%f,%f,%f,%f"
+                % (
+                    float(self.request_params["bbox"][1]),
+                    float(self.request_params["bbox"][0]),
+                    float(self.request_params["bbox"][3]),
+                    float(self.request_params["bbox"][2]),
+                )
             ),
             "DATASET": "watch",
             "VARIABLES": ",".join(self.request_params["vars"]),
-            "TIME": "%s/%s"
-            % (
-                start_period.strftime("%Y-%m-%dT%H:%M:%S"),
-                end_period.strftime("%Y-%m-%dT%H:%M:%S"),
+            "TIME": (
+                "%s/%s"
+                % (
+                    start_period.strftime("%Y-%m-%dT%H:%M:%S"),
+                    end_period.strftime("%Y-%m-%dT%H:%M:%S"),
+                )
             ),
         }
         try:

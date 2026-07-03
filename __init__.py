@@ -12,16 +12,17 @@
  ***************************************************************************/
 
 /***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
+ * *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ * *
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
 
+# 1. Initialize fallback immediately to shield all downstream imports
 import site
 import sys
 
@@ -29,6 +30,25 @@ user_site = site.getusersitepackages()
 if user_site not in sys.path:
     sys.path.append(user_site)
 
+
+try:
+    import torch
+except ImportError:
+    # Create the local mock right here
+    class MetaMock(type):
+        def __getattr__(cls, name):
+            if name == "is_available":
+                return lambda: False
+            return cls
+
+        def __call__(cls, *args, **kwargs):
+            return cls
+
+    class LocalMockTorch(metaclass=MetaMock):
+        pass
+
+    # Inject it into Python's module registry BEFORE QGIS loads any sub-files
+    sys.modules["torch"] = LocalMockTorch
 __author__ = "Fredrik Lindberg"
 __date__ = "2020-04-02"
 __copyright__ = "(C) 2020 by Fredrik Lindberg"
@@ -41,7 +61,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #
     from .processing_umep import ProcessingUMEPPlugin
 
+    # Crucial: pass the iface variable QGIS gives you right into the plugin
     return ProcessingUMEPPlugin()

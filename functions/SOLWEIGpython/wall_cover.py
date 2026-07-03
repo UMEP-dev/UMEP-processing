@@ -26,25 +26,22 @@ def get_wall_cover(voxelTable, lcgrid, dsm, lc_params):
     for i in range(voxelTable.shape[0]):
         # Temporary lc_grid based on kernel and wall y and x position
         temp_lc = (
-            lcgrid[ypos[i] - 1: ypos[i] + 2, xpos[i] - 1: xpos[i] + 2]
+            lcgrid[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2]
             * domain
         )
         # Temporary dsm based on kernel and wall y and x position
         temp_dsm = (
-            dsm[ypos[i] - 1: ypos[i] + 2, xpos[i] - 1: xpos[i] + 2] * domain
+            dsm[ypos[i] - 1 : ypos[i] + 2, xpos[i] - 1 : xpos[i] + 2] * domain
         )
-        # Temporary code based on highest pixel in temp_dsm where temp_lc is a
-        # building
+        # Temporary code based on highest pixel in temp_dsm where temp_lc is a building
         temp_code = temp_lc[((temp_lc > 99) & (temp_dsm == temp_dsm.max()))]
 
-        # If more than one option in temp_code, use the first one #TODO CHANGE
-        # TO MOST COMMON
+        # If more than one option in temp_code, use the first one #TODO CHANGE TO MOST COMMON
         if len(temp_code) > 1:
             temp_code = temp_code[0].astype(int)
         elif len(temp_code) == 1:
             temp_code = temp_code[0].astype(int)
-        # If no wall type specified in land cover for specific wall pixel, set
-        # to concrete
+        # If no wall type specified in land cover for specific wall pixel, set to concrete
         elif temp_code.size == 0:
             temp_code = 101
 
