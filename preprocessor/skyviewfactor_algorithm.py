@@ -76,9 +76,7 @@ class ProcessingSkyViewFactorAlgorithm(QgsProcessingAlgorithm):
     INPUT_DSM = "INPUT_DSM"
     INPUT_CDSM = "INPUT_CDSM"
     INPUT_TDSM = "INPUT_TDSM"
-    # USE_VEG = 'USE_VEG'
     TRANS_VEG = "TRANS_VEG"
-    # TSDM_EXIST = 'TSDM_EXIST'
     INPUT_THEIGHT = "INPUT_THEIGHT"
     ANISO = "ANISO"
     KMEANS = "KMEANS"

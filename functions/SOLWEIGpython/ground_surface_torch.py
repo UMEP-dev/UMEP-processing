@@ -106,12 +106,12 @@ def initiate_groundScheme(
 
         slope_Tg = solweig_parameters["Tg_ini coefficients"]["Values"][
             solweig_parameters["Names"]["Value"][str((int(i.item())))]
-        ][0]
+        ][1]
 
         ratio_Tg = float(
             solweig_parameters["Tg_ini coefficients"]["Values"][
                 solweig_parameters["Names"]["Value"][str((int(i.item())))]
-            ][1]
+            ][2]
         )
         phi_Tg = 1.6
 

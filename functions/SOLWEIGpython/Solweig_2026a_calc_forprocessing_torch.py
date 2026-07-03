@@ -763,10 +763,10 @@ def Solweig_2026a_calc(
             anisotropic_sky,
         )
     else:
-        Least = torch.zeros_like(Ldown)
-        Lnorth = torch.zeros_like(Ldown)
-        Lwest = torch.zeros_like(Ldown)
-        Lsouth = torch.zeros_like(Ldown)
+        Least = torch.zeros_like(Ldown, device=device)
+        Lnorth = torch.zeros_like(Ldown, device=device)
+        Lwest = torch.zeros_like(Ldown, device=device)
+        Lsouth = torch.zeros_like(Ldown, device=device)
         Least_, Lsouth_, Lwest_, Lnorth_ = Lside_veg_v2022a(
             svfS,
             svfW,
@@ -816,9 +816,9 @@ def Solweig_2026a_calc(
                 skyvaultalt.shape[0], device=device
             )
 
-            x = torch.transpose(torch.atleast_2d(skyvaultalt))
-            y = torch.transpose(torch.atleast_2d(skyvaultazi))
-            z = torch.transpose(torch.atleast_2d(patch_emissivities))
+            x = torch.transpose(torch.atleast_2d(skyvaultalt), device=device)
+            y = torch.transpose(torch.atleast_2d(skyvaultazi), device=device)
+            z = torch.transpose(torch.atleast_2d(patch_emissivities), device=device)
 
             L_patches = torch.append(torch.append(x, y, axis=1), z, axis=1)
             del skyvaultalt, skyvaultazi, patch_emissivities, x, y, z
