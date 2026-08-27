@@ -44,7 +44,7 @@ except BaseException:
                 "Please report at https://github.com/UMEP-dev/UMEP-processing/issues",
             )
         try:
-            setup_umep_python(ver="4.0")
+            setup_umep_python(ver="4.1")  # Here you specify specific umep-reps
             QMessageBox.information(
                 None,
                 "Packages successfully installed",
