@@ -332,6 +332,7 @@ class ProcessingTargetProcessorAlgorithm(QgsProcessingAlgorithm):
             # passing the simulation's config file
             os.path.join(inputDir, "config.ini"),
             progress=True,  # show progress bars in console
+            feedback=feedback,  # route progress to the QGIS progress bar instead
         )
         tar.load_config()
 
