@@ -277,7 +277,7 @@ class ProcessingShadowGeneratorAlgorithm(QgsProcessingAlgorithm):
 
         self.sorted_utclist
         utc = self.sorted_utclist[int(utcpos)]["utc_offset"]
-
+        feedback.setProgressText("UTC offset: " + str(utc))
         sizex = dsm.shape[0]
         sizey = dsm.shape[1]
 

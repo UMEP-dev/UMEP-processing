@@ -257,7 +257,7 @@ class ProcessingSEBEAlgorithm(QgsProcessingAlgorithm):
         # response to issue #104
         self.sorted_utclist
         utc = self.sorted_utclist[int(utcpos)]["utc_offset"]
-
+        feedback.setProgressText("UTC offset: " + str(utc))
         # Get latlon from grid coordinate system
         old_cs = osr.SpatialReference()
         dsm_ref = dsmlayer.crs().toWkt()
