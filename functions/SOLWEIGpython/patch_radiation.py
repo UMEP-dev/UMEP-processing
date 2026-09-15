@@ -497,7 +497,7 @@ def patch_steradians(L_patches):
         # If there are more than one patch in a band
         if skyalt_c[skyalt == patch_altitude[i]] > 1:
             steradian[i] = (
-                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+                (360 / skyalt_c[skyalt == patch_altitude[i]].item()) * deg2rad
             ) * (
                 np.sin((patch_altitude[i] + patch_altitude[0]) * deg2rad)
                 - np.sin((patch_altitude[i] - patch_altitude[0]) * deg2rad)
@@ -505,7 +505,7 @@ def patch_steradians(L_patches):
         # If there is only one patch in band, i.e. 90 degrees
         else:
             steradian[i] = (
-                (360 / skyalt_c[skyalt == patch_altitude[i]]) * deg2rad
+                (360 / skyalt_c[skyalt == patch_altitude[i]].item()) * deg2rad
             ) * (
                 np.sin((patch_altitude[i]) * deg2rad)
                 - np.sin((patch_altitude[i - 1] + patch_altitude[0]) * deg2rad)

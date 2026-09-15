@@ -193,192 +193,192 @@ def anisotropic_sky(
             )
         )
 
-        if cyl == 1:
-            # Angle of incidence, np.cos(0) because cylinder - always
-            # perpendicular
-            angle_of_incidence = np.cos(patch_altitude[i] * deg2rad) * np.cos(
-                0
-            )  # * np.sin(np.pi / 2) \
-            # Angle of incidence to horizontal surface
-            angle_of_incidence_h = np.sin(patch_altitude[i] * deg2rad)
+        #if cyl == 1:
+        # Angle of incidence, np.cos(0) because cylinder - always
+        # perpendicular
+        angle_of_incidence = np.cos(patch_altitude[i] * deg2rad) * np.cos(
+            0
+        )  # * np.sin(np.pi / 2) \
+        # Angle of incidence to horizontal surface
+        angle_of_incidence_h = np.sin(patch_altitude[i] * deg2rad)
 
-            ### CALCULATIONS FOR LONGWAVE RADIATION ###
-            # Longwave radiation from sky
+        ### CALCULATIONS FOR LONGWAVE RADIATION ###
+        # Longwave radiation from sky
+        (
+            Lside_sky_temp,
+            Ldown_sky_temp,
+            Least_temp,
+            Lsouth_temp,
+            Lwest_temp,
+            Lnorth_temp,
+        ) = patch_radiation.longwave_from_sky(
+            temp_sky, Lsky_side[i, 2], Lsky_down[i, 2], patch_azimuth[i]
+        )
+
+        Lside_sky += Lside_sky_temp
+        Ldown_sky += Ldown_sky_temp
+        Least += Least_temp
+        Lsouth += Lsouth_temp
+        Lwest += Lwest_temp
+        Lnorth += Lnorth_temp
+
+        # Longwave radiation from vegetation
+        (
+            Lside_veg_temp,
+            Ldown_veg_temp,
+            Least_temp,
+            Lsouth_temp,
+            Lwest_temp,
+            Lnorth_temp,
+        ) = patch_radiation.longwave_from_veg(
+            temp_vegsh,
+            steradians[i],
+            angle_of_incidence,
+            angle_of_incidence_h,
+            patch_altitude[i],
+            patch_azimuth[i],
+            ewall,
+            Ta,
+        )
+
+        Lside_veg += Lside_veg_temp
+        Ldown_veg += Ldown_veg_temp
+        Least += Least_temp
+        Lsouth += Lsouth_temp
+        Lwest += Lwest_temp
+        Lnorth += Lnorth_temp
+
+        # Longwave radiation from buildings
+        if wallScheme == 0:
+            azimuth_difference = np.abs(solar_azimuth - patch_azimuth[i])
+
             (
-                Lside_sky_temp,
-                Ldown_sky_temp,
+                Lside_sun_temp,
+                Lside_sh_temp,
+                Ldown_sun_temp,
+                Ldown_sh_temp,
                 Least_temp,
                 Lsouth_temp,
                 Lwest_temp,
                 Lnorth_temp,
-            ) = patch_radiation.longwave_from_sky(
-                temp_sky, Lsky_side[i, 2], Lsky_down[i, 2], patch_azimuth[i]
-            )
-
-            Lside_sky += Lside_sky_temp
-            Ldown_sky += Ldown_sky_temp
-            Least += Least_temp
-            Lsouth += Lsouth_temp
-            Lwest += Lwest_temp
-            Lnorth += Lnorth_temp
-
-            # Longwave radiation from vegetation
-            (
-                Lside_veg_temp,
-                Ldown_veg_temp,
-                Least_temp,
-                Lsouth_temp,
-                Lwest_temp,
-                Lnorth_temp,
-            ) = patch_radiation.longwave_from_veg(
-                temp_vegsh,
+            ) = patch_radiation.longwave_from_buildings(
+                temp_sh,
                 steradians[i],
                 angle_of_incidence,
                 angle_of_incidence_h,
-                patch_altitude[i],
                 patch_azimuth[i],
+                sunlit_patches,
+                shaded_patches,
+                azimuth_difference,
+                solar_altitude,
                 ewall,
                 Ta,
+                Tgwall,
             )
 
-            Lside_veg += Lside_veg_temp
-            Ldown_veg += Ldown_veg_temp
-            Least += Least_temp
-            Lsouth += Lsouth_temp
-            Lwest += Lwest_temp
-            Lnorth += Lnorth_temp
+        else:
+            azimuth_difference = np.abs(solar_azimuth - patch_azimuth[i])
+            # print('Building pixels = ' + str(temp_sh.sum()))
+            # print('Building pixels wall scheme = ' + str(np.sum(temp_sh_w > 0)))
+            (
+                Lside_sun_temp,
+                Lside_sh_temp,
+                Ldown_sun_temp,
+                Ldown_sh_temp,
+                Least_temp,
+                Lsouth_temp,
+                Lwest_temp,
+                Lnorth_temp,
+            ) = patch_radiation.longwave_from_buildings_wallScheme(
+                temp_sh_w,
+                voxelTable,
+                steradians[i],
+                angle_of_incidence,
+                angle_of_incidence_h,
+                patch_azimuth[i],
+            )
 
-            # Longwave radiation from buildings
-            if wallScheme == 0:
-                azimuth_difference = np.abs(solar_azimuth - patch_azimuth[i])
+            (
+                Lside_sun_r_temp,
+                Lside_sh_r_temp,
+                Ldown_sun_r_temp,
+                Ldown_sh_r_temp,
+                Least_r_temp,
+                Lsouth_r_temp,
+                Lwest_r_temp,
+                Lnorth_r_temp,
+            ) = patch_radiation.longwave_from_buildings(
+                temp_sh_roof,
+                steradians[i],
+                angle_of_incidence,
+                angle_of_incidence_h,
+                patch_azimuth[i],
+                sunlit_patches,
+                shaded_patches,
+                azimuth_difference,
+                solar_altitude,
+                ewall,
+                Ta,
+                Tgwall,
+            )
 
-                (
-                    Lside_sun_temp,
-                    Lside_sh_temp,
-                    Ldown_sun_temp,
-                    Ldown_sh_temp,
-                    Least_temp,
-                    Lsouth_temp,
-                    Lwest_temp,
-                    Lnorth_temp,
-                ) = patch_radiation.longwave_from_buildings(
-                    temp_sh,
-                    steradians[i],
-                    angle_of_incidence,
-                    angle_of_incidence_h,
-                    patch_azimuth[i],
-                    sunlit_patches,
-                    shaded_patches,
-                    azimuth_difference,
-                    solar_altitude,
-                    ewall,
-                    Ta,
-                    Tgwall,
-                )
+            Lside_sun_temp += Lside_sun_r_temp
+            Lside_sh_temp += Lside_sh_r_temp
+            Ldown_sun_temp += Ldown_sun_r_temp
+            Ldown_sh_temp += Ldown_sh_r_temp
+            Least_temp += Least_r_temp
+            Lsouth_temp += Lsouth_r_temp
+            Lwest_temp += Lwest_r_temp
+            Lnorth_temp += Lnorth_r_temp
 
-            else:
-                azimuth_difference = np.abs(solar_azimuth - patch_azimuth[i])
-                # print('Building pixels = ' + str(temp_sh.sum()))
-                # print('Building pixels wall scheme = ' + str(np.sum(temp_sh_w > 0)))
-                (
-                    Lside_sun_temp,
-                    Lside_sh_temp,
-                    Ldown_sun_temp,
-                    Ldown_sh_temp,
-                    Least_temp,
-                    Lsouth_temp,
-                    Lwest_temp,
-                    Lnorth_temp,
-                ) = patch_radiation.longwave_from_buildings_wallScheme(
-                    temp_sh_w,
-                    voxelTable,
-                    steradians[i],
-                    angle_of_incidence,
-                    angle_of_incidence_h,
-                    patch_azimuth[i],
-                )
+        Lside_sun += Lside_sun_temp
+        Lside_sh += Lside_sh_temp
+        Ldown_sun += Ldown_sun_temp
+        Ldown_sh += Ldown_sh_temp
+        Least += Least_temp
+        Lsouth += Lsouth_temp
+        Lwest += Lwest_temp
+        Lnorth += Lnorth_temp
 
-                (
-                    Lside_sun_r_temp,
-                    Lside_sh_r_temp,
-                    Ldown_sun_r_temp,
-                    Ldown_sh_r_temp,
-                    Least_r_temp,
-                    Lsouth_r_temp,
-                    Lwest_r_temp,
-                    Lnorth_r_temp,
-                ) = patch_radiation.longwave_from_buildings(
-                    temp_sh_roof,
-                    steradians[i],
-                    angle_of_incidence,
-                    angle_of_incidence_h,
-                    patch_azimuth[i],
-                    sunlit_patches,
-                    shaded_patches,
-                    azimuth_difference,
-                    solar_altitude,
-                    ewall,
-                    Ta,
-                    Tgwall,
-                )
+        ### CALCULATIONS FOR SHORTWAVE RADIATION ###
+        if solar_altitude > 0:
+            # Shortwave radiation from sky
+            KsideD += (
+                temp_sky * lumChi[i] * angle_of_incidence * steradians[i]
+            )
 
-                Lside_sun_temp += Lside_sun_r_temp
-                Lside_sh_temp += Lside_sh_r_temp
-                Ldown_sun_temp += Ldown_sun_r_temp
-                Ldown_sh_temp += Ldown_sh_r_temp
-                Least_temp += Least_r_temp
-                Lsouth_temp += Lsouth_r_temp
-                Lwest_temp += Lwest_r_temp
-                Lnorth_temp += Lnorth_r_temp
+            # Shortwave reflected on sunlit surfaces
+            # sunlit_surface = ((albedo * radG) / np.pi)
+            sunlit_surface = (
+                albedo * (radI * np.cos(solar_altitude * deg2rad))
+                + (radD * 0.5)
+            ) / np.pi
+            # Shortwave reflected on shaded surfaces and vegetation
+            shaded_surface = (albedo * radD * 0.5) / np.pi
 
-            Lside_sun += Lside_sun_temp
-            Lside_sh += Lside_sh_temp
-            Ldown_sun += Ldown_sun_temp
-            Ldown_sh += Ldown_sh_temp
-            Least += Least_temp
-            Lsouth += Lsouth_temp
-            Lwest += Lwest_temp
-            Lnorth += Lnorth_temp
+            # Shortwave radiation from vegetation
+            Kref_veg += (
+                shaded_surface
+                * temp_vegsh
+                * steradians[i]
+                * angle_of_incidence
+            )
 
-            ### CALCULATIONS FOR SHORTWAVE RADIATION ###
-            if solar_altitude > 0:
-                # Shortwave radiation from sky
-                KsideD += (
-                    temp_sky * lumChi[i] * angle_of_incidence * steradians[i]
-                )
-
-                # Shortwave reflected on sunlit surfaces
-                # sunlit_surface = ((albedo * radG) / np.pi)
-                sunlit_surface = (
-                    albedo * (radI * np.cos(solar_altitude * deg2rad))
-                    + (radD * 0.5)
-                ) / np.pi
-                # Shortwave reflected on shaded surfaces and vegetation
-                shaded_surface = (albedo * radD * 0.5) / np.pi
-
-                # Shortwave radiation from vegetation
-                Kref_veg += (
-                    shaded_surface
-                    * temp_vegsh
-                    * steradians[i]
-                    * angle_of_incidence
-                )
-
-                # Shortwave radiation from buildings
-                Kref_sun += (
-                    sunlit_surface
-                    * sunlit_patches
-                    * temp_sh
-                    * steradians[i]
-                    * angle_of_incidence
-                )
-                Kref_sh += (
-                    shaded_surface
-                    * shaded_patches
-                    * temp_sh
-                    * steradians[i]
-                    * angle_of_incidence
-                )
+            # Shortwave radiation from buildings
+            Kref_sun += (
+                sunlit_surface
+                * sunlit_patches
+                * temp_sh
+                * steradians[i]
+                * angle_of_incidence
+            )
+            Kref_sh += (
+                shaded_surface
+                * shaded_patches
+                * temp_sh
+                * steradians[i]
+                * angle_of_incidence
+            )
 
     # Calculate reflected longwave in each patch
     for idx in np.arange(patch_altitude.shape[0]):
