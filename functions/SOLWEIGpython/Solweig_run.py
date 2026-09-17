@@ -653,7 +653,7 @@ def solweig_run(configPath, feedback):
         # Initiate the maps if the surface temperature is available
         if configDict["input_surf"] != "":
             surfData = pd.read_csv(configDict["input_surf"])
-            Tg = surfData["Tg"]
+            TgGroundScheme = surfData["Tg"]
             Tm = np.mean(surfData["Tg"])
             (
                 _,
@@ -671,7 +671,7 @@ def solweig_run(configPath, feedback):
             )
         else:
             (
-                Tg,
+                TgGroundScheme,
                 Tm,
                 Rn,
                 Rn_past,
@@ -685,7 +685,18 @@ def solweig_run(configPath, feedback):
                 lcgrid.copy(), param, DOY[0], Ta, location
             )
     else:
-        pass
+        TgGroundScheme = None
+        Rn = None
+        Rn_past = None
+        G = None
+        Tm = None
+        cap_grid = None
+        diff_grid = None
+        a1_grid = None
+        a2_grid = None
+        a3_grid = None
+        #shadow = None 
+        #pass
     
     # Replace the ground view factors with integration of solid angles
     outgoingLW = int(configDict["outgoinglongwave"])
@@ -818,6 +829,7 @@ def solweig_run(configPath, feedback):
 
     # Main loop
     tmrtplot = np.zeros((rows, cols))
+    TgOut1 = np.zeros((rows, cols))        
 
     # Initiate array for I0 values
     if np.unique(DOY).shape[0] > 1:
@@ -933,6 +945,7 @@ def solweig_run(configPath, feedback):
             Rn_past,
             Tm,
             G,
+            TgGroundScheme,
         ) = so.Solweig_2026a_calc(
             i,
             dsm,
@@ -1010,6 +1023,7 @@ def solweig_run(configPath, feedback):
             Tgmap1W,
             Tgmap1N,
             CI,
+            TgOut1,
             diffsh,
             shmat,
             vegshmat,
@@ -1027,7 +1041,7 @@ def solweig_run(configPath, feedback):
             dirwalls_scheme,
             groundSurface,
             outgoingLW,
-            Tg,
+            TgGroundScheme,
             Rn,
             Rn_past,
             G,
@@ -1039,6 +1053,7 @@ def solweig_run(configPath, feedback):
             a3_grid,
             shadow,
         )
+         
 
         # Save I0 for I0 vs. Kdown output plot to check if UTC is off
         if i < first_unique_day.shape[0]:

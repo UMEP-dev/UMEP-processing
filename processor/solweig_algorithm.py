@@ -334,7 +334,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterBoolean(
                 self.USE_OUTGOINGLW,
                 self.tr("Use upwelling longwave radiation from v2026a"),
-                defaultValue=True,
+                defaultValue=False,
                 optional=True,
             )
         )
@@ -763,10 +763,10 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         folderPathPerez = self.parameterAsString(
             parameters, self.INPUT_ANISO, context
         )
-        useGroundScheme = self.parameterAsString(
+        useGroundScheme = self.parameterAsBool(
             parameters, self.USE_GROUNDSCHEME, context
         )
-        useOutgoingLW = self.parameterAsString(
+        useOutgoingLW = self.parameterAsBool(
             parameters, self.USE_OUTGOINGLW, context
         )     
         groundTempFile = self.parameterAsString(

@@ -123,6 +123,7 @@ def Solweig_2026a_calc(
     Tgmap1W,
     Tgmap1N,
     CI,
+    TgOut1,
     diffsh,
     shmat,
     vegshmat,
@@ -140,7 +141,7 @@ def Solweig_2026a_calc(
     dirwalls_scheme,
     groundScheme,
     outgoingLW,
-    Tg,
+    TgGroundScheme,
     Rn,
     Rn_past,
     G,
@@ -376,7 +377,7 @@ def Solweig_2026a_calc(
                 Rn,
                 Rn_past,
                 G,
-                Tg,
+                TgGroundScheme,
                 Tm,
                 alb_grid,
                 emis_grid,
@@ -395,7 +396,7 @@ def Solweig_2026a_calc(
         else:
             # using max sun alt instead of dfm
             Tgamp = TgK * altmax + Tstart  # Fixed 2021
-            Tgdiff = Tgamp * np.sin(
+            Tg = Tgamp * np.sin(
                 (
                     ((dectime - np.floor(dectime)) - SNUP / 24)
                     / (TmaxLST / 24 - SNUP / 24)
@@ -404,12 +405,12 @@ def Solweig_2026a_calc(
                 / 2
             )  # 2015 a, based on max sun altitude
 
-            Tgdiff = Tgdiff * CI_TgG  # new estimation
+            Tg = Tg * CI_TgG  # new estimation
 
-            # For Tg output in POIs
-            TgTemp = Tgdiff * shadow + Ta
-            _, timeadd, Tg = TsWaveDelay_2015a(
-                TgTemp, firstdaytime, timeadd, timestepdec, Tg
+            # # For Tg output in POIs
+            TgTemp = Tg * shadow + Ta
+            TgOut, timeadd, TgOut1 = TsWaveDelay_2015a(
+                TgTemp, firstdaytime, timeadd, timestepdec, TgOut1
             )  # timeadd only here v2021a
 
             if landcover == 1:
@@ -621,6 +622,7 @@ def Solweig_2026a_calc(
 
         # Surface temperature parameterization
         if groundScheme == 1:
+            print('Elliot1')
             # calculate the ground surface temperature, and relevant heat fluxes
             Tg, Rn, Rn_past, G = surfaceTemperature_calc(
                 Kdown,
@@ -628,7 +630,7 @@ def Solweig_2026a_calc(
                 Rn,
                 Rn_past,
                 G,
-                Tg,
+                TgGroundScheme,
                 Tm,
                 alb_grid,
                 emis_grid,
@@ -650,6 +652,7 @@ def Solweig_2026a_calc(
 
         # Calculate the outgoing longwave radiation
         if outgoingLW == 1:
+            print('Elliot2')
             # According to the solid angle parameterization
             # # # # Lup, daytime # # # #
             (
@@ -772,7 +775,7 @@ def Solweig_2026a_calc(
     Lsouth += Lsouth_
     Lwest += Lwest_
     Lnorth += Lnorth_
-    Lside = (Lsouth + Lnorth + Least + Lwest) / 4
+    #Lside = (Lsouth + Lnorth + Least + Lwest) / 4
 
     ### Anisotropic sky
     if anisotropic_sky == 1:
@@ -813,7 +816,7 @@ def Solweig_2026a_calc(
 
         (
             Ldown,
-            Lside_,
+            Lside,
             Lside_sky,
             Lside_veg,
             Lside_sh,
@@ -864,9 +867,9 @@ def Solweig_2026a_calc(
             KupN,
             i,
         )
-        Lside += Lside_
+        #Lside += Lside_
     else:
-        Lside_ = np.zeros((rows, cols))
+        Lside = np.zeros((rows, cols))
         L_patches = None
 
     # Box and anisotropic longwave
@@ -959,4 +962,5 @@ def Solweig_2026a_calc(
         Rn_past,
         Tm,
         G,
+        TgGroundScheme,
     )
