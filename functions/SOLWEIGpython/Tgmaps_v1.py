@@ -6,8 +6,9 @@ def Tgmaps_v1(lc_grid, solweig_parameters):
     # Tgmaps_v1 Populates grids with cooeficients for Tg wave
     #   Detailed explanation goes here
     lc_grid[lc_grid >= 100] = 2
-    id = np.unique(lc_grid)
-    id = lc_grid[lc_grid <= 7].astype(int)
+    # id = np.unique(lc_grid)
+    # id = lc_grid[lc_grid <= 7].astype(int)
+    id = np.unique(lc_grid[lc_grid <= 7]).astype(int)
     TgK = np.copy(lc_grid)
     Tstart = np.copy(lc_grid)
     alb_grid = np.copy(lc_grid)
