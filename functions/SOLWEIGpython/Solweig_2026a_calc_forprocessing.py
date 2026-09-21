@@ -622,7 +622,6 @@ def Solweig_2026a_calc(
 
         # Surface temperature parameterization
         if groundScheme == 1:
-            print('Elliot1')
             # calculate the ground surface temperature, and relevant heat fluxes
             Tg, Rn, Rn_past, G = surfaceTemperature_calc(
                 Kdown,
@@ -652,7 +651,6 @@ def Solweig_2026a_calc(
 
         # Calculate the outgoing longwave radiation
         if outgoingLW == 1:
-            print('Elliot2')
             # According to the solid angle parameterization
             # # # # Lup, daytime # # # #
             (
@@ -817,24 +815,18 @@ def Solweig_2026a_calc(
         (
             Ldown,
             Lside,
-            Lside_sky,
-            Lside_veg,
-            Lside_sh,
-            Lside_sun,
-            Lside_ref,
             Least_,
             Lwest_,
             Lnorth_,
             Lsouth_,
-            Keast,
-            Ksouth,
-            Kwest,
-            Knorth,
+            Keast_,
+            Ksouth_,
+            Kwest_,
+            Knorth_,
             KsideI,
             KsideD,
             Kside,
             steradians,
-            skyalt,
         ) = ani_sky(
             shmat,
             vegshmat,
@@ -895,7 +887,7 @@ def Solweig_2026a_calc(
         Sstr = absK * (
             Kside * Fcyl
             + (Kdown + Kup) * Fup
-            + (Knorth + Keast + Ksouth + Kwest) * Fside
+            + (Knorth_ + Keast_ + Ksouth_ + Kwest_) * Fside
         ) + absL * (
             (Ldown + Lup) * Fup
             + Lside * Fcyl
@@ -913,11 +905,11 @@ def Solweig_2026a_calc(
     Tmrt = np.sqrt(np.sqrt((Sstr / (absL * SBC)))) - 273.2
 
     # Add longwave to cardinal directions for output in POI
-    if (cyl == 1) and (anisotropic_sky == 1):
-        Least += Least_
-        Lwest += Lwest_
-        Lnorth += Lnorth_
-        Lsouth += Lsouth_
+    # if (cyl == 1) and (anisotropic_sky == 1):
+    #     Least += Least_
+    #     Lwest += Lwest_
+    #     Lnorth += Lnorth_
+    #     Lsouth += Lsouth_
 
     return (
         Tmrt,

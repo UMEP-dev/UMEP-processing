@@ -446,11 +446,6 @@ def anisotropic_sky(
     return (
         Ldown,
         Lside,
-        Lside_sky,
-        Lside_veg,
-        Lside_sh,
-        Lside_sun,
-        Lside_ref,
         Least,
         Lwest,
         Lnorth,
@@ -463,5 +458,4 @@ def anisotropic_sky(
         KsideD,
         Kside,
         steradians,
-        skyalt,
     )
