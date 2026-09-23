@@ -188,10 +188,8 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         # InputParameters
         suewsNL = self.parameterAsString(parameters, self.SUEWS_NL, context)
         variaIn = self.parameterAsString(parameters, self.VARIA_IN, context)
-        startday = self.parameterAsString(
-            parameters, self.DATEINISTART, context
-        )
-        endday = self.parameterAsString(parameters, self.DATEINIEND, context)
+        startday = self.parameterAsDateTime(parameters, self.DATEINISTART, context).date().toString(Qt.DateFormat.ISODate)
+        endday = self.parameterAsDateTime(parameters, self.DATEINIEND, context).date().toString(Qt.DateFormat.ISODate)
         inputPolygonlayer = self.parameterAsVectorLayer(
             parameters, self.INPUT_POLYGONLAYER, context
         )
@@ -216,15 +214,11 @@ class ProcessingSuewsAnalyzerAlgorithm(QgsProcessingAlgorithm):
         with open(suewsNL, "r") as f:
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
-        self.fileoutputpath = str(yaml_dict["model"]["control"]["output_file"])
+        self.fileoutputpath = str(yaml_dict["model"]["control"]["output"]["dir"])
+        if not Path(self.fileoutputpath).is_absolute():
+            self.fileoutputpath = str(Path(suewsNL).parent / self.fileoutputpath)
 
-        if self.fileoutputpath.startswith("."):
-            yamlfolder = self.yamlPath[0][:-15]
-            self.fileoutputpath = yamlfolder + self.fileoutputpath[1:]
-
-        resolutionFilesOut = get_resolution_from_file(
-            yaml_dict["model"]["control"]["output_file"]
-        )
+        resolutionFilesOut = get_resolution_from_file(self.fileoutputpath)
         self.resout = int(float(resolutionFilesOut) / 60)
 
         years = extract_suews_years(self.fileoutputpath)

@@ -219,7 +219,7 @@ def get_resolution_from_file(folder_path):
             break
 
     # Step 2: Load the file and compute time resolution
-    df_suews = read_csv(suews_file, delim_whitespace=True)
+    df_suews = read_csv(suews_file, sep=r"\s+")
 
     # Combine Year, DOY, Hour, Min into a datetime index
     df_suews["Datetime"] = to_datetime(
@@ -239,7 +239,7 @@ def get_resolution_from_file(folder_path):
 
 
 def SUEWS_txt_to_df(suews_output_path):
-    df_output_suews = read_csv(suews_output_path, delim_whitespace=True)
+    df_output_suews = read_csv(suews_output_path, sep=r"\s+")
     df_output_suews["Datetime"] = to_datetime(
         df_output_suews[["Year", "DOY", "Hour", "Min"]]
         .astype(str)
@@ -252,7 +252,7 @@ def SUEWS_txt_to_df(suews_output_path):
 
 
 def SUEWS_met_txt_to_df(suews_met_path):
-    df_met_forcing = read_csv(suews_met_path, delim_whitespace=True)
+    df_met_forcing = read_csv(suews_met_path, sep=r"\s+")
     df_met_forcing["Datetime"] = to_datetime(
         df_met_forcing[["iy", "id", "it", "imin"]]
         .astype(str)
