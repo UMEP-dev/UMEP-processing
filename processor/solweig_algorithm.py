@@ -34,7 +34,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
-    QgsProcessingParameterString,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterNumber,
     QgsProcessingParameterFolderDestination,
@@ -325,7 +324,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_GROUNDSCHEME,
-                self.tr("Use surface temperature parameterization v2026a"),
+                self.tr("Use surface temperature parameterization v2026a [EXPERIMENTAL]"),
                 defaultValue=False,
                 optional=True,
             )
@@ -333,7 +332,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.USE_OUTGOINGLW,
-                self.tr("Use upwelling longwave radiation from v2026a"),
+                self.tr("Use upwelling longwave radiation from v2026a [EXPERIMENTAL]"),
                 defaultValue=False,
                 optional=True,
             )
@@ -341,7 +340,7 @@ class ProcessingSOLWEIGAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 self.INPUT_GROUNDSCHEME,
-                self.tr("Ground surface temperature data (.txt)"),
+                self.tr("Ground surface temperature data (.txt) [EXPERIMENTAL]"),
                 extension="txt",
                 optional=True,
             )
