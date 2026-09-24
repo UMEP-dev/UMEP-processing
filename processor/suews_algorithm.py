@@ -111,6 +111,9 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                 ),
                 "3",
             ),
+            (self.tr("1001. (LDOWN_SS_OBSERVED) SPARTACUS-Surface, Ldown observed"), "1001"),
+            (self.tr("1002. (LDOWN_SS_CLOUD) SPARTACUS-Surface, Ldown from cloud cover"), "1002"),
+            (self.tr("1003. (LDOWN_SS_AIR) SPARTACUS-Surface, Ldown from Ta and RH"), "1003"),
         )
         self.anthro = (
             (
@@ -159,7 +162,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
                 self.tr(
                     "7. (STEBBS) = use STEBBS storage heat flux for building, others use OHM"
                 ),
-                "6",
+                "7",
             ),
         )
         self.ohm = (
@@ -501,43 +504,20 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         with open(infile, "r") as f:
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
-        yaml_dict["model"]["physics"]["snowuse"]["value"] = int(usesnow)
-        yaml_dict["model"]["physics"]["netradiationmethod"]["value"] = int(
-            self.net[int(net)][1]
-        )
-        yaml_dict["model"]["physics"]["emissionsmethod"]["value"] = int(
-            self.anthro[int(qf)][1]
-        )
-        yaml_dict["model"]["physics"]["ohmincqf"]["value"] = int(
-            self.ohm[int(ohm)][1]
-        )
-        yaml_dict["model"]["physics"]["stabilitymethod"]["value"] = int(
-            self.stab[int(stab)][1]
-        )
-        yaml_dict["model"]["physics"]["storageheatmethod"]["value"] = int(
-            self.storage[int(qs)][1]
-        )
-        yaml_dict["model"]["physics"]["roughlenmommethod"]["value"] = int(
-            self.z0m[int(z0m)][1]
-        )
-        yaml_dict["model"]["physics"]["roughlenheatmethod"]["value"] = int(
-            self.z0h[int(z0h)][1]
-        )
-        yaml_dict["model"]["physics"]["smdmethod"]["value"] = int(
-            self.smd[int(smd)][1]
-        )
-        yaml_dict["model"]["physics"]["waterusemethod"]["value"] = int(
-            self.wu[int(wu)][1]
-        )
-        yaml_dict["model"]["physics"]["rslmethod"] = int(
-            self.rslmethod[int(rslmethod)][1]
-        )
-        yaml_dict["model"]["physics"]["rsllevel"] = int(
-            self.rsllevel[int(rsllevel)][1]
-        )
-        yaml_dict["model"]["control"]["output_file"]["path"] = (
-            str(outfolder) + "/"
-        )
+        yaml_dict["model"]["physics"]["snow"] = {"value": int(usesnow)}
+        yaml_dict["model"]["physics"]["net_radiation"] = {"value": int(self.net[int(net)][1])}
+        yaml_dict["model"]["physics"]["emissions"] = {"value": int(self.anthro[int(qf)][1])}
+        yaml_dict["model"]["physics"]["ohm_inc_qf"] = {"value": int(self.ohm[int(ohm)][1])}
+        yaml_dict["model"]["physics"]["stability"] = {"value": int(self.stab[int(stab)][1])}
+        yaml_dict["model"]["physics"]["storage_heat"] = {"value": int(self.storage[int(qs)][1])}
+        yaml_dict["model"]["physics"]["roughness_length_momentum"] = {"value": int(self.z0m[int(z0m)][1])}
+        yaml_dict["model"]["physics"]["roughness_length_heat"] = {"value": int(self.z0h[int(z0h)][1])}
+        yaml_dict["model"]["physics"]["soil_moisture_deficit"] = {"value": int(self.smd[int(smd)][1])}
+        yaml_dict["model"]["physics"]["water_use"] = {"value": int(self.wu[int(wu)][1])}
+        yaml_dict["model"]["physics"]["roughness_sublayer"] = {"value": int(self.rslmethod[int(rslmethod)][1])}
+        yaml_dict["model"]["physics"]["roughness_sublayer_level"] = {"value": int(self.rsllevel[int(rsllevel)][1])}
+        yaml_dict["model"]["physics"].setdefault("stebbs", {})["enabled"] = self.storage[int(qs)][1] == "7"
+        yaml_dict["model"]["control"]["output"]["dir"] = str(outfolder) + "/"
 
         with open(infile, "w") as file:
             yaml.dump(yaml_dict, file, sort_keys=False)
@@ -587,7 +567,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
             yaml_dict = yaml.load(f, Loader=yaml.SafeLoader)
 
         feedback.setProgressText("Saving to disk")
-        sim.save(yaml_dict["model"]["control"]["output_file"])
+        sim.save(yaml_dict["model"]["control"]["output"]["dir"])
 
         # # SuPy simulation OLD
         # feedback.setProgressText("Running model (QGIS not responsive)")
@@ -612,7 +592,7 @@ class ProcessingSuewsAlgorithm(QgsProcessingAlgorithm):
         return "Urban Energy Balance: SUEWS"
 
     def displayName(self):
-        return self.tr("Urban Energy Balance: SUEWS v2026.1.28rc1")
+        return self.tr("Urban Energy Balance: SUEWS v2026.6.5")
 
     def group(self):
         return self.tr(self.groupId())
