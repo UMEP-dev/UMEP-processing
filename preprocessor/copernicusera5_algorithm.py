@@ -172,6 +172,9 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
 
         new_cs = osr.SpatialReference()
         new_cs.ImportFromWkt(wgs84_wkt)
+        if hasattr(osr, "OAMS_TRADITIONAL_GIS_ORDER"):
+            old_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+            new_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
         transform = osr.CoordinateTransformation(old_cs, new_cs)
 
@@ -180,13 +183,8 @@ class ProcessingCopernicusERA5Algorithm(QgsProcessingAlgorithm):
         )
         latlon.Transform(transform)
 
-        gdalver = float(gdal.__version__[0])
-        if gdalver == 3.0:
-            lon = latlon.GetY()
-            lat = latlon.GetX()
-        else:
-            lat = latlon.GetY()
-            lon = latlon.GetX()
+        lon = latlon.GetX()
+        lat = latlon.GetY()
 
         feedback.setProgressText("SuPy version: " + ver_supy)
         feedback.setProgressText("INPUT PARAMETERS:")

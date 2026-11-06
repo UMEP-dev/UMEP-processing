@@ -432,9 +432,6 @@ def solweig_run(configPath, feedback):
             #         poisxy[ind, 2] = np.round((miny + rows * (1. / scale) - y) * scale)
             #     ind += 1
 
-            poi_field = configDict[
-                "woi_field"
-            ]  # self.parameterAsStrings(parameters, self.WOI_FIELD, context)
             poisxy, poiname = pointOfInterest(
                 configDict["poi_file"], poi_field, scale, gdal_dsm
             )
@@ -587,11 +584,9 @@ def solweig_run(configPath, feedback):
         vegshmat = data["vegshadowmat"]
         vbshvegshmat = data["vbshmat"]
         if usevegdem == 1:
-            diffsh = np.zeros((rows, cols, shmat.shape[2]))
-            for i in range(0, shmat.shape[2]):
-                diffsh[:, :, i] = shmat[:, :, i] - (1 - vegshmat[:, :, i]) * (
-                    1 - transVeg
-                )  # changes in psi not implemented yet
+            diffsh = shmat - (1 - vegshmat) * (
+                1 - transVeg
+            )  # changes in psi not implemented yet
         else:
             diffsh = shmat
 

@@ -247,9 +247,7 @@ def Solweig_2025a_calc(
             )
             # Total relative luminance from sky, i.e. from each patch, into
             # each cell
-            aniLum = np.zeros((rows, cols))
-            for idx in range(lv.shape[0]):
-                aniLum += diffsh[:, :, idx] * lv[idx, 2]
+            aniLum = diffsh @ lv[:, 2]
 
             dRad = (
                 aniLum * radD
@@ -505,7 +503,7 @@ def Solweig_2025a_calc(
         # # # # Lup # # # #
         Lup = SBC * emis_grid * ((Knight + Ta + Tg + 273.15) ** 4)
         if landcover == 1:
-            Lup[lc_grid == 3] = (
+            Lup[lc_grid == 7] = (
                 SBC * 0.98 * (Twater + 273.15) ** 4
             )  # nocturnal Water temp
 

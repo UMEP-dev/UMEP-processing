@@ -88,18 +88,15 @@ def xy2latlon(crsWtkIn, x, y):
 
     new_cs = osr.SpatialReference()
     new_cs.ImportFromWkt(wgs84_wkt)
+    if hasattr(osr, "OAMS_TRADITIONAL_GIS_ORDER"):
+        old_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        new_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
     transform = osr.CoordinateTransformation(old_cs, new_cs)
 
     lonlat = transform.TransformPoint(x, y)
-
-    gdalver = float(gdal.__version__[0])
-    if gdalver >= 3.0:
-        lon = lonlat[1]  # changed to gdal 3
-        lat = lonlat[0]  # changed to gdal 3
-    else:
-        lon = lonlat[0]  # changed to gdal 2
-        lat = lonlat[1]  # changed to gdal 2
+    lon = lonlat[0]
+    lat = lonlat[1]
 
     return lat, lon
 
@@ -297,6 +294,9 @@ def xy2latlon_fromraster(crsWtkIn, gdal_dsm):
 
     new_cs = osr.SpatialReference()
     new_cs.ImportFromWkt(wgs84_wkt)
+    if hasattr(osr, "OAMS_TRADITIONAL_GIS_ORDER"):
+        old_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        new_cs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
     transform = osr.CoordinateTransformation(old_cs, new_cs)
     widthx = gdal_dsm.RasterXSize
@@ -308,13 +308,8 @@ def xy2latlon_fromraster(crsWtkIn, gdal_dsm):
     )
 
     lonlat = transform.TransformPoint(minx, miny)
-    gdalver = float(gdal.__version__[0])
-    if gdalver == 3.0:
-        lon = lonlat[1]  # changed to gdal 3
-        lat = lonlat[0]  # changed to gdal 3
-    else:
-        lon = lonlat[0]  # changed to gdal 2
-        lat = lonlat[1]  # changed to gdal 2
+    lon = lonlat[0]
+    lat = lonlat[1]
     scale = 1 / geotransform[1]
 
     return lat, lon, scale, minx, miny
